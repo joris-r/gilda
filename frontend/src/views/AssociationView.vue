@@ -91,6 +91,10 @@ async function add() {
   </p>
   <template v-if="association">
     <h1>{{ association.name }}</h1>
+    <p class="links">
+      <RouterLink :to="`/associations/${id}/schedule`">{{ t('association.schedule') }}</RouterLink>
+      <RouterLink :to="`/associations/${id}/opening`">{{ t('association.opening') }}</RouterLink>
+    </p>
     <h2>{{ t('association.members') }}</h2>
     <ul class="list">
       <li v-for="member in members" :key="member.user_id">

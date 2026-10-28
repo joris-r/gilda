@@ -49,7 +49,55 @@
     "addMember": "Ajouter un membre",
     "submit": "Ajouter",
     "added": "{name} ajouté·e.",
-    "alreadyMember": "{name} est déjà membre."
+    "alreadyMember": "{name} est déjà membre.",
+    "schedule": "Planning",
+    "opening": "Horaires d'ouverture"
+  },
+  "weekdays": {
+    "monday": "Lundi",
+    "tuesday": "Mardi",
+    "wednesday": "Mercredi",
+    "thursday": "Jeudi",
+    "friday": "Vendredi",
+    "saturday": "Samedi",
+    "sunday": "Dimanche"
+  },
+  "opening": {
+    "title": "Horaires d'ouverture",
+    "slots": "Créneaux",
+    "noSlots": "Aucun créneau pour le moment.",
+    "day": "Jour",
+    "from": "De",
+    "to": "À",
+    "addSlot": "Ajouter le créneau",
+    "closures": "Fermetures",
+    "noClosures": "Aucune fermeture.",
+    "first": "Du",
+    "last": "Au",
+    "label": "Libellé",
+    "addClosure": "Ajouter la fermeture",
+    "delete": "Supprimer",
+    "slotExists": "Ce créneau existe déjà.",
+    "invalid": "Vérifiez les dates et heures : le début vient avant la fin."
+  },
+  "schedule": {
+    "title": "Planning",
+    "week": "Semaine {n} · {range}",
+    "today": "Aujourd'hui · {date}",
+    "hour": "{h}h",
+    "obsolete": "obsolète",
+    "closed": "Fermé",
+    "more": "Plus de semaines",
+    "empty": "Aucune ouverture sur ces semaines.",
+    "signUp": "S'inscrire",
+    "proposeTo": "Proposer à :",
+    "confirm": "Confirmer",
+    "cancel": "Annuler l'inscription…",
+    "askCancel": "Annuler cette inscription ?",
+    "yesCancel": "Oui, annuler",
+    "keep": "La garder",
+    "close": "Fermer",
+    "taken": "Quelqu'un a pris ce créneau entre-temps."
   },
   "error": "Une erreur est survenue. Réessayez."
 }

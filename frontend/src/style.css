@@ -8,6 +8,12 @@
   --accent: #c4561d;
   --accent-fg: #ffffff;
   --danger: #a5332b;
+  --ok: #2e7d3a;
+  --ok-soft: #dcf0de;
+  --warn: #c96a0c;
+  --warn-soft: #fce8d2;
+  --bad: #b3261e;
+  --bad-soft: #f9e0de;
   font-family: system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.5;
@@ -23,6 +29,12 @@
     --accent: #f08a52;
     --accent-fg: #1a0f08;
     --danger: #ef8a80;
+    --ok: #6fcf7f;
+    --ok-soft: #1f3a24;
+    --warn: #f5a05a;
+    --warn-soft: #452a12;
+    --bad: #ff8a80;
+    --bad-soft: #4a1f1c;
   }
 }
 
@@ -200,4 +212,11 @@ button.link {
 .ok {
   margin: 0;
   color: var(--accent);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: -8px 0 0;
 }
