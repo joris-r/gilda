@@ -1,9 +1,3 @@
-# scenarios: the user scenarios of the end-to-end suite
-
-A new page `spec/main/scenarios.md`, with one scenario.
-
-## `scenarios.md` (new)
-
 # Scenarios
 
 ## A volunteer becomes manager
@@ -18,11 +12,3 @@ A new page `spec/main/scenarios.md`, with one scenario.
    promotes Chloé: "Chloé is now manager." He signs out.
 5. Chloé signs in. My associations shows Jardin partagé, MANAGER. She
    signs out.
-
-## `technical.md`
-
-Replaces the End-to-end item of the test and quality policy:
-
-- End-to-end: Playwright against the running backend, frontend and
-  database, one test per scenario of `scenarios.md`. Tests check text
-  and behavior, never screenshots or appearance.
