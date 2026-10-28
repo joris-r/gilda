@@ -16,36 +16,24 @@ The interface is in English and French.
 
 ## Run
 
-Start PostgreSQL:
+Everything goes through `make`; `make help` lists the targets.
 
 ```sh
-docker compose up -d
-export DATABASE_URL=postgresql+asyncpg://gilda:gilda@localhost:5432/gilda
+make install      # dependencies of every part
+make dev          # PostgreSQL, migrations, then backend and frontend with reload
 ```
 
-Backend:
-
-```sh
-cd backend
-uv sync
-uv run litestar --app gilda.app:create_app database upgrade
-uv run litestar --app gilda.app:create_app run --reload
-```
-
-Frontend:
-
-```sh
-cd frontend
-npm install
-npm run dev       # proxies /api to the backend on port 8000
-```
+The frontend dev server proxies `/api` to the backend on port 8000.
+`DATABASE_URL` defaults to the local PostgreSQL of `compose.yaml`;
+set `COMPOSE=podman compose` to use Podman.
 
 ## Test
 
 ```sh
-cd backend && uv run pytest
-cd frontend && npm test
-cd e2e && npm test        # builds the frontend and starts the backend
+make test         # backend, frontend and end-to-end suites
+make lint         # quality checks, changing nothing
+make format       # fix lint and formatting
+make check        # lint and test: run before every hand-over
 ```
 
 The development process is Dev43: see `spec/`.
