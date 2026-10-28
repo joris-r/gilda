@@ -3,7 +3,7 @@
 ## `/`, signed out: Sign in
 
 ```
-Gilda                                      [English ▾]
+(logo)                                     [English ▾]
 
 Sign in
   Email     [                    ]
@@ -19,7 +19,7 @@ No account yet? Create an account
 ## `/signup`: Create an account
 
 ```
-Gilda                                      [English ▾]
+(logo)                                     [English ▾]
 
 Create an account
   Display name  [                ]
@@ -37,7 +37,7 @@ Already have an account? Sign in
 ## `/`, signed in: My associations
 
 ```
-Gilda                          Alice  Sign out  [English ▾]
+(logo)                         Alice  Sign out  [English ▾]
 
 My associations
   Jardin partagé des Lilas                 MANAGER
@@ -58,10 +58,11 @@ Create an association
 As a manager:
 
 ```
-Gilda                          Alice  Sign out  [English ▾]
+(logo)                         Alice  Sign out  [English ▾]
 
 ← My associations
 Jardin partagé des Lilas
+Schedule  Opening hours
 
 Members
   Alice                                  MANAGER  Change role
@@ -77,6 +78,8 @@ Add a member
   [Add member]
 ```
 
+- "Schedule" and "Opening hours" lead to those pages of the
+  association.
 - Members are listed managers first, then by display name.
 - "Change role" on Bruno replaces his line's actions with
   "Make Bruno manager? [Confirm] Cancel"; Confirm changes the role
