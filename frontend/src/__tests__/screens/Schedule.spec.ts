@@ -189,10 +189,14 @@ describe('Schedule', () => {
     expect(slotItem(await mounting, 'Sat 31 Oct', '10–13').text()).toMatch(/Alice\s*\?/)
   })
 
-  it('an occurrence without registration shows "nobody"', async () => {
+  it('an occurrence without registration shows its times only', async () => {
     const { mounting } = mountSchedule()
 
-    expect(slotItem(await mounting, 'Thu 19 Nov', '10–13').text()).toContain('nobody')
+    expect(
+      slotItem(await mounting, 'Thu 19 Nov', '10–13')
+        .text()
+        .trim(),
+    ).toBe('10–13')
   })
 
   it('a cancelled registration shows its name struck', async () => {
