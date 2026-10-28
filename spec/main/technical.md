@@ -5,7 +5,7 @@
   - `frontend/`: the web interface.
   - `e2e/`: the end-to-end tests.
 - Backend layout, under `backend/src/gilda/`:
-  - One folder per domain (e.g. `health/`), each with its own files,
+  - One folder per domain (e.g. `core/`), each with its own files,
     present only when needed:
     - `controllers.py`: the Litestar controllers.
     - `models.py`: the SQLAlchemy models.
@@ -30,6 +30,10 @@
   - Translations live in one file per language; English is the
     reference, every key has a French translation.
 - API: JSON, every endpoint under `/api`.
+- Every entity is identified by a UUIDv7.
+- Passwords are stored hashed with Argon2, never in clear.
+- Sessions are server-side, stored in PostgreSQL; the browser keeps
+  only a session identifier, in an `HttpOnly` cookie.
 - Deployment: one alwaysdata site. Litestar serves the API under
   `/api` and the built frontend files for every other path.
 - Local development: `compose.yaml` runs PostgreSQL.
