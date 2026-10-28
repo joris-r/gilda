@@ -25,7 +25,7 @@ async function leave() {
 
 <template>
   <header class="top">
-    <RouterLink to="/" class="brand">
+    <RouterLink to="/" class="brand" aria-label="Gilda">
       <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
         <path
           d="M24.49 7.51A12 12 0 1 0 28 16H21"
@@ -37,7 +37,6 @@ async function leave() {
         />
         <circle cx="16" cy="16" r="3" fill="var(--accent)" />
       </svg>
-      Gilda
     </RouterLink>
     <div class="top-actions">
       <template v-if="user">

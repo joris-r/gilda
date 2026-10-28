@@ -86,3 +86,92 @@ export function addMember(id: string, display_name: string, email: string, role:
 export function changeRole(id: string, userId: string, role: Role) {
   return request<Member>('PATCH', `/api/associations/${id}/members/${userId}`, { role })
 }
+
+export type Weekday =
+  'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+
+export type Status = 'proposed' | 'confirmed' | 'cancelled'
+
+export interface Slot {
+  id: string
+  weekday: Weekday
+  start: string
+  end: string
+}
+
+export interface Closure {
+  id: string
+  first: string
+  last: string
+  label: string | null
+}
+
+export interface OccurrenceRegistration {
+  id: string
+  user_id: string
+  display_name: string
+  status: Status
+}
+
+export interface Registration extends OccurrenceRegistration {
+  date: string
+  start: string
+  end: string
+}
+
+export interface Occurrence {
+  date: string
+  start: string
+  end: string
+  registration: OccurrenceRegistration | null
+}
+
+export interface Schedule {
+  occurrences: Occurrence[]
+  obsolete: Registration[]
+  closures: Closure[]
+}
+
+export function listSlots(id: string) {
+  return request<Slot[]>('GET', `/api/associations/${id}/slots`)
+}
+
+export function addSlot(id: string, weekday: Weekday, start: string, end: string) {
+  return request<Slot>('POST', `/api/associations/${id}/slots`, { weekday, start, end })
+}
+
+export function deleteSlot(id: string, slotId: string) {
+  return request<void>('DELETE', `/api/associations/${id}/slots/${slotId}`)
+}
+
+export function listClosures(id: string) {
+  return request<Closure[]>('GET', `/api/associations/${id}/closures`)
+}
+
+export function addClosure(id: string, first: string, last: string, label: string | null) {
+  return request<Closure>('POST', `/api/associations/${id}/closures`, { first, last, label })
+}
+
+export function deleteClosure(id: string, closureId: string) {
+  return request<void>('DELETE', `/api/associations/${id}/closures/${closureId}`)
+}
+
+export function getSchedule(id: string, from: string, to: string) {
+  const query = new URLSearchParams({ from, to })
+  return request<Schedule>('GET', `/api/associations/${id}/schedule?${query}`)
+}
+
+export function register(id: string, userId: string, date: string, start: string, end: string) {
+  return request<Registration>('POST', `/api/associations/${id}/registrations`, {
+    user_id: userId,
+    date,
+    start,
+    end,
+  })
+}
+
+export function setRegistrationStatus(id: string, registrationId: string, status: Status) {
+  return request<Registration>('PATCH', `/api/associations/${id}/registrations/${registrationId}`, {
+    status,
+  })
+}
