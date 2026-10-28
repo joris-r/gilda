@@ -173,6 +173,9 @@ Returns the registration, as `POST` does.
 The Association page gets two links under the name: "Schedule" and
 "Opening hours".
 
+Modified in `core/screens.md`: the header shows the logo alone, without
+the name "Gilda", in every mock-up; it still leads to `/`.
+
 ### `/associations/{id}/opening`: Opening hours
 
 ```
@@ -203,7 +206,7 @@ Schedule
 Week 43 · 19 – 25 Oct
        Thu 22 Oct        Sat 24 Oct
 10h  ┌──────────────┐  ┌──────────────┐
-     │10–13 Alice   │  │10–13 nobody  │
+     │10–13 Alice   │  │10–13         │
 13h  └──────────────┘  └──────────────┘
 
 ── Today · Wednesday 28 October 2026 ───────────────────────
@@ -248,7 +251,8 @@ Sat 31   [Bruno ?    ]
   (look of past days not testable).
 - An occurrence shows its times and its registration's display name:
   green when confirmed; orange with "?" when proposed; red when it has
-  no registration ("nobody") or a cancelled one, whose name is struck.
+  no registration (times only) or a cancelled one, whose name is
+  struck.
   (Colours not testable.)
 - An obsolete registration is placed like an occurrence, by its date,
   start and end, marked "obsolete".
