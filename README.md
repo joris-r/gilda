@@ -24,8 +24,7 @@ make dev          # PostgreSQL, migrations, then backend and frontend with reloa
 ```
 
 The frontend dev server proxies `/api` to the backend on port 8000.
-`DATABASE_URL` defaults to the local PostgreSQL of `compose.yaml`;
-set `COMPOSE=podman compose` to use Podman.
+`DATABASE_URL` defaults to the local PostgreSQL of `compose.yaml`.
 
 ## Test
 

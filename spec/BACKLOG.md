@@ -3,7 +3,6 @@
 - Deploy: run Gilda on alwaysdata (site, PostgreSQL, build and migration steps) to check that the stack works where it will actually live.
 - Planning: volunteers of an association see and fill the schedule (associations, volunteers, time slots).
 - Sessions: purge expired sessions regularly (Advanced Alchemy's delete_expired), so the user_session table stays small.
-- Tooling: drop the Podman option (COMPOSE variable in the Makefile, README line); Docker only.
 
 ## Security
 

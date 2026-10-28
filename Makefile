@@ -1,6 +1,5 @@
 export DATABASE_URL ?= postgresql+asyncpg://gilda:gilda@localhost:5432/gilda
 
-COMPOSE ?= docker compose
 LITESTAR = uv run --directory backend litestar --app gilda.app:create_app
 
 .DEFAULT_GOAL := help
@@ -16,10 +15,10 @@ install: ## Install the dependencies of every part
 	cd e2e && npm install && npx playwright install chromium
 
 db-up: ## Start PostgreSQL
-	$(COMPOSE) up -d --wait
+	docker compose up -d --wait
 
 db-down: ## Stop PostgreSQL
-	$(COMPOSE) down
+	docker compose down
 
 migrate: db-up ## Apply the database migrations
 	$(LITESTAR) database upgrade --no-prompt
