@@ -28,7 +28,7 @@ Backend:
 ```sh
 cd backend
 uv sync
-uv run alembic upgrade head
+uv run litestar --app gilda.app:create_app database upgrade
 uv run litestar --app gilda.app:create_app run --reload
 ```
 
@@ -37,7 +37,7 @@ Frontend:
 ```sh
 cd frontend
 npm install
-npm run dev
+npm run dev       # proxies /api to the backend on port 8000
 ```
 
 ## Test
