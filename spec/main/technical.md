@@ -43,8 +43,8 @@
     database.
   - Frontend: Vitest with Vue Test Utils, the API mocked.
   - End-to-end: Playwright against the running backend, frontend and
-    database, for typical user scenarios only. Tests check text and
-    behavior, never screenshots or appearance.
+    database, one test per scenario of `scenarios.md`. Tests check
+    text and behavior, never screenshots or appearance.
   - Quality: ruff (lint and format) and mypy in strict mode for the
     backend; ESLint, Prettier and vue-tsc for the frontend.
   - Every run of each suite (pytest, Vitest, Playwright) reports its
