@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:17
+    environment:
+      POSTGRES_USER: gilda
+      POSTGRES_PASSWORD: gilda
+      POSTGRES_DB: gilda
+    ports:
+      - "5432:5432"
