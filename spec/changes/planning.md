@@ -174,7 +174,7 @@ The Association page gets two links under the name: "Schedule" and
 "Opening hours".
 
 Modified in `core/screens.md`: the header shows the logo alone, without
-the name "Gilda", in every mock-up; it still leads to `/`.
+the name "Gilda", in every mock-up; it still leads to `/`. (Not testable.)
 
 ### `/associations/{id}/opening`: Opening hours
 
