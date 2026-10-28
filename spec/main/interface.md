@@ -5,6 +5,7 @@
 - A language selector, on every page, switches between English and
   French; the choice is kept in the browser across visits and wins
   over the browser's preference.
+- The header shows the logo alone, which leads to `/` (not testable).
 - The interface follows the browser's light or dark preference (not
   testable).
 - The accent colour is orange (not testable).
