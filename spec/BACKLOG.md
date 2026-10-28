@@ -4,6 +4,7 @@
 - Planning: volunteers of an association see and fill the schedule (associations, volunteers, time slots).
 - Sessions: purge expired sessions regularly (Advanced Alchemy's delete_expired), so the user_session table stays small.
 - Scenarios: a spec page of user scenarios matching the Playwright journeys, so each e2e test cites its scenario.
+- Tooling: drop the Podman option (COMPOSE variable in the Makefile, README line); Docker only.
 
 ## Security
 
