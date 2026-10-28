@@ -6,8 +6,8 @@ export interface Reply {
   body?: unknown
 }
 
-/** A fixed reply, or one computed from the request body. */
-export type Route = Reply | ((body: unknown, path: string) => Reply)
+/** A fixed reply, or one computed from the request body (and URL, for its query). */
+export type Route = Reply | ((body: unknown, path: string, url: URL) => Reply)
 
 export interface Call {
   method: string
@@ -33,7 +33,7 @@ export function mockApi(routes: Record<string, Route>): Call[] {
       route === undefined
         ? { status: 500, body: { error: `not mocked: ${method} ${url.pathname}` } }
         : typeof route === 'function'
-          ? route(body, url.pathname)
+          ? route(body, url.pathname, url)
           : route
     return new Response(reply.body === undefined ? null : JSON.stringify(reply.body), {
       status: reply.status,

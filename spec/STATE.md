@@ -6,8 +6,8 @@ Updated on the human's decisions, and at the agent's hand-over (Step).
 - Specification: complete
 - Increment: planning
 - Shape: full
-- Phase: Tests
-- Step: Exploration
+- Phase: Implementation
+- Step: Production
 - Stash:
 
 ## Scope of the current increment
