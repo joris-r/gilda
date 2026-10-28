@@ -37,6 +37,33 @@ async function addMember(page: Page, displayName: string, email: string, role: s
   await expect(page.getByText(`${displayName} added.`)).toBeVisible()
 }
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** A day of the week `weeksAhead` weeks after the current one (0 = Sunday … 6 = Saturday). */
+function dayOfWeek(weekday: number, weeksAhead: number) {
+  const day = new Date()
+  day.setHours(12, 0, 0, 0)
+  day.setDate(day.getDate() - ((day.getDay() + 6) % 7) + 7 * weeksAhead + ((weekday + 6) % 7))
+  const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
+  return {
+    iso,
+    label: `${WEEKDAYS[day.getDay()]} ${day.getDate()} ${MONTHS[day.getMonth()]}`,
+  }
+}
+
+async function openSchedule(page: Page, association: string) {
+  await page.getByText(association, { exact: true }).click()
+  await page.getByRole('link', { name: 'Schedule', exact: true }).click()
+}
+
+function occurrence(page: Page, dayLabel: string, times: string) {
+  return page
+    .getByRole('group', { name: dayLabel, exact: true })
+    .getByRole('listitem')
+    .filter({ hasText: times })
+}
+
 test.describe('Scenarios', () => {
   test('a volunteer becomes manager', async ({ page }) => {
     const association = `Jardin partagé ${Date.now()}`
@@ -78,6 +105,98 @@ test.describe('Scenarios', () => {
       await signIn(page, chloe)
       await expect(myLine).toContainText(/manager/i)
       await signOut(page)
+    })
+  })
+
+  test('the schedule is filled', async ({ page }) => {
+    const association = `Jardin partagé ${Date.now()}`
+    const chloe = uniqueEmail('Chloe')
+    const david = uniqueEmail('David')
+    const alice = uniqueEmail('Alice')
+    const thursday = dayOfWeek(4, 1)
+    const saturday = dayOfWeek(6, 1)
+    const closed = dayOfWeek(6, 2)
+
+    await test.step('1. Alice adds the slots and a closure', async () => {
+      await signUp(page, 'Alice', alice)
+      await page.getByLabel('Name', { exact: true }).fill(association)
+      await page.getByRole('button', { name: 'Create association' }).click()
+      await addMember(page, 'Chloé', chloe, 'Volunteer')
+      await addMember(page, 'David', david, 'Volunteer')
+      await page.getByRole('link', { name: 'Opening hours', exact: true }).click()
+
+      const slotForm = page
+        .locator('form')
+        .filter({ has: page.getByRole('button', { name: 'Add slot' }) })
+      for (const weekday of ['Thursday', 'Saturday']) {
+        await slotForm.getByRole('combobox', { name: /^Day/ }).selectOption({ label: weekday })
+        await slotForm.getByLabel('From').fill('10:00')
+        await slotForm.getByLabel('To').fill('13:00')
+        await slotForm.getByRole('button', { name: 'Add slot' }).click()
+        await expect(page.getByRole('listitem').filter({ hasText: weekday })).toContainText(
+          '10:00–13:00',
+        )
+      }
+
+      const closureForm = page
+        .locator('form')
+        .filter({ has: page.getByRole('button', { name: 'Add closure' }) })
+      await closureForm.getByLabel('From').fill(closed.iso)
+      await closureForm.getByLabel('To').fill(closed.iso)
+      await closureForm.getByLabel('Label').fill('Fête du quartier')
+      await closureForm.getByRole('button', { name: 'Add closure' }).click()
+      await expect(page.getByRole('listitem').filter({ hasText: 'Fête du quartier' })).toBeVisible()
+      await signOut(page)
+    })
+
+    await test.step('2. Chloé sees the closure and signs up for Thursday', async () => {
+      await signUp(page, 'Chloé', chloe)
+      await openSchedule(page, association)
+      const closedDay = page.getByRole('group', {
+        name: closed.label,
+        exact: true,
+      })
+      await expect(closedDay).toContainText('Closed')
+      await expect(closedDay).toContainText('Fête du quartier')
+
+      await occurrence(page, thursday.label, '10–13').click()
+      await page.getByRole('button', { name: 'Sign up', exact: true }).click()
+      await expect(occurrence(page, thursday.label, '10–13')).toContainText('Chloé')
+      await signOut(page)
+    })
+
+    await test.step('3. Alice proposes Saturday to Chloé', async () => {
+      await signIn(page, alice)
+      await openSchedule(page, association)
+      await occurrence(page, saturday.label, '10–13').click()
+      await page.getByRole('button', { name: 'Chloé', exact: true }).click()
+      await expect(occurrence(page, saturday.label, '10–13')).toContainText(/Chloé\s*\?/)
+      await signOut(page)
+    })
+
+    await test.step('4. Chloé confirms Saturday and cancels Thursday', async () => {
+      await signIn(page, chloe)
+      await openSchedule(page, association)
+      await occurrence(page, saturday.label, '10–13').click()
+      await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+      await expect(occurrence(page, saturday.label, '10–13')).not.toContainText('?')
+      await expect(occurrence(page, saturday.label, '10–13')).toContainText('Chloé')
+
+      await occurrence(page, thursday.label, '10–13').click()
+      await page.getByRole('button', { name: 'Cancel registration…', exact: true }).click()
+      await page.getByRole('button', { name: 'Yes, cancel', exact: true }).click()
+      await expect(occurrence(page, thursday.label, '10–13').locator('s')).toHaveText('Chloé')
+      await signOut(page)
+    })
+
+    await test.step('5. David signs up for Thursday, replacing Chloé', async () => {
+      await signUp(page, 'David', david)
+      await openSchedule(page, association)
+      await occurrence(page, thursday.label, '10–13').click()
+      await page.getByRole('button', { name: 'Sign up', exact: true }).click()
+      await expect(occurrence(page, thursday.label, '10–13')).toContainText('David')
+      await expect(occurrence(page, thursday.label, '10–13').locator('s')).toHaveCount(0)
+      await expect(occurrence(page, thursday.label, '10–13')).not.toContainText('Chloé')
     })
   })
 })

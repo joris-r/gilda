@@ -240,13 +240,16 @@ Sat 31   [Bruno ?    ]
   from the earliest start to the latest end of the shown occurrences,
   rounded to whole hours: an occurrence is placed and sized by its
   start and end. Occurrences of a day that overlap sit side by side.
+  (Placement and sizes not testable.)
 - On a narrow screen, each week has one row per such weekday, and time
-  runs from left to right.
+  runs from left to right. (Not testable.)
 - A line marked with today's date separates the past weeks from the
-  current week; the days before today look different from the others.
+  current week; the days before today look different from the others
+  (look of past days not testable).
 - An occurrence shows its times and its registration's display name:
   green when confirmed; orange with "?" when proposed; red when it has
   no registration ("nobody") or a cancelled one, whose name is struck.
+  (Colours not testable.)
 - An obsolete registration is placed like an occurrence, by its date,
   start and end, marked "obsolete".
 - A day covered by a closure shows "Closed" and the closure's label.
