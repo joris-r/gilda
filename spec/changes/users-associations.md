@@ -298,8 +298,9 @@ by default."):
 
 New rules in `interface.md`:
 
-- The interface follows the browser's light or dark preference.
-- The accent colour is orange.
+- The interface follows the browser's light or dark preference (not
+  testable).
+- The accent colour is orange (not testable).
 
 ## Technical
 
