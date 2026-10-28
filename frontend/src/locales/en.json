@@ -1,0 +1,14 @@
+{
+  "language": "Language",
+  "status": {
+    "title": "Gilda status",
+    "api": "API: {state}",
+    "database": "Database: {state}",
+    "state": {
+      "checking": "checking…",
+      "reachable": "reachable",
+      "unreachable": "unreachable",
+      "unknown": "unknown"
+    }
+  }
+}

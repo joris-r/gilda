@@ -36,3 +36,6 @@ select = ["E", "F", "W", "I", "B", "UP", "N", "ASYNC", "RUF"]
 strict = true
 packages = ["gilda"]
 mypy_path = "src"
+
+[tool.ruff.lint.per-file-ignores]
+"migrations/*" = ["E501"]

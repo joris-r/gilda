@@ -1,0 +1,14 @@
+{
+  "language": "Langue",
+  "status": {
+    "title": "État de Gilda",
+    "api": "API : {state}",
+    "database": "Base de données : {state}",
+    "state": {
+      "checking": "vérification…",
+      "reachable": "accessible",
+      "unreachable": "inaccessible",
+      "unknown": "inconnu"
+    }
+  }
+}
