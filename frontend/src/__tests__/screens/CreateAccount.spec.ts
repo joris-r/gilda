@@ -1,0 +1,78 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { mountApp, pageText } from '../mountApp'
+import { fill, mockApi, press, signedOut } from '../mockApi'
+import { alice } from './fixtures'
+
+beforeEach(() => {
+  localStorage.clear()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+async function fillTheForm(wrapper: Parameters<typeof fill>[0]) {
+  await fill(wrapper, 'Display name', 'Alice')
+  await fill(wrapper, 'Email', 'alice@example.org')
+  await fill(wrapper, 'Password', 'correct horse')
+}
+
+describe('Create an account', () => {
+  it('is shown at /signup', async () => {
+    mockApi({ 'GET /api/session': signedOut })
+
+    const text = pageText(await mountApp('/signup'))
+
+    expect(text).toContain('Create an account')
+    expect(text).toContain('Already have an account? Sign in')
+  })
+
+  it('creates the account with POST /api/accounts, signed in on My associations', async () => {
+    let signedIn = false
+    const calls = mockApi({
+      'GET /api/session': () => (signedIn ? { status: 200, body: alice } : signedOut),
+      'POST /api/accounts': () => {
+        signedIn = true
+        return { status: 201, body: alice }
+      },
+      'GET /api/associations': { status: 200, body: [] },
+    })
+    const wrapper = await mountApp('/signup')
+
+    await fillTheForm(wrapper)
+    await press(wrapper, 'Create account')
+
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: '/api/accounts',
+      body: { display_name: 'Alice', email: 'alice@example.org', password: 'correct horse' },
+    })
+    expect(pageText(wrapper)).toContain('My associations')
+    expect(pageText(wrapper)).toContain('Alice')
+  })
+
+  it('says so when the email already has an account', async () => {
+    mockApi({
+      'GET /api/session': signedOut,
+      'POST /api/accounts': { status: 409, body: { error: 'Email taken' } },
+    })
+    const wrapper = await mountApp('/signup')
+
+    await fillTheForm(wrapper)
+    await press(wrapper, 'Create account')
+
+    expect(pageText(wrapper)).toContain(
+      'An account already exists for this email. Sign in instead.',
+    )
+  })
+
+  it('"Sign in" leads to Sign in', async () => {
+    mockApi({ 'GET /api/session': signedOut })
+    const wrapper = await mountApp('/signup')
+
+    await press(wrapper, 'Sign in')
+
+    expect(wrapper.vm.$route.path).toBe('/')
+    expect(pageText(wrapper)).toContain('No account yet?')
+  })
+})
