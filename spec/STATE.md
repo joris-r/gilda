@@ -6,7 +6,7 @@ Updated on the human's decisions, and at the agent's hand-over (Step).
 - Specification: complete
 - Increment: users-associations
 - Shape: full
-- Phase: Implementation
+- Phase: Integration
 - Step: Exploration
 - Stash:
 

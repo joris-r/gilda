@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import './style.css'
 import App from './App.vue'
 import { createGildaI18n } from './i18n'
 import { createGildaRouter } from './router'

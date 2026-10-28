@@ -1,14 +1,55 @@
 {
   "language": "Langue",
-  "status": {
-    "title": "État de Gilda",
-    "api": "API : {state}",
-    "database": "Base de données : {state}",
-    "state": {
-      "checking": "vérification…",
-      "reachable": "accessible",
-      "unreachable": "inaccessible",
-      "unknown": "inconnu"
-    }
-  }
+  "signOut": "Se déconnecter",
+  "fields": {
+    "displayName": "Nom affiché",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "name": "Nom",
+    "role": "Rôle"
+  },
+  "roles": {
+    "manager": "Responsable",
+    "volunteer": "Bénévole"
+  },
+  "roleNames": {
+    "manager": "responsable",
+    "volunteer": "bénévole"
+  },
+  "signIn": {
+    "title": "Se connecter",
+    "submit": "Se connecter",
+    "wrong": "E-mail ou mot de passe incorrect.",
+    "noAccount": "Pas encore de compte ?",
+    "createAccount": "Créer un compte"
+  },
+  "signUp": {
+    "title": "Créer un compte",
+    "submit": "Créer le compte",
+    "exists": "Un compte existe déjà pour cet e-mail. Connectez-vous.",
+    "haveAccount": "Déjà un compte ?",
+    "signIn": "Se connecter"
+  },
+  "myAssociations": {
+    "title": "Mes associations",
+    "none": "Vous n'êtes membre d'aucune association.",
+    "create": "Créer une association",
+    "submit": "Créer l'association"
+  },
+  "association": {
+    "back": "← Mes associations",
+    "members": "Membres",
+    "noAccount": "sans compte",
+    "changeRole": "Changer le rôle",
+    "confirmRole": "Passer {name} {role} ?",
+    "confirm": "Confirmer",
+    "cancel": "Annuler",
+    "roleChanged": "{name} est maintenant {role}.",
+    "lastManager": "Une association garde au moins un responsable.",
+    "addMember": "Ajouter un membre",
+    "submit": "Ajouter",
+    "added": "{name} ajouté·e.",
+    "alreadyMember": "{name} est déjà membre."
+  },
+  "error": "Une erreur est survenue. Réessayez."
 }

@@ -306,7 +306,7 @@ New rules in `interface.md`:
 
 New rules in `technical.md`:
 
-- Every entity is identified by a UUID.
+- Every entity is identified by a UUIDv7.
 - Passwords are stored hashed with Argon2, never in clear.
 - Sessions are server-side, stored in PostgreSQL; the browser keeps
   only a session identifier, in an `HttpOnly` cookie.

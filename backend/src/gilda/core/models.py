@@ -1,0 +1,44 @@
+from typing import Literal
+from uuid import UUID
+
+from advanced_alchemy.base import UUIDv7Base
+from advanced_alchemy.extensions.litestar.session import SessionModelMixin
+from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+Role = Literal["manager", "volunteer"]
+
+
+class User(UUIDv7Base):
+    __tablename__ = "user_account"
+
+    display_name: Mapped[str]
+    # Stored lowercased, so uniqueness ignores case.
+    email: Mapped[str] = mapped_column(String(320), unique=True)
+    password_hash: Mapped[str | None]
+
+    @property
+    def has_account(self) -> bool:
+        return self.password_hash is not None
+
+
+class Association(UUIDv7Base):
+    __tablename__ = "association"
+
+    name: Mapped[str]
+
+
+class Membership(UUIDv7Base):
+    __tablename__ = "membership"
+    __table_args__ = (UniqueConstraint("user_id", "association_id"),)
+
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user_account.id", ondelete="CASCADE"))
+    association_id: Mapped[UUID] = mapped_column(ForeignKey("association.id", ondelete="CASCADE"))
+    role: Mapped[str] = mapped_column(String(16))
+
+    user: Mapped[User] = relationship(lazy="joined")
+    association: Mapped[Association] = relationship(lazy="joined")
+
+
+class UserSession(SessionModelMixin):
+    __tablename__ = "user_session"
