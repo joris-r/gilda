@@ -1,14 +1,55 @@
 {
   "language": "Language",
-  "status": {
-    "title": "Gilda status",
-    "api": "API: {state}",
-    "database": "Database: {state}",
-    "state": {
-      "checking": "checking…",
-      "reachable": "reachable",
-      "unreachable": "unreachable",
-      "unknown": "unknown"
-    }
-  }
+  "signOut": "Sign out",
+  "fields": {
+    "displayName": "Display name",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "role": "Role"
+  },
+  "roles": {
+    "manager": "Manager",
+    "volunteer": "Volunteer"
+  },
+  "roleNames": {
+    "manager": "manager",
+    "volunteer": "volunteer"
+  },
+  "signIn": {
+    "title": "Sign in",
+    "submit": "Sign in",
+    "wrong": "Wrong email or password.",
+    "noAccount": "No account yet?",
+    "createAccount": "Create an account"
+  },
+  "signUp": {
+    "title": "Create an account",
+    "submit": "Create account",
+    "exists": "An account already exists for this email. Sign in instead.",
+    "haveAccount": "Already have an account?",
+    "signIn": "Sign in"
+  },
+  "myAssociations": {
+    "title": "My associations",
+    "none": "You are not a member of any association yet.",
+    "create": "Create an association",
+    "submit": "Create association"
+  },
+  "association": {
+    "back": "← My associations",
+    "members": "Members",
+    "noAccount": "no account",
+    "changeRole": "Change role",
+    "confirmRole": "Make {name} {role}?",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "roleChanged": "{name} is now {role}.",
+    "lastManager": "An association keeps at least one manager.",
+    "addMember": "Add a member",
+    "submit": "Add member",
+    "added": "{name} added.",
+    "alreadyMember": "{name} is already a member."
+  },
+  "error": "Something went wrong. Try again."
 }

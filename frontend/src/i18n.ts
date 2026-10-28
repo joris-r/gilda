@@ -10,7 +10,7 @@ const STORAGE_KEY = 'gilda.locale'
 export function createGildaI18n() {
   return createI18n<[typeof en], Locale>({
     legacy: false,
-    locale: storedLocale() ?? 'en',
+    locale: storedLocale() ?? browserLocale(),
     fallbackLocale: 'en',
     messages: { en, fr },
   })
@@ -31,4 +31,14 @@ function storedLocale(): Locale | undefined {
   } catch {
     return undefined
   }
+}
+
+/** The browser's most preferred language that Gilda speaks, English otherwise. */
+function browserLocale(): Locale {
+  const preferred = navigator.languages?.length ? navigator.languages : [navigator.language]
+  for (const language of preferred) {
+    const code = LOCALES.find((locale) => language?.toLowerCase().split('-')[0] === locale)
+    if (code !== undefined) return code
+  }
+  return 'en'
 }
