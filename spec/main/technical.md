@@ -1,71 +1,4 @@
-# health-check: a status page across the whole stack
-
-A web page, in English and French, shows whether the API and the
-database are reachable.
-
-## GET /api/health
-
-All API endpoints are under `/api`.
-
-```http
-GET /api/health
-```
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{"api": "ok", "database": "ok"}
-```
-
-When the database is unreachable:
-
-```http
-HTTP/1.1 503 Service Unavailable
-Content-Type: application/json
-
-{"api": "ok", "database": "unreachable"}
-```
-
-## Status page
-
-The page at `/` calls `GET /api/health` and shows:
-
-```
-Gilda status
-API: reachable
-Database: reachable
-```
-
-When the database is unreachable:
-
-```
-Gilda status
-API: reachable
-Database: unreachable
-```
-
-When the API does not answer:
-
-```
-Gilda status
-API: unreachable
-Database: unknown
-```
-
-- The interface is in English by default.
-- A language selector, on every page, switches between English and
-  French; the choice is kept in the browser across visits.
-
-In French:
-
-```
-État de Gilda
-API : accessible
-Base de données : accessible
-```
-
-## Technical
+# Technical
 
 - Repository layout:
   - `backend/`: the API.
@@ -80,6 +13,7 @@ Base de données : accessible
     - `schemas.py`: the request and response types.
     - `services.py`: the logic between controllers and repositories.
   - `db.py`: the database configuration.
+  - `frontend.py`: serving the built frontend.
   - `app.py`: only assembles the application from the domains and the
     configuration.
   - Tests in `backend/tests/`, one folder per domain.
@@ -95,6 +29,7 @@ Base de données : accessible
   - Talks to the backend only through the JSON API.
   - Translations live in one file per language; English is the
     reference, every key has a French translation.
+- API: JSON, every endpoint under `/api`.
 - Deployment: one alwaysdata site. Litestar serves the API under
   `/api` and the built frontend files for every other path.
 - Local development: `compose.yaml` runs PostgreSQL.
