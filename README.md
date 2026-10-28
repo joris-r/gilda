@@ -19,7 +19,7 @@ The interface is in English and French.
 Start PostgreSQL:
 
 ```sh
-podman compose up -d   # or: docker compose up -d
+docker compose up -d
 export DATABASE_URL=postgresql+asyncpg://gilda:gilda@localhost:5432/gilda
 ```
 
@@ -29,7 +29,7 @@ Backend:
 cd backend
 uv sync
 uv run alembic upgrade head
-uv run litestar run --reload
+uv run litestar --app gilda.app:create_app run --reload
 ```
 
 Frontend:
@@ -45,7 +45,7 @@ npm run dev
 ```sh
 cd backend && uv run pytest
 cd frontend && npm test
-cd e2e && npx playwright test
+cd e2e && npm test        # builds the frontend and starts the backend
 ```
 
 The development process is Dev43: see `spec/`.
