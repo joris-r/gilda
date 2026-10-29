@@ -34,13 +34,16 @@
 - Passwords are stored hashed with Argon2, never in clear.
 - Sessions are server-side, stored in PostgreSQL; the browser keeps
   only a session identifier, in an `HttpOnly` cookie.
-- Email is sent through SMTP:
-  - Production: alwaysdata's SMTP relay, configured from environment
-    variables.
+- Email is sent:
+  - Production: handed to the server's local `sendmail` binary.
+    alwaysdata has no local SMTP listener and requires authentication
+    the app does not implement, which rules out SMTP there.
   - Development and tests: Mailpit, run alongside PostgreSQL in
     `compose.yaml`, on non-default ports to avoid clashing with other
     projects' containers; backend and end-to-end tests query it over
     HTTP to read the sent email.
+  - The two are selected by whether `SMTP_HOST` is set: set, SMTP;
+    unset, `sendmail`.
 - Deployment: one alwaysdata site. Litestar serves the API under
   `/api` and the built frontend files for every other path.
 - Local development: `compose.yaml` runs PostgreSQL and Mailpit.
