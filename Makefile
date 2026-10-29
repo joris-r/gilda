@@ -1,4 +1,6 @@
 export DATABASE_URL ?= postgresql+asyncpg://gilda:gilda@localhost:5432/gilda
+export SMTP_HOST ?= localhost
+export SMTP_PORT ?= 11025
 
 LITESTAR = uv run --directory backend litestar --app gilda.app:create_app
 
