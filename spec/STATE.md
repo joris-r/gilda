@@ -7,7 +7,7 @@ Updated on the human's decisions, and at the agent's hand-over (Step).
 - Increment: email-verification
 - Shape: full
 - Phase: Implementation
-- Step: Production
-- Stash:
+- Step: Exploration
+- Stash: implementation work
 
 ## Scope of the current increment
