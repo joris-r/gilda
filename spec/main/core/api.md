@@ -4,7 +4,8 @@
 
 ### POST /api/accounts
 
-Creates an account and signs it in.
+Creates an account. The email must be confirmed (see
+`POST /api/accounts/verify`) before it can sign in.
 
 ```http
 POST /api/accounts
@@ -16,7 +17,6 @@ Content-Type: application/json
 ```http
 HTTP/1.1 201 Created
 Content-Type: application/json
-Set-Cookie: session=…
 
 {"id": "0b6f…", "display_name": "Alice", "email": "alice@example.org"}
 ```
@@ -24,8 +24,49 @@ Set-Cookie: session=…
 - R2: When a user without a password already has this email, the
   account is created on that user: it gets the password and the given
   display name, and keeps its memberships.
+- R9: On success, an EmailVerificationToken is created and a
+  confirmation email sent to it, with a link to `/verify-email?token=…`.
 - 409 when a user with a password already has this email.
 - 400 when the password has fewer than 8 characters.
+
+### POST /api/accounts/verify
+
+Confirms an email from its link's token.
+
+```http
+POST /api/accounts/verify
+Content-Type: application/json
+
+{"token": "…"}
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id": "0b6f…", "display_name": "Alice", "email": "alice@example.org"}
+```
+
+- Sets email_verified_at on the token's user, and deletes the token.
+- 404 when the token is unknown, expired, or already used.
+
+### POST /api/accounts/verify/resend
+
+```http
+POST /api/accounts/verify/resend
+Content-Type: application/json
+
+{"email": "alice@example.org"}
+```
+
+```http
+HTTP/1.1 204 No Content
+```
+
+- When a user with this email exists and email_verified_at is still
+  null, sends a new confirmation email (replacing any pending token).
+- Always 204, whether or not such a user exists, so the response
+  cannot be used to probe for an email.
 
 ### POST /api/session
 
@@ -46,8 +87,9 @@ Set-Cookie: session=…
 {"id": "0b6f…", "display_name": "Alice", "email": "alice@example.org"}
 ```
 
-- 401 when the email is unknown, has no account, or the password is
-  wrong; the response does not say which.
+- 401 when the email is unknown, has no account, the email is not
+  confirmed, or the password is wrong; the response does not say
+  which.
 
 ### GET /api/session
 
@@ -102,8 +144,8 @@ Content-Type: application/json
   "name": "Jardin partagé des Lilas",
   "role": "manager",
   "members": [
-    {"user_id": "0b6f…", "display_name": "Alice", "email": "alice@example.org", "has_account": true, "role": "manager"},
-    {"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "role": "volunteer"}
+    {"user_id": "0b6f…", "display_name": "Alice", "email": "alice@example.org", "has_account": true, "email_verified": true, "role": "manager"},
+    {"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "role": "volunteer"}
   ]
 }
 ```
@@ -127,7 +169,7 @@ Content-Type: application/json
 HTTP/1.1 201 Created
 Content-Type: application/json
 
-{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "role": "volunteer"}
+{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "role": "volunteer"}
 ```
 
 - R3: When a user already has this email, that user becomes the
@@ -150,7 +192,7 @@ Content-Type: application/json
 HTTP/1.1 200 OK
 Content-Type: application/json
 
-{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "role": "manager"}
+{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "role": "manager"}
 ```
 
 - 409 when it would leave the association without a manager (R1).

@@ -30,9 +30,23 @@ Create an account
 Already have an account? Sign in
 ```
 
-- On success, the user is signed in and sees My associations.
+- On success, shows "Check alice@example.org for a confirmation
+  link." instead of signing in. A "Resend the email" action below it
+  shows "Email sent." when clicked.
 - When the email already has an account: "An account already exists
   for this email. Sign in instead."
+
+## `/verify-email`: Confirm email
+
+```
+(logo)                                     [English ▾]
+
+Email confirmed. You can now sign in.
+```
+
+- Reached from the confirmation link's `token` query parameter.
+- An unknown, expired, or already-used token shows "This link is no
+  longer valid." with a way back to `/signup` to request a new one.
 
 ## `/`, signed in: My associations
 
@@ -71,6 +85,8 @@ Members
   bruno@example.org
   Chloé  no account                    VOLUNTEER  Change role
   chloe@example.org
+  David  pending                       VOLUNTEER  Change role
+  david@example.org
 
 Add a member
   Display name [          ]  Email [          ]
@@ -88,9 +104,13 @@ Add a member
   manager." and changes nothing.
 - Adding a member shows "Chloé added."; an existing member shows
   "Chloé is already a member."
+- A member with a password but an unconfirmed email shows "pending"
+  instead of nothing; a member with no password shows "no account"
+  regardless.
 - A volunteer sees the members and their roles, without "Change role"
   and without the Add a member form.
-- Signed out, every page but `/signup` shows Sign in.
+- Signed out, every page but `/signup` and `/verify-email` shows Sign
+  in.
 
 In French, e.g.:
 
