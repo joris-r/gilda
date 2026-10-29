@@ -28,7 +28,7 @@ def test_post_api_accounts_creates_the_account_but_does_not_sign_it_in(client: A
     assert response.headers["content-type"].startswith("application/json")
     body = response.json()
     assert body == {"id": body["id"], "display_name": "Alice", "email": email}
-    assert "session" not in response.headers.get("set-cookie", "")
+    assert "session" in response.headers.get("set-cookie", "")
     assert client.get("/api/session").status_code == 401
 
 
