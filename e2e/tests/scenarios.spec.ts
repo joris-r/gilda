@@ -1,9 +1,32 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const PASSWORD = 'correct horse'
+const MAILPIT_URL = process.env.MAILPIT_URL ?? 'http://localhost:18025'
 
 function uniqueEmail(name: string) {
   return `${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.org`
+}
+
+/** Reads the confirmation link Mailpit caught for `email`, and returns its token. */
+async function latestVerificationToken(email: string, timeout = 5000): Promise<string> {
+  const deadline = Date.now() + timeout
+  while (true) {
+    const search = await fetch(
+      `${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`,
+    )
+    const { messages } = (await search.json()) as { messages: { ID: string }[] }
+    if (messages.length > 0) {
+      // Mailpit IDs are ULIDs: sortable by creation time, millisecond precision.
+      const latest = messages.reduce((a, b) => (a.ID > b.ID ? a : b))
+      const message = await fetch(`${MAILPIT_URL}/api/v1/message/${latest.ID}`)
+      const { Text: text } = (await message.json()) as { Text: string }
+      const match = /token=([\w-]+)/.exec(text)
+      if (!match) throw new Error(`no verification link in the email sent to ${email}`)
+      return match[1]
+    }
+    if (Date.now() > deadline) throw new Error(`no email was sent to ${email}`)
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
 }
 
 async function signUp(page: Page, displayName: string, email: string) {
@@ -13,7 +36,13 @@ async function signUp(page: Page, displayName: string, email: string) {
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByText('My associations')).toBeVisible()
+  await expect(page.getByText(email)).toBeVisible()
+
+  const token = await latestVerificationToken(email)
+  await page.goto(`/verify-email?token=${token}`)
+  await expect(page.getByText('Email confirmed. You can now sign in.')).toBeVisible()
+
+  await signIn(page, email)
 }
 
 async function signIn(page: Page, email: string) {

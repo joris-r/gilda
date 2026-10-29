@@ -27,15 +27,10 @@ describe('Create an account', () => {
     expect(text).toContain('Already have an account? Sign in')
   })
 
-  it('creates the account with POST /api/accounts, signed in on My associations', async () => {
-    let signedIn = false
+  it('creates the account with POST /api/accounts but does not sign in', async () => {
     const calls = mockApi({
-      'GET /api/session': () => (signedIn ? { status: 200, body: alice } : signedOut),
-      'POST /api/accounts': () => {
-        signedIn = true
-        return { status: 201, body: alice }
-      },
-      'GET /api/associations': { status: 200, body: [] },
+      'GET /api/session': signedOut,
+      'POST /api/accounts': { status: 201, body: alice },
     })
     const wrapper = await mountApp('/signup')
 
@@ -47,8 +42,28 @@ describe('Create an account', () => {
       path: '/api/accounts',
       body: { display_name: 'Alice', email: 'alice@example.org', password: 'correct horse' },
     })
-    expect(pageText(wrapper)).toContain('My associations')
-    expect(pageText(wrapper)).toContain('Alice')
+    expect(pageText(wrapper)).not.toContain('My associations')
+    expect(pageText(wrapper)).toContain('alice@example.org')
+  })
+
+  it('offers to resend the confirmation email', async () => {
+    const calls = mockApi({
+      'GET /api/session': signedOut,
+      'POST /api/accounts': { status: 201, body: alice },
+      'POST /api/accounts/verify/resend': { status: 204 },
+    })
+    const wrapper = await mountApp('/signup')
+    await fillTheForm(wrapper)
+    await press(wrapper, 'Create account')
+
+    await press(wrapper, 'Resend the email')
+
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: '/api/accounts/verify/resend',
+      body: { email: 'alice@example.org' },
+    })
+    expect(pageText(wrapper)).toContain('Email sent.')
   })
 
   it('says so when the email already has an account', async () => {

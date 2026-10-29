@@ -6,7 +6,7 @@ Updated on the human's decisions, and at the agent's hand-over (Step).
 - Specification: complete
 - Increment: email-verification
 - Shape: full
-- Phase: Tests
+- Phase: Implementation
 - Step: Production
 - Stash:
 

@@ -12,12 +12,14 @@ export function member(
   displayName: string,
   role: 'manager' | 'volunteer',
   hasAccount = true,
+  emailVerified = hasAccount,
 ) {
   return {
     user_id: userId,
     display_name: displayName,
     email: `${displayName.toLowerCase()}@example.org`,
     has_account: hasAccount,
+    email_verified: emailVerified,
     role,
   }
 }

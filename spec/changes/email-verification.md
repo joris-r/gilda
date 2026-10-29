@@ -11,7 +11,8 @@ email (R2).
 - EmailVerificationToken: a pending confirmation for a user
   - token: random, unique
   - user_id
-  - expires_at: 24 hours after creation
+  - expires_at: 24 hours after creation (expiry itself not testable
+    black-box; a real wait or time control would be needed)
   - R8: Creating a new token for a user deletes that user's previous
     one.
 
@@ -84,8 +85,9 @@ HTTP/1.1 204 No Content
 
 ### GET /api/associations/{id}
 
-- Replaces: `has_account` is true only when the member has a password
-  and email_verified_at is set — i.e. they can actually sign in.
+- Adds `email_verified` to each member: true once their email is
+  confirmed. `has_account` keeps its current meaning (a password is
+  set), unrelated to confirmation.
 
 ## Screens
 
@@ -109,9 +111,9 @@ Email confirmed. You can now sign in.
 
 ### `/associations/{id}`: Association
 
-- Replaces: a member with `has_account: false` who does have a
-  password (sign-up pending confirmation) shows "pending" instead of
-  "no account".
+- Replaces: a member with `has_account: true` and `email_verified:
+  false` shows "pending" instead of nothing; `has_account: false`
+  still shows "no account" regardless of `email_verified`.
 
 ## Technical
 
