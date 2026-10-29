@@ -1,3 +1,5 @@
+import secrets
+from datetime import UTC, datetime, timedelta
 from typing import cast
 from uuid import UUID
 
@@ -12,11 +14,18 @@ from litestar.exceptions import (
 from litestar.status_codes import HTTP_409_CONFLICT
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gilda.core.models import Association, Membership, Role, User
-from gilda.core.repositories import AssociationRepository, MembershipRepository, UserRepository
+from gilda.core.models import Association, EmailVerificationToken, Membership, Role, User
+from gilda.core.repositories import (
+    AssociationRepository,
+    EmailVerificationTokenRepository,
+    MembershipRepository,
+    UserRepository,
+)
 from gilda.core.schemas import AssociationDetail, AssociationRead, MemberRead
+from gilda.mailer import send_verification_email
 
 _hasher = PasswordHasher()
+TOKEN_LIFETIME = timedelta(hours=24)
 
 
 class ConflictException(ClientException):
@@ -30,6 +39,7 @@ def member_read(membership: Membership) -> MemberRead:
         display_name=user.display_name,
         email=user.email,
         has_account=user.has_account,
+        email_verified=user.email_verified,
         role=cast(Role, membership.role),
     )
 
@@ -37,6 +47,7 @@ def member_read(membership: Membership) -> MemberRead:
 class AccountService:
     def __init__(self, db_session: AsyncSession) -> None:
         self.users = UserRepository(session=db_session)
+        self.tokens = EmailVerificationTokenRepository(session=db_session)
 
     async def find_by_email(self, email: str) -> User | None:
         return await self.users.get_one_or_none(email=email.lower())
@@ -45,15 +56,18 @@ class AccountService:
         password_hash = _hasher.hash(password)
         user = await self.find_by_email(email)
         if user is None:
-            return await self.users.add(
+            user = await self.users.add(
                 User(display_name=display_name, email=email.lower(), password_hash=password_hash)
             )
-        if user.has_account:
+        elif user.has_account:
             raise ConflictException("An account already exists for this email.")
-        # R2: the account takes over the user a manager added.
-        user.display_name = display_name
-        user.password_hash = password_hash
-        return await self.users.update(user)
+        else:
+            # R2: the account takes over the user a manager added.
+            user.display_name = display_name
+            user.password_hash = password_hash
+            user = await self.users.update(user)
+        await self._issue_token(user)
+        return user
 
     async def authenticate(self, email: str, password: str) -> User:
         user = await self.find_by_email(email)
@@ -63,10 +77,42 @@ class AccountService:
             _hasher.verify(user.password_hash, password)
         except VerificationError as error:
             raise NotAuthorizedException("Wrong email or password.") from error
+        if not user.email_verified:
+            raise NotAuthorizedException("Wrong email or password.")
         return user
 
     async def get(self, user_id: UUID) -> User | None:
         return await self.users.get_one_or_none(id=user_id)
+
+    async def confirm(self, token: str) -> User:
+        record = await self.tokens.get_one_or_none(token=token)
+        if record is None or record.expires_at < datetime.now(UTC):
+            raise NotFoundException("This confirmation link is unknown or expired.")
+        user = await self.get(record.user_id)
+        assert user is not None  # the foreign key guarantees it
+        user.email_verified_at = datetime.now(UTC)
+        await self.users.update(user)
+        await self.tokens.delete(record.id)
+        return user
+
+    async def resend_confirmation(self, email: str) -> None:
+        user = await self.find_by_email(email)
+        if user is not None and not user.email_verified:
+            await self._issue_token(user)
+
+    async def _issue_token(self, user: User) -> None:
+        # R8: a new token replaces any pending one.
+        existing = await self.tokens.get_one_or_none(user_id=user.id)
+        if existing is not None:
+            await self.tokens.delete(existing.id)
+        token = await self.tokens.add(
+            EmailVerificationToken(
+                user_id=user.id,
+                token=secrets.token_urlsafe(32),
+                expires_at=datetime.now(UTC) + TOKEN_LIFETIME,
+            )
+        )
+        send_verification_email(user.email, token.token)
 
 
 class AssociationService:

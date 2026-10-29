@@ -21,6 +21,14 @@ class Credentials(msgspec.Struct):
     password: str
 
 
+class VerifyRequest(msgspec.Struct):
+    token: str
+
+
+class ResendRequest(msgspec.Struct):
+    email: Email
+
+
 class UserRead(msgspec.Struct):
     id: UUID
     display_name: str
@@ -52,6 +60,7 @@ class MemberRead(msgspec.Struct):
     display_name: str
     email: str
     has_account: bool
+    email_verified: bool
     role: Role
 
 
