@@ -6,5 +6,8 @@
 
 ## Security
 
-- Email verification: confirm a user's email before sign-up sets their password, so nobody can take over a volunteer's email.
 - Session fixation: issue a new session ID at sign-in and sign-up (Litestar reuses the incoming cookie's ID).
+
+## Reliability
+
+- Sign-up fails with a raw 500 if sending the confirmation email fails (e.g. SMTP unreachable); it should fail cleanly instead.
