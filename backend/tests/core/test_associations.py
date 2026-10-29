@@ -133,6 +133,7 @@ def test_get_api_association_shows_its_members(client: Any, new_client: Callable
             "display_name": "Alice",
             "email": alice_email,
             "has_account": True,
+            "email_verified": True,
             "role": "manager",
         },
         {
@@ -140,6 +141,7 @@ def test_get_api_association_shows_its_members(client: Any, new_client: Callable
             "display_name": "Chloé",
             "email": chloe_email,
             "has_account": False,
+            "email_verified": False,
             "role": "volunteer",
         },
     ]
@@ -192,6 +194,7 @@ def test_post_api_members_creates_a_user_without_password(client: Any) -> None:
         "display_name": "Chloé",
         "email": email,
         "has_account": False,
+        "email_verified": False,
         "role": "volunteer",
     }
     uuid.UUID(body["user_id"])
@@ -223,6 +226,7 @@ def test_r3_adding_an_existing_user_keeps_their_display_name(
         "display_name": "Bruno",
         "email": bruno_email,
         "has_account": True,
+        "email_verified": True,
         "role": "volunteer",
     }
 
@@ -300,6 +304,7 @@ def test_patch_api_member_changes_the_role(client: Any, new_client: Callable[[],
         "display_name": "Bruno",
         "email": bruno_user["email"],
         "has_account": True,
+        "email_verified": True,
         "role": "manager",
     }
     assert bruno.get(f"/api/associations/{association['id']}").json()["role"] == "manager"

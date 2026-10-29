@@ -8,6 +8,7 @@ from tests.core.conftest import (
     PASSWORD,
     add_member,
     create_association,
+    latest_verification_token,
     sign_up,
     unique_email,
 )
@@ -15,7 +16,7 @@ from tests.core.conftest import (
 # POST /api/accounts
 
 
-def test_post_api_accounts_creates_the_account_and_signs_it_in(client: Any) -> None:
+def test_post_api_accounts_creates_the_account_but_does_not_sign_it_in(client: Any) -> None:
     email = unique_email("Alice")
 
     response = client.post(
@@ -27,8 +28,20 @@ def test_post_api_accounts_creates_the_account_and_signs_it_in(client: Any) -> N
     assert response.headers["content-type"].startswith("application/json")
     body = response.json()
     assert body == {"id": body["id"], "display_name": "Alice", "email": email}
-    assert "session" in response.headers.get("set-cookie", "")
-    assert client.get("/api/session").json() == body
+    assert "session" not in response.headers.get("set-cookie", "")
+    assert client.get("/api/session").status_code == 401
+
+
+def test_r9_sign_up_sends_a_confirmation_email(client: Any) -> None:
+    email = unique_email("Alice")
+
+    response = client.post(
+        "/api/accounts",
+        json={"display_name": "Alice", "email": email, "password": PASSWORD},
+    )
+
+    assert response.status_code == 201
+    latest_verification_token(email)  # raises if no email was sent
 
 
 def test_post_api_accounts_user_ids_are_uuids(client: Any) -> None:
@@ -57,12 +70,19 @@ def test_r2_sign_up_takes_over_a_user_without_password(
         "display_name": "Chloé L.",
         "email": chloe_email,
     }
+    token = latest_verification_token(chloe_email)
+    assert chloe.post("/api/accounts/verify", json={"token": token}).status_code == 200
+    assert (
+        chloe.post("/api/session", json={"email": chloe_email, "password": PASSWORD}).status_code
+        == 200
+    )
     assert chloe.get("/api/associations").json() == [
         {"id": association["id"], "name": association["name"], "role": "volunteer"}
     ]
     members = client.get(f"/api/associations/{association['id']}").json()["members"]
     chloe_member = next(m for m in members if m["user_id"] == member["user_id"])
     assert chloe_member["has_account"] is True
+    assert chloe_member["email_verified"] is True
     assert chloe_member["display_name"] == "Chloé L."
 
 
@@ -181,16 +201,25 @@ def test_post_api_session_401_does_not_say_which_credential_is_wrong(
     association = create_association(client)
     volunteer_email = unique_email("Chloe")
     add_member(client, association["id"], "Chloé", volunteer_email)
+    unconfirmed_email = unique_email("Bruno")
     browser = new_client()
+    browser.post(
+        "/api/accounts",
+        json={"display_name": "Bruno", "email": unconfirmed_email, "password": PASSWORD},
+    )
 
     wrong_password = browser.post("/api/session", json={"email": email, "password": "nope-nope"})
     unknown_email = browser.post(
         "/api/session", json={"email": unique_email("Nobody"), "password": PASSWORD}
     )
     no_account = browser.post("/api/session", json={"email": volunteer_email, "password": PASSWORD})
+    unconfirmed = browser.post(
+        "/api/session", json={"email": unconfirmed_email, "password": PASSWORD}
+    )
 
-    assert [r.status_code for r in (wrong_password, unknown_email, no_account)] == [401] * 3
-    assert wrong_password.json() == unknown_email.json() == no_account.json()
+    responses = (wrong_password, unknown_email, no_account, unconfirmed)
+    assert [r.status_code for r in responses] == [401] * 4
+    assert len({r.text for r in responses}) == 1
     assert "error" in wrong_password.json()
     assert browser.get("/api/session").status_code == 401
 
@@ -216,3 +245,76 @@ def test_delete_api_session_signs_out(client: Any) -> None:
     assert response.status_code == 204
     assert client.get("/api/session").status_code == 401
     assert client.get("/api/associations").status_code == 401
+
+
+# POST /api/accounts/verify
+
+
+def test_post_api_accounts_verify_confirms_and_allows_sign_in(client: Any) -> None:
+    email = unique_email("Alice")
+    client.post(
+        "/api/accounts", json={"display_name": "Alice", "email": email, "password": PASSWORD}
+    )
+    token = latest_verification_token(email)
+
+    response = client.post("/api/accounts/verify", json={"token": token})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {"id": body["id"], "display_name": "Alice", "email": email}
+    assert (
+        client.post("/api/session", json={"email": email, "password": PASSWORD}).status_code == 200
+    )
+
+
+def test_post_api_accounts_verify_404_when_the_token_is_unknown(client: Any) -> None:
+    response = client.post("/api/accounts/verify", json={"token": "unknown-token"})
+
+    assert response.status_code == 404
+    assert "error" in response.json()
+
+
+def test_post_api_accounts_verify_404_when_the_token_was_already_used(client: Any) -> None:
+    email = unique_email("Alice")
+    client.post(
+        "/api/accounts", json={"display_name": "Alice", "email": email, "password": PASSWORD}
+    )
+    token = latest_verification_token(email)
+    client.post("/api/accounts/verify", json={"token": token})
+
+    response = client.post("/api/accounts/verify", json={"token": token})
+
+    assert response.status_code == 404
+
+
+# POST /api/accounts/verify/resend
+
+
+def test_r8_resend_invalidates_the_previous_token(client: Any) -> None:
+    email = unique_email("Alice")
+    client.post(
+        "/api/accounts", json={"display_name": "Alice", "email": email, "password": PASSWORD}
+    )
+    first_token = latest_verification_token(email)
+
+    response = client.post("/api/accounts/verify/resend", json={"email": email})
+
+    assert response.status_code == 204
+    assert client.post("/api/accounts/verify", json={"token": first_token}).status_code == 404
+    second_token = latest_verification_token(email)
+    assert client.post("/api/accounts/verify", json={"token": second_token}).status_code == 200
+
+
+def test_post_api_accounts_verify_resend_204_when_the_email_is_unknown(client: Any) -> None:
+    response = client.post("/api/accounts/verify/resend", json={"email": unique_email("Nobody")})
+
+    assert response.status_code == 204
+
+
+def test_post_api_accounts_verify_resend_204_when_already_confirmed(client: Any) -> None:
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+
+    response = client.post("/api/accounts/verify/resend", json={"email": email})
+
+    assert response.status_code == 204

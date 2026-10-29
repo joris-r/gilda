@@ -7,3 +7,10 @@ services:
       POSTGRES_DB: gilda
     ports:
       - "5432:5432"
+  # Catches confirmation emails in development and tests; non-default ports
+  # so it doesn't clash with another project's Mailpit or Postgres.
+  mailpit:
+    image: docker.io/axllent/mailpit:latest
+    ports:
+      - "11025:1025"
+      - "18025:8025"

@@ -67,6 +67,16 @@ describe('Association', () => {
     expect(item(wrapper, 'Alice').text()).not.toContain('no account')
   })
 
+  it('marks a member with a password but an unconfirmed email as "pending"', async () => {
+    const bruno_pending = member('u-bruno', 'Bruno', 'volunteer', true, false)
+    const { mounting } = mountAs('manager', [alice, bruno_pending])
+    const wrapper = await mounting
+
+    expect(item(wrapper, 'Bruno').text()).toContain('pending')
+    expect(item(wrapper, 'Bruno').text()).not.toContain('no account')
+    expect(item(wrapper, 'Alice').text()).not.toContain('pending')
+  })
+
   describe('as a manager', () => {
     it('offers Change role on each member and the Add a member form', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
