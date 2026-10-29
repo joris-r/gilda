@@ -51,11 +51,9 @@ One-time site setup needs:
 - `FRONTEND_URL` set to the site's public URL, including the scheme
   (e.g. `https://your-site.example`; used in confirmation emails).
 - `SMTP_FROM` set to the sender address for confirmation emails.
-  `SMTP_HOST`/`SMTP_PORT` (currently unauthenticated SMTP over TCP) do
-  not work on alwaysdata as-is: there is no local SMTP listener, and
-  alwaysdata requires either SMTP AUTH or using the local `sendmail`
-  binary directly. Production email sending needs the mailer rework
-  on the backlog first.
+  Leave `SMTP_HOST` unset: the app then hands emails to the server's
+  local `sendmail` binary, since alwaysdata has no local SMTP
+  listener and requires SMTP AUTH otherwise.
 - SSH access, with this repository cloned on the site.
 
 To deploy, over SSH on the site:
