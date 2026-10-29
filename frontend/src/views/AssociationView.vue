@@ -103,6 +103,9 @@ async function add() {
           <span v-if="!member.has_account" class="no-account">{{
             t('association.noAccount')
           }}</span>
+          <span v-else-if="!member.email_verified" class="no-account">{{
+            t('association.pending')
+          }}</span>
           <div class="sub">{{ member.email }}</div>
         </div>
         <div v-if="isManager && confirming === member.user_id" class="actions">

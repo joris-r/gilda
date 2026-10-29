@@ -17,7 +17,9 @@ from gilda.core.schemas import (
     MemberCreate,
     MemberRead,
     MemberUpdate,
+    ResendRequest,
     UserRead,
+    VerifyRequest,
 )
 from gilda.core.services import AccountService, AssociationService
 
@@ -42,15 +44,26 @@ class AccountController(Controller):
     @post("/accounts")
     async def create_account(
         self,
-        request: Request[Any, Any, Any],
         db_session: NamedDependency[AsyncSession],
         data: JSONBody[AccountCreate],
     ) -> UserRead:
         user = await AccountService(db_session).create_account(
             data.display_name, data.email, data.password
         )
-        request.set_session({SESSION_USER_KEY: str(user.id)})
         return user_read(user)
+
+    @post("/accounts/verify", status_code=200)
+    async def verify_email(
+        self, db_session: NamedDependency[AsyncSession], data: JSONBody[VerifyRequest]
+    ) -> UserRead:
+        user = await AccountService(db_session).confirm(data.token)
+        return user_read(user)
+
+    @post("/accounts/verify/resend", status_code=204)
+    async def resend_verification(
+        self, db_session: NamedDependency[AsyncSession], data: JSONBody[ResendRequest]
+    ) -> None:
+        await AccountService(db_session).resend_confirmation(data.email)
 
     @post("/session", status_code=200)
     async def sign_in(

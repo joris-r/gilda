@@ -28,7 +28,14 @@
     "submit": "Create account",
     "exists": "An account already exists for this email. Sign in instead.",
     "haveAccount": "Already have an account?",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "checkEmail": "Check {email} for a confirmation link.",
+    "resend": "Resend the email",
+    "resent": "Email sent."
+  },
+  "verifyEmail": {
+    "confirmed": "Email confirmed. You can now sign in.",
+    "invalid": "This link is no longer valid."
   },
   "myAssociations": {
     "title": "My associations",
@@ -40,6 +47,7 @@
     "back": "← My associations",
     "members": "Members",
     "noAccount": "no account",
+    "pending": "pending",
     "changeRole": "Change role",
     "confirmRole": "Make {name} {role}?",
     "confirm": "Confirm",

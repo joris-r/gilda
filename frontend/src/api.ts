@@ -17,6 +17,7 @@ export interface Member {
   display_name: string
   email: string
   has_account: boolean
+  email_verified: boolean
   role: Role
 }
 
@@ -65,6 +66,14 @@ export function signOut() {
 
 export function createAccount(display_name: string, email: string, password: string) {
   return request<User>('POST', '/api/accounts', { display_name, email, password })
+}
+
+export function verifyEmail(token: string) {
+  return request<User>('POST', '/api/accounts/verify', { token })
+}
+
+export function resendVerification(email: string) {
+  return request<void>('POST', '/api/accounts/verify/resend', { email })
 }
 
 export function listAssociations() {

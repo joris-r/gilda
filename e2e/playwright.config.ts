@@ -17,7 +17,11 @@ export default defineConfig({
       'uv run --directory ../backend litestar --app gilda.app:create_app database upgrade --no-prompt && ' +
       `uv run --directory ../backend litestar --app gilda.app:create_app run --port ${PORT}`,
     port: PORT,
-    env: { DATABASE_URL, GILDA_FRONTEND_DIR: '../frontend/dist' },
+    env: {
+      DATABASE_URL,
+      GILDA_FRONTEND_DIR: '../frontend/dist',
+      FRONTEND_URL: `http://127.0.0.1:${PORT}`,
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
