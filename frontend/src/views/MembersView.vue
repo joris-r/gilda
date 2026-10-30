@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink } from 'vue-router'
 import {
   addMember,
   ApiError,
@@ -11,15 +10,22 @@ import {
   type Member,
   type Role,
 } from '../api'
+import { useLocation } from '../location'
 import { useSession } from '../session'
+
+/** Members shown before "Show all". */
+const FIRST_MEMBERS = 5
 
 const props = defineProps<{ id: string }>()
 const { t } = useI18n()
 const { user } = useSession()
+const location = useLocation()
 
 const association = ref<Association>()
 const confirming = ref<string>()
 const message = ref<{ text: string; ok: boolean }>()
+const showAll = ref(false)
+const adding = ref(false)
 
 const displayName = ref('')
 const email = ref('')
@@ -33,9 +39,17 @@ const members = computed(() =>
       a.display_name.localeCompare(b.display_name),
   ),
 )
+const shownMembers = computed(() =>
+  showAll.value ? members.value : members.value.slice(0, FIRST_MEMBERS),
+)
 
 async function load() {
-  association.value = await getAssociation(props.id)
+  const found = await getAssociation(props.id)
+  association.value = found
+  location.value = {
+    association: { id: found.id, name: found.name },
+    screen: 'association.members',
+  }
 }
 
 watch(() => props.id, load, { immediate: true })
@@ -86,18 +100,9 @@ async function add() {
 </script>
 
 <template>
-  <p class="hint">
-    <RouterLink to="/">{{ t('association.back') }}</RouterLink>
-  </p>
   <template v-if="association">
-    <h1>{{ association.name }}</h1>
-    <p class="links">
-      <RouterLink :to="`/associations/${id}/schedule`">{{ t('association.schedule') }}</RouterLink>
-      <RouterLink :to="`/associations/${id}/opening`">{{ t('association.opening') }}</RouterLink>
-    </p>
-    <h2>{{ t('association.members') }}</h2>
     <ul class="list">
-      <li v-for="member in members" :key="member.user_id">
+      <li v-for="member in shownMembers" :key="member.user_id">
         <div>
           {{ member.display_name }}
           <span v-if="!member.has_account" class="no-account">{{
@@ -130,8 +135,16 @@ async function add() {
         </div>
       </li>
     </ul>
+    <p v-if="!showAll && members.length > FIRST_MEMBERS" class="more">
+      <button type="button" class="link" @click="showAll = true">
+        {{ t('association.showAll', { n: members.length }) }}
+      </button>
+    </p>
     <p v-if="message" :class="message.ok ? 'ok' : 'error'">{{ message.text }}</p>
-    <template v-if="isManager">
+    <button v-if="isManager && !adding" type="button" class="add" @click="adding = true">
+      {{ t('association.addMember') }}
+    </button>
+    <template v-if="isManager && adding">
       <h2>{{ t('association.addMember') }}</h2>
       <form class="panel" @submit.prevent="add">
         <label>
@@ -154,3 +167,13 @@ async function add() {
     </template>
   </template>
 </template>
+
+<style scoped>
+.more {
+  margin: 12px 0 0;
+}
+
+.add {
+  margin-top: 24px;
+}
+</style>

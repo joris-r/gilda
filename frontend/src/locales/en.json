@@ -45,7 +45,6 @@
     "submit": "Create association"
   },
   "association": {
-    "back": "← My associations",
     "members": "Members",
     "noAccount": "no account",
     "pending": "pending",
@@ -59,8 +58,7 @@
     "submit": "Add member",
     "added": "{name} added.",
     "alreadyMember": "{name} is already a member.",
-    "schedule": "Schedule",
-    "opening": "Opening hours"
+    "showAll": "Show all {n} members"
   },
   "weekdays": {
     "monday": "Monday",
@@ -71,8 +69,8 @@
     "saturday": "Saturday",
     "sunday": "Sunday"
   },
-  "opening": {
-    "title": "Opening hours",
+  "settings": {
+    "title": "Schedule settings",
     "slots": "Slots",
     "noSlots": "No slots yet.",
     "day": "Day",
@@ -94,8 +92,7 @@
     "clear": "Clear"
   },
   "schedule": {
-    "title": "Schedule",
-    "week": "Week {n} · {range}",
+    "week": "Week {n}",
     "today": "Today · {date}",
     "periodStart": "Planning period · from {date}",
     "periodEnd": "End of planning period · {date}",
