@@ -53,34 +53,33 @@ Email confirmed. You can now sign in.
 ## `/`, signed in: My associations
 
 ```
-(logo)                         Alice  Sign out  [English ▾]
+(logo)  My associations                                    Alice ▾
 
-My associations
+                                                              [+]
   Jardin partagé des Lilas                 MANAGER
   Repair Café Belleville                 VOLUNTEER
+```
 
+- "+", named "Create an association", shows the form:
+
+```
 Create an association
   Name  [                    ]
   [Create association]
 ```
 
-- Each name leads to the association's page; creating one leads to the
-  new association's page.
+- Each name leads to the association's Schedule; creating one leads to
+  the new association's Schedule.
 - With no association: "You are not a member of any association yet."
 - Sign out leads to Sign in.
 
-## `/associations/{id}`: Association
+## `/associations/{id}/members`: Members
 
 As a manager:
 
 ```
-(logo)                         Alice  Sign out  [English ▾]
+(logo)  Jardin partagé des Lilas › Members                 Alice ▾
 
-← My associations
-Jardin partagé des Lilas
-Schedule  Opening hours
-
-Members
   Alice                                  MANAGER  Change role
   alice@example.org
   Bruno                                VOLUNTEER  Change role
@@ -89,16 +88,25 @@ Members
   chloe@example.org
   David  pending                       VOLUNTEER  Change role
   david@example.org
+  Emma                                 VOLUNTEER  Change role
+  emma@example.org
+  Show all 7 members
 
+[Add a member]
+```
+
+- Members are listed managers first, then by display name.
+- The first 5 members show; "Show all 7 members" shows the others.
+  With 5 members or fewer, all show and the link does not.
+- "Add a member" shows the form:
+
+```
 Add a member
   Display name [          ]  Email [          ]
   Role [Volunteer ▾]
   [Add member]
 ```
 
-- "Schedule" and "Opening hours" lead to those pages of the
-  association.
-- Members are listed managers first, then by display name.
 - "Change role" on Bruno replaces his line's actions with
   "Make Bruno manager? [Confirm] Cancel"; Confirm changes the role
   and shows "Bruno is now manager."
@@ -110,7 +118,7 @@ Add a member
   instead of nothing; a member with no password shows "no account"
   regardless.
 - A volunteer sees the members and their roles, without "Change role"
-  and without the Add a member form.
+  and without "Add a member".
 - Signed out, every page but `/signup` and `/verify-email` shows Sign
   in.
 
