@@ -381,16 +381,22 @@ describe('Schedule', () => {
       expect(slotItem(wrapper, 'Thu 29 Oct', '10–13').find('s').text()).toBe('Chloé')
     })
 
-    it("cannot confirm another member's proposed registration", async () => {
-      const { mounting } = mountSchedule('manager', {
+    it('another member\'s proposed registration offers "Confirm", which confirms it', async () => {
+      const { calls, mounting } = mountSchedule('manager', {
         registrations: [registration('r-bruno', bruno, 'proposed', '2026-11-19')],
       })
       const wrapper = await mounting
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
-
-      expect(hasControl(wrapper, 'Confirm')).toBe(false)
       expect(hasControl(wrapper, 'Cancel registration…')).toBe(true)
+      await press(wrapper, 'Confirm')
+
+      expect(calls).toContainEqual({
+        method: 'PATCH',
+        path: `${registrationsPath}/r-bruno`,
+        body: { status: 'confirmed' },
+      })
+      expect(slotItem(wrapper, 'Thu 19 Nov', '10–13').text()).not.toMatch(/Bruno\s*\?/)
     })
   })
 })

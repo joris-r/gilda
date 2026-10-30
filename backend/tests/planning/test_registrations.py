@@ -226,12 +226,21 @@ def test_r7_the_registered_user_confirms_a_proposed_registration(
     assert response.json() == {**registration, "status": "confirmed"}
 
 
-@pytest.mark.parametrize("who", ["alice", "chloe"])
-def test_r7_nobody_else_confirms(client: Any, new_client: Callable[[], Any], who: str) -> None:
+def test_r7_a_manager_confirms_another_members_proposed_registration(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
-    as_client = client if who == "alice" else planning.chloe_client
 
-    response = planning.set_status(as_client, registration, "confirmed")
+    response = planning.set_status(client, registration, "confirmed")
+
+    assert response.status_code == 200
+    assert response.json() == {**registration, "status": "confirmed"}
+
+
+def test_r7_nobody_else_confirms(client: Any, new_client: Callable[[], Any]) -> None:
+    planning, registration = proposed_to_bruno(client, new_client)
+
+    response = planning.set_status(planning.chloe_client, registration, "confirmed")
 
     assert response.status_code == 403
     assert "error" in response.json()
@@ -270,6 +279,18 @@ def test_r7_confirming_an_obsolete_registration_409(
     client.delete(planning.path(f"slots/{slot['id']}"))
 
     response = planning.set_status(planning.bruno_client, registration, "confirmed")
+
+    assert response.status_code == 409
+
+
+def test_r7_a_manager_confirming_an_obsolete_registration_409(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    planning, registration = proposed_to_bruno(client, new_client)
+    slot = client.get(planning.path("slots")).json()[0]
+    client.delete(planning.path(f"slots/{slot['id']}"))
+
+    response = planning.set_status(client, registration, "confirmed")
 
     assert response.status_code == 409
 
