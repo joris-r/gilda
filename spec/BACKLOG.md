@@ -17,3 +17,4 @@
 ## Quality
 
 - Backend: the email-verification migration fails ruff check and format.
+- Frontend: the logo path is duplicated in App.vue and favicon.svg; share one source.
