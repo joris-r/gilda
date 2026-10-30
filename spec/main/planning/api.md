@@ -57,6 +57,27 @@ Content-Type: application/json
 - `POST` and `DELETE` are for managers only: 403 for a volunteer.
 - `label` may be omitted or `null`.
 
+## Planning period
+
+```http
+PUT /api/associations/5c1e…/planning-period
+Content-Type: application/json
+
+{"first": "2026-11-02", "last": "2026-11-25"}
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"first": "2026-11-02", "last": "2026-11-25"}
+```
+
+- `PUT` sets the period, replacing the previous one.
+- `GET` returns it; `null` when there is none.
+- `DELETE`: 204; there is no period anymore.
+- `PUT` and `DELETE` are for managers only: 403 for a volunteer.
+
 ## GET /api/associations/{id}/schedule?from=…&to=…
 
 The occurrences, obsolete registrations and closures between two
