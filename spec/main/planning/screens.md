@@ -85,7 +85,8 @@ Sat 31   [Bruno ?    ]
   opens a menu on it:
   - free or cancelled: "Sign up"; for a manager, also the members'
     display names, each proposing the occurrence to that member;
-  - the user's own proposed registration: "Confirm";
+  - the user's own proposed registration, or any proposed one for a
+    manager: "Confirm";
   - the user's own registration, or any for a manager: "Cancel
     registration…", which asks "Cancel this registration? [Yes,
     cancel] Keep it" before cancelling.
