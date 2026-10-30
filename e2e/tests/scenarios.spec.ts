@@ -14,10 +14,10 @@ async function latestVerificationToken(email: string, timeout = 5000): Promise<s
     const search = await fetch(
       `${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`,
     )
-    const { messages } = (await search.json()) as { messages: { ID: string }[] }
+    const { messages } = (await search.json()) as { messages: { ID: string; Created: string }[] }
     if (messages.length > 0) {
-      // Mailpit IDs are ULIDs: sortable by creation time, millisecond precision.
-      const latest = messages.reduce((a, b) => (a.ID > b.ID ? a : b))
+      // Mailpit IDs are not ordered by time; Created has millisecond precision.
+      const latest = messages.reduce((a, b) => (Date.parse(a.Created) > Date.parse(b.Created) ? a : b))
       const message = await fetch(`${MAILPIT_URL}/api/v1/message/${latest.ID}`)
       const { Text: text } = (await message.json()) as { Text: string }
       const match = /token=([\w-]+)/.exec(text)

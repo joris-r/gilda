@@ -3,6 +3,7 @@ import re
 import time
 import uuid
 from collections.abc import Callable, Iterator
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -27,8 +28,8 @@ def latest_verification_token(email: str, timeout: float = 5.0) -> str:
         response = httpx.get(f"{MAILPIT_URL}/api/v1/search", params={"query": f"to:{email}"})
         messages = response.json()["messages"]
         if messages:
-            # Mailpit IDs are ULIDs: sortable by creation time, millisecond precision.
-            latest = max(messages, key=lambda m: m["ID"])
+            # Mailpit IDs are not ordered by time; Created has millisecond precision.
+            latest = max(messages, key=lambda m: datetime.fromisoformat(m["Created"]))
             text = httpx.get(f"{MAILPIT_URL}/api/v1/message/{latest['ID']}").json()["Text"]
             match = re.search(r"token=([\w-]+)", text)
             assert match, f"no verification link in the email sent to {email}"
