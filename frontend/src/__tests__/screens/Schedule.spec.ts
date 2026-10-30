@@ -10,6 +10,7 @@ import {
   slotItem,
   type Closure,
   type Occurrence,
+  type PlanningPeriod,
   type Registration,
 } from './planningFake'
 
@@ -63,7 +64,11 @@ const registrations = [
 
 function mountSchedule(
   role: 'manager' | 'volunteer' = 'volunteer',
-  overrides: { occurrences?: Occurrence[]; registrations?: Registration[] } = {},
+  overrides: {
+    occurrences?: Occurrence[]
+    registrations?: Registration[]
+    planningPeriod?: PlanningPeriod
+  } = {},
 ) {
   const api = planningApi({
     me: alice.user_id,
@@ -72,6 +77,7 @@ function mountSchedule(
     occurrences: overrides.occurrences ?? occurrences(['2026-11-14']),
     registrations: overrides.registrations ?? registrations.map((r) => ({ ...r })),
     closures: [closure],
+    planningPeriod: overrides.planningPeriod ?? null,
   })
   const calls = mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
   return { calls, api, mounting: mountApp(path) }
@@ -225,6 +231,63 @@ describe('Schedule', () => {
 
     expect(text).toContain('Closed')
     expect(text).toContain('Fête du quartier')
+  })
+
+  describe('planning period', () => {
+    const period = { first: '2026-11-04', last: '2026-11-18' }
+
+    it('a line marked with the first date sits just before the week that holds it', async () => {
+      const { mounting } = mountSchedule('volunteer', { planningPeriod: period })
+      const text = pageText(await mounting)
+
+      const line = text.indexOf('Planning period · from Wednesday 4 November 2026')
+      expect(line).toBeGreaterThan(text.indexOf('Week 44'))
+      expect(line).toBeLessThan(text.indexOf('Week 45'))
+    })
+
+    it('a line marked with the last date sits just after the week that holds it', async () => {
+      const { mounting } = mountSchedule('volunteer', { planningPeriod: period })
+      const text = pageText(await mounting)
+
+      const line = text.indexOf('End of planning period · Wednesday 18 November 2026')
+      expect(line).toBeGreaterThan(text.indexOf('Week 47'))
+      expect(line).toBeLessThan(text.indexOf('Week 48'))
+    })
+
+    it('the today line comes first when the first line falls at the same place', async () => {
+      const { mounting } = mountSchedule('volunteer', {
+        planningPeriod: { first: '2026-10-26', last: '2026-11-18' },
+      })
+      const text = pageText(await mounting)
+
+      const today = text.indexOf('Today · Wednesday 28 October 2026')
+      const first = text.indexOf('Planning period · from Monday 26 October 2026')
+      expect(today).toBeGreaterThan(text.indexOf('Week 43'))
+      expect(first).toBeGreaterThan(today)
+      expect(first).toBeLessThan(text.indexOf('Week 44'))
+    })
+
+    it('shows no line without a period', async () => {
+      const { mounting } = mountSchedule()
+      const text = pageText(await mounting)
+
+      expect(text).not.toContain('Planning period')
+      expect(text).not.toContain('End of planning period')
+    })
+
+    it('an occurrence after the last date keeps its menu', async () => {
+      const { calls, mounting } = mountSchedule('volunteer', { planningPeriod: period })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      await press(wrapper, 'Sign up')
+
+      expect(calls).toContainEqual({
+        method: 'POST',
+        path: registrationsPath,
+        body: { user_id: 'u-alice', date: '2026-11-19', start: '10:00', end: '13:00' },
+      })
+    })
   })
 
   describe('menu', () => {
