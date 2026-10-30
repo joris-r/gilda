@@ -81,6 +81,19 @@ describe('Create an account', () => {
     )
   })
 
+  it('says so when the confirmation email cannot be sent', async () => {
+    mockApi({
+      'GET /api/session': signedOut,
+      'POST /api/accounts': { status: 503, body: { error: 'Email not sent' } },
+    })
+    const wrapper = await mountApp('/signup')
+
+    await fillTheForm(wrapper)
+    await press(wrapper, 'Create account')
+
+    expect(pageText(wrapper)).toContain("We couldn't send the confirmation email. Try again later.")
+  })
+
   it('"Sign in" leads to Sign in', async () => {
     mockApi({ 'GET /api/session': signedOut })
     const wrapper = await mountApp('/signup')

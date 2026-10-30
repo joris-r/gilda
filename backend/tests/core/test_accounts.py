@@ -86,6 +86,49 @@ def test_r2_sign_up_takes_over_a_user_without_password(
     assert chloe_member["display_name"] == "Chloé L."
 
 
+def break_the_mailer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Points the mailer at a port where nothing listens, so sending fails."""
+    monkeypatch.setenv("SMTP_HOST", "localhost")
+    monkeypatch.setenv("SMTP_PORT", "1")
+
+
+def test_r10_sign_up_503_when_the_email_cannot_be_sent(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = unique_email("Alice")
+    account = {"display_name": "Alice", "email": email, "password": PASSWORD}
+    break_the_mailer(monkeypatch)
+
+    response = client.post("/api/accounts", json=account)
+
+    assert response.status_code == 503
+    assert "error" in response.json()
+    monkeypatch.undo()
+    assert client.post("/api/accounts", json=account).status_code == 201
+
+
+def test_r10_failed_sign_up_leaves_a_user_without_password_unchanged(
+    client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sign_up(client, "Alice")
+    association = create_association(client)
+    chloe_email = unique_email("Chloe")
+    member = add_member(client, association["id"], "Chloé", chloe_email).json()
+    chloe = new_client()
+    break_the_mailer(monkeypatch)
+
+    response = chloe.post(
+        "/api/accounts",
+        json={"display_name": "Chloé L.", "email": chloe_email, "password": PASSWORD},
+    )
+
+    assert response.status_code == 503
+    members = client.get(f"/api/associations/{association['id']}").json()["members"]
+    chloe_member = next(m for m in members if m["user_id"] == member["user_id"])
+    assert chloe_member["has_account"] is False
+    assert chloe_member["display_name"] == "Chloé"
+
+
 def test_post_api_accounts_409_when_the_email_has_an_account(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -314,6 +357,20 @@ def test_post_api_accounts_verify_resend_204_when_the_email_is_unknown(client: A
 def test_post_api_accounts_verify_resend_204_when_already_confirmed(client: Any) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
+
+    response = client.post("/api/accounts/verify/resend", json={"email": email})
+
+    assert response.status_code == 204
+
+
+def test_post_api_accounts_verify_resend_204_when_the_email_cannot_be_sent(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = unique_email("Alice")
+    client.post(
+        "/api/accounts", json={"display_name": "Alice", "email": email, "password": PASSWORD}
+    )
+    break_the_mailer(monkeypatch)
 
     response = client.post("/api/accounts/verify/resend", json={"email": email})
 
