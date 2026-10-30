@@ -1,14 +1,14 @@
 import type { VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountApp, pageText } from '../mountApp'
-import { fill, hasControl, item, mockApi, press } from '../mockApi'
+import { fill, hasControl, header, item, mockApi, press } from '../mockApi'
 import { garden, member, signedInAsAlice } from './fixtures'
 import { planningApi, type PlanningPeriod } from './planningFake'
 
-const path = `/associations/${garden.id}/opening`
+const path = `/associations/${garden.id}/settings`
 const base = `/api/associations/${garden.id}`
 
-function mountOpening(
+function mountSettings(
   role: 'manager' | 'volunteer',
   planningPeriod: PlanningPeriod | null = { first: '2026-11-02', last: '2026-11-25' },
 ) {
@@ -45,9 +45,52 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('Opening hours', () => {
+describe('Schedule settings', () => {
+  it('the header shows the association name, then Schedule settings', async () => {
+    const { mounting } = mountSettings('manager')
+    const text = header(await mounting).text()
+
+    expect(text).toContain(garden.name)
+    expect(text.indexOf('Schedule settings')).toBeGreaterThan(text.indexOf(garden.name))
+  })
+
+  it('in French, the screen is "Réglages du planning"', async () => {
+    localStorage.setItem('gilda.locale', 'fr')
+    const { mounting } = mountSettings('manager')
+
+    expect(header(await mounting).text()).toContain('Réglages du planning')
+  })
+
+  it('shows no back link', async () => {
+    const { mounting } = mountSettings('manager')
+
+    const text = pageText(await mounting)
+
+    expect(text).toContain('Fête du quartier')
+    expect(text).not.toContain('←')
+  })
+
+  it('no longer opens at /associations/{id}/opening', async () => {
+    const api = planningApi({ me: 'u-alice', role: 'manager', members: [] })
+    mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
+    const wrapper = await mountApp(`/associations/${garden.id}/opening`)
+
+    expect(hasControl(wrapper, 'Add slot')).toBe(false)
+  })
+
+  it('shows Planning period, then Closures, then Slots', async () => {
+    const { mounting } = mountSettings('manager')
+    const wrapper = await mounting
+
+    const sections = wrapper
+      .findAll('h1, h2, h3')
+      .map((h) => h.text().trim())
+      .filter((text) => ['Planning period', 'Closures', 'Slots'].includes(text))
+    expect(sections).toEqual(['Planning period', 'Closures', 'Slots'])
+  })
+
   it('lists the slots, with their day and times', async () => {
-    const { mounting } = mountOpening('manager')
+    const { mounting } = mountSettings('manager')
     const wrapper = await mounting
 
     expect(item(wrapper, 'Thursday').text()).toContain('10:00–13:00')
@@ -55,7 +98,7 @@ describe('Opening hours', () => {
   })
 
   it('lists the closures, with their dates and label', async () => {
-    const { mounting } = mountOpening('manager')
+    const { mounting } = mountSettings('manager')
     const wrapper = await mounting
 
     expect(item(wrapper, 'Fête du quartier').text()).toContain('Sat 14 Nov 2026')
@@ -66,7 +109,7 @@ describe('Opening hours', () => {
 
   describe('as a manager', () => {
     it('adds a slot with POST', async () => {
-      const { calls, mounting } = mountOpening('manager')
+      const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
       const slotForm = form(wrapper, 'Add slot')
 
@@ -84,7 +127,7 @@ describe('Opening hours', () => {
     })
 
     it('deletes a slot with DELETE', async () => {
-      const { calls, mounting } = mountOpening('manager')
+      const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
 
       await press(item(wrapper, 'Thursday'), 'Delete')
@@ -98,7 +141,7 @@ describe('Opening hours', () => {
     })
 
     it('adds a closure with POST', async () => {
-      const { calls, mounting } = mountOpening('manager')
+      const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
       const closureForm = form(wrapper, 'Add closure')
 
@@ -118,7 +161,7 @@ describe('Opening hours', () => {
     })
 
     it('adds a closure without label', async () => {
-      const { calls, mounting } = mountOpening('manager')
+      const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
       const closureForm = form(wrapper, 'Add closure')
 
@@ -134,7 +177,7 @@ describe('Opening hours', () => {
     })
 
     it('deletes a closure with DELETE', async () => {
-      const { calls, mounting } = mountOpening('manager')
+      const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
 
       await press(item(wrapper, 'Fête du quartier'), 'Delete')
@@ -150,7 +193,7 @@ describe('Opening hours', () => {
 
   describe('planning period, as a manager', () => {
     it('sets the planning period with PUT', async () => {
-      const { calls, mounting } = mountOpening('manager', null)
+      const { calls, mounting } = mountSettings('manager', null)
       const wrapper = await mounting
       const periodForm = form(wrapper, 'Save')
 
@@ -166,7 +209,7 @@ describe('Opening hours', () => {
     })
 
     it('clears the planning period with DELETE', async () => {
-      const { calls, mounting } = mountOpening('manager')
+      const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
 
       await press(wrapper, 'Clear')
@@ -181,7 +224,7 @@ describe('Opening hours', () => {
 
   describe('planning period, as a volunteer', () => {
     it('shows the period, without the form', async () => {
-      const { mounting } = mountOpening('volunteer')
+      const { mounting } = mountSettings('volunteer')
       const wrapper = await mounting
 
       expect(pageText(wrapper)).toContain('Planning period')
@@ -191,7 +234,7 @@ describe('Opening hours', () => {
     })
 
     it('shows "None" when there is no period', async () => {
-      const { mounting } = mountOpening('volunteer', null)
+      const { mounting } = mountSettings('volunteer', null)
       const wrapper = await mounting
 
       expect(pageText(wrapper)).toContain('None')
@@ -199,7 +242,7 @@ describe('Opening hours', () => {
   })
 
   it('a volunteer sees the lists, without Delete and without the forms', async () => {
-    const { mounting } = mountOpening('volunteer')
+    const { mounting } = mountSettings('volunteer')
     const wrapper = await mounting
 
     expect(item(wrapper, 'Thursday').text()).toContain('10:00–13:00')

@@ -53,12 +53,16 @@ async function signIn(page: Page, email: string) {
   await expect(page.getByText('My associations')).toBeVisible()
 }
 
+/** Opens the menu of the signed-in user, in the header, then signs out. */
 async function signOut(page: Page) {
+  await page.locator('header').getByRole('button').first().click()
   await page.getByText('Sign out', { exact: true }).click()
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
 }
 
 async function addMember(page: Page, displayName: string, email: string, role: string) {
+  if (!(await page.getByRole('button', { name: 'Add member' }).isVisible()))
+    await page.getByText('Add a member', { exact: true }).click()
   await page.getByLabel('Display name', { exact: true }).fill(displayName)
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByRole('combobox', { name: /^Role/ }).selectOption({ label: role })
@@ -83,7 +87,13 @@ function dayOfWeek(weekday: number, weeksAhead: number) {
 
 async function openSchedule(page: Page, association: string) {
   await page.getByText(association, { exact: true }).click()
-  await page.getByRole('link', { name: 'Schedule', exact: true }).click()
+}
+
+async function createAssociation(page: Page, association: string) {
+  await page.getByRole('button', { name: 'Create an association' }).click()
+  await page.getByLabel('Name', { exact: true }).fill(association)
+  await page.getByRole('button', { name: 'Create association' }).click()
+  await expect(page.locator('header').getByText(association)).toBeVisible()
 }
 
 function occurrence(page: Page, dayLabel: string, times: string) {
@@ -102,12 +112,11 @@ test.describe('Scenarios', () => {
 
     await test.step('1. Alice creates her account and the association', async () => {
       await signUp(page, 'Alice', uniqueEmail('Alice'))
-      await page.getByLabel('Name', { exact: true }).fill(association)
-      await page.getByRole('button', { name: 'Create association' }).click()
-      await expect(page.getByRole('heading', { name: association })).toBeVisible()
+      await createAssociation(page, association)
     })
 
     await test.step('2. Alice adds Bruno as manager, Chloé and David as volunteers', async () => {
+      await page.getByRole('link', { name: 'Members', exact: true }).click()
       await addMember(page, 'Bruno', bruno, 'Manager')
       await addMember(page, 'Chloé', chloe, 'Volunteer')
       await addMember(page, 'David', uniqueEmail('David'), 'Volunteer')
@@ -123,6 +132,7 @@ test.describe('Scenarios', () => {
     await test.step('4. Bruno creates his account and promotes Chloé', async () => {
       await signUp(page, 'Bruno', bruno)
       await myLine.getByText(association, { exact: true }).click()
+      await page.getByRole('link', { name: 'Members', exact: true }).click()
       const chloeLine = page.getByRole('listitem').filter({ hasText: 'Chloé' })
       await chloeLine.getByText('Change role', { exact: true }).click()
       await chloeLine.getByText('Confirm', { exact: true }).click()
@@ -148,11 +158,12 @@ test.describe('Scenarios', () => {
 
     await test.step('1. Alice adds the slots and a closure', async () => {
       await signUp(page, 'Alice', alice)
-      await page.getByLabel('Name', { exact: true }).fill(association)
-      await page.getByRole('button', { name: 'Create association' }).click()
+      await createAssociation(page, association)
+      await page.getByRole('link', { name: 'Members', exact: true }).click()
       await addMember(page, 'Chloé', chloe, 'Volunteer')
       await addMember(page, 'David', david, 'Volunteer')
-      await page.getByRole('link', { name: 'Opening hours', exact: true }).click()
+      await page.locator('header').getByRole('link', { name: association }).click()
+      await page.getByRole('link', { name: 'Schedule settings', exact: true }).click()
 
       const slotForm = page
         .locator('form')

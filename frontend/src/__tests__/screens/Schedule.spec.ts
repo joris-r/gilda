@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountApp, pageText } from '../mountApp'
-import { control, hasControl, mockApi, press } from '../mockApi'
+import { control, hasControl, header, mockApi, press } from '../mockApi'
 import { garden, member, signedInAsAlice } from './fixtures'
 import {
   day,
@@ -17,7 +17,7 @@ import {
 const alice = member('u-alice', 'Alice', 'volunteer')
 const bruno = member('u-bruno', 'Bruno', 'volunteer')
 const chloe = member('u-chloe', 'Chloé', 'volunteer')
-const path = `/associations/${garden.id}/schedule`
+const path = `/associations/${garden.id}`
 const registrationsPath = `/api/associations/${garden.id}/registrations`
 
 function isoDate(d: Date) {
@@ -69,6 +69,7 @@ function mountSchedule(
     registrations?: Registration[]
     planningPeriod?: PlanningPeriod
   } = {},
+  at = path,
 ) {
   const api = planningApi({
     me: alice.user_id,
@@ -80,7 +81,7 @@ function mountSchedule(
     planningPeriod: overrides.planningPeriod ?? null,
   })
   const calls = mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
-  return { calls, api, mounting: mountApp(path) }
+  return { calls, api, mounting: mountApp(at) }
 }
 
 /** The texts of the elements that have no child element. */
@@ -102,25 +103,39 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('Association', () => {
-  it('links to the Schedule and to Opening hours', async () => {
-    mockApi({
-      'GET /api/session': signedInAsAlice,
-      [`GET /api/associations/${garden.id}`]: {
-        status: 200,
-        body: { ...garden, role: 'volunteer', members: [alice] },
-      },
-    })
-    const wrapper = await mountApp(`/associations/${garden.id}`)
-
-    expect(control(wrapper, 'Schedule').attributes('href')).toBe(path)
-    expect(control(wrapper, 'Opening hours').attributes('href')).toBe(
-      `/associations/${garden.id}/opening`,
-    )
-  })
-})
-
 describe('Schedule', () => {
+  it('the header shows the association name alone', async () => {
+    const { mounting } = mountSchedule()
+    const text = header(await mounting).text()
+
+    expect(text).toContain(garden.name)
+    expect(text).not.toContain('Schedule')
+    expect(text).not.toContain('Members')
+  })
+
+  it('"Members" and "Schedule settings" lead to those screens', async () => {
+    const { mounting } = mountSchedule()
+    const wrapper = await mounting
+
+    expect(control(wrapper, 'Members').attributes('href')).toBe(`${path}/members`)
+    expect(control(wrapper, 'Schedule settings').attributes('href')).toBe(`${path}/settings`)
+  })
+
+  it('week headings show only the week number', async () => {
+    const { mounting } = mountSchedule()
+    const text = pageText(await mounting)
+
+    expect(text).toContain('Week 44')
+    expect(text).not.toContain('26 Oct – 1 Nov')
+  })
+
+  it('no longer opens at /associations/{id}/schedule', async () => {
+    const { mounting } = mountSchedule('volunteer', {}, `${path}/schedule`)
+    const text = pageText(await mounting)
+
+    expect(text).not.toContain('Week 44')
+  })
+
   it('opens on the week before the current one and shows six weeks', async () => {
     const { api, mounting } = mountSchedule()
     const wrapper = await mounting
@@ -297,6 +312,35 @@ describe('Schedule', () => {
       expect(today).toBeGreaterThan(text.indexOf('Week 43'))
       expect(first).toBeGreaterThan(today)
       expect(first).toBeLessThan(text.indexOf('Week 44'))
+    })
+
+    it('the schedule opens far enough to show the week after the one holding the last date', async () => {
+      const { api, mounting } = mountSchedule('volunteer', {
+        planningPeriod: { first: '2026-11-04', last: '2026-11-25' },
+      })
+      const text = pageText(await mounting)
+
+      expect(api.scheduleRequests).toContainEqual({ from: '2026-10-19', to: '2026-12-06' })
+      for (const week of [43, 48, 49]) expect(text).toContain(`Week ${week}`)
+      expect(text).not.toContain('Week 50')
+    })
+
+    it('a last date on a Sunday still brings the week after', async () => {
+      const { mounting } = mountSchedule('volunteer', {
+        planningPeriod: { first: '2026-11-04', last: '2026-12-13' },
+      })
+      const text = pageText(await mounting)
+
+      expect(text).toContain('Week 51')
+      expect(text).not.toContain('Week 52')
+    })
+
+    it('six weeks stay six when they already reach the week after', async () => {
+      const { api, mounting } = mountSchedule('volunteer', { planningPeriod: period })
+      const text = pageText(await mounting)
+
+      expect(api.scheduleRequests).toContainEqual({ from: '2026-10-19', to: '2026-11-29' })
+      expect(text).not.toContain('Week 49')
     })
 
     it('shows no line without a period', async () => {
