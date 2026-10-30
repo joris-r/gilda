@@ -6,13 +6,17 @@ import {
   addClosure,
   addSlot,
   ApiError,
+  clearPlanningPeriod,
   deleteClosure,
   deleteSlot,
   getAssociation,
+  getPlanningPeriod,
   listClosures,
   listSlots,
+  setPlanningPeriod,
   type Association,
   type Closure,
+  type PlanningPeriod,
   type Slot,
   type Weekday,
 } from '../api'
@@ -24,6 +28,7 @@ const { t, locale } = useI18n()
 const association = ref<Association>()
 const slots = ref<Slot[]>([])
 const closures = ref<Closure[]>([])
+const period = ref<PlanningPeriod | null>(null)
 const message = ref<string>()
 
 const weekday = ref<Weekday>('monday')
@@ -32,6 +37,8 @@ const end = ref('')
 const first = ref('')
 const last = ref('')
 const label = ref('')
+const periodFirst = ref('')
+const periodLast = ref('')
 
 const isManager = computed(() => association.value?.role === 'manager')
 const sortedSlots = computed(() =>
@@ -47,20 +54,23 @@ const sortedClosures = computed(() =>
 )
 
 async function load() {
-  ;[association.value, slots.value, closures.value] = await Promise.all([
+  ;[association.value, slots.value, closures.value, period.value] = await Promise.all([
     getAssociation(props.id),
     listSlots(props.id),
     listClosures(props.id),
+    getPlanningPeriod(props.id),
   ])
+  periodFirst.value = period.value?.first ?? ''
+  periodLast.value = period.value?.last ?? ''
 }
 
 watch(() => props.id, load, { immediate: true })
 
-function dates(closure: Closure) {
+function dates(range: { first: string; last: string }) {
   const format = (iso: string) => formatDate(iso, locale.value, shortDayWithYear)
-  return closure.first === closure.last
-    ? format(closure.first)
-    : `${format(closure.first)} – ${format(closure.last)}`
+  return range.first === range.last
+    ? format(range.first)
+    : `${format(range.first)} – ${format(range.last)}`
 }
 
 function failure(e: unknown, conflict?: string) {
@@ -107,6 +117,27 @@ async function removeClosure(closure: Closure) {
   try {
     await deleteClosure(props.id, closure.id)
     closures.value = closures.value.filter((c) => c.id !== closure.id)
+  } catch (e) {
+    message.value = failure(e)
+  }
+}
+
+async function savePeriod() {
+  message.value = undefined
+  try {
+    period.value = await setPlanningPeriod(props.id, periodFirst.value, periodLast.value)
+  } catch (e) {
+    message.value = failure(e)
+  }
+}
+
+async function clearPeriod() {
+  message.value = undefined
+  try {
+    await clearPlanningPeriod(props.id)
+    period.value = null
+    periodFirst.value = ''
+    periodLast.value = ''
   } catch (e) {
     message.value = failure(e)
   }
@@ -180,6 +211,23 @@ async function removeClosure(closure: Closure) {
         <input v-model="label" />
       </label>
       <button type="submit">{{ t('opening.addClosure') }}</button>
+    </form>
+
+    <h2>{{ t('opening.planningPeriod') }}</h2>
+    <p :class="{ hint: !period }">{{ period ? dates(period) : t('opening.noPlanningPeriod') }}</p>
+    <form v-if="isManager" class="panel inline" @submit.prevent="savePeriod">
+      <label>
+        {{ t('opening.first') }}
+        <input v-model="periodFirst" type="date" required />
+      </label>
+      <label>
+        {{ t('opening.last') }}
+        <input v-model="periodLast" type="date" required />
+      </label>
+      <button type="submit">{{ t('opening.save') }}</button>
+      <button v-if="period" type="button" class="link" @click="clearPeriod">
+        {{ t('opening.clear') }}
+      </button>
     </form>
     <p v-if="message" class="error">{{ message }}</p>
   </template>

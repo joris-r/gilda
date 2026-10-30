@@ -28,6 +28,16 @@ class Closure(UUIDv7Base):
     label: Mapped[str | None]
 
 
+class PlanningPeriod(UUIDv7Base):
+    __tablename__ = "planning_period"
+
+    association_id: Mapped[UUID] = mapped_column(
+        ForeignKey("association.id", ondelete="CASCADE"), unique=True
+    )
+    first: Mapped[date]
+    last: Mapped[date]
+
+
 class Registration(UUIDv7Base):
     __tablename__ = "registration"
     __table_args__ = (

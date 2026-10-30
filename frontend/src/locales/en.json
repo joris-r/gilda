@@ -87,12 +87,18 @@
     "addClosure": "Add closure",
     "delete": "Delete",
     "slotExists": "This slot already exists.",
-    "invalid": "Check the dates and times: the start comes before the end."
+    "invalid": "Check the dates and times: the start comes before the end.",
+    "planningPeriod": "Planning period",
+    "noPlanningPeriod": "None",
+    "save": "Save",
+    "clear": "Clear"
   },
   "schedule": {
     "title": "Schedule",
     "week": "Week {n} · {range}",
     "today": "Today · {date}",
+    "periodStart": "Planning period · from {date}",
+    "periodEnd": "End of planning period · {date}",
     "hour": "{h}h",
     "obsolete": "obsolete",
     "closed": "Closed",
