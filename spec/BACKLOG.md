@@ -12,3 +12,8 @@
 ## Reliability
 
 - Sign-up fails with a raw 500 if sending the confirmation email fails (e.g. SMTP unreachable); it should fail cleanly instead.
+- Backend: test_r8 fails consistently (second token rejected after resend).
+
+## Quality
+
+- Backend: the email-verification migration fails ruff check and format.

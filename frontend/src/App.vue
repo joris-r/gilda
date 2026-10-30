@@ -28,7 +28,7 @@ async function leave() {
     <RouterLink to="/" class="brand" aria-label="Gilda">
       <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
         <path
-          d="M24.49 7.51A12 12 0 1 0 28 16H21"
+          d="M24.49 24.49A12 12 0 1 0 16 28V22"
           fill="none"
           stroke="currentColor"
           stroke-width="4"
