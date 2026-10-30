@@ -22,6 +22,7 @@ export interface Member {
 }
 
 export interface Association extends AssociationSummary {
+  timezone: string
   members: Member[]
 }
 

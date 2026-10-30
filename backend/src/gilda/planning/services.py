@@ -1,6 +1,7 @@
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import cast, get_args
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from advanced_alchemy.exceptions import IntegrityError
 from litestar.exceptions import ClientException, NotFoundException, PermissionDeniedException
@@ -229,7 +230,7 @@ class PlanningService:
             raise PermissionDeniedException("Only managers can register another member.")
         if not await self.memberships.exists(user_id=user_id, association_id=association_id):
             raise ClientException("This user is not a member of the association.")
-        if day < date.today():
+        if day < datetime.now(ZoneInfo(own.association.timezone)).date():
             raise ConflictException("This date is past.")
         start_time, end_time = parse_clock(start), parse_clock(end)
         if not await self._is_occurrence(association_id, day, start_time, end_time):

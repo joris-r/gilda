@@ -67,5 +67,6 @@ class MemberRead(msgspec.Struct):
 class AssociationDetail(msgspec.Struct):
     id: UUID
     name: str
+    timezone: str
     role: Role
     members: list[MemberRead]

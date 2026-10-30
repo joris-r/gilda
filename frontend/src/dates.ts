@@ -24,8 +24,10 @@ export function fromIso(iso: string): Date {
   return new Date(year!, month! - 1, day!)
 }
 
-export function today(): string {
-  return toIso(new Date())
+/** Today's date in the given IANA timezone. */
+export function today(timeZone: string): string {
+  // The en-CA locale writes dates as "YYYY-MM-DD".
+  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date())
 }
 
 export function addDays(iso: string, days: number): string {

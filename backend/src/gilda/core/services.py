@@ -154,6 +154,7 @@ class AssociationService:
         return AssociationDetail(
             id=own.association.id,
             name=own.association.name,
+            timezone=own.association.timezone,
             role=cast(Role, own.role),
             members=[member_read(m) for m in members],
         )

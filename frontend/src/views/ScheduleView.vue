@@ -48,8 +48,8 @@ const props = defineProps<{ id: string }>()
 const { t, locale } = useI18n()
 const { user } = useSession()
 
-const day0 = today()
-const firstMonday = addDays(mondayOf(day0), -7)
+/** Today in the association's timezone, set once the association is loaded. */
+const day0 = ref('')
 const weeks = ref(FIRST_WEEKS)
 const association = ref<Association>()
 const schedule = ref<Schedule>({ occurrences: [], obsolete: [], closures: [] })
@@ -60,7 +60,8 @@ const menuPosition = ref({ left: 0, top: 0 })
 const menu = ref<HTMLElement>()
 const message = ref<string>()
 
-const lastDay = computed(() => addDays(firstMonday, 7 * weeks.value - 1))
+const firstMonday = computed(() => addDays(mondayOf(day0.value), -7))
+const lastDay = computed(() => addDays(firstMonday.value, 7 * weeks.value - 1))
 const isManager = computed(() => association.value?.role === 'manager')
 const members = computed(() =>
   [...(association.value?.members ?? [])].sort((a, b) =>
@@ -69,15 +70,17 @@ const members = computed(() =>
 )
 
 async function load() {
-  ;[association.value, schedule.value, period.value] = await Promise.all([
-    getAssociation(props.id),
-    getSchedule(props.id, firstMonday, lastDay.value),
+  const found = await getAssociation(props.id)
+  day0.value = today(found.timezone)
+  ;[schedule.value, period.value] = await Promise.all([
+    getSchedule(props.id, firstMonday.value, lastDay.value),
     getPlanningPeriod(props.id),
   ])
+  association.value = found
 }
 
 async function reload() {
-  schedule.value = await getSchedule(props.id, firstMonday, lastDay.value)
+  schedule.value = await getSchedule(props.id, firstMonday.value, lastDay.value)
 }
 
 async function more() {
@@ -147,10 +150,10 @@ const hours = computed(() => lastHour.value - firstHour.value)
 
 const shownWeeks = computed(() =>
   Array.from({ length: weeks.value }, (_, n) => {
-    const monday = addDays(firstMonday, 7 * n)
+    const monday = addDays(firstMonday.value, 7 * n)
     return {
       monday,
-      current: monday === mondayOf(day0),
+      current: monday === mondayOf(day0.value),
       periodStarts: period.value !== null && mondayOf(period.value.first) === monday,
       periodEnds: period.value !== null && mondayOf(period.value.last) === monday,
       days: columns.value.map((column) => {
@@ -208,7 +211,7 @@ function actions(item: Item) {
 }
 
 function clickable(item: Item) {
-  return item.date >= day0 && Object.values(actions(item)).some(Boolean)
+  return item.date >= day0.value && Object.values(actions(item)).some(Boolean)
 }
 
 const openItem = computed(() => allItems.value.find((i) => i.key === openKey.value))
