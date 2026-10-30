@@ -196,7 +196,7 @@ function actions(item: Item) {
   return {
     signUp: !live && !item.obsolete,
     propose: !live && !item.obsolete && isManager.value,
-    confirm: mine && r.status === 'proposed' && !item.obsolete,
+    confirm: live && (mine || isManager.value) && r.status === 'proposed' && !item.obsolete,
     cancel: live && (mine || isManager.value),
   }
 }
