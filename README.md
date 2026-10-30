@@ -37,9 +37,9 @@ make check        # lint and test: run before every hand-over
 
 ## Deploy
 
-One alwaysdata site serves both the API and the built frontend, from
-the same Litestar app. Site, PostgreSQL database and SMTP relay are
-configured directly on alwaysdata.
+One hosted site serves both the API and the built frontend, from the
+same Litestar app. Site, PostgreSQL database and SMTP relay are
+configured directly at the hosting provider.
 
 One-time site setup needs:
 
@@ -52,7 +52,7 @@ One-time site setup needs:
   (e.g. `https://your-site.example`; used in confirmation emails).
 - `SMTP_FROM` set to the sender address for confirmation emails.
   Leave `SMTP_HOST` unset: the app then hands emails to the server's
-  local `sendmail` binary, since alwaysdata has no local SMTP
+  local `sendmail` binary, since the host has no local SMTP
   listener and requires SMTP AUTH otherwise.
 - SSH access, with this repository cloned on the site.
 
