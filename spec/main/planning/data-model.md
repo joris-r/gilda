@@ -25,3 +25,5 @@
     cancelled.
   - A registration that is not cancelled is obsolete when no
     occurrence has its date, start and end.
+- R11: Today, wherever the specification refers to it, is the current
+  date in the association's timezone.
