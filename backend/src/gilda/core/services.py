@@ -1,3 +1,4 @@
+import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import cast
@@ -10,6 +11,7 @@ from litestar.exceptions import (
     NotAuthorizedException,
     NotFoundException,
     PermissionDeniedException,
+    ServiceUnavailableException,
 )
 from litestar.status_codes import HTTP_409_CONFLICT
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,8 +24,9 @@ from gilda.core.repositories import (
     UserRepository,
 )
 from gilda.core.schemas import AssociationDetail, AssociationRead, MemberRead
-from gilda.mailer import send_verification_email
+from gilda.mailer import EmailNotSentError, send_verification_email
 
+_logger = logging.getLogger(__name__)
 _hasher = PasswordHasher()
 TOKEN_LIFETIME = timedelta(hours=24)
 
@@ -66,7 +69,13 @@ class AccountService:
             user.display_name = display_name
             user.password_hash = password_hash
             user = await self.users.update(user)
-        await self._issue_token(user)
+        try:
+            await self._issue_token(user)
+        except EmailNotSentError as error:
+            # R10: an error response rolls the transaction back, so nothing is saved.
+            raise ServiceUnavailableException(
+                "The confirmation email could not be sent. Try again later."
+            ) from error
         return user
 
     async def authenticate(self, email: str, password: str) -> User:
@@ -98,7 +107,11 @@ class AccountService:
     async def resend_confirmation(self, email: str) -> None:
         user = await self.find_by_email(email)
         if user is not None and not user.email_verified:
-            await self._issue_token(user)
+            try:
+                await self._issue_token(user)
+            except EmailNotSentError:
+                # Still 204: an error here would reveal that the email has a pending account.
+                _logger.exception("Resending the confirmation email failed")
 
     async def _issue_token(self, user: User) -> None:
         # R8: a new token replaces any pending one.

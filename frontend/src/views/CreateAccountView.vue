@@ -19,7 +19,9 @@ async function submit() {
     await createAccount(displayName.value, email.value, password.value)
     createdEmail.value = email.value
   } catch (e) {
-    error.value = e instanceof ApiError && e.status === 409 ? t('signUp.exists') : t('error')
+    if (e instanceof ApiError && e.status === 409) error.value = t('signUp.exists')
+    else if (e instanceof ApiError && e.status === 503) error.value = t('signUp.notSent')
+    else error.value = t('error')
   }
 }
 

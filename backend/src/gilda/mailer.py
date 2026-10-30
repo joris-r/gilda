@@ -4,6 +4,10 @@ import subprocess
 from email.message import EmailMessage
 
 
+class EmailNotSentError(Exception):
+    """The email could not be handed to the mail server."""
+
+
 def send_verification_email(to_email: str, token: str) -> None:
     link = f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/verify-email?token={token}"
     message = EmailMessage()
@@ -12,6 +16,13 @@ def send_verification_email(to_email: str, token: str) -> None:
     message["To"] = to_email
     message.set_content(f"Confirm your email by opening this link:\n\n{link}")
 
+    try:
+        _send(message)
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise EmailNotSentError(f"Could not send an email to {to_email}.") from error
+
+
+def _send(message: EmailMessage) -> None:
     host = os.environ.get("SMTP_HOST")
     if host is None:
         subprocess.run(["/usr/sbin/sendmail", "-t"], input=message.as_bytes(), check=True)
