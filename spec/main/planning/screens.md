@@ -1,38 +1,36 @@
-# Screens
-
-## `/associations/{id}/opening`: Opening hours
+## `/associations/{id}/settings`: Schedule settings
 
 ```
-← Jardin partagé
-Opening hours
+(logo)  Jardin partagé des Lilas › Schedule settings       Alice ▾
 
-Slots
-  Thursday   10:00–13:00   Delete
-  Saturday   10:00–13:00   Delete
-  Day [Thursday ▾]  From [10:00]  To [13:00]  [Add slot]
+Planning period
+  Mon 2 Nov 2026 – Wed 25 Nov 2026
+  From [2026-11-02]  To [2026-11-25]  [Save]  [Clear]
 
 Closures
   Sat 14 Nov 2026                  Fête du quartier   Delete
   Thu 24 Dec 2026 – Fri 1 Jan 2027  Fêtes de fin d'année   Delete
   From [    ]  To [    ]  Label [          ]  [Add closure]
 
-Planning period
-  Mon 2 Nov 2026 – Wed 25 Nov 2026
-  From [2026-11-02]  To [2026-11-25]  [Save]  [Clear]
+Slots
+  Thursday   10:00–13:00   Delete
+  Saturday   10:00–13:00   Delete
+  Day [Thursday ▾]  From [10:00]  To [13:00]  [Add slot]
 ```
 
+- In French, the screen is "Réglages du planning".
 - A volunteer sees the lists and the period, or "None", without Delete
   and without the forms.
 
-## `/associations/{id}/schedule`: Schedule
+## `/associations/{id}`: Schedule
 
 Wide screen:
 
 ```
-← Jardin partagé
-Schedule
+(logo)  Jardin partagé des Lilas                           Alice ▾
+                                       Members  Schedule settings
 
-Week 43 · 19 – 25 Oct
+Week 43
        Thu 22 Oct        Sat 24 Oct
 10h  ┌──────────────┐  ┌──────────────┐
      │10–13 Alice   │  │10–13         │
@@ -40,7 +38,7 @@ Week 43 · 19 – 25 Oct
 
 ── Today · Wednesday 28 October 2026 ───────────────────────
 
-Week 44 · 26 Oct – 1 Nov
+Week 44
        Thu 29 Oct        Sat 31 Oct
 10h  ┌──────────────┐  ┌──────────────┐
      │10–13 Chloé   │  │10–13 Bruno ? │
@@ -48,20 +46,20 @@ Week 44 · 26 Oct – 1 Nov
 
 ── Planning period · from Monday 2 November 2026 ───────────
 
-Week 45 · 2 – 8 Nov
+Week 45
        Thu 5 Nov         Sat 7 Nov
 10h  ┌──────────────┐  ┌──────────────┐
      │10–13 ~~Alice~~│  │   Closed     │
 13h  └──────────────┘  │Fête du quart.│
                         └──────────────┘
 …
-Week 48 · 23 – 29 Nov
+Week 48
        Thu 26 Nov        Sat 28 Nov
        (greyed)          (greyed)
 
 ── End of planning period · Wednesday 25 November 2026 ─────
 
-Week 49 · 30 Nov – 6 Dec      (greyed)
+Week 49      (greyed)
 …
 [More weeks]
 ```
@@ -69,14 +67,17 @@ Week 49 · 30 Nov – 6 Dec      (greyed)
 Narrow screen, same weeks:
 
 ```
-Week 44 · 26 Oct – 1 Nov
+Week 44
          10h        13h
 Thu 29   [Chloé      ]
 Sat 31   [Bruno ?    ]
 ```
 
-- It opens on the week before the current one and shows six weeks;
-  "More weeks", at the end, adds four more.
+- "Members" and "Schedule settings" lead to those screens.
+- It opens on the week before the current one and shows six weeks,
+  and more if needed to reach the week after the one that holds the
+  planning period's last date; "More weeks", at the end, adds four
+  more.
 - Each week has one column per weekday on which an occurrence of the
   shown weeks falls. Time runs down, on the same scale in every week,
   from the earliest start to the latest end of the shown occurrences,
