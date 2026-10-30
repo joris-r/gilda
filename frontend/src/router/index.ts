@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory, type RouterHistory } from 'vue-router'
-import AssociationView from '../views/AssociationView.vue'
 import CreateAccountView from '../views/CreateAccountView.vue'
+import MembersView from '../views/MembersView.vue'
 import MyAssociationsView from '../views/MyAssociationsView.vue'
-import OpeningHoursView from '../views/OpeningHoursView.vue'
+import ScheduleSettingsView from '../views/ScheduleSettingsView.vue'
 import ScheduleView from '../views/ScheduleView.vue'
 import VerifyEmailView from '../views/VerifyEmailView.vue'
 
@@ -19,17 +19,17 @@ export function createGildaRouter(history: RouterHistory = createWebHistory()) {
         component: VerifyEmailView,
         meta: { public: true },
       },
-      { path: '/associations/:id', name: 'association', component: AssociationView, props: true },
+      { path: '/associations/:id', name: 'schedule', component: ScheduleView, props: true },
       {
-        path: '/associations/:id/schedule',
-        name: 'schedule',
-        component: ScheduleView,
+        path: '/associations/:id/members',
+        name: 'members',
+        component: MembersView,
         props: true,
       },
       {
-        path: '/associations/:id/opening',
-        name: 'opening',
-        component: OpeningHoursView,
+        path: '/associations/:id/settings',
+        name: 'settings',
+        component: ScheduleSettingsView,
         props: true,
       },
     ],

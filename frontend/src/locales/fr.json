@@ -45,7 +45,6 @@
     "submit": "Créer l'association"
   },
   "association": {
-    "back": "← Mes associations",
     "members": "Membres",
     "noAccount": "sans compte",
     "pending": "en attente",
@@ -59,8 +58,7 @@
     "submit": "Ajouter",
     "added": "{name} ajouté·e.",
     "alreadyMember": "{name} est déjà membre.",
-    "schedule": "Planning",
-    "opening": "Horaires d'ouverture"
+    "showAll": "Voir les {n} membres"
   },
   "weekdays": {
     "monday": "Lundi",
@@ -71,8 +69,8 @@
     "saturday": "Samedi",
     "sunday": "Dimanche"
   },
-  "opening": {
-    "title": "Horaires d'ouverture",
+  "settings": {
+    "title": "Réglages du planning",
     "slots": "Créneaux",
     "noSlots": "Aucun créneau pour le moment.",
     "day": "Jour",
@@ -94,8 +92,7 @@
     "clear": "Effacer"
   },
   "schedule": {
-    "title": "Planning",
-    "week": "Semaine {n} · {range}",
+    "week": "Semaine {n}",
     "today": "Aujourd'hui · {date}",
     "periodStart": "Période de planification · à partir du {date}",
     "periodEnd": "Fin de la période de planification · {date}",

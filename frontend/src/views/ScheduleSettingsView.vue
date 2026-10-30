@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink } from 'vue-router'
 import {
   addClosure,
   addSlot,
@@ -21,9 +20,11 @@ import {
   type Weekday,
 } from '../api'
 import { formatDate, shortDayWithYear, WEEKDAYS } from '../dates'
+import { useLocation } from '../location'
 
 const props = defineProps<{ id: string }>()
 const { t, locale } = useI18n()
+const location = useLocation()
 
 const association = ref<Association>()
 const slots = ref<Slot[]>([])
@@ -60,6 +61,8 @@ async function load() {
     listClosures(props.id),
     getPlanningPeriod(props.id),
   ])
+  const { id, name } = association.value!
+  location.value = { association: { id, name }, screen: 'settings.title' }
   periodFirst.value = period.value?.first ?? ''
   periodLast.value = period.value?.last ?? ''
 }
@@ -75,7 +78,7 @@ function dates(range: { first: string; last: string }) {
 
 function failure(e: unknown, conflict?: string) {
   if (e instanceof ApiError && e.status === 409 && conflict) return conflict
-  if (e instanceof ApiError && e.status === 400) return t('opening.invalid')
+  if (e instanceof ApiError && e.status === 400) return t('settings.invalid')
   return t('error')
 }
 
@@ -86,7 +89,7 @@ async function createSlot() {
     start.value = ''
     end.value = ''
   } catch (e) {
-    message.value = failure(e, t('opening.slotExists'))
+    message.value = failure(e, t('settings.slotExists'))
   }
 }
 
@@ -146,46 +149,25 @@ async function clearPeriod() {
 
 <template>
   <template v-if="association">
-    <p class="hint">
-      <RouterLink :to="`/associations/${id}`">← {{ association.name }}</RouterLink>
-    </p>
-    <h1>{{ t('opening.title') }}</h1>
-
-    <h2>{{ t('opening.slots') }}</h2>
-    <p v-if="!slots.length" class="hint">{{ t('opening.noSlots') }}</p>
-    <ul v-else class="list">
-      <li v-for="slot in sortedSlots" :key="slot.id">
-        <span>{{ t(`weekdays.${slot.weekday}`) }}</span>
-        <div class="actions">
-          <span>{{ slot.start }}–{{ slot.end }}</span>
-          <button v-if="isManager" type="button" class="link" @click="removeSlot(slot)">
-            {{ t('opening.delete') }}
-          </button>
-        </div>
-      </li>
-    </ul>
-    <form v-if="isManager" class="panel inline" @submit.prevent="createSlot">
+    <h2>{{ t('settings.planningPeriod') }}</h2>
+    <p :class="{ hint: !period }">{{ period ? dates(period) : t('settings.noPlanningPeriod') }}</p>
+    <form v-if="isManager" class="panel inline" @submit.prevent="savePeriod">
       <label>
-        {{ t('opening.day') }}
-        <select v-model="weekday">
-          <option v-for="day in WEEKDAYS" :key="day" :value="day">
-            {{ t(`weekdays.${day}`) }}
-          </option>
-        </select>
+        {{ t('settings.first') }}
+        <input v-model="periodFirst" type="date" required />
       </label>
       <label>
-        {{ t('opening.from') }}
-        <input v-model="start" type="time" required />
+        {{ t('settings.last') }}
+        <input v-model="periodLast" type="date" required />
       </label>
-      <label>
-        {{ t('opening.to') }}
-        <input v-model="end" type="time" required />
-      </label>
-      <button type="submit">{{ t('opening.addSlot') }}</button>
+      <button type="submit">{{ t('settings.save') }}</button>
+      <button v-if="period" type="button" class="link" @click="clearPeriod">
+        {{ t('settings.clear') }}
+      </button>
     </form>
 
-    <h2>{{ t('opening.closures') }}</h2>
-    <p v-if="!closures.length" class="hint">{{ t('opening.noClosures') }}</p>
+    <h2>{{ t('settings.closures') }}</h2>
+    <p v-if="!closures.length" class="hint">{{ t('settings.noClosures') }}</p>
     <ul v-else class="list">
       <li v-for="closure in sortedClosures" :key="closure.id">
         <div>
@@ -193,41 +175,57 @@ async function clearPeriod() {
           <div v-if="closure.label" class="sub">{{ closure.label }}</div>
         </div>
         <button v-if="isManager" type="button" class="link" @click="removeClosure(closure)">
-          {{ t('opening.delete') }}
+          {{ t('settings.delete') }}
         </button>
       </li>
     </ul>
     <form v-if="isManager" class="panel inline" @submit.prevent="createClosure">
       <label>
-        {{ t('opening.first') }}
+        {{ t('settings.first') }}
         <input v-model="first" type="date" required />
       </label>
       <label>
-        {{ t('opening.last') }}
+        {{ t('settings.last') }}
         <input v-model="last" type="date" required />
       </label>
       <label>
-        {{ t('opening.label') }}
+        {{ t('settings.label') }}
         <input v-model="label" />
       </label>
-      <button type="submit">{{ t('opening.addClosure') }}</button>
+      <button type="submit">{{ t('settings.addClosure') }}</button>
     </form>
 
-    <h2>{{ t('opening.planningPeriod') }}</h2>
-    <p :class="{ hint: !period }">{{ period ? dates(period) : t('opening.noPlanningPeriod') }}</p>
-    <form v-if="isManager" class="panel inline" @submit.prevent="savePeriod">
+    <h2>{{ t('settings.slots') }}</h2>
+    <p v-if="!slots.length" class="hint">{{ t('settings.noSlots') }}</p>
+    <ul v-else class="list">
+      <li v-for="slot in sortedSlots" :key="slot.id">
+        <span>{{ t(`weekdays.${slot.weekday}`) }}</span>
+        <div class="actions">
+          <span>{{ slot.start }}–{{ slot.end }}</span>
+          <button v-if="isManager" type="button" class="link" @click="removeSlot(slot)">
+            {{ t('settings.delete') }}
+          </button>
+        </div>
+      </li>
+    </ul>
+    <form v-if="isManager" class="panel inline" @submit.prevent="createSlot">
       <label>
-        {{ t('opening.first') }}
-        <input v-model="periodFirst" type="date" required />
+        {{ t('settings.day') }}
+        <select v-model="weekday">
+          <option v-for="day in WEEKDAYS" :key="day" :value="day">
+            {{ t(`weekdays.${day}`) }}
+          </option>
+        </select>
       </label>
       <label>
-        {{ t('opening.last') }}
-        <input v-model="periodLast" type="date" required />
+        {{ t('settings.from') }}
+        <input v-model="start" type="time" required />
       </label>
-      <button type="submit">{{ t('opening.save') }}</button>
-      <button v-if="period" type="button" class="link" @click="clearPeriod">
-        {{ t('opening.clear') }}
-      </button>
+      <label>
+        {{ t('settings.to') }}
+        <input v-model="end" type="time" required />
+      </label>
+      <button type="submit">{{ t('settings.addSlot') }}</button>
     </form>
     <p v-if="message" class="error">{{ message }}</p>
   </template>

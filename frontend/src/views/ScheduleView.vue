@@ -27,6 +27,7 @@ import {
   today,
   weekdayIndex,
 } from '../dates'
+import { useLocation } from '../location'
 import { useSession } from '../session'
 
 const FIRST_WEEKS = 6
@@ -47,6 +48,7 @@ interface Item {
 const props = defineProps<{ id: string }>()
 const { t, locale } = useI18n()
 const { user } = useSession()
+const location = useLocation()
 
 /** Today in the association's timezone, set once the association is loaded. */
 const day0 = ref('')
@@ -69,14 +71,34 @@ const members = computed(() =>
   ),
 )
 
+/** Six weeks, or more to reach the week after the one that holds the period's last date. */
+function firstWeeks(found: PlanningPeriod | null) {
+  if (found === null) return FIRST_WEEKS
+  const weekAfter = addDays(mondayOf(found.last), 7)
+  let count = FIRST_WEEKS
+  while (addDays(firstMonday.value, 7 * (count - 1)) < weekAfter) count++
+  return count
+}
+
+/** The weeks failing to load still leave the header and an error message. */
 async function load() {
-  const found = await getAssociation(props.id)
-  day0.value = today(found.timezone)
-  ;[schedule.value, period.value] = await Promise.all([
-    getSchedule(props.id, firstMonday.value, lastDay.value),
+  const [found, foundPeriod] = await Promise.allSettled([
+    getAssociation(props.id),
     getPlanningPeriod(props.id),
   ])
-  association.value = found
+  if (found.status === 'rejected') throw found.reason
+  const { id, name, timezone } = found.value
+  location.value = { association: { id, name } }
+  day0.value = today(timezone)
+  try {
+    if (foundPeriod.status === 'rejected') throw foundPeriod.reason
+    weeks.value = firstWeeks(foundPeriod.value)
+    schedule.value = await getSchedule(props.id, firstMonday.value, lastDay.value)
+    period.value = foundPeriod.value
+  } catch {
+    message.value = t('error')
+  }
+  association.value = found.value
 }
 
 async function reload() {
@@ -172,12 +194,6 @@ const shownWeeks = computed(() =>
 
 function dayLabel(date: string) {
   return formatDate(date, locale.value, shortDay)
-}
-
-function weekTitle(monday: string) {
-  const dayMonth = { day: 'numeric', month: 'short' } as const
-  const range = `${formatDate(monday, locale.value, dayMonth)} – ${formatDate(addDays(monday, 6), locale.value, dayMonth)}`
-  return t('schedule.week', { n: isoWeek(monday), range })
 }
 
 function times(item: Item) {
@@ -276,10 +292,10 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
 
 <template>
   <template v-if="association">
-    <p class="hint">
-      <RouterLink :to="`/associations/${id}`">← {{ association.name }}</RouterLink>
+    <p class="links">
+      <RouterLink :to="`/associations/${id}/members`">{{ t('association.members') }}</RouterLink>
+      <RouterLink :to="`/associations/${id}/settings`">{{ t('settings.title') }}</RouterLink>
     </p>
-    <h1>{{ t('schedule.title') }}</h1>
     <p v-if="message" class="error">{{ message }}</p>
     <p v-if="!allItems.length" class="hint">{{ t('schedule.empty') }}</p>
 
@@ -292,7 +308,7 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
           {{ t('schedule.periodStart', { date: formatDate(period.first, locale, longDay) }) }}
         </p>
         <section class="week">
-          <h2>{{ weekTitle(week.monday) }}</h2>
+          <h2>{{ t('schedule.week', { n: isoWeek(week.monday) }) }}</h2>
           <div
             v-if="columns.length"
             class="days"
