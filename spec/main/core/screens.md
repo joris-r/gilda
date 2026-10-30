@@ -35,6 +35,8 @@ Already have an account? Sign in
   shows "Email sent." when clicked.
 - When the email already has an account: "An account already exists
   for this email. Sign in instead."
+- When the confirmation email cannot be sent: "We couldn't send the
+  confirmation email. Try again later."
 
 ## `/verify-email`: Confirm email
 
