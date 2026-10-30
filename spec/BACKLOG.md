@@ -12,7 +12,6 @@
 - Navigation: moving between members, opening hours and the schedule is confusing; make the Schedule the association's main page, with members and opening hours as rarely used secondary pages.
 - Opening hours: reverse the sections, most often changed first: Planning period, then Closures, then Slots; and rename the screen and its URL (`/opening`) to match its content.
 - Sessions: purge expired sessions regularly (Advanced Alchemy's delete_expired), so the user_session table stays small.
-- Hosting: genericize the "alwaysdata" naming in the spec and README (e.g. "provider") if the hosting provider ever becomes a real choice rather than a fixed decision.
 - Mailer: the confirmation email is English-only; send a bilingual (English/French) message instead.
 
 ## Security
