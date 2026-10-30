@@ -3,12 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountApp, pageText } from '../mountApp'
 import { fill, hasControl, item, mockApi, press } from '../mockApi'
 import { garden, member, signedInAsAlice } from './fixtures'
-import { planningApi } from './planningFake'
+import { planningApi, type PlanningPeriod } from './planningFake'
 
 const path = `/associations/${garden.id}/opening`
 const base = `/api/associations/${garden.id}`
 
-function mountOpening(role: 'manager' | 'volunteer') {
+function mountOpening(
+  role: 'manager' | 'volunteer',
+  planningPeriod: PlanningPeriod | null = { first: '2026-11-02', last: '2026-11-25' },
+) {
   const api = planningApi({
     me: 'u-alice',
     role,
@@ -21,6 +24,7 @@ function mountOpening(role: 'manager' | 'volunteer') {
       { id: 'c-fete', first: '2026-11-14', last: '2026-11-14', label: 'Fête du quartier' },
       { id: 'c-noel', first: '2026-12-24', last: '2027-01-01', label: "Fêtes de fin d'année" },
     ],
+    planningPeriod,
   })
   const calls = mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
   return { calls, mounting: mountApp(path) }
@@ -141,6 +145,56 @@ describe('Opening hours', () => {
         body: undefined,
       })
       expect(pageText(wrapper)).not.toContain('Fête du quartier')
+    })
+  })
+
+  describe('planning period, as a manager', () => {
+    it('sets the planning period with PUT', async () => {
+      const { calls, mounting } = mountOpening('manager', null)
+      const wrapper = await mounting
+      const periodForm = form(wrapper, 'Save')
+
+      await fill(periodForm, 'From', '2026-11-30')
+      await fill(periodForm, 'To', '2026-12-20')
+      await press(periodForm, 'Save')
+
+      expect(calls).toContainEqual({
+        method: 'PUT',
+        path: `${base}/planning-period`,
+        body: { first: '2026-11-30', last: '2026-12-20' },
+      })
+    })
+
+    it('clears the planning period with DELETE', async () => {
+      const { calls, mounting } = mountOpening('manager')
+      const wrapper = await mounting
+
+      await press(wrapper, 'Clear')
+
+      expect(calls).toContainEqual({
+        method: 'DELETE',
+        path: `${base}/planning-period`,
+        body: undefined,
+      })
+    })
+  })
+
+  describe('planning period, as a volunteer', () => {
+    it('shows the period, without the form', async () => {
+      const { mounting } = mountOpening('volunteer')
+      const wrapper = await mounting
+
+      expect(pageText(wrapper)).toContain('Planning period')
+      expect(pageText(wrapper)).toContain('Mon 2 Nov 2026 – Wed 25 Nov 2026')
+      expect(hasControl(wrapper, 'Save')).toBe(false)
+      expect(hasControl(wrapper, 'Clear')).toBe(false)
+    })
+
+    it('shows "None" when there is no period', async () => {
+      const { mounting } = mountOpening('volunteer', null)
+      const wrapper = await mounting
+
+      expect(pageText(wrapper)).toContain('None')
     })
   })
 

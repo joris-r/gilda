@@ -25,6 +25,11 @@ export interface Closure {
   label: string | null
 }
 
+export interface PlanningPeriod {
+  first: string
+  last: string
+}
+
 export interface Slot {
   id: string
   weekday: string
@@ -47,11 +52,13 @@ export function planningApi(options: {
   registrations?: Registration[]
   closures?: Closure[]
   slots?: Slot[]
+  planningPeriod?: PlanningPeriod | null
 }) {
   const occurrences = options.occurrences ?? []
   const registrations = [...(options.registrations ?? [])]
   const closures = [...(options.closures ?? [])]
   const slots = [...(options.slots ?? [])]
+  let planningPeriod = options.planningPeriod ?? null
   const scheduleRequests: { from: string | null; to: string | null }[] = []
   let next = 1
 
@@ -124,6 +131,15 @@ export function planningApi(options: {
       closures.push(closure)
       addDelete('closures', closures, closure.id)
       return { status: 201, body: closure }
+    },
+    [`GET ${base}/planning-period`]: () => ({ status: 200, body: planningPeriod }),
+    [`PUT ${base}/planning-period`]: (body) => {
+      planningPeriod = body as PlanningPeriod
+      return { status: 200, body: planningPeriod }
+    },
+    [`DELETE ${base}/planning-period`]: () => {
+      planningPeriod = null
+      return { status: 204 }
     },
   }
 
