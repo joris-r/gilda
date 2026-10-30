@@ -27,6 +27,7 @@
     "title": "Create an account",
     "submit": "Create account",
     "exists": "An account already exists for this email. Sign in instead.",
+    "notSent": "We couldn't send the confirmation email. Try again later.",
     "haveAccount": "Already have an account?",
     "signIn": "Sign in",
     "checkEmail": "Check {email} for a confirmation link.",
