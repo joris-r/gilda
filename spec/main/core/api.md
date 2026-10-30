@@ -28,6 +28,8 @@ Content-Type: application/json
   confirmation email sent to it, with a link to `/verify-email?token=…`.
 - 409 when a user with a password already has this email.
 - 400 when the password has fewer than 8 characters.
+- R10: 503 when the confirmation email cannot be sent; nothing is
+  saved.
 
 ### POST /api/accounts/verify
 
