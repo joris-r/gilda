@@ -154,6 +154,38 @@ describe('Schedule', () => {
     expect(line).toBeLessThan(text.indexOf('Week 44'))
   })
 
+  describe('R11', () => {
+    it("after midnight in Paris, today is Paris's date", async () => {
+      vi.setSystemTime(new Date('2026-10-29T23:30:00Z'))
+      const { mounting } = mountSchedule('volunteer', { registrations: [] })
+      const wrapper = await mounting
+
+      expect(pageText(wrapper)).toContain('Today · Friday 30 October 2026')
+      await open(slotItem(wrapper, 'Thu 29 Oct', '10–13'))
+      expect(hasControl(wrapper, 'Sign up')).toBe(false)
+    })
+
+    it('before midnight in Paris, today is still that day', async () => {
+      vi.setSystemTime(new Date('2026-10-29T22:30:00Z'))
+      const { mounting } = mountSchedule('volunteer', { registrations: [] })
+      const wrapper = await mounting
+
+      expect(pageText(wrapper)).toContain('Today · Thursday 29 October 2026')
+      await open(slotItem(wrapper, 'Thu 29 Oct', '10–13'))
+      expect(hasControl(wrapper, 'Sign up')).toBe(true)
+    })
+
+    it('in summer time, today follows Paris too', async () => {
+      vi.setSystemTime(new Date('2026-07-01T22:30:00Z'))
+      const { mounting } = mountSchedule('volunteer', {
+        occurrences: [{ date: '2026-07-02', start: '10:00', end: '13:00' }],
+        registrations: [],
+      })
+
+      expect(pageText(await mounting)).toContain('Today · Thursday 2 July 2026')
+    })
+  })
+
   it('each week has one column per weekday on which an occurrence falls', async () => {
     const { mounting } = mountSchedule()
     const wrapper = await mounting

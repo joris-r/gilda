@@ -1,9 +1,11 @@
 import uuid
 from collections.abc import Callable
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
+import time_machine
 
 from tests.planning.conftest import WEEKDAYS, Planning, create_association, day_of_week
 
@@ -172,7 +174,7 @@ def test_r6_409_when_the_date_is_before_today(client: Any, new_client: Callable[
 
 def test_r6_today_is_not_before_today(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
-    today = date.today()
+    today = datetime.now(ZoneInfo("Europe/Paris")).date()
     planning.add_slot(WEEKDAYS[today.weekday()], "23:00", "23:30")
 
     response = planning.register(
@@ -180,6 +182,33 @@ def test_r6_today_is_not_before_today(client: Any, new_client: Callable[[], Any]
     )
 
     assert response.status_code == 201
+
+
+@pytest.mark.parametrize(
+    ("now", "day", "status"),
+    [
+        # Summer: 00:30 on 1 July in Paris (UTC+2), still 30 June in UTC.
+        (datetime(2026, 6, 30, 22, 30, tzinfo=UTC), date(2026, 6, 30), 409),
+        (datetime(2026, 6, 30, 22, 30, tzinfo=UTC), date(2026, 7, 1), 201),
+        # Winter: 00:30 on 1 January in Paris (UTC+1), still 31 December in UTC.
+        (datetime(2026, 12, 31, 23, 30, tzinfo=UTC), date(2026, 12, 31), 409),
+        (datetime(2026, 12, 31, 23, 30, tzinfo=UTC), date(2027, 1, 1), 201),
+        # 23:30 on 31 December in Paris: still today.
+        (datetime(2026, 12, 31, 22, 30, tzinfo=UTC), date(2026, 12, 31), 201),
+    ],
+)
+def test_r11_r6_today_is_in_the_associations_timezone(
+    client: Any, new_client: Callable[[], Any], now: datetime, day: date, status: int
+) -> None:
+    with time_machine.travel(now, tick=False):
+        planning = Planning(client, new_client)
+        planning.add_slot(WEEKDAYS[day.weekday()], "10:00", "13:00")
+
+        response = planning.register(
+            planning.bruno_client, planning.bruno, day.isoformat(), "10:00", "13:00"
+        )
+
+    assert response.status_code == status, response.text
 
 
 def test_post_api_registrations_400_when_the_user_is_not_a_member(

@@ -122,9 +122,10 @@ def test_get_api_association_shows_its_members(client: Any, new_client: Callable
 
     assert response.status_code == 200
     body = response.json()
-    assert {k: body[k] for k in ("id", "name", "role")} == {
+    assert {k: body[k] for k in ("id", "name", "timezone", "role")} == {
         "id": association["id"],
         "name": association["name"],
+        "timezone": "Europe/Paris",
         "role": "manager",
     }
     assert sorted(body["members"], key=lambda m: m["display_name"]) == [

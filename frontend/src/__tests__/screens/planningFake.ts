@@ -65,7 +65,7 @@ export function planningApi(options: {
   const routes: Record<string, Route> = {
     [`GET ${base}`]: {
       status: 200,
-      body: { ...garden, role: options.role, members: options.members },
+      body: { ...garden, timezone: 'Europe/Paris', role: options.role, members: options.members },
     },
     [`GET ${base}/schedule`]: (_body, _path, url) => {
       const from = url.searchParams.get('from')
