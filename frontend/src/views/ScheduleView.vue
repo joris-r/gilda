@@ -5,12 +5,14 @@ import { RouterLink } from 'vue-router'
 import {
   ApiError,
   getAssociation,
+  getPlanningPeriod,
   getSchedule,
   register,
   setRegistrationStatus,
   type Association,
   type Member,
   type OccurrenceRegistration,
+  type PlanningPeriod,
   type Schedule,
 } from '../api'
 import {
@@ -51,6 +53,7 @@ const firstMonday = addDays(mondayOf(day0), -7)
 const weeks = ref(FIRST_WEEKS)
 const association = ref<Association>()
 const schedule = ref<Schedule>({ occurrences: [], obsolete: [], closures: [] })
+const period = ref<PlanningPeriod | null>(null)
 const openKey = ref<string>()
 const asking = ref(false)
 const menuPosition = ref({ left: 0, top: 0 })
@@ -66,9 +69,10 @@ const members = computed(() =>
 )
 
 async function load() {
-  ;[association.value, schedule.value] = await Promise.all([
+  ;[association.value, schedule.value, period.value] = await Promise.all([
     getAssociation(props.id),
     getSchedule(props.id, firstMonday, lastDay.value),
+    getPlanningPeriod(props.id),
   ])
 }
 
@@ -147,6 +151,8 @@ const shownWeeks = computed(() =>
     return {
       monday,
       current: monday === mondayOf(day0),
+      periodStarts: period.value !== null && mondayOf(period.value.first) === monday,
+      periodEnds: period.value !== null && mondayOf(period.value.last) === monday,
       days: columns.value.map((column) => {
         const date = addDays(monday, column)
         const items = itemsByDate.value.get(date) ?? []
@@ -276,8 +282,11 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
 
     <div class="weeks">
       <template v-for="week in shownWeeks" :key="week.monday">
-        <p v-if="week.current" class="today">
+        <p v-if="week.current" class="line">
           {{ t('schedule.today', { date: formatDate(day0, locale, longDay) }) }}
+        </p>
+        <p v-if="period && week.periodStarts" class="line period">
+          {{ t('schedule.periodStart', { date: formatDate(period.first, locale, longDay) }) }}
         </p>
         <section class="week">
           <h2>{{ weekTitle(week.monday) }}</h2>
@@ -303,7 +312,7 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
               :key="day.date"
               role="group"
               :aria-label="dayLabel(day.date)"
-              :class="['day', { past: day.date < day0 }]"
+              :class="['day', { past: day.date < day0, after: period && day.date > period.last }]"
             >
               <div class="day-head">{{ dayLabel(day.date) }}</div>
               <div class="track" :style="{ '--day-lanes': day.lanes }">
@@ -348,6 +357,9 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
             </div>
           </div>
         </section>
+        <p v-if="period && week.periodEnds" class="line period">
+          {{ t('schedule.periodEnd', { date: formatDate(period.last, locale, longDay) }) }}
+        </p>
       </template>
     </div>
     <button type="button" class="more" @click="more">{{ t('schedule.more') }}</button>
@@ -427,7 +439,7 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
   font-variant-numeric: tabular-nums;
 }
 
-.today {
+.line {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -436,19 +448,28 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
   font-weight: 600;
 }
 
-.today::before,
-.today::after {
+.line::before,
+.line::after {
   content: '';
   height: 2px;
   background: var(--fg);
 }
 
-.today::before {
+.line::before {
   flex: 0 0 16px;
 }
 
-.today::after {
+.line::after {
   flex: 1;
+}
+
+.line.period {
+  color: var(--muted);
+}
+
+.line.period::before,
+.line.period::after {
+  background: var(--muted);
 }
 
 .days {
@@ -480,6 +501,10 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
 .day.past .track {
   opacity: 0.5;
   filter: grayscale(0.7);
+}
+
+.day.after .track {
+  filter: grayscale(1);
 }
 
 .track {

@@ -36,6 +36,11 @@ class ClosureRead(msgspec.Struct):
     label: str | None
 
 
+class PlanningPeriodData(msgspec.Struct):
+    first: date
+    last: date
+
+
 class RegistrationCreate(msgspec.Struct):
     user_id: UUID
     date: date

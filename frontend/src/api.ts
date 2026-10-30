@@ -115,6 +115,11 @@ export interface Closure {
   label: string | null
 }
 
+export interface PlanningPeriod {
+  first: string
+  last: string
+}
+
 export interface OccurrenceRegistration {
   id: string
   user_id: string
@@ -163,6 +168,18 @@ export function addClosure(id: string, first: string, last: string, label: strin
 
 export function deleteClosure(id: string, closureId: string) {
   return request<void>('DELETE', `/api/associations/${id}/closures/${closureId}`)
+}
+
+export function getPlanningPeriod(id: string) {
+  return request<PlanningPeriod | null>('GET', `/api/associations/${id}/planning-period`)
+}
+
+export function setPlanningPeriod(id: string, first: string, last: string) {
+  return request<PlanningPeriod>('PUT', `/api/associations/${id}/planning-period`, { first, last })
+}
+
+export function clearPlanningPeriod(id: string) {
+  return request<void>('DELETE', `/api/associations/${id}/planning-period`)
 }
 
 export function getSchedule(id: string, from: string, to: string) {

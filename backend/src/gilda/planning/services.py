@@ -9,12 +9,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from gilda.core.models import Membership, User
 from gilda.core.repositories import MembershipRepository
 from gilda.core.services import ConflictException
-from gilda.planning.models import Closure, Registration, Slot
-from gilda.planning.repositories import ClosureRepository, RegistrationRepository, SlotRepository
+from gilda.planning.models import Closure, PlanningPeriod, Registration, Slot
+from gilda.planning.repositories import (
+    ClosureRepository,
+    PlanningPeriodRepository,
+    RegistrationRepository,
+    SlotRepository,
+)
 from gilda.planning.schemas import (
     ClosureRead,
     OccurrenceRead,
     OccurrenceRegistration,
+    PlanningPeriodData,
     RegistrationRead,
     ScheduleRead,
     SlotRead,
@@ -70,6 +76,7 @@ class PlanningService:
         self.slots = SlotRepository(session=db_session)
         self.closures = ClosureRepository(session=db_session)
         self.registrations = RegistrationRepository(session=db_session)
+        self.planning_periods = PlanningPeriodRepository(session=db_session)
 
     # Slots
 
@@ -127,6 +134,35 @@ class PlanningService:
         if closure is None:
             raise NotFoundException("Closure not found.")
         await self.closures.delete(closure.id)
+
+    # Planning period
+
+    async def get_planning_period(
+        self, user: User, association_id: UUID
+    ) -> PlanningPeriodData | None:
+        await self._membership_of(user, association_id)
+        period = await self.planning_periods.get_one_or_none(association_id=association_id)
+        return None if period is None else PlanningPeriodData(first=period.first, last=period.last)
+
+    async def set_planning_period(
+        self, user: User, association_id: UUID, first: date, last: date
+    ) -> PlanningPeriodData:
+        await self._manager_of(user, association_id)
+        if last < first:
+            raise ClientException("The last date must not be before the first.")
+        period = await self.planning_periods.get_one_or_none(association_id=association_id)
+        if period is None:
+            await self.planning_periods.add(
+                PlanningPeriod(association_id=association_id, first=first, last=last)
+            )
+        else:
+            period.first, period.last = first, last
+            await self.planning_periods.update(period)
+        return PlanningPeriodData(first=first, last=last)
+
+    async def clear_planning_period(self, user: User, association_id: UUID) -> None:
+        await self._manager_of(user, association_id)
+        await self.planning_periods.delete_where(association_id=association_id)
 
     # Schedule
 

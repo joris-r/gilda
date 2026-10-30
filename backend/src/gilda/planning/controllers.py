@@ -2,7 +2,7 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from litestar import Controller, delete, get, patch, post
+from litestar import Controller, delete, get, patch, post, put
 from litestar.di import NamedDependency, Provide
 from litestar.params import FromPath, JSONBody, QueryParameter
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +12,7 @@ from gilda.core.models import User
 from gilda.planning.schemas import (
     ClosureCreate,
     ClosureRead,
+    PlanningPeriodData,
     RegistrationCreate,
     RegistrationRead,
     RegistrationUpdate,
@@ -87,6 +88,36 @@ class PlanningController(Controller):
         closure_id: FromPath[UUID],
     ) -> None:
         await PlanningService(db_session).delete_closure(current_user, association_id, closure_id)
+
+    @get("/planning-period")
+    async def get_planning_period(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+    ) -> PlanningPeriodData | None:
+        return await PlanningService(db_session).get_planning_period(current_user, association_id)
+
+    @put("/planning-period")
+    async def set_planning_period(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+        data: JSONBody[PlanningPeriodData],
+    ) -> PlanningPeriodData:
+        return await PlanningService(db_session).set_planning_period(
+            current_user, association_id, data.first, data.last
+        )
+
+    @delete("/planning-period")
+    async def clear_planning_period(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+    ) -> None:
+        await PlanningService(db_session).clear_planning_period(current_user, association_id)
 
     @get("/schedule")
     async def schedule(

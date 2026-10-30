@@ -87,12 +87,18 @@
     "addClosure": "Ajouter la fermeture",
     "delete": "Supprimer",
     "slotExists": "Ce créneau existe déjà.",
-    "invalid": "Vérifiez les dates et heures : le début vient avant la fin."
+    "invalid": "Vérifiez les dates et heures : le début vient avant la fin.",
+    "planningPeriod": "Période de planification",
+    "noPlanningPeriod": "Aucune",
+    "save": "Enregistrer",
+    "clear": "Effacer"
   },
   "schedule": {
     "title": "Planning",
     "week": "Semaine {n} · {range}",
     "today": "Aujourd'hui · {date}",
+    "periodStart": "Période de planification · à partir du {date}",
+    "periodEnd": "Fin de la période de planification · {date}",
     "hour": "{h}h",
     "obsolete": "obsolète",
     "closed": "Fermé",
