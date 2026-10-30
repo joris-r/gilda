@@ -9,6 +9,9 @@
   - id: UUID
   - first, last: dates; last on or after first
   - label: optional free text
+- Planning period: the dates the managers ask the members to fill
+  - first, last: dates; last on or after first
+  - at most one per association
 - Occurrence (computed, not stored): a slot on a date of its weekday,
   unless a closure of the association covers that date. It is
   identified by its association, date, start and end.

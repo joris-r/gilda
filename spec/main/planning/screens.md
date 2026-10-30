@@ -15,9 +15,14 @@ Closures
   Sat 14 Nov 2026                  Fête du quartier   Delete
   Thu 24 Dec 2026 – Fri 1 Jan 2027  Fêtes de fin d'année   Delete
   From [    ]  To [    ]  Label [          ]  [Add closure]
+
+Planning period
+  Mon 2 Nov 2026 – Wed 25 Nov 2026
+  From [2026-11-02]  To [2026-11-25]  [Save]  [Clear]
 ```
 
-- A volunteer sees the lists, without Delete and without the forms.
+- A volunteer sees the lists and the period, or "None", without Delete
+  and without the forms.
 
 ## `/associations/{id}/schedule`: Schedule
 
@@ -41,12 +46,22 @@ Week 44 · 26 Oct – 1 Nov
      │10–13 Chloé   │  │10–13 Bruno ? │
 13h  └──────────────┘  └──────────────┘
 
+── Planning period · from Monday 2 November 2026 ───────────
+
 Week 45 · 2 – 8 Nov
        Thu 5 Nov         Sat 7 Nov
 10h  ┌──────────────┐  ┌──────────────┐
      │10–13 ~~Alice~~│  │   Closed     │
 13h  └──────────────┘  │Fête du quart.│
                         └──────────────┘
+…
+Week 48 · 23 – 29 Nov
+       Thu 26 Nov        Sat 28 Nov
+       (greyed)          (greyed)
+
+── End of planning period · Wednesday 25 November 2026 ─────
+
+Week 49 · 30 Nov – 6 Dec      (greyed)
 …
 [More weeks]
 ```
@@ -73,6 +88,12 @@ Sat 31   [Bruno ?    ]
 - A line marked with today's date separates the past weeks from the
   current week; the days before today look different from the others
   (look of past days not testable).
+- When a planning period is set, a line marked with its first date sits
+  just before the week that holds it; a line marked with its last
+  date, just after the week that holds it. When the first line and the
+  today line fall at the same place, the today line comes first.
+- Occurrences and obsolete registrations after the period's last date
+  are greyed, and keep their menu. (Look not testable.)
 - An occurrence shows its times and its registration's display name:
   green when confirmed; orange with "?" when proposed; red when it has
   no registration (times only) or a cancelled one, whose name is
