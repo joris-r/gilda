@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountApp, pageText } from '../mountApp'
-import { field, item, mockApi } from '../mockApi'
+import {
+  field,
+  header,
+  item,
+  mockApi,
+  openUserMenu,
+  showsControl,
+  showsField,
+  signedOut,
+} from '../mockApi'
 import { garden, repairCafe, signedInAsAlice } from './fixtures'
 
 function browserPrefers(...languages: string[]) {
@@ -50,10 +59,46 @@ describe('Interface language', () => {
     browserPrefers('fr-FR', 'fr')
     const first = await mountApp('/')
 
+    await openUserMenu(first, 'Alice')
     await field(first, 'Langue').setValue('en')
     first.unmount()
     const second = await mountApp('/')
 
     expect(pageText(second)).toContain('My associations')
+  })
+})
+
+describe('Header', () => {
+  it('signed in, the display name opens a menu with the language selector and Sign out', async () => {
+    const wrapper = await mountApp('/')
+    const top = header(wrapper)
+
+    expect(top.text()).toContain('Alice')
+    expect(showsField(top, 'Language')).toBe(false)
+    expect(showsControl(top, 'Sign out')).toBe(false)
+
+    await openUserMenu(wrapper, 'Alice')
+
+    expect(showsField(header(wrapper), 'Language')).toBe(true)
+    expect(showsControl(header(wrapper), 'Sign out')).toBe(true)
+  })
+
+  it('the language selector switches between English and French', async () => {
+    const wrapper = await mountApp('/')
+
+    await openUserMenu(wrapper, 'Alice')
+    await field(wrapper, 'Language').setValue('fr')
+
+    expect(pageText(wrapper)).toContain('Mes associations')
+  })
+
+  it('signed out, the language selector stands alone', async () => {
+    mockApi({ 'GET /api/session': signedOut })
+
+    const wrapper = await mountApp('/')
+    const top = header(wrapper)
+
+    expect(showsField(top, 'Language')).toBe(true)
+    expect(showsControl(top, 'Sign out')).toBe(false)
   })
 })

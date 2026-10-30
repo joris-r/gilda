@@ -1,7 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountApp, pageText } from '../mountApp'
-import { fill, item, mockApi, press, signedOut } from '../mockApi'
+import {
+  fill,
+  hasControl,
+  header,
+  item,
+  mockApi,
+  openUserMenu,
+  press,
+  showsField,
+  signedOut,
+} from '../mockApi'
 import { garden, member, repairCafe, signedInAsAlice, alice } from './fixtures'
+import { planningApi } from './planningFake'
 
 beforeEach(() => {
   localStorage.clear()
@@ -25,7 +36,7 @@ describe('My associations', () => {
 
     const wrapper = await mountApp('/')
 
-    expect(pageText(wrapper)).toContain('My associations')
+    expect(header(wrapper).text()).toContain('My associations')
     expect(item(wrapper, garden.name).text().toLowerCase()).toContain('manager')
     expect(item(wrapper, repairCafe.name).text().toLowerCase()).toContain('volunteer')
   })
@@ -41,7 +52,7 @@ describe('My associations', () => {
     expect(text).toContain('You are not a member of any association yet.')
   })
 
-  it('shows my display name and Sign out, not my email', async () => {
+  it('shows my display name, not my email', async () => {
     mockApi({
       'GET /api/session': signedInAsAlice,
       'GET /api/associations': { status: 200, body: [] },
@@ -50,25 +61,41 @@ describe('My associations', () => {
     const text = pageText(await mountApp('/'))
 
     expect(text).toContain('Alice')
-    expect(text).toContain('Sign out')
     expect(text).not.toContain(alice.email)
   })
 
-  it('leads from a name to the association page', async () => {
+  it('leads from a name to the association Schedule', async () => {
+    const api = planningApi({
+      me: 'u-alice',
+      role: 'manager',
+      members: [member('u-alice', 'Alice', 'manager')],
+    })
     mockApi({
       'GET /api/session': signedInAsAlice,
       'GET /api/associations': myAssociations,
-      [`GET /api/associations/${garden.id}`]: {
-        status: 200,
-        body: { ...garden, role: 'manager', members: [member('u-alice', 'Alice', 'manager')] },
-      },
+      ...api.routes,
     })
     const wrapper = await mountApp('/')
 
     await press(wrapper, garden.name)
 
     expect(wrapper.vm.$route.path).toBe(`/associations/${garden.id}`)
-    expect(pageText(wrapper)).toContain('Members')
+    expect(hasControl(wrapper, 'Schedule settings')).toBe(true)
+  })
+
+  it('"+", named "Create an association", shows the form', async () => {
+    mockApi({
+      'GET /api/session': signedInAsAlice,
+      'GET /api/associations': myAssociations,
+    })
+    const wrapper = await mountApp('/')
+
+    expect(showsField(wrapper, 'Name')).toBe(false)
+
+    await press(wrapper, 'Create an association')
+
+    expect(showsField(wrapper, 'Name')).toBe(true)
+    expect(hasControl(wrapper, 'Create association')).toBe(true)
   })
 
   it('creates an association with POST /api/associations and opens its page', async () => {
@@ -83,6 +110,7 @@ describe('My associations', () => {
     })
     const wrapper = await mountApp('/')
 
+    await press(wrapper, 'Create an association')
     await fill(wrapper, 'Name', repairCafe.name)
     await press(wrapper, 'Create association')
 
@@ -92,7 +120,7 @@ describe('My associations', () => {
       body: { name: repairCafe.name },
     })
     expect(wrapper.vm.$route.path).toBe(`/associations/${repairCafe.id}`)
-    expect(pageText(wrapper)).toContain(repairCafe.name)
+    expect(header(wrapper).text()).toContain(repairCafe.name)
   })
 
   it('Sign out calls DELETE /api/session and shows Sign in', async () => {
@@ -107,6 +135,7 @@ describe('My associations', () => {
     })
     const wrapper = await mountApp('/')
 
+    await openUserMenu(wrapper, 'Alice')
     await press(wrapper, 'Sign out')
 
     expect(calls).toContainEqual({ method: 'DELETE', path: '/api/session', body: undefined })

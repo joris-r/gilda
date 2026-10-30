@@ -60,15 +60,53 @@ export async function fill(wrapper: Wrapper, label: string, value: string) {
   await field(wrapper, label).setValue(value)
 }
 
-/** The button or link whose text is `text`. */
+/** Whether `element` is named `name`: by its text, or else by its aria-label or title. */
+function named(element: DOMWrapper<Element>, name: string): boolean {
+  return (
+    element.text().trim() === name ||
+    element.attributes('aria-label') === name ||
+    element.attributes('title') === name
+  )
+}
+
+/** The button or link named `text`. */
 export function control(wrapper: Wrapper, text: string): DOMWrapper<Element> {
-  const element = wrapper.findAll('button, a').find((e) => e.text().trim() === text)
+  const element = wrapper.findAll('button, a').find((e) => named(e, text))
   if (element === undefined) throw new Error(`No button or link "${text}"`)
   return element
 }
 
 export function hasControl(wrapper: Wrapper, text: string): boolean {
-  return wrapper.findAll('button, a').some((e) => e.text().trim() === text)
+  return wrapper.findAll('button, a').some((e) => named(e, text))
+}
+
+/** Whether a button or link named `text` is present and visible. */
+export function showsControl(wrapper: Wrapper, text: string): boolean {
+  return wrapper.findAll('button, a').some((e) => named(e, text) && e.isVisible())
+}
+
+/** Whether a field labelled `label` is present and visible. */
+export function showsField(wrapper: Wrapper, label: string): boolean {
+  try {
+    return field(wrapper, label).isVisible()
+  } catch {
+    return false
+  }
+}
+
+/** The page header. */
+export function header(wrapper: VueWrapper): DOMWrapper<Element> {
+  return wrapper.find('header')
+}
+
+/** Opens the menu of the header's button showing `displayName`. */
+export async function openUserMenu(wrapper: VueWrapper, displayName: string) {
+  const button = header(wrapper)
+    .findAll('button')
+    .find((b) => b.text().includes(displayName))
+  if (button === undefined) throw new Error(`No header button "${displayName}"`)
+  await button.trigger('click')
+  await flushPromises()
 }
 
 /** Clicks a button or link; a submit button submits its form. */
