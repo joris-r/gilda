@@ -130,7 +130,7 @@ Content-Type: application/json
 
 Returns the registration, as `POST` does.
 
-- R7: Only the registered user confirms, and only a `proposed`
+- R7: The registered user or a manager confirms, and only a `proposed`
   registration that is not obsolete; the registered user or a manager
   cancels a registration that is not cancelled. Anyone else: 403; any
   other change: 409.
