@@ -17,6 +17,9 @@
 - Association
   - id: UUID
   - name: free text, not empty
+  - timezone: an IANA timezone name; always `Europe/Paris`
+  - The dates and times of its slots, closures, planning period and
+    registrations are in this timezone.
 - Membership: a user in an association, at most one per pair
   - role: `manager` or `volunteer`
   - R1: An association always has at least one manager.

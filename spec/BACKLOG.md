@@ -1,6 +1,5 @@
 # Backlog
 
-- Planning: an association timezone, so the server and the screen agree on what today is.
 - Planning: the schedule opens showing at least up to one week after the planning period's last date, so its end line is visible without "More weeks".
 - Interface: the header shows only the user's display name and a menu at the right; Sign out and the language selector move into that menu.
 - Interface: the header shows, to the right of the logo, where the user is (e.g. the association's name and the current screen), so they always know what they are looking at.

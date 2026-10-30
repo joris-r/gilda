@@ -144,6 +144,7 @@ Content-Type: application/json
 {
   "id": "5c1e…",
   "name": "Jardin partagé des Lilas",
+  "timezone": "Europe/Paris",
   "role": "manager",
   "members": [
     {"user_id": "0b6f…", "display_name": "Alice", "email": "alice@example.org", "has_account": true, "email_verified": true, "role": "manager"},
