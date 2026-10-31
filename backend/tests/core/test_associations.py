@@ -92,8 +92,20 @@ def test_get_api_associations_lists_the_users_associations_with_their_role(
 
     assert response.status_code == 200
     assert sorted(response.json(), key=lambda a: a["name"]) == [
-        {"id": association["id"], "name": association["name"], "role": "volunteer"},
-        {"id": own["id"], "name": "Repair Café Belleville", "role": "manager"},
+        {
+            "id": association["id"],
+            "name": association["name"],
+            "role": "volunteer",
+            "upcoming": [],
+            "planning_period": None,
+        },
+        {
+            "id": own["id"],
+            "name": "Repair Café Belleville",
+            "role": "manager",
+            "upcoming": [],
+            "planning_period": None,
+        },
     ]
 
 

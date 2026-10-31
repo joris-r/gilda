@@ -24,8 +24,8 @@ beforeEach(() => {
     'GET /api/associations': {
       status: 200,
       body: [
-        { ...garden, role: 'manager' },
-        { ...repairCafe, role: 'volunteer' },
+        { ...garden, role: 'manager', upcoming: [], planning_period: null },
+        { ...repairCafe, role: 'volunteer', upcoming: [], planning_period: null },
       ],
     },
   })

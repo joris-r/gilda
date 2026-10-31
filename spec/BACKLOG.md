@@ -4,6 +4,7 @@
 - Sessions: purge expired sessions regularly (Advanced Alchemy's delete_expired), so the user_session table stays small.
 - Mailer: the confirmation email is English-only; send a bilingual (English/French) message instead.
 - Planning: with many slots in a day, the narrow-screen Schedule becomes unusable; stack a day's slots vertically in a single column. Also check the wide screen, whose page width is capped. (3–4 slots a day, as at La Fabrique, work today.)
+- Planning: a volunteer whose registration becomes obsolete (its slot removed or closed) is told so and acknowledges it; today it silently disappears from their Home summary.
 - Association: a manager can change the association's timezone (fixed to Europe/Paris for now).
 
 ## Security
