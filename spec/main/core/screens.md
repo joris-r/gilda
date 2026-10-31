@@ -57,7 +57,15 @@ Email confirmed. You can now sign in.
 
                                                               [+]
   Jardin partagé des Lilas                 MANAGER
+    Thu 5 Nov, 10:00–13:00
+    Sat 14 Nov, 10:00–13:00 ?  [Confirm]
+
   Repair Café Belleville                 VOLUNTEER
+    No registration yet for the planning period, 2–25 Nov.
+    Choose your slots
+
+  Atelier vélo                           VOLUNTEER
+    No upcoming registration.
 ```
 
 - "+", named "Create an association", shows the form:
@@ -72,6 +80,32 @@ Create an association
   the new association's Schedule.
 - With no association: "You are not a member of any association yet."
 - Sign out leads to Sign in.
+- Each association lists its `upcoming` registrations; a proposed one
+  is marked "?" and has "Confirm", which confirms it.
+- R14: When the association has a planning period that ends today or
+  later and the user has no registration in it (`registrations` is 0),
+  the summary shows "No registration yet for the planning period,"
+  with its dates, and "Choose your slots", which leads to the
+  association's Schedule.
+- Otherwise, with no upcoming registration: "No upcoming
+  registration."
+- The period's dates read as "2–25 Nov" within a month, "28 Oct – 25
+  Nov" across months, and with years when they differ: "28 Dec 2026 –
+  8 Jan 2027".
+
+In French, e.g.:
+
+```
+Mes associations
+  Jardin partagé des Lilas             RESPONSABLE
+    jeu. 5 nov., 10:00–13:00
+    sam. 14 nov., 10:00–13:00 ?  [Confirmer]
+  Repair Café Belleville                  BÉNÉVOLE
+    Aucune inscription pour la période de planning, 2–25 nov.
+    Choisir mes créneaux
+  Atelier vélo                            BÉNÉVOLE
+    Aucune inscription à venir.
+```
 
 ## `/associations/{id}/members`: Members
 

@@ -108,14 +108,36 @@ Every endpoint below requires a signed-in user: 401 otherwise.
 
 ### GET /api/associations
 
-The associations the signed-in user is a member of, with their role.
+The associations the signed-in user is a member of, with their role and
+what concerns them there.
 
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
 
-[{"id": "5c1e…", "name": "Jardin partagé des Lilas", "role": "manager"}]
+[{"id": "5c1e…", "name": "Jardin partagé des Lilas", "role": "manager",
+  "upcoming": [
+    {"id": "1d3a…", "user_id": "0b6f…", "display_name": "Alice", "status": "confirmed",
+     "date": "2026-11-05", "start": "10:00", "end": "13:00"},
+    {"id": "48be…", "user_id": "0b6f…", "display_name": "Alice", "status": "proposed",
+     "date": "2026-11-14", "start": "10:00", "end": "13:00"}
+  ],
+  "planning_period": {"first": "2026-11-02", "last": "2026-11-25", "registrations": 2}},
+ {"id": "9a2d…", "name": "Repair Café Belleville", "role": "volunteer",
+  "upcoming": [], "planning_period": null}]
 ```
+
+- Registrations are shown as `POST /api/associations/{id}/registrations`
+  returns them, and only the signed-in user's that are not obsolete.
+- R12: `upcoming` holds the user's registrations dated today or later,
+  sorted by date, then start:
+  - every proposed one;
+  - the confirmed ones up to the planning period's last date, when the
+    association has a period that ends today or later; else up to 27
+    days after today.
+- R13: `planning_period` is `null` when the association has none; else
+  `registrations` counts the user's confirmed and proposed
+  registrations dated within the period, both dates included.
 
 ### POST /api/associations
 
