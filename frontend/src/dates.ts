@@ -62,6 +62,19 @@ export function formatDate(iso: string, locale: string, options: Intl.DateTimeFo
     .join(' ')
 }
 
+/** A range of days, e.g. "2–25 Nov", "28 Oct – 25 Nov" or "28 Dec 2026 – 8 Jan 2027". */
+export function formatRange(first: string, last: string, locale: string): string {
+  const dayMonth = { day: 'numeric', month: 'short' } as const
+  if (first.slice(0, 4) !== last.slice(0, 4)) {
+    const withYear = { ...dayMonth, year: 'numeric' } as const
+    return `${formatDate(first, locale, withYear)} – ${formatDate(last, locale, withYear)}`
+  }
+  if (first.slice(0, 7) !== last.slice(0, 7)) {
+    return `${formatDate(first, locale, dayMonth)} – ${formatDate(last, locale, dayMonth)}`
+  }
+  return `${Number(first.slice(8))}–${formatDate(last, locale, dayMonth)}`
+}
+
 export const shortDay = { weekday: 'short', day: 'numeric', month: 'short' } as const
 export const shortDayWithYear = { ...shortDay, year: 'numeric' } as const
 export const longDay = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' } as const

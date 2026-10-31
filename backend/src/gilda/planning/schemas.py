@@ -41,6 +41,12 @@ class PlanningPeriodData(msgspec.Struct):
     last: date
 
 
+class PlanningPeriodSummary(msgspec.Struct):
+    first: date
+    last: date
+    registrations: int
+
+
 class RegistrationCreate(msgspec.Struct):
     user_id: UUID
     date: date
@@ -80,3 +86,8 @@ class ScheduleRead(msgspec.Struct):
     occurrences: list[OccurrenceRead]
     obsolete: list[RegistrationRead]
     closures: list[ClosureRead]
+
+
+class PlanningSummary(msgspec.Struct):
+    upcoming: list[RegistrationRead]
+    planning_period: PlanningPeriodSummary | None

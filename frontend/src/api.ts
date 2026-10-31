@@ -12,6 +12,12 @@ export interface AssociationSummary {
   role: Role
 }
 
+/** An association as My associations shows it. */
+export interface HomeAssociation extends AssociationSummary {
+  upcoming: Registration[]
+  planning_period: PlanningPeriodSummary | null
+}
+
 export interface Member {
   user_id: string
   display_name: string
@@ -78,7 +84,7 @@ export function resendVerification(email: string) {
 }
 
 export function listAssociations() {
-  return request<AssociationSummary[]>('GET', '/api/associations')
+  return request<HomeAssociation[]>('GET', '/api/associations')
 }
 
 export function createAssociation(name: string) {
@@ -119,6 +125,10 @@ export interface Closure {
 export interface PlanningPeriod {
   first: string
   last: string
+}
+
+export interface PlanningPeriodSummary extends PlanningPeriod {
+  registrations: number
 }
 
 export interface OccurrenceRegistration {

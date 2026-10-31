@@ -89,12 +89,6 @@ class AssociationController(Controller):
     path = "/associations"
     dependencies = {"current_user": Provide(provide_current_user)}  # noqa: RUF012
 
-    @get()
-    async def list_associations(
-        self, current_user: NamedDependency[User], db_session: NamedDependency[AsyncSession]
-    ) -> list[AssociationRead]:
-        return await AssociationService(db_session).list_for(current_user)
-
     @post()
     async def create_association(
         self,

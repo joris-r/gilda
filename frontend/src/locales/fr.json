@@ -42,7 +42,11 @@
     "title": "Mes associations",
     "none": "Vous n'êtes membre d'aucune association.",
     "create": "Créer une association",
-    "submit": "Créer l'association"
+    "submit": "Créer l'association",
+    "confirm": "Confirmer",
+    "noUpcoming": "Aucune inscription à venir.",
+    "noRegistrationInPeriod": "Aucune inscription pour la période de planning, {dates}.",
+    "chooseSlots": "Choisir mes créneaux"
   },
   "association": {
     "members": "Membres",

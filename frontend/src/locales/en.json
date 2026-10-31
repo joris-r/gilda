@@ -42,7 +42,11 @@
     "title": "My associations",
     "none": "You are not a member of any association yet.",
     "create": "Create an association",
-    "submit": "Create association"
+    "submit": "Create association",
+    "confirm": "Confirm",
+    "noUpcoming": "No upcoming registration.",
+    "noRegistrationInPeriod": "No registration yet for the planning period, {dates}.",
+    "chooseSlots": "Choose your slots"
   },
   "association": {
     "members": "Members",

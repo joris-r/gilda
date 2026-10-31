@@ -9,6 +9,7 @@ from gilda.core.models import UserSession
 from gilda.db import create_database_config, create_database_plugin
 from gilda.errors import api_exception_handlers
 from gilda.frontend import create_frontend_router, frontend_exception_handlers
+from gilda.home.controllers import HomeController
 from gilda.planning.controllers import PlanningController
 
 
@@ -21,7 +22,12 @@ def create_app() -> Litestar:
     )
     api = Router(
         path="/api",
-        route_handlers=[AccountController, AssociationController, PlanningController],
+        route_handlers=[
+            AccountController,
+            AssociationController,
+            HomeController,
+            PlanningController,
+        ],
         exception_handlers=api_exception_handlers(),
     )
     frontend = create_frontend_router()

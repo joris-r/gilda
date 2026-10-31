@@ -227,6 +227,22 @@ button.link {
   border-bottom: 1px solid var(--line);
 }
 
+.summary {
+  flex-basis: 100%;
+}
+
+.list .upcoming {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.list .upcoming li {
+  justify-content: flex-start;
+  padding: 4px 0;
+  border-bottom: none;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

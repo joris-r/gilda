@@ -7,7 +7,7 @@ from advanced_alchemy.exceptions import IntegrityError
 from litestar.exceptions import ClientException, NotFoundException, PermissionDeniedException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gilda.core.models import Membership, User
+from gilda.core.models import Association, Membership, User
 from gilda.core.repositories import MembershipRepository
 from gilda.core.services import ConflictException
 from gilda.planning.models import Closure, PlanningPeriod, Registration, Slot
@@ -22,6 +22,8 @@ from gilda.planning.schemas import (
     OccurrenceRead,
     OccurrenceRegistration,
     PlanningPeriodData,
+    PlanningPeriodSummary,
+    PlanningSummary,
     RegistrationRead,
     ScheduleRead,
     SlotRead,
@@ -30,6 +32,8 @@ from gilda.planning.schemas import (
 )
 
 WEEKDAYS: tuple[Weekday, ...] = get_args(Weekday)
+# Without a current planning period, confirmed registrations show up to this many days ahead.
+UPCOMING_DAYS = 27
 
 
 def clock(value: time) -> str:
@@ -217,6 +221,50 @@ class PlanningService:
             occurrences=occurrences,
             obsolete=[registration_read(r) for r in obsolete],
             closures=[closure_read(c) for c in closures],
+        )
+
+    # Summary
+
+    async def summary(self, user: User, association: Association) -> PlanningSummary:
+        """What concerns `user` in `association`, for My associations."""
+        today = datetime.now(ZoneInfo(association.timezone)).date()
+        period = await self.planning_periods.get_one_or_none(association_id=association.id)
+        since = today if period is None else min(today, period.first)
+        registrations = await self.registrations.list(
+            Registration.association_id == association.id,
+            Registration.user_id == user.id,
+            Registration.status != "cancelled",
+            Registration.date >= since,
+        )
+        slots = {(s.weekday, s.start, s.end) for s in await self._slots(association.id)}
+        closures = await self._closures_between(
+            association.id, since, max(r.date for r in registrations) if registrations else since
+        )
+        live = [
+            r
+            for r in registrations
+            if (r.date.weekday(), r.start, r.end) in slots
+            and not any(c.first <= r.date <= c.last for c in closures)
+        ]
+
+        until = (
+            period.last
+            if period is not None and period.last >= today
+            else today + timedelta(days=UPCOMING_DAYS)
+        )
+        upcoming = sorted(
+            (r for r in live if r.date >= today and (r.status == "proposed" or r.date <= until)),
+            key=lambda r: (r.date, r.start),
+        )
+        return PlanningSummary(
+            upcoming=[registration_read(r) for r in upcoming],
+            planning_period=None
+            if period is None
+            else PlanningPeriodSummary(
+                first=period.first,
+                last=period.last,
+                registrations=sum(period.first <= r.date <= period.last for r in live),
+            ),
         )
 
     # Registrations

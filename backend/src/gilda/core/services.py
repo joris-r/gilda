@@ -134,13 +134,6 @@ class AssociationService:
         self.associations = AssociationRepository(session=db_session)
         self.memberships = MembershipRepository(session=db_session)
 
-    async def list_for(self, user: User) -> list[AssociationRead]:
-        memberships = await self.memberships.list(user_id=user.id)
-        return [
-            AssociationRead(id=m.association.id, name=m.association.name, role=cast(Role, m.role))
-            for m in memberships
-        ]
-
     async def create(self, user: User, name: str) -> AssociationRead:
         association = await self.associations.add(Association(name=name))
         await self.memberships.add(
