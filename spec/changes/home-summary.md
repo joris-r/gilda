@@ -86,3 +86,8 @@ Mes associations
   Atelier vélo                            BÉNÉVOLE
     Aucune inscription à venir.
 ```
+
+## Technical
+
+- Backend layout: `home/` serves `GET /api/associations`, gathering
+  what each domain shows of an association on My associations.

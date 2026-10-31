@@ -8,7 +8,7 @@ Updated on the human's decisions, and at the agent's hand-over (Step).
 - Shape: full
 - Phase: Implementation
 - Step: Exploration
-- Stash:
+- Stash: implementation work
 
 ## Scope of the current increment
 

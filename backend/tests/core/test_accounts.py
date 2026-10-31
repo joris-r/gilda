@@ -77,7 +77,13 @@ def test_r2_sign_up_takes_over_a_user_without_password(
         == 200
     )
     assert chloe.get("/api/associations").json() == [
-        {"id": association["id"], "name": association["name"], "role": "volunteer"}
+        {
+            "id": association["id"],
+            "name": association["name"],
+            "role": "volunteer",
+            "upcoming": [],
+            "planning_period": None,
+        }
     ]
     members = client.get(f"/api/associations/{association['id']}").json()["members"]
     chloe_member = next(m for m in members if m["user_id"] == member["user_id"])
