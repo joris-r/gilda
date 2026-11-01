@@ -25,10 +25,7 @@
 - Spec: `GET /api/associations` and My associations sit in the core pages though R12–R14 are planning's; move them to a home page once other modules add their part.
 - Sessions: purge expired sessions regularly (Advanced Alchemy's delete_expired), so the user_session table stays small.
 
-## Security
-
-- Session fixation: issue a new session ID at sign-in and sign-up (Litestar reuses the incoming cookie's ID).
-
 ## Quality
 
 - Backend tests: report to Advanced Alchemy that its Litestar lifespan disposes only the first config's engine per process, then drop the workaround in the new_client fixture.
+- Sessions: ask Litestar for a way to renew the session ID (e.g. on `set_session`), then drop the `SessionBackend` subclass.

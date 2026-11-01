@@ -92,6 +92,8 @@ Set-Cookie: session=…
 - 401 when the email is unknown, has no account, the email is not
   confirmed, or the password is wrong; the response does not say
   which.
+- R16: On success, the `session` cookie set holds a new value, and the
+  session ID the request came with, if any, no longer authenticates.
 
 ### GET /api/session
 
