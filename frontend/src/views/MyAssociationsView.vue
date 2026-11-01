@@ -111,8 +111,8 @@ async function create() {
         </div>
       </li>
     </ul>
-    <p v-if="error && !creating" class="error">{{ error }}</p>
     <p v-else class="hint">{{ t('myAssociations.none') }}</p>
+    <p v-if="error && !creating" class="error">{{ error }}</p>
   </template>
   <template v-if="creating">
     <h2>{{ t('myAssociations.create') }}</h2>
