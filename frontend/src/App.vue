@@ -46,17 +46,7 @@ async function leave() {
 <template>
   <header class="top">
     <RouterLink to="/" class="brand" aria-label="Gilda">
-      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
-        <path
-          d="M24.49 24.49A12 12 0 1 0 16 28V22"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="4"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-        <circle cx="16" cy="16" r="3" fill="var(--accent)" />
-      </svg>
+      <img class="logo" src="/favicon.svg" alt="" />
     </RouterLink>
     <p v-if="user" class="where">
       <RouterLink v-if="location.association" :to="`/associations/${location.association.id}`">{{
