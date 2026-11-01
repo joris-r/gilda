@@ -274,22 +274,26 @@ async function clearPeriod() {
       <h2>{{ t('settings.membersPreferences') }}</h2>
       <div class="grid">
         <table>
-          <tr>
-            <th></th>
-            <th v-for="slot in sortedSlots" :key="slot.id" scope="col">
-              {{ t(`weekdaysShort.${slot.weekday}`) }} {{ slot.start }}–{{ slot.end }}
-            </th>
-          </tr>
-          <tr v-for="member in sortedMembers" :key="member.user_id">
-            <th scope="row">{{ member.display_name }}</th>
-            <td v-for="slot in sortedSlots" :key="slot.id">
-              <PreferenceSelect
-                :value="preferenceOf(slot, member.user_id)"
-                :aria-label="`${member.display_name}, ${t(`weekdaysShort.${slot.weekday}`)} ${slot.start}–${slot.end}`"
-                @change="choosePreference(slot, member.user_id, $event)"
-              />
-            </td>
-          </tr>
+          <thead>
+            <tr>
+              <th></th>
+              <th v-for="slot in sortedSlots" :key="slot.id" scope="col">
+                {{ t(`weekdaysShort.${slot.weekday}`) }} {{ slot.start }}–{{ slot.end }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="member in sortedMembers" :key="member.user_id">
+              <th scope="row">{{ member.display_name }}</th>
+              <td v-for="slot in sortedSlots" :key="slot.id">
+                <PreferenceSelect
+                  :value="preferenceOf(slot, member.user_id)"
+                  :aria-label="`${member.display_name}, ${t(`weekdaysShort.${slot.weekday}`)} ${slot.start}–${slot.end}`"
+                  @change="choosePreference(slot, member.user_id, $event)"
+                />
+              </td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </template>
