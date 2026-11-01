@@ -159,6 +159,70 @@ describe('Schedule settings', () => {
       expect(item(wrapper, 'Friday').text()).toContain('16:00–19:00')
     })
 
+    describe('Add slot defaults', () => {
+      /** The current value of the Add slot field `label`. */
+      function valueOf(slotForm: DOMWrapper<Element>, label: string) {
+        return (field(slotForm, label).element as HTMLInputElement).value
+      }
+
+      it('R17: opens with From and To at 09:00', async () => {
+        const { mounting } = mountSettings('manager')
+        const slotForm = form(await mounting, 'Add slot')
+
+        expect(valueOf(slotForm, 'From')).toBe('09:00')
+        expect(valueOf(slotForm, 'To')).toBe('09:00')
+      })
+
+      it('R17: changing From sets To to the same time', async () => {
+        const { mounting } = mountSettings('manager')
+        const slotForm = form(await mounting, 'Add slot')
+
+        await fill(slotForm, 'From', '14:00')
+
+        expect(valueOf(slotForm, 'To')).toBe('14:00')
+      })
+
+      it('R17: once To is changed, changing From leaves To as it is', async () => {
+        const { mounting } = mountSettings('manager')
+        const slotForm = form(await mounting, 'Add slot')
+
+        await fill(slotForm, 'To', '12:00')
+        await fill(slotForm, 'From', '10:00')
+
+        expect(valueOf(slotForm, 'From')).toBe('10:00')
+        expect(valueOf(slotForm, 'To')).toBe('12:00')
+      })
+
+      it("R18: after a slot is added, Day keeps its value and From and To show the slot's end", async () => {
+        const { mounting } = mountSettings('manager')
+        const wrapper = await mounting
+        const slotForm = form(wrapper, 'Add slot')
+
+        await fill(slotForm, 'Day', 'friday')
+        await fill(slotForm, 'From', '16:00')
+        await fill(slotForm, 'To', '19:00')
+        await press(slotForm, 'Add slot')
+        await flushPromises()
+
+        expect(valueOf(slotForm, 'Day')).toBe('friday')
+        expect(valueOf(slotForm, 'From')).toBe('19:00')
+        expect(valueOf(slotForm, 'To')).toBe('19:00')
+      })
+
+      it('R18: after a slot is added, To follows From again', async () => {
+        const { mounting } = mountSettings('manager')
+        const wrapper = await mounting
+        const slotForm = form(wrapper, 'Add slot')
+
+        await fill(slotForm, 'To', '13:00')
+        await press(slotForm, 'Add slot')
+        await flushPromises()
+        await fill(slotForm, 'From', '15:00')
+
+        expect(valueOf(slotForm, 'To')).toBe('15:00')
+      })
+    })
+
     it('deletes a slot with DELETE', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
