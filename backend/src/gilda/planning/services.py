@@ -37,7 +37,7 @@ from gilda.planning.schemas import (
 )
 
 WEEKDAYS: tuple[Weekday, ...] = get_args(Weekday)
-# Without a current planning period, confirmed registrations show up to this many days ahead.
+# Confirmed registrations show at least this many days ahead, further to the planning period's end.
 UPCOMING_DAYS = 27
 
 
@@ -318,11 +318,9 @@ class PlanningService:
         )
         live = await self._live(association.id, registrations)
 
-        until = (
-            period.last
-            if period is not None and period.last >= today
-            else today + timedelta(days=UPCOMING_DAYS)
-        )
+        until = today + timedelta(days=UPCOMING_DAYS)
+        if period is not None:
+            until = max(until, period.last)
         upcoming = sorted(
             (r for r in live if r.date >= today and (r.status == "proposed" or r.date <= until)),
             key=lambda r: (r.date, r.start),
