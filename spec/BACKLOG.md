@@ -8,8 +8,6 @@
 - UX: no inline creation or editing on pages; a button opens a form to create, an icon opens editing. Study it as one consistent design across the pages it affects, before the new forms below.
 - Planning: a personal page per association, e.g. "My availability" ("Mes disponibilités"), where a member sets their slot preferences (moved out of Schedule settings), their absence periods, and a note for the managers with standing instructions (e.g. "always group my registrations in pairs").
 - Schedule: in the list of members a manager can propose an occurrence to, show who is absent on its date and each member's note on hovering their name (managers are assumed to use a real screen); sort it first by preference for its slot (Preferred, Possible, Unavailable, then absent), then by fewest registrations in the planning period.
-- Schedule settings: Members' preferences is unusable at 14 members and 8 slots: it scrolls horizontally and the member names scroll out of view; keep the names visible (e.g. a sticky first column) or rethink the layout.
-- Schedule settings: Add slot defaults From to 09:00 (not the current time) and To to the From time; after a slot is added, From defaults to that slot's end.
 - Association: a manager can remove a member from the association.
 - Planning: a volunteer whose registration becomes obsolete (its slot removed or closed) is told so and acknowledges it; today it silently disappears from their Home summary.
 - Frontend: the page width is capped at 640px, cramped on a wide screen; raise the cap (check the Schedule week grid there). The Create an account form is also narrower on a wide screen than on a narrow one.

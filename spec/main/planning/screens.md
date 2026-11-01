@@ -27,11 +27,17 @@ Members' preferences
 - In French, the screen is "Réglages du planning".
 - A volunteer sees the lists and the period, or "None", without Delete
   and without the forms.
+- R17: The Add slot form opens with From at 09:00 and To at 09:00.
+  Changing From sets To to the same time, until the manager changes To.
+- R18: After a slot is added, Day keeps its value, and From and To
+  both show the added slot's end; To follows From again as in R17.
 - Every member sees "My preference" on each slot. Choosing a value
   saves it at once; "—" deletes it.
 - "Members' preferences" is shown to managers only: one row per member,
   one column per slot, each cell a selector that saves at once like
   "My preference".
+- When "Members' preferences" scrolls horizontally, the member names
+  stay in view (not testable).
 - Each value has a colour: Preferred green, Possible orange,
   Unavailable red; "—" has none. Selectors show their value's colour.
   (Look of colours not testable.)
