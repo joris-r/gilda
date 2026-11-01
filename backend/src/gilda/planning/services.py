@@ -149,15 +149,8 @@ class PlanningService:
         value: PreferenceValue,
     ) -> PreferenceRead:
         await self._preference_target(user, association_id, slot_id, user_id)
-        preference = await self.preferences.get_one_or_none(slot_id=slot_id, user_id=user_id)
-        if preference is None:
-            preference = await self.preferences.add(
-                Preference(user_id=user_id, slot_id=slot_id, value=value)
-            )
-        else:
-            preference.value = value
-            preference = await self.preferences.update(preference)
-        return preference_read(preference)
+        await self.preferences.set_value(slot_id, user_id, value)
+        return PreferenceRead(user_id=user_id, slot_id=slot_id, value=value)
 
     async def delete_preference(
         self, user: User, association_id: UUID, slot_id: UUID, user_id: UUID

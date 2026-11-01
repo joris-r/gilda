@@ -6,7 +6,7 @@ Updated on the human's decisions, and at the agent's hand-over (Step).
 - Specification: complete
 - Increment: atomic-preference-upsert
 - Shape: code-only
-- Phase: Implementation
+- Phase: Integration
 - Step: Exploration
 - Stash:
 
