@@ -134,9 +134,8 @@ Content-Type: application/json
 - R12: `upcoming` holds the user's registrations dated today or later,
   sorted by date, then start:
   - every proposed one;
-  - the confirmed ones up to the planning period's last date, when the
-    association has a period that ends today or later; else up to 27
-    days after today.
+  - the confirmed ones up to the later of 27 days after today and, when
+    the association has a planning period, its last date.
 - R13: `planning_period` is `null` when the association has none; else
   `registrations` counts the user's confirmed and proposed
   registrations dated within the period, both dates included.

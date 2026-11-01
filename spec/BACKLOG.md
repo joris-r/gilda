@@ -1,6 +1,5 @@
 # Backlog
 
-- Home: show confirmed registrations up to the later of the planning period's end and 27 days ahead, so a period ending soon still shows four weeks.
 - Deployment: an "invitation only" setting, so that only emails a manager already added as members can create an account (today anyone can sign up).
 - Mailer: the confirmation email is English-only; send a bilingual (English/French) message instead, as every later email will be.
 - Accounts: password reset for a forgotten password, by an emailed link.
