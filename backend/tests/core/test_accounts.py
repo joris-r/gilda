@@ -273,6 +273,42 @@ def test_post_api_session_401_does_not_say_which_credential_is_wrong(
     assert browser.get("/api/session").status_code == 401
 
 
+def test_r16_sign_in_replaces_a_session_id_planted_in_the_browser(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+    planted = uuid.uuid4().hex
+    victim = new_client()
+    victim.cookies.set("session", planted)
+    attacker = new_client()
+    attacker.cookies.set("session", planted)
+
+    response = victim.post("/api/session", json={"email": email, "password": PASSWORD})
+
+    assert response.status_code == 200
+    assert response.cookies.get("session") not in (None, planted)
+    assert attacker.get("/api/session").status_code == 401
+
+
+def test_r16_sign_in_replaces_the_id_of_an_existing_session(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+    attacker = new_client()
+    sign_up(attacker, "Mallory")
+    planted = attacker.cookies.get("session")
+    victim = new_client()
+    victim.cookies.set("session", planted)
+
+    response = victim.post("/api/session", json={"email": email, "password": PASSWORD})
+
+    assert response.status_code == 200
+    assert response.cookies.get("session") not in (None, planted)
+    assert attacker.get("/api/session").status_code == 401
+
+
 # GET /api/session
 
 
