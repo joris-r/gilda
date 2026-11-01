@@ -54,6 +54,9 @@
   - Backend: pytest, through Litestar's test client, against a real
     PostgreSQL given by `DATABASE_URL`; never SQLite or a mocked
     database.
+    - Tests run in parallel with pytest-xdist, one worker per CPU; each
+      test sees only the data it creates.
+    - Tests hash passwords with Argon2 at its minimal cost parameters.
   - Frontend: Vitest with Vue Test Utils, the API mocked.
   - End-to-end: Playwright against the running backend, frontend and
     database, one test per scenario of `scenarios.md`. Tests check

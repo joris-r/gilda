@@ -32,6 +32,6 @@
 ## Quality
 
 - Backend: make preference PUT an atomic upsert (ON CONFLICT), so concurrent saves don't return 500.
-- Backend tests: speed up the suite (5 min), e.g. cheaper Argon2 parameters in tests or shared account fixtures.
+- Backend tests: report to Advanced Alchemy that its Litestar lifespan disposes only the first config's engine per process, then drop the workaround in the new_client fixture.
 - Frontend: split ScheduleView into a week grid component and an occurrence menu component, so Schedule changes stay local.
 - Frontend: the logo path is duplicated in App.vue and favicon.svg; share one source.
