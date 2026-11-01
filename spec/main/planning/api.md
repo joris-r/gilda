@@ -78,6 +78,56 @@ Content-Type: application/json
 - `DELETE`: 204; there is no period anymore.
 - `PUT` and `DELETE` are for managers only: 403 for a volunteer.
 
+## Preferences
+
+```http
+GET /api/associations/5c1e…/preferences
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[{"user_id": "0b6f…", "slot_id": "a41f…", "value": "preferred"},
+ {"user_id": "77c0…", "slot_id": "a41f…", "value": "unavailable"}]
+```
+
+```http
+PUT /api/associations/5c1e…/preferences/a41f…/77c0…
+Content-Type: application/json
+
+{"value": "possible"}
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"user_id": "77c0…", "slot_id": "a41f…", "value": "possible"}
+```
+
+- `GET` lists the preferences that are set: all of them for a manager,
+  only their own for a volunteer.
+- `PUT /api/associations/{id}/preferences/{slot_id}/{user_id}` sets
+  the preference, replacing the previous one; `DELETE` on the same
+  path: 204, the member has no preference on that slot anymore.
+- A volunteer may set or delete only their own: 403 otherwise.
+- 404 when the slot is not of this association, or the user is not a
+  member.
+
+## GET /api/associations/{id}/registration-counts
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[{"user_id": "0b6f…", "count": 2}, {"user_id": "77c0…", "count": 0}]
+```
+
+- One entry per member, by R15.
+- `null` when there is no planning period.
+- Managers only: 403 for a volunteer.
+
 ## GET /api/associations/{id}/schedule?from=…&to=…
 
 The occurrences, obsolete registrations and closures between two

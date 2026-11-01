@@ -13,5 +13,7 @@
 
 ## Quality
 
+- Backend tests: speed up the suite (5 min), e.g. cheaper Argon2 parameters in tests or shared account fixtures.
+- Backend: make preference PUT an atomic upsert (ON CONFLICT), so concurrent saves don't return 500.
 - Frontend: the logo path is duplicated in App.vue and favicon.svg; share one source.
 - Frontend: split ScheduleView into a week grid component and an occurrence menu component, so Schedule changes stay local.

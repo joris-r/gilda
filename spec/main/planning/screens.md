@@ -13,14 +13,30 @@ Closures
   From [    ]  To [    ]  Label [          ]  [Add closure]
 
 Slots
-  Thursday   10:00–13:00   Delete
-  Saturday   10:00–13:00   Delete
+  Thursday   10:00–13:00   My preference [Preferred ▾]   Delete
+  Saturday   10:00–13:00   My preference [—         ▾]   Delete
   Day [Thursday ▾]  From [10:00]  To [13:00]  [Add slot]
+
+Members' preferences
+           Thu 10:00–13:00   Sat 10:00–13:00
+  Alice    [Preferred ▾]     [—         ▾]
+  Bruno    [Possible  ▾]     [Unavailable ▾]
+  Chloé    [—         ▾]     [Preferred ▾]
 ```
 
 - In French, the screen is "Réglages du planning".
 - A volunteer sees the lists and the period, or "None", without Delete
   and without the forms.
+- Every member sees "My preference" on each slot. Choosing a value
+  saves it at once; "—" deletes it.
+- "Members' preferences" is shown to managers only: one row per member,
+  one column per slot, each cell a selector that saves at once like
+  "My preference".
+- Each value has a colour: Preferred green, Possible orange,
+  Unavailable red; "—" has none. Selectors show their value's colour.
+  (Look of colours not testable.)
+- In French: "Mes préférences", "Préférences des membres", "Préféré",
+  "Possible", "Indisponible".
 
 ## `/associations/{id}`: Schedule
 
@@ -106,7 +122,12 @@ Sat 31   [Bruno ?    ]
 - Clicking an occurrence or an obsolete registration, from today on,
   opens a menu on it:
   - free or cancelled: "Sign up"; for a manager, also the members'
-    display names, each proposing the occurrence to that member;
+    display names, each proposing the occurrence to that member. Each
+    name has the background colour of the member's preference for the
+    occurrence's slot, none when they have stated none (look of colours
+    not testable), and is followed by the member's registration count
+    in parentheses, e.g. "Alice (2)"; without a planning period, no
+    count is shown;
   - the user's own proposed registration, or any proposed one for a
     manager: "Confirm";
   - the user's own registration, or any for a manager: "Cancel
