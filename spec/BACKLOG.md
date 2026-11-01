@@ -1,6 +1,5 @@
 # Backlog
 
-- My associations: "You're not a member of any association" shows even when the user has some (its `v-else` hangs on the error message, not on the list).
 - Home: show confirmed registrations up to the later of the planning period's end and 27 days ahead, so a period ending soon still shows four weeks.
 - Deployment: an "invitation only" setting, so that only emails a manager already added as members can create an account (today anyone can sign up).
 - Mailer: the confirmation email is English-only; send a bilingual (English/French) message instead, as every later email will be.
@@ -11,6 +10,7 @@
 - Planning: a personal page per association, e.g. "My availability" ("Mes disponibilités"), where a member sets their slot preferences (moved out of Schedule settings), their absence periods, and a note for the managers with standing instructions (e.g. "always group my registrations in pairs").
 - Schedule: in the list of members a manager can propose an occurrence to, show who is absent on its date and each member's note on hovering their name (managers are assumed to use a real screen); sort it first by preference for its slot (Preferred, Possible, Unavailable, then absent), then by fewest registrations in the planning period.
 - Schedule settings: Members' preferences is unusable at 14 members and 8 slots: it scrolls horizontally and the member names scroll out of view; keep the names visible (e.g. a sticky first column) or rethink the layout.
+- Schedule settings: Members' preferences puts its rows directly in `<table>` (no `<thead>`/`<tbody>`), and Vite warns about it on every test run.
 - Schedule settings: Add slot defaults From to 09:00 (not the current time) and To to the From time; after a slot is added, From defaults to that slot's end.
 - Association: a manager can remove a member from the association.
 - Planning: a volunteer whose registration becomes obsolete (its slot removed or closed) is told so and acknowledges it; today it silently disappears from their Home summary.
