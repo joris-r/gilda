@@ -1,4 +1,3 @@
-from advanced_alchemy.extensions.litestar.session import SQLAlchemyAsyncSessionBackend
 from litestar import Litestar, Router
 from litestar.middleware import DefineMiddleware
 from litestar.middleware.session import SessionMiddleware
@@ -6,6 +5,7 @@ from litestar.middleware.session.server_side import ServerSideSessionConfig
 
 from gilda.core.controllers import AccountController, AssociationController
 from gilda.core.models import UserSession
+from gilda.core.sessions import SessionBackend
 from gilda.db import create_database_config, create_database_plugin
 from gilda.errors import api_exception_handlers
 from gilda.frontend import create_frontend_router, frontend_exception_handlers
@@ -15,7 +15,7 @@ from gilda.planning.controllers import PlanningController
 
 def create_app() -> Litestar:
     database = create_database_config()
-    sessions = SQLAlchemyAsyncSessionBackend(
+    sessions = SessionBackend(
         config=ServerSideSessionConfig(),
         alchemy_config=database,
         model=UserSession,

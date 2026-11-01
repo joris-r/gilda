@@ -22,6 +22,7 @@ from gilda.core.schemas import (
     VerifyRequest,
 )
 from gilda.core.services import AccountService, AssociationService
+from gilda.core.sessions import set_session_with_new_id
 
 SESSION_USER_KEY = "user_id"
 
@@ -73,7 +74,7 @@ class AccountController(Controller):
         data: JSONBody[Credentials],
     ) -> UserRead:
         user = await AccountService(db_session).authenticate(data.email, data.password)
-        request.set_session({SESSION_USER_KEY: str(user.id)})
+        set_session_with_new_id(request, {SESSION_USER_KEY: str(user.id)})
         return user_read(user)
 
     @get("/session", dependencies={"current_user": Provide(provide_current_user)})
