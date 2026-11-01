@@ -6,7 +6,7 @@ Updated on the human's decisions, and at the agent's hand-over (Step).
 - Specification: complete
 - Increment: fast-backend-tests
 - Shape: tests-only
-- Phase: Tests
+- Phase: Integration
 - Step: Production
 - Stash:
 

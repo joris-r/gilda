@@ -17,6 +17,7 @@ dev = [
     "ruff",
     "mypy",
     "time-machine>=3.6.0",
+    "pytest-xdist>=3.8.0",
 ]
 
 [build-system]
@@ -25,7 +26,7 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--durations=10 --durations-min=0"
+addopts = "-n auto --durations=10 --durations-min=0"
 filterwarnings = ["ignore::DeprecationWarning:advanced_alchemy.*"]
 
 [tool.ruff]

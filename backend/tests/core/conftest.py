@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 import pytest
 from litestar.testing import TestClient
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from gilda.app import create_app
 
@@ -51,6 +52,11 @@ def new_client() -> Iterator[Callable[[], Any]]:
 
     yield open_client
     for client in opened:
+        # Advanced Alchemy disposes only the first app's engine of a process: the
+        # following ones get renamed state keys that its shutdown does not look up.
+        for value in client.app.state.dict().values():
+            if isinstance(value, AsyncEngine):
+                client.blocking_portal.call(value.dispose)
         client.__exit__(None, None, None)
 
 
