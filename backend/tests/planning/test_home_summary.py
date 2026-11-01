@@ -193,20 +193,26 @@ def test_r12_confirmed_ones_up_to_the_periods_last_date(planning: Planning) -> N
     assert upcoming_dates(planning) == [day(40)]
 
 
-def test_r12_a_period_shorter_than_27_days_bounds_confirmed_ones(planning: Planning) -> None:
+def test_r12_a_period_ending_before_27_days_after_today_confirmed_ones_up_to_27_days(
+    planning: Planning,
+) -> None:
     set_period(planning, 0, 10)
-    confirmed(planning, 10)
     confirmed(planning, 11)
+    confirmed(planning, 27)
+    confirmed(planning, 28)
 
-    assert upcoming_dates(planning) == [day(10)]
+    assert upcoming_dates(planning) == [day(11), day(27)]
 
 
-def test_r12_a_period_ending_today_bounds_confirmed_ones(planning: Planning) -> None:
+def test_r12_a_period_ending_today_confirmed_ones_up_to_27_days_after_today(
+    planning: Planning,
+) -> None:
     set_period(planning, -5, 0)
-    confirmed(planning, 0)
     confirmed(planning, 1)
+    confirmed(planning, 27)
+    confirmed(planning, 28)
 
-    assert upcoming_dates(planning) == [day(0)]
+    assert upcoming_dates(planning) == [day(1), day(27)]
 
 
 def test_r12_without_period_confirmed_ones_up_to_27_days_after_today(
