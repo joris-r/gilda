@@ -6,6 +6,7 @@ import msgspec
 
 Weekday = Literal["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 Status = Literal["proposed", "confirmed", "cancelled"]
+PreferenceValue = Literal["preferred", "possible", "unavailable"]
 # A time of day to the minute, as "HH:MM".
 Clock = Annotated[str, msgspec.Meta(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")]
 
@@ -34,6 +35,21 @@ class ClosureRead(msgspec.Struct):
     first: date
     last: date
     label: str | None
+
+
+class PreferenceUpdate(msgspec.Struct):
+    value: PreferenceValue
+
+
+class PreferenceRead(msgspec.Struct):
+    user_id: UUID
+    slot_id: UUID
+    value: PreferenceValue
+
+
+class RegistrationCount(msgspec.Struct):
+    user_id: UUID
+    count: int
 
 
 class PlanningPeriodData(msgspec.Struct):

@@ -73,6 +73,15 @@
     "saturday": "Samedi",
     "sunday": "Dimanche"
   },
+  "weekdaysShort": {
+    "monday": "Lun",
+    "tuesday": "Mar",
+    "wednesday": "Mer",
+    "thursday": "Jeu",
+    "friday": "Ven",
+    "saturday": "Sam",
+    "sunday": "Dim"
+  },
   "settings": {
     "title": "Réglages du planning",
     "slots": "Créneaux",
@@ -93,7 +102,15 @@
     "planningPeriod": "Période de planification",
     "noPlanningPeriod": "Aucune",
     "save": "Enregistrer",
-    "clear": "Effacer"
+    "clear": "Effacer",
+    "myPreference": "Mes préférences",
+    "membersPreferences": "Préférences des membres",
+    "noPreference": "—"
+  },
+  "preferences": {
+    "preferred": "Préféré",
+    "possible": "Possible",
+    "unavailable": "Indisponible"
   },
   "schedule": {
     "week": "Semaine {n}",

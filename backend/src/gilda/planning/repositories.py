@@ -1,6 +1,6 @@
 from advanced_alchemy.repository import SQLAlchemyAsyncRepository
 
-from gilda.planning.models import Closure, PlanningPeriod, Registration, Slot
+from gilda.planning.models import Closure, PlanningPeriod, Preference, Registration, Slot
 
 
 class SlotRepository(SQLAlchemyAsyncRepository[Slot]):
@@ -17,3 +17,7 @@ class PlanningPeriodRepository(SQLAlchemyAsyncRepository[PlanningPeriod]):
 
 class RegistrationRepository(SQLAlchemyAsyncRepository[Registration]):
     model_type = Registration
+
+
+class PreferenceRepository(SQLAlchemyAsyncRepository[Preference]):
+    model_type = Preference

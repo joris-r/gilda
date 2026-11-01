@@ -6,14 +6,20 @@ import {
   ApiError,
   getAssociation,
   getPlanningPeriod,
+  getRegistrationCounts,
   getSchedule,
+  listPreferences,
+  listSlots,
   register,
   setRegistrationStatus,
   type Association,
   type Member,
   type OccurrenceRegistration,
   type PlanningPeriod,
+  type Preference,
+  type RegistrationCount,
   type Schedule,
+  type Slot,
 } from '../api'
 import {
   addDays,
@@ -25,6 +31,7 @@ import {
   shortClock,
   shortDay,
   today,
+  WEEKDAYS,
   weekdayIndex,
 } from '../dates'
 import { useLocation } from '../location'
@@ -56,6 +63,9 @@ const weeks = ref(FIRST_WEEKS)
 const association = ref<Association>()
 const schedule = ref<Schedule>({ occurrences: [], obsolete: [], closures: [] })
 const period = ref<PlanningPeriod | null>(null)
+const slots = ref<Slot[]>([])
+const preferences = ref<Preference[]>([])
+const counts = ref<RegistrationCount[] | null>(null)
 const openKey = ref<string>()
 const asking = ref(false)
 const menuPosition = ref({ left: 0, top: 0 })
@@ -99,10 +109,25 @@ async function load() {
     message.value = t('error')
   }
   association.value = found.value
+  if (found.value.role === 'manager') await loadManagerData()
+}
+
+/** What the menu shows a manager of each member: their preferences and registration counts. */
+async function loadManagerData() {
+  try {
+    ;[slots.value, preferences.value, counts.value] = await Promise.all([
+      listSlots(props.id),
+      listPreferences(props.id),
+      getRegistrationCounts(props.id),
+    ])
+  } catch {
+    message.value = t('error')
+  }
 }
 
 async function reload() {
   schedule.value = await getSchedule(props.id, firstMonday.value, lastDay.value)
+  if (isManager.value) counts.value = await getRegistrationCounts(props.id)
 }
 
 async function more() {
@@ -228,6 +253,24 @@ function actions(item: Item) {
 
 function clickable(item: Item) {
   return item.date >= day0.value && Object.values(actions(item)).some(Boolean)
+}
+
+/** A member's preference for the slot of `item`; null when they have stated none. */
+function preferenceFor(item: Item, member: Member) {
+  const slot = slots.value.find(
+    (s) =>
+      WEEKDAYS.indexOf(s.weekday) === weekdayIndex(item.date) &&
+      s.start === item.start &&
+      s.end === item.end,
+  )
+  return (
+    preferences.value.find((p) => p.slot_id === slot?.id && p.user_id === member.user_id)?.value ??
+    null
+  )
+}
+
+function countOf(member: Member) {
+  return counts.value?.find((c) => c.user_id === member.user_id)?.count ?? 0
 }
 
 const openItem = computed(() => allItems.value.find((i) => i.key === openKey.value))
@@ -432,10 +475,13 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
               v-for="member in members"
               :key="member.user_id"
               type="button"
-              class="person"
+              :class="[
+                'person',
+                preferenceFor(openItem, member) && `preference-${preferenceFor(openItem, member)}`,
+              ]"
               @click="propose(openItem, member)"
             >
-              {{ member.display_name }}
+              {{ member.display_name }}<template v-if="counts"> ({{ countOf(member) }})</template>
             </button>
           </div>
         </template>
@@ -717,6 +763,21 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
   background: var(--bg);
   color: var(--fg);
   font-weight: 400;
+}
+
+.person.preference-preferred {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+}
+
+.person.preference-possible {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+}
+
+.person.preference-unavailable {
+  background: var(--bad-soft);
+  border-color: var(--bad);
 }
 
 .close {

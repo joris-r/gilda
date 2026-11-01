@@ -7,29 +7,38 @@ import {
   ApiError,
   clearPlanningPeriod,
   deleteClosure,
+  deletePreference,
   deleteSlot,
   getAssociation,
   getPlanningPeriod,
   listClosures,
+  listPreferences,
   listSlots,
   setPlanningPeriod,
+  setPreference,
   type Association,
   type Closure,
   type PlanningPeriod,
+  type Preference,
+  type PreferenceValue,
   type Slot,
   type Weekday,
 } from '../api'
+import PreferenceSelect from '../components/PreferenceSelect.vue'
 import { formatDate, shortDayWithYear, WEEKDAYS } from '../dates'
 import { useLocation } from '../location'
+import { useSession } from '../session'
 
 const props = defineProps<{ id: string }>()
 const { t, locale } = useI18n()
 const location = useLocation()
+const { user } = useSession()
 
 const association = ref<Association>()
 const slots = ref<Slot[]>([])
 const closures = ref<Closure[]>([])
 const period = ref<PlanningPeriod | null>(null)
+const preferences = ref<Preference[]>([])
 const message = ref<string>()
 
 const weekday = ref<Weekday>('monday')
@@ -50,17 +59,24 @@ const sortedSlots = computed(() =>
       a.end.localeCompare(b.end),
   ),
 )
+const sortedMembers = computed(() =>
+  [...(association.value?.members ?? [])].sort((a, b) =>
+    a.display_name.localeCompare(b.display_name),
+  ),
+)
 const sortedClosures = computed(() =>
   [...closures.value].sort((a, b) => a.first.localeCompare(b.first)),
 )
 
 async function load() {
-  ;[association.value, slots.value, closures.value, period.value] = await Promise.all([
-    getAssociation(props.id),
-    listSlots(props.id),
-    listClosures(props.id),
-    getPlanningPeriod(props.id),
-  ])
+  ;[association.value, slots.value, closures.value, period.value, preferences.value] =
+    await Promise.all([
+      getAssociation(props.id),
+      listSlots(props.id),
+      listClosures(props.id),
+      getPlanningPeriod(props.id),
+      listPreferences(props.id),
+    ])
   const { id, name } = association.value!
   location.value = { association: { id, name }, screen: 'settings.title' }
   periodFirst.value = period.value?.first ?? ''
@@ -98,6 +114,25 @@ async function removeSlot(slot: Slot) {
   try {
     await deleteSlot(props.id, slot.id)
     slots.value = slots.value.filter((s) => s.id !== slot.id)
+  } catch (e) {
+    message.value = failure(e)
+  }
+}
+
+function preferenceOf(slot: Slot, userId: string) {
+  return preferences.value.find((p) => p.slot_id === slot.id && p.user_id === userId)?.value ?? null
+}
+
+async function choosePreference(slot: Slot, userId: string, value: PreferenceValue | null) {
+  message.value = undefined
+  const others = preferences.value.filter((p) => !(p.slot_id === slot.id && p.user_id === userId))
+  try {
+    if (value === null) {
+      await deletePreference(props.id, slot.id, userId)
+      preferences.value = others
+    } else {
+      preferences.value = [...others, await setPreference(props.id, slot.id, userId, value)]
+    }
   } catch (e) {
     message.value = failure(e)
   }
@@ -202,6 +237,13 @@ async function clearPeriod() {
         <span>{{ t(`weekdays.${slot.weekday}`) }}</span>
         <div class="actions">
           <span>{{ slot.start }}–{{ slot.end }}</span>
+          <label>
+            {{ t('settings.myPreference') }}
+            <PreferenceSelect
+              :value="preferenceOf(slot, user!.id)"
+              @change="choosePreference(slot, user!.id, $event)"
+            />
+          </label>
           <button v-if="isManager" type="button" class="link" @click="removeSlot(slot)">
             {{ t('settings.delete') }}
           </button>
@@ -227,6 +269,30 @@ async function clearPeriod() {
       </label>
       <button type="submit">{{ t('settings.addSlot') }}</button>
     </form>
+
+    <template v-if="isManager && slots.length">
+      <h2>{{ t('settings.membersPreferences') }}</h2>
+      <div class="grid">
+        <table>
+          <tr>
+            <th></th>
+            <th v-for="slot in sortedSlots" :key="slot.id" scope="col">
+              {{ t(`weekdaysShort.${slot.weekday}`) }} {{ slot.start }}–{{ slot.end }}
+            </th>
+          </tr>
+          <tr v-for="member in sortedMembers" :key="member.user_id">
+            <th scope="row">{{ member.display_name }}</th>
+            <td v-for="slot in sortedSlots" :key="slot.id">
+              <PreferenceSelect
+                :value="preferenceOf(slot, member.user_id)"
+                :aria-label="`${member.display_name}, ${t(`weekdaysShort.${slot.weekday}`)} ${slot.start}–${slot.end}`"
+                @change="choosePreference(slot, member.user_id, $event)"
+              />
+            </td>
+          </tr>
+        </table>
+      </div>
+    </template>
     <p v-if="message" class="error">{{ message }}</p>
   </template>
 </template>
@@ -236,5 +302,20 @@ async function clearPeriod() {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   align-items: end;
   margin-top: 12px;
+}
+
+.grid {
+  overflow-x: auto;
+}
+
+.grid table {
+  border-collapse: collapse;
+}
+
+.grid th,
+.grid td {
+  padding: 4px 8px;
+  text-align: left;
+  white-space: nowrap;
 }
 </style>

@@ -212,3 +212,34 @@ export function setRegistrationStatus(id: string, registrationId: string, status
     status,
   })
 }
+
+export type PreferenceValue = 'preferred' | 'possible' | 'unavailable'
+
+export interface Preference {
+  user_id: string
+  slot_id: string
+  value: PreferenceValue
+}
+
+export interface RegistrationCount {
+  user_id: string
+  count: number
+}
+
+export function listPreferences(id: string) {
+  return request<Preference[]>('GET', `/api/associations/${id}/preferences`)
+}
+
+export function setPreference(id: string, slotId: string, userId: string, value: PreferenceValue) {
+  return request<Preference>('PUT', `/api/associations/${id}/preferences/${slotId}/${userId}`, {
+    value,
+  })
+}
+
+export function deletePreference(id: string, slotId: string, userId: string) {
+  return request<void>('DELETE', `/api/associations/${id}/preferences/${slotId}/${userId}`)
+}
+
+export function getRegistrationCounts(id: string) {
+  return request<RegistrationCount[] | null>('GET', `/api/associations/${id}/registration-counts`)
+}

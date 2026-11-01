@@ -61,3 +61,12 @@ class Registration(UUIDv7Base):
     status: Mapped[str] = mapped_column(String(16))
 
     user: Mapped[User] = relationship(lazy="joined")
+
+
+class Preference(UUIDv7Base):
+    __tablename__ = "preference"
+    __table_args__ = (UniqueConstraint("user_id", "slot_id"),)
+
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user_account.id", ondelete="CASCADE"))
+    slot_id: Mapped[UUID] = mapped_column(ForeignKey("slot.id", ondelete="CASCADE"))
+    value: Mapped[str] = mapped_column(String(16))

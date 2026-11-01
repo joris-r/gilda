@@ -5,15 +5,17 @@ from zoneinfo import ZoneInfo
 
 from advanced_alchemy.exceptions import IntegrityError
 from litestar.exceptions import ClientException, NotFoundException, PermissionDeniedException
+from sqlalchemy import ColumnElement
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from gilda.core.models import Association, Membership, User
 from gilda.core.repositories import MembershipRepository
 from gilda.core.services import ConflictException
-from gilda.planning.models import Closure, PlanningPeriod, Registration, Slot
+from gilda.planning.models import Closure, PlanningPeriod, Preference, Registration, Slot
 from gilda.planning.repositories import (
     ClosureRepository,
     PlanningPeriodRepository,
+    PreferenceRepository,
     RegistrationRepository,
     SlotRepository,
 )
@@ -24,6 +26,9 @@ from gilda.planning.schemas import (
     PlanningPeriodData,
     PlanningPeriodSummary,
     PlanningSummary,
+    PreferenceRead,
+    PreferenceValue,
+    RegistrationCount,
     RegistrationRead,
     ScheduleRead,
     SlotRead,
@@ -54,6 +59,14 @@ def closure_read(closure: Closure) -> ClosureRead:
     return ClosureRead(id=closure.id, first=closure.first, last=closure.last, label=closure.label)
 
 
+def preference_read(preference: Preference) -> PreferenceRead:
+    return PreferenceRead(
+        user_id=preference.user_id,
+        slot_id=preference.slot_id,
+        value=cast(PreferenceValue, preference.value),
+    )
+
+
 def registration_read(registration: Registration) -> RegistrationRead:
     return RegistrationRead(
         id=registration.id,
@@ -82,6 +95,7 @@ class PlanningService:
         self.closures = ClosureRepository(session=db_session)
         self.registrations = RegistrationRepository(session=db_session)
         self.planning_periods = PlanningPeriodRepository(session=db_session)
+        self.preferences = PreferenceRepository(session=db_session)
 
     # Slots
 
@@ -114,6 +128,79 @@ class PlanningService:
         if slot is None:
             raise NotFoundException("Slot not found.")
         await self.slots.delete(slot.id)
+
+    # Preferences
+
+    async def list_preferences(self, user: User, association_id: UUID) -> list[PreferenceRead]:
+        own = await self._membership_of(user, association_id)
+        conditions: list[ColumnElement[bool]] = [
+            Preference.slot_id.in_([s.id for s in await self._slots(association_id)])
+        ]
+        if own.role != "manager":
+            conditions.append(Preference.user_id == user.id)
+        return [preference_read(p) for p in await self.preferences.list(*conditions)]
+
+    async def set_preference(
+        self,
+        user: User,
+        association_id: UUID,
+        slot_id: UUID,
+        user_id: UUID,
+        value: PreferenceValue,
+    ) -> PreferenceRead:
+        await self._preference_target(user, association_id, slot_id, user_id)
+        preference = await self.preferences.get_one_or_none(slot_id=slot_id, user_id=user_id)
+        if preference is None:
+            preference = await self.preferences.add(
+                Preference(user_id=user_id, slot_id=slot_id, value=value)
+            )
+        else:
+            preference.value = value
+            preference = await self.preferences.update(preference)
+        return preference_read(preference)
+
+    async def delete_preference(
+        self, user: User, association_id: UUID, slot_id: UUID, user_id: UUID
+    ) -> None:
+        await self._preference_target(user, association_id, slot_id, user_id)
+        await self.preferences.delete_where(slot_id=slot_id, user_id=user_id)
+
+    async def _preference_target(
+        self, user: User, association_id: UUID, slot_id: UUID, user_id: UUID
+    ) -> None:
+        own = await self._membership_of(user, association_id)
+        if not await self.slots.exists(id=slot_id, association_id=association_id):
+            raise NotFoundException("Slot not found.")
+        if not await self.memberships.exists(user_id=user_id, association_id=association_id):
+            raise NotFoundException("Member not found.")
+        if user_id != user.id and own.role != "manager":
+            raise PermissionDeniedException("Only managers can change another member's preference.")
+
+    # Registration counts
+
+    async def registration_counts(
+        self, user: User, association_id: UUID
+    ) -> list[RegistrationCount] | None:
+        await self._manager_of(user, association_id)
+        period = await self.planning_periods.get_one_or_none(association_id=association_id)
+        if period is None:
+            return None
+        registrations = await self._live(
+            association_id,
+            await self.registrations.list(
+                Registration.association_id == association_id,
+                Registration.status != "cancelled",
+                Registration.date >= period.first,
+                Registration.date <= period.last,
+            ),
+        )
+        memberships = await self.memberships.list(association_id=association_id)
+        return [
+            RegistrationCount(
+                user_id=m.user_id, count=sum(r.user_id == m.user_id for r in registrations)
+            )
+            for m in memberships
+        ]
 
     # Closures
 
@@ -236,16 +323,7 @@ class PlanningService:
             Registration.status != "cancelled",
             Registration.date >= since,
         )
-        slots = {(s.weekday, s.start, s.end) for s in await self._slots(association.id)}
-        closures = await self._closures_between(
-            association.id, since, max(r.date for r in registrations) if registrations else since
-        )
-        live = [
-            r
-            for r in registrations
-            if (r.date.weekday(), r.start, r.end) in slots
-            and not any(c.first <= r.date <= c.last for c in closures)
-        ]
+        live = await self._live(association.id, registrations)
 
         until = (
             period.last
@@ -343,6 +421,25 @@ class PlanningService:
             Closure.association_id == association_id, Closure.first <= last, Closure.last >= first
         )
         return sorted(closures, key=lambda c: (c.first, c.last))
+
+    async def _live(
+        self, association_id: UUID, registrations: list[Registration]
+    ) -> list[Registration]:
+        """The registrations that are not obsolete: on a slot, outside every closure."""
+        if not registrations:
+            return []
+        slots = {(s.weekday, s.start, s.end) for s in await self._slots(association_id)}
+        closures = await self._closures_between(
+            association_id,
+            min(r.date for r in registrations),
+            max(r.date for r in registrations),
+        )
+        return [
+            r
+            for r in registrations
+            if (r.date.weekday(), r.start, r.end) in slots
+            and not any(c.first <= r.date <= c.last for c in closures)
+        ]
 
     async def _is_occurrence(self, association_id: UUID, day: date, start: time, end: time) -> bool:
         if await self._closures_between(association_id, day, day):

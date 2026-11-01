@@ -294,3 +294,18 @@ button.link {
   gap: 8px 20px;
   margin: -8px 0 0;
 }
+
+.preference-preferred {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+}
+
+.preference-possible {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+}
+
+.preference-unavailable {
+  background: var(--bad-soft);
+  border-color: var(--bad);
+}
