@@ -42,8 +42,10 @@ const preferences = ref<Preference[]>([])
 const message = ref<string>()
 
 const weekday = ref<Weekday>('monday')
-const start = ref('')
-const end = ref('')
+const start = ref('09:00')
+const end = ref('09:00')
+// To follows From until the manager edits it.
+const endEdited = ref(false)
 const first = ref('')
 const last = ref('')
 const label = ref('')
@@ -98,12 +100,18 @@ function failure(e: unknown, conflict?: string) {
   return t('error')
 }
 
+watch(start, (value) => {
+  if (!endEdited.value) end.value = value
+})
+
 async function createSlot() {
   message.value = undefined
   try {
-    slots.value.push(await addSlot(props.id, weekday.value, start.value, end.value))
-    start.value = ''
-    end.value = ''
+    const slot = await addSlot(props.id, weekday.value, start.value, end.value)
+    slots.value.push(slot)
+    endEdited.value = false
+    start.value = slot.end
+    end.value = slot.end
   } catch (e) {
     message.value = failure(e, t('settings.slotExists'))
   }
@@ -265,7 +273,7 @@ async function clearPeriod() {
       </label>
       <label>
         {{ t('settings.to') }}
-        <input v-model="end" type="time" required />
+        <input v-model="end" type="time" required @input="endEdited = true" />
       </label>
       <button type="submit">{{ t('settings.addSlot') }}</button>
     </form>
@@ -321,5 +329,11 @@ async function clearPeriod() {
   padding: 4px 8px;
   text-align: left;
   white-space: nowrap;
+}
+
+.grid th:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--bg);
 }
 </style>
