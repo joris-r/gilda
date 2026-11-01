@@ -34,6 +34,8 @@
   - Talks to the backend only through the JSON API.
   - Translations live in one file per language; English is the
     reference, every key has a French translation.
+  - The header logo is `frontend/public/favicon.svg`, shown as an
+    image; in dark mode, its dot takes the dark accent colour.
 - API: JSON, every endpoint under `/api`.
 - Every entity is identified by a UUIDv7.
 - Passwords are stored hashed with Argon2, never in clear.
