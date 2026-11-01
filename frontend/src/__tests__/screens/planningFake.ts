@@ -37,6 +37,19 @@ export interface Slot {
   end: string
 }
 
+export type PreferenceValue = 'preferred' | 'possible' | 'unavailable'
+
+export interface Preference {
+  user_id: string
+  slot_id: string
+  value: PreferenceValue
+}
+
+export interface RegistrationCount {
+  user_id: string
+  count: number
+}
+
 const sameOccurrence = (a: Occurrence, b: Occurrence) =>
   a.date === b.date && a.start === b.start && a.end === b.end
 
@@ -53,12 +66,15 @@ export function planningApi(options: {
   closures?: Closure[]
   slots?: Slot[]
   planningPeriod?: PlanningPeriod | null
+  preferences?: Preference[]
+  registrationCounts?: RegistrationCount[] | null
 }) {
   const occurrences = options.occurrences ?? []
   const registrations = [...(options.registrations ?? [])]
   const closures = [...(options.closures ?? [])]
   const slots = [...(options.slots ?? [])]
   let planningPeriod = options.planningPeriod ?? null
+  const preferences = [...(options.preferences ?? [])]
   const scheduleRequests: { from: string | null; to: string | null }[] = []
   let next = 1
 
@@ -117,6 +133,7 @@ export function planningApi(options: {
       const slot = { id: `s-new-${next++}`, ...(body as Omit<Slot, 'id'>) }
       slots.push(slot)
       addDelete('slots', slots, slot.id)
+      addPreferenceRoutes(slot)
       return { status: 201, body: slot }
     },
     [`GET ${base}/closures`]: () => ({ status: 200, body: closures }),
@@ -141,6 +158,39 @@ export function planningApi(options: {
       planningPeriod = null
       return { status: 204 }
     },
+    [`GET ${base}/preferences`]: () => ({
+      status: 200,
+      body: preferences.filter((p) => options.role === 'manager' || p.user_id === options.me),
+    }),
+    [`GET ${base}/registration-counts`]: () =>
+      options.role === 'manager'
+        ? { status: 200, body: planningPeriod ? (options.registrationCounts ?? []) : null }
+        : { status: 403, body: { error: 'Managers only' } },
+  }
+
+  function addPreferenceRoutes(slot: Slot) {
+    for (const m of options.members) {
+      const at = `${base}/preferences/${slot.id}/${m.user_id}`
+      const allowed = () => options.role === 'manager' || m.user_id === options.me
+      const index = () =>
+        preferences.findIndex((p) => p.slot_id === slot.id && p.user_id === m.user_id)
+      routes[`PUT ${at}`] = (body): Reply => {
+        if (!allowed()) return { status: 403, body: { error: 'Forbidden' } }
+        const preference = {
+          user_id: m.user_id,
+          slot_id: slot.id,
+          value: (body as { value: PreferenceValue }).value,
+        }
+        if (index() >= 0) preferences.splice(index(), 1)
+        preferences.push(preference)
+        return { status: 200, body: preference }
+      }
+      routes[`DELETE ${at}`] = (): Reply => {
+        if (!allowed()) return { status: 403, body: { error: 'Forbidden' } }
+        if (index() >= 0) preferences.splice(index(), 1)
+        return { status: 204 }
+      }
+    }
   }
 
   function addPatch(registration: Registration) {
@@ -162,9 +212,10 @@ export function planningApi(options: {
 
   registrations.forEach(addPatch)
   slots.forEach((s) => addDelete('slots', slots, s.id))
+  slots.forEach(addPreferenceRoutes)
   closures.forEach((c) => addDelete('closures', closures, c.id))
 
-  return { routes, scheduleRequests }
+  return { routes, scheduleRequests, preferences }
 }
 
 type Wrapper = VueWrapper | DOMWrapper<Element>
@@ -196,4 +247,11 @@ export async function open(element: DOMWrapper<Element>) {
   const button = element.find('button')
   await (button.exists() ? button : element).trigger('click')
   await flushPromises()
+}
+
+const PREFERENCE_VALUES: PreferenceValue[] = ['preferred', 'possible', 'unavailable']
+
+/** The preference an element is marked with, by its class `preference-<value>`; null when none. */
+export function preferenceOf(element: DOMWrapper<Element>): PreferenceValue | null {
+  return PREFERENCE_VALUES.find((v) => element.classes().includes(`preference-${v}`)) ?? null
 }

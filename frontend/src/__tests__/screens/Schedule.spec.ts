@@ -1,3 +1,4 @@
+import type { DOMWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountApp, pageText } from '../mountApp'
 import { control, hasControl, header, mockApi, press } from '../mockApi'
@@ -7,11 +8,14 @@ import {
   hasDay,
   open,
   planningApi,
+  preferenceOf,
   slotItem,
   type Closure,
   type Occurrence,
   type PlanningPeriod,
+  type Preference,
   type Registration,
+  type RegistrationCount,
 } from './planningFake'
 
 const alice = member('u-alice', 'Alice', 'volunteer')
@@ -68,6 +72,8 @@ function mountSchedule(
     occurrences?: Occurrence[]
     registrations?: Registration[]
     planningPeriod?: PlanningPeriod
+    preferences?: Preference[]
+    registrationCounts?: RegistrationCount[]
   } = {},
   at = path,
 ) {
@@ -78,7 +84,13 @@ function mountSchedule(
     occurrences: overrides.occurrences ?? occurrences(['2026-11-14']),
     registrations: overrides.registrations ?? registrations.map((r) => ({ ...r })),
     closures: [closure],
+    slots: [
+      { id: 's-thu', weekday: 'thursday', start: '10:00', end: '13:00' },
+      { id: 's-sat', weekday: 'saturday', start: '10:00', end: '13:00' },
+    ],
     planningPeriod: overrides.planningPeriod ?? null,
+    preferences: overrides.preferences,
+    registrationCounts: overrides.registrationCounts,
   })
   const calls = mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
   return { calls, api, mounting: mountApp(at) }
@@ -536,6 +548,107 @@ describe('Schedule', () => {
         body: { status: 'confirmed' },
       })
       expect(slotItem(wrapper, 'Thu 19 Nov', '10–13').text()).not.toMatch(/Bruno\s*\?/)
+    })
+  })
+
+  describe('menu, for a manager: preferences and registration counts', () => {
+    const preferences: Preference[] = [
+      { user_id: 'u-alice', slot_id: 's-thu', value: 'possible' },
+      { user_id: 'u-bruno', slot_id: 's-thu', value: 'preferred' },
+      { user_id: 'u-bruno', slot_id: 's-sat', value: 'unavailable' },
+      { user_id: 'u-chloe', slot_id: 's-sat', value: 'preferred' },
+    ]
+    const registrationCounts: RegistrationCount[] = [
+      { user_id: 'u-alice', count: 1 },
+      { user_id: 'u-bruno', count: 0 },
+      { user_id: 'u-chloe', count: 2 },
+    ]
+    const planningPeriod = { first: '2026-11-02', last: '2026-11-25' }
+
+    /** The menu's buttons proposing the occurrence, in order. */
+    function memberButtons(wrapper: { findAll(selector: string): DOMWrapper<Element>[] }) {
+      return wrapper
+        .findAll('button')
+        .filter((b) => /^(Alice|Bruno|Chloé)( \(\d+\))?$/.test(b.text().trim()))
+    }
+
+    it("each member's name is marked with their preference for the occurrence's slot", async () => {
+      const { mounting } = mountSchedule('manager', { preferences })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(preferenceOf(control(wrapper, 'Alice'))).toBe('possible')
+      expect(preferenceOf(control(wrapper, 'Bruno'))).toBe('preferred')
+      expect(preferenceOf(control(wrapper, 'Chloé'))).toBeNull()
+    })
+
+    it('on another slot, the names follow that slot', async () => {
+      const { mounting } = mountSchedule('manager', { preferences })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Sat 21 Nov', '10–13'))
+      expect(preferenceOf(control(wrapper, 'Alice'))).toBeNull()
+      expect(preferenceOf(control(wrapper, 'Bruno'))).toBe('unavailable')
+      expect(preferenceOf(control(wrapper, 'Chloé'))).toBe('preferred')
+    })
+
+    it('each name is followed by the registration count, in parentheses', async () => {
+      const { mounting } = mountSchedule('manager', {
+        preferences,
+        registrationCounts,
+        planningPeriod,
+      })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(hasControl(wrapper, 'Alice (1)')).toBe(true)
+      expect(hasControl(wrapper, 'Bruno (0)')).toBe(true)
+      expect(hasControl(wrapper, 'Chloé (2)')).toBe(true)
+    })
+
+    it('without a planning period, no count is shown', async () => {
+      const { mounting } = mountSchedule('manager', { preferences })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(memberButtons(wrapper).map((b) => b.text().trim())).toEqual([
+        'Alice',
+        'Bruno',
+        'Chloé',
+      ])
+    })
+
+    it('the order of the members and the actions are unchanged', async () => {
+      const { calls, mounting } = mountSchedule('manager', {
+        preferences,
+        registrationCounts,
+        planningPeriod,
+      })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(hasControl(wrapper, 'Sign up')).toBe(true)
+      expect(memberButtons(wrapper).map((b) => b.text().trim())).toEqual([
+        'Alice (1)',
+        'Bruno (0)',
+        'Chloé (2)',
+      ])
+      await press(wrapper, 'Chloé (2)')
+
+      expect(calls).toContainEqual({
+        method: 'POST',
+        path: registrationsPath,
+        body: { user_id: 'u-chloe', date: '2026-11-19', start: '10:00', end: '13:00' },
+      })
+    })
+
+    it('a volunteer does not load the registration counts', async () => {
+      const { calls, mounting } = mountSchedule('volunteer', { planningPeriod })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(hasControl(wrapper, 'Sign up')).toBe(true)
+      expect(calls.some((c) => c.path.endsWith('/registration-counts'))).toBe(false)
     })
   })
 })

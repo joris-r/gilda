@@ -1,9 +1,10 @@
-import type { VueWrapper } from '@vue/test-utils'
+import type { DOMWrapper, VueWrapper } from '@vue/test-utils'
+import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountApp, pageText } from '../mountApp'
-import { fill, hasControl, header, item, mockApi, press } from '../mockApi'
+import { field, fill, hasControl, header, item, mockApi, press } from '../mockApi'
 import { garden, member, signedInAsAlice } from './fixtures'
-import { planningApi, type PlanningPeriod } from './planningFake'
+import { planningApi, preferenceOf, type Preference, type PlanningPeriod } from './planningFake'
 
 const path = `/associations/${garden.id}/settings`
 const base = `/api/associations/${garden.id}`
@@ -11,11 +12,17 @@ const base = `/api/associations/${garden.id}`
 function mountSettings(
   role: 'manager' | 'volunteer',
   planningPeriod: PlanningPeriod | null = { first: '2026-11-02', last: '2026-11-25' },
+  preferences: Preference[] = [],
 ) {
   const api = planningApi({
     me: 'u-alice',
     role,
-    members: [member('u-alice', 'Alice', role)],
+    members: [
+      member('u-alice', 'Alice', role),
+      member('u-bruno', 'Bruno', 'volunteer'),
+      member('u-chloe', 'Chloé', 'volunteer'),
+    ],
+    preferences,
     slots: [
       { id: 's-sat', weekday: 'saturday', start: '10:00', end: '13:00' },
       { id: 's-thu', weekday: 'thursday', start: '10:00', end: '13:00' },
@@ -28,6 +35,32 @@ function mountSettings(
   })
   const calls = mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
   return { calls, mounting: mountApp(path) }
+}
+
+/** The "My preference" selector of the slot listed with `weekday`. */
+function myPreference(wrapper: VueWrapper, weekday: string) {
+  return field(item(wrapper, weekday), 'My preference')
+}
+
+/** The selected option's text of a selector. */
+function shown(select: DOMWrapper<Element>) {
+  const element = select.element as HTMLSelectElement
+  return element.options[element.selectedIndex]?.text.trim()
+}
+
+/** The rows of "Members' preferences", by member display name, each with its selectors. */
+function memberPreferences(wrapper: VueWrapper) {
+  const table = wrapper.find('table')
+  const rows = table.findAll('tr').filter((tr) => tr.find('select').exists())
+  return {
+    table,
+    names: rows.map((tr) => tr.find('th, td').text().trim()),
+    cell(name: string, column: number) {
+      const row = rows.find((tr) => tr.find('th, td').text().trim() === name)
+      if (row === undefined) throw new Error(`No row "${name}"`)
+      return row.findAll('select')[column]
+    },
+  }
 }
 
 /** The form holding the button `submit`. */
@@ -250,5 +283,173 @@ describe('Schedule settings', () => {
     expect(hasControl(wrapper, 'Delete')).toBe(false)
     expect(hasControl(wrapper, 'Add slot')).toBe(false)
     expect(hasControl(wrapper, 'Add closure')).toBe(false)
+  })
+
+  describe('My preference', () => {
+    it.each(['manager', 'volunteer'] as const)(
+      'a %s sees their own preference on each slot, "—" when none',
+      async (role) => {
+        const { mounting } = mountSettings(role, null, [
+          { user_id: 'u-alice', slot_id: 's-thu', value: 'preferred' },
+          { user_id: 'u-bruno', slot_id: 's-sat', value: 'unavailable' },
+        ])
+        const wrapper = await mounting
+
+        expect(shown(myPreference(wrapper, 'Thursday'))).toBe('Preferred')
+        expect(shown(myPreference(wrapper, 'Saturday'))).toBe('—')
+      },
+    )
+
+    it('offers "—", Preferred, Possible and Unavailable', async () => {
+      const { mounting } = mountSettings('volunteer')
+      const wrapper = await mounting
+
+      const options = myPreference(wrapper, 'Thursday')
+        .findAll('option')
+        .map((o) => o.text().trim())
+      expect(options).toEqual(['—', 'Preferred', 'Possible', 'Unavailable'])
+    })
+
+    it('choosing a value saves it at once with PUT', async () => {
+      const { calls, mounting } = mountSettings('volunteer')
+      const wrapper = await mounting
+
+      await myPreference(wrapper, 'Thursday').setValue('possible')
+      await flushPromises()
+
+      expect(calls).toContainEqual({
+        method: 'PUT',
+        path: `${base}/preferences/s-thu/u-alice`,
+        body: { value: 'possible' },
+      })
+    })
+
+    it('choosing "—" deletes it with DELETE', async () => {
+      const { calls, mounting } = mountSettings('volunteer', null, [
+        { user_id: 'u-alice', slot_id: 's-thu', value: 'preferred' },
+      ])
+      const wrapper = await mounting
+
+      const select = myPreference(wrapper, 'Thursday')
+      const none = select.findAll('option').find((o) => o.text().trim() === '—')!
+      await select.setValue((none.element as HTMLOptionElement).value)
+      await flushPromises()
+
+      expect(calls).toContainEqual({
+        method: 'DELETE',
+        path: `${base}/preferences/s-thu/u-alice`,
+        body: undefined,
+      })
+    })
+
+    it('the selector is marked with its value, unmarked for "—"', async () => {
+      const { mounting } = mountSettings('volunteer', null, [
+        { user_id: 'u-alice', slot_id: 's-thu', value: 'unavailable' },
+      ])
+      const wrapper = await mounting
+
+      expect(preferenceOf(myPreference(wrapper, 'Thursday'))).toBe('unavailable')
+      expect(preferenceOf(myPreference(wrapper, 'Saturday'))).toBeNull()
+
+      await myPreference(wrapper, 'Saturday').setValue('preferred')
+      await flushPromises()
+
+      expect(preferenceOf(myPreference(wrapper, 'Saturday'))).toBe('preferred')
+    })
+
+    it('in French, "Mes préférences" and the values', async () => {
+      localStorage.setItem('gilda.locale', 'fr')
+      const { mounting } = mountSettings('volunteer')
+      const wrapper = await mounting
+
+      expect(pageText(wrapper)).toContain('Mes préférences')
+      const options = wrapper
+        .find('li select')
+        .findAll('option')
+        .map((o) => o.text().trim())
+      expect(options).toEqual(['—', 'Préféré', 'Possible', 'Indisponible'])
+    })
+  })
+
+  describe("Members' preferences", () => {
+    const set: Preference[] = [
+      { user_id: 'u-alice', slot_id: 's-thu', value: 'preferred' },
+      { user_id: 'u-bruno', slot_id: 's-thu', value: 'possible' },
+      { user_id: 'u-bruno', slot_id: 's-sat', value: 'unavailable' },
+      { user_id: 'u-chloe', slot_id: 's-sat', value: 'preferred' },
+    ]
+
+    it('a manager sees one row per member and one column per slot', async () => {
+      const { mounting } = mountSettings('manager', null, set)
+      const wrapper = await mounting
+      const grid = memberPreferences(wrapper)
+
+      expect(pageText(wrapper)).toContain("Members' preferences")
+      expect(grid.names).toEqual(['Alice', 'Bruno', 'Chloé'])
+      const header = grid.table.find('tr').text()
+      expect(header.indexOf('Thu')).toBeGreaterThanOrEqual(0)
+      expect(header.indexOf('Sat')).toBeGreaterThan(header.indexOf('Thu'))
+      expect(shown(grid.cell('Alice', 0))).toBe('Preferred')
+      expect(shown(grid.cell('Alice', 1))).toBe('—')
+      expect(shown(grid.cell('Bruno', 0))).toBe('Possible')
+      expect(shown(grid.cell('Bruno', 1))).toBe('Unavailable')
+      expect(shown(grid.cell('Chloé', 0))).toBe('—')
+      expect(shown(grid.cell('Chloé', 1))).toBe('Preferred')
+    })
+
+    it('each cell is marked with its value', async () => {
+      const { mounting } = mountSettings('manager', null, set)
+      const grid = memberPreferences(await mounting)
+
+      expect(preferenceOf(grid.cell('Bruno', 0))).toBe('possible')
+      expect(preferenceOf(grid.cell('Bruno', 1))).toBe('unavailable')
+      expect(preferenceOf(grid.cell('Chloé', 0))).toBeNull()
+    })
+
+    it("a cell saves another member's preference at once with PUT", async () => {
+      const { calls, mounting } = mountSettings('manager', null, set)
+      const wrapper = await mounting
+
+      await memberPreferences(wrapper).cell('Chloé', 0).setValue('unavailable')
+      await flushPromises()
+
+      expect(calls).toContainEqual({
+        method: 'PUT',
+        path: `${base}/preferences/s-thu/u-chloe`,
+        body: { value: 'unavailable' },
+      })
+    })
+
+    it('a cell set to "—" deletes the preference with DELETE', async () => {
+      const { calls, mounting } = mountSettings('manager', null, set)
+      const wrapper = await mounting
+
+      const cell = memberPreferences(wrapper).cell('Bruno', 1)
+      const none = cell.findAll('option').find((o) => o.text().trim() === '—')!
+      await cell.setValue((none.element as HTMLOptionElement).value)
+      await flushPromises()
+
+      expect(calls).toContainEqual({
+        method: 'DELETE',
+        path: `${base}/preferences/s-sat/u-bruno`,
+        body: undefined,
+      })
+    })
+
+    it('in French, "Préférences des membres"', async () => {
+      localStorage.setItem('gilda.locale', 'fr')
+      const { mounting } = mountSettings('manager', null, set)
+
+      expect(pageText(await mounting)).toContain('Préférences des membres')
+    })
+
+    it('is not shown to a volunteer', async () => {
+      const { mounting } = mountSettings('volunteer', null, set)
+      const wrapper = await mounting
+
+      expect(pageText(wrapper)).toContain('Thursday')
+      expect(pageText(wrapper)).not.toContain("Members' preferences")
+      expect(wrapper.find('table').exists()).toBe(false)
+    })
   })
 })

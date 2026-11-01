@@ -94,7 +94,7 @@ Members' preferences
   "My preference".
 - Each value has a colour: Preferred green, Possible orange,
   Unavailable red; "—" has none. Selectors show their value's colour.
-  (Colours not testable.)
+  (Look of colours not testable.)
 - In French: "Mes préférences", "Préférences des membres", "Préféré",
   "Possible", "Indisponible".
 
@@ -112,8 +112,8 @@ Chloé (1)
 ```
 
 - Each name has the background colour of the member's preference for
-  the occurrence's slot, none when they have stated none (colours not
-  testable).
+  the occurrence's slot, none when they have stated none (look of
+  colours not testable).
 - The name is followed by the member's registration count in
   parentheses; without a planning period, no count is shown.
 - The menu is otherwise unchanged: same actions, same order of
