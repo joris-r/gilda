@@ -109,8 +109,9 @@ Content-Type: application/json
 - `GET` lists the preferences that are set: all of them for a manager,
   only their own for a volunteer.
 - `PUT /api/associations/{id}/preferences/{slot_id}/{user_id}` sets
-  the preference, replacing the previous one; `DELETE` on the same
-  path: 204, the member has no preference on that slot anymore.
+  the preference, replacing the previous one, even when several
+  requests for the same member and slot run at once; `DELETE` on the
+  same path: 204, the member has no preference on that slot anymore.
 - A volunteer may set or delete only their own: 403 otherwise.
 - 404 when the slot is not of this association, or the user is not a
   member.

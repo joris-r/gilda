@@ -26,6 +26,9 @@
     through Advanced Alchemy's Alembic migrations.
   - Configuration from environment variables; the database from
     `DATABASE_URL`.
+  - Setting a preference is a single PostgreSQL
+    `INSERT … ON CONFLICT (user_id, slot_id) DO UPDATE`; the last write
+    wins.
 - Frontend:
   - Vue 3, TypeScript, Vite, Vue Router, vue-i18n; npm.
   - Talks to the backend only through the JSON API.
