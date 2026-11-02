@@ -15,7 +15,7 @@
 - Planning: with many slots in a day, the narrow-screen Schedule becomes unusable; stack a day's slots vertically in a single column. (3–4 slots a day, as at La Fabrique, work today.)
 - Schedule: opening it waits for the planning period before loading the weeks; let `GET …/schedule` default to the range the screen needs (six weeks, extended to the period) so it takes one request.
 - Planning: a manager creates a revocable read-only share link to the Schedule, viewable without signing in (e.g. on the association's office PC).
-- Association: a manager can change the association's timezone (fixed to Europe/Paris for now); My associations then needs it in `GET /api/associations`.
+- Association: a manager can change the association's timezone (fixed to Europe/Paris for now) and set its preferred language, used for emails sent to its members by someone else (e.g. a manager); My associations then needs the timezone in `GET /api/associations`.
 - Spec: `GET /api/associations` and My associations sit in the core pages though R12–R14 are planning's; move them to a home page once other modules add their part.
 - Sessions: purge expired sessions regularly (Advanced Alchemy's delete_expired), so the user_session table stays small.
 

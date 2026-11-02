@@ -33,6 +33,8 @@
 - Frontend:
   - Vue 3, TypeScript, Vite, Vue Router, vue-i18n; npm.
   - Talks to the backend only through the JSON API.
+  - Every API request carries the interface's language in its
+    `Accept-Language` header.
   - Translations live in one file per language; English is the
     reference, every key has a French translation.
   - The header logo is `frontend/public/favicon.svg`, shown as an
@@ -53,6 +55,8 @@
     HTTP to read the sent email.
   - The two are selected by whether `SMTP_HOST` is set: set, SMTP;
     unset, `sendmail`.
+  - Email texts live in the backend, next to the code that sends
+    them, in English and French.
 - Deployment: one hosted site. Litestar serves the API under
   `/api` and the built frontend files for every other path.
 - Local development: `compose.yaml` runs PostgreSQL and Mailpit.

@@ -2,6 +2,8 @@
 
 - The interface opens in French when the browser prefers French, in
   English otherwise.
+- An email the user triggers (e.g. the confirmation email) is in the
+  interface's language.
 
 ## Header
 

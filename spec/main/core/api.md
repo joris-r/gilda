@@ -26,6 +26,25 @@ Content-Type: application/json
   display name, and keeps its memberships.
 - R9: On success, an EmailVerificationToken is created and a
   confirmation email sent to it, with a link to `/verify-email?token=…`.
+- R20: The confirmation email is in French when the request's
+  `Accept-Language` header prefers French over English, in English
+  otherwise:
+
+  ```
+  Subject: Confirm your email
+
+  Confirm your email by opening this link:
+
+  https://…/verify-email?token=…
+  ```
+
+  ```
+  Subject: Confirmez votre adresse e-mail
+
+  Confirmez votre adresse e-mail en ouvrant ce lien :
+
+  https://…/verify-email?token=…
+  ```
 - 409 when a user with a password already has this email.
 - R19: When `INVITATION_ONLY` is `true`, 403 unless a user without a
   password already has this email, or it is the superuser's (see
@@ -69,7 +88,8 @@ HTTP/1.1 204 No Content
 ```
 
 - When a user with this email exists and email_verified_at is still
-  null, sends a new confirmation email (replacing any pending token).
+  null, sends a new confirmation email (replacing any pending token),
+  in the language given by R20.
 - Always 204, whether or not such a user exists, so the response
   cannot be used to probe for an email.
 
