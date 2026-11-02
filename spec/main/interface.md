@@ -30,7 +30,9 @@ Signed out:
   - My associations: "My associations";
   - Schedule: the association's name;
   - Members, Schedule settings: the association's name, then the
-    screen's name.
+    screen's name;
+  - New association: "My associations", leading to `/`, then "New
+    association".
 - The association's name leads to its Schedule.
 - A long location is shortened on a narrow screen (not testable).
 - Signed in, the user's display name opens a menu with the language
@@ -45,6 +47,41 @@ Signed out:
   browser's preference.
 - Signed in, the header's location stands for the screen's title;
   screens have no back link.
+
+## Forms
+
+```
+                                              [+ Add a closure]
+  Sat 14 Nov 2026                                          🗑
+  Fête du quartier
+
+┌ Add a closure ──────────────────────────────── ✕ ┐
+│ From [          ]   To [          ]              │
+│ Label [                            ]             │
+│ [Add closure]  Cancel                            │
+└──────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────┐
+│ Delete the closure "Fête du quartier"?           │
+│ [Delete]  Cancel                                 │
+└──────────────────────────────────────────────────┘
+```
+
+- A button, "+" then its name, opens a form to create; an edit icon on
+  a line opens a form to change it; a delete icon on a line asks for
+  confirmation. Each icon is named by its action, e.g. "Edit the
+  period", "Delete the closure".
+- A form opens in a dialog with a title, its fields, its submit button,
+  Cancel and a close button. Cancel, the close button and Escape close
+  it, changing nothing.
+- On success, the dialog closes and the screen shows the result and its
+  message, if any. On failure, the dialog stays open, with its message.
+- A confirmation opens in a dialog with its question, its action button
+  and Cancel. Confirming one asked from a form's dialog also closes that
+  form.
+- On a narrow screen, a dialog spans the screen's width at its bottom
+  (not testable).
+- Only managers see the buttons and icons that create, edit or delete.
 
 ## Look
 

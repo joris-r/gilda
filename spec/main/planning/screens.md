@@ -3,19 +3,18 @@
 ```
 (logo)  Jardin partagé des Lilas › Schedule settings       Alice ▾
 
-Planning period
-  Mon 2 Nov 2026 – Wed 25 Nov 2026
-  From [2026-11-02]  To [2026-11-25]  [Save]  [Clear]
+PLANNING PERIOD
+  Mon 2 Nov 2026 – Wed 25 Nov 2026                      ✎  🗑
 
-Closures
-  Sat 14 Nov 2026                  Fête du quartier   Delete
-  Thu 24 Dec 2026 – Fri 1 Jan 2027  Fêtes de fin d'année   Delete
-  From [    ]  To [    ]  Label [          ]  [Add closure]
+CLOSURES                                       [+ Add a closure]
+  Sat 14 Nov 2026                                          🗑
+  Fête du quartier
+  Thu 24 Dec 2026 – Fri 1 Jan 2027                         🗑
+  Fêtes de fin d'année
 
-Slots
-  Thursday   10:00–13:00   My preference [Preferred ▾]   Delete
-  Saturday   10:00–13:00   My preference [—         ▾]   Delete
-  Day [Thursday ▾]  From [10:00]  To [13:00]  [Add slot]
+SLOTS                                             [+ Add a slot]
+  Thursday   10:00–13:00   My preference [Preferred ▾]     🗑
+  Saturday   10:00–13:00   My preference [—         ▾]     🗑
 
 Members' preferences
            Thu 10:00–13:00   Sat 10:00–13:00
@@ -25,12 +24,23 @@ Members' preferences
 ```
 
 - In French, the screen is "Réglages du planning".
-- A volunteer sees the lists and the period, or "None", without Delete
-  and without the forms.
-- R17: The Add slot form opens with From at 09:00 and To at 09:00.
+- A volunteer sees the lists and the period, or "None", without the
+  add buttons and the edit and delete icons.
+- The period's edit icon opens the dialog "Planning period": From, To,
+  [Save]. Its delete icon shows only when a period is set; it asks
+  "Clear the planning period?" with [Clear].
+- "Add a closure" opens the dialog "Add a closure": From, To, Label,
+  [Add closure]. A closure's delete icon asks "Delete the closure
+  "Fête du quartier"?", or "Delete the closure of Sat 14 Nov 2026?"
+  without a label, with [Delete].
+- "Add a slot" opens the dialog "Add a slot": Day, From, To, [Add
+  slot]. A slot's delete icon asks "Delete the slot Thursday
+  10:00–13:00?" with [Delete].
+- R17: The Add a slot dialog opens with From at 09:00 and To at 09:00.
   Changing From sets To to the same time, until the manager changes To.
-- R18: After a slot is added, Day keeps its value, and From and To
-  both show the added slot's end; To follows From again as in R17.
+- R18: After a slot is added, the next Add a slot dialog of the screen
+  opens with the added slot's Day, and From and To both at its end; To
+  follows From again as in R17.
 - Every member sees "My preference" on each slot. Choosing a value
   saves it at once; "—" deletes it.
 - "Members' preferences" is shown to managers only: one row per member,

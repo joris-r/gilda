@@ -109,7 +109,6 @@ Already have an account? Sign in
 ```
 (logo)  My associations                                    Alice ▾
 
-                                                              [+]
   Jardin partagé des Lilas                 MANAGER
     Thu 5 Nov, 10:00–13:00
     Sat 14 Nov, 10:00–13:00 ?  [Confirm]
@@ -120,18 +119,12 @@ Already have an account? Sign in
 
   Atelier vélo                           VOLUNTEER
     No upcoming registration.
+
+[+ New association]
 ```
 
-- "+", named "Create an association", shows the form:
-
-```
-Create an association
-  Name  [                    ]
-  [Create association]
-```
-
-- Each name leads to the association's Schedule; creating one leads to
-  the new association's Schedule.
+- "New association", below the list, leads to `/associations/new`.
+- Each name leads to the association's Schedule.
 - With no association: "You are not a member of any association yet."
 - Sign out leads to Sign in.
 - Each association lists its `upcoming` registrations; a proposed one
@@ -161,6 +154,19 @@ Mes associations
     Aucune inscription à venir.
 ```
 
+## `/associations/new`: New association
+
+```
+(logo)  My associations › New association                  Alice ▾
+
+New association
+  Name  [                    ]
+  [Create association]  Cancel
+```
+
+- Creating leads to the new association's Schedule; Cancel leads to My
+  associations.
+
 ## `/associations/{id}/members`: Members
 
 As a manager:
@@ -168,51 +174,53 @@ As a manager:
 ```
 (logo)  Jardin partagé des Lilas › Members                 Alice ▾
 
-  Alice                     MANAGER  Change role  Send link  Revoke link
+                                                  [+ Add a member]
+  Alice                                        MANAGER   ✎
   alice@example.org
-  Bruno                   VOLUNTEER  Change role  Send link  Revoke link
+  Bruno                                      VOLUNTEER   ✎
   bruno@example.org
-  Chloé  not joined yet   VOLUNTEER  Change role  Send link
+  Chloé  not joined yet                      VOLUNTEER   ✎
   chloe@example.org
-  David  not joined yet   VOLUNTEER  Change role  Send link
+  David  not joined yet                      VOLUNTEER   ✎
   david@example.org
-  Emma                    VOLUNTEER  Change role  Send link
+  Emma                                       VOLUNTEER   ✎
   emma@example.org
   Show all 7 members
-
-[Add a member]
 ```
 
 - Members are listed managers first, then by display name.
 - The first 5 members show; "Show all 7 members" shows the others.
   With 5 members or fewer, all show and the link does not.
-- "Add a member" shows the form:
-
-```
-Add a member
-  Display name [          ]  Email [          ]
-  Role [Volunteer ▾]
-  [Add member]
-```
-
-- "Change role" on Bruno replaces his line's actions with
-  "Make Bruno manager? [Confirm] Cancel"; Confirm changes the role
-  and shows "Bruno is now manager."
-- Demoting the last manager shows "An association keeps at least one
-  manager." and changes nothing.
-- Adding a member shows "Chloé added."; an existing member shows
-  "Chloé is already a member."
 - A member whose email is not confirmed shows "not joined yet".
-- "Revoke link" shows only for a member with an access link. On Bruno,
-  it replaces his line's actions with "Revoke Bruno's sign-in link?
-  [Confirm] Cancel"; Confirm revokes it and shows "Bruno's sign-in link
-  is revoked."
-- "Send link" on Chloé sends her access link (R26) and shows "Chloé's
-  sign-in link is sent."; her line then shows "Revoke link". When the
-  email cannot be sent: "We couldn't send Chloé's sign-in link. Try
-  again later."
-- A volunteer sees the members and their roles, without "Change role",
-  "Send link", "Revoke link" and "Add a member".
+- "Add a member" opens the dialog "Add a member": Display name, Email,
+  Role (Volunteer by default), [Add member]. Adding a member shows
+  "Chloé added."; an existing member shows "Chloé is already a member."
+- The edit icon on Chloé, named "Edit Chloé", opens the dialog:
+
+```
+┌ Chloé ───────────────────────────────────────── ✕ ┐
+│ chloe@example.org                                 │
+│ Role [Volunteer ▾]                                │
+│ [Save]  Cancel                                    │
+│                                                   │
+│ SIGN-IN LINK                                      │
+│ [Send link]  Revoke link                          │
+└───────────────────────────────────────────────────┘
+```
+
+- Save with another role changes it and shows "Chloé is now manager.";
+  with the same role, it closes the dialog and changes nothing.
+  Demoting the last manager shows "An association keeps at least one
+  manager." and changes nothing.
+- "Revoke link" shows only for a member with an access link; it asks
+  "Revoke Chloé's sign-in link?" with [Revoke]; confirming revokes it
+  and shows "Chloé's sign-in link is revoked."
+- "Send link" asks "Send Chloé's sign-in link by email?" with [Send];
+  confirming sends it (R26) and shows "Chloé's sign-in link is sent."
+  When the email cannot be sent: "We couldn't send Chloé's sign-in
+  link. Try again later."
+- A volunteer sees the members and their roles, without "Add a member"
+  and without the edit icons.
 - Signed out, every page but `/signup`, `/verify-email`,
   `/forgot-password`, `/reset-password`, `/sign-in-link` and `/access`
   shows Sign in.
