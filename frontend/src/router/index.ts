@@ -4,6 +4,7 @@ import AccessLinkView from '../views/AccessLinkView.vue'
 import ForgotPasswordView from '../views/ForgotPasswordView.vue'
 import MembersView from '../views/MembersView.vue'
 import MyAssociationsView from '../views/MyAssociationsView.vue'
+import NewAssociationView from '../views/NewAssociationView.vue'
 import ResetPasswordView from '../views/ResetPasswordView.vue'
 import ScheduleSettingsView from '../views/ScheduleSettingsView.vue'
 import ScheduleView from '../views/ScheduleView.vue'
@@ -42,6 +43,7 @@ export function createGildaRouter(history: RouterHistory = createWebHistory()) {
         meta: { public: true },
       },
       { path: '/access', name: 'access', component: AccessLinkView, meta: { public: true } },
+      { path: '/associations/new', name: 'new-association', component: NewAssociationView },
       { path: '/associations/:id', name: 'schedule', component: ScheduleView, props: true },
       {
         path: '/associations/:id/members',

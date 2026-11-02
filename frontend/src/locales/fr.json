@@ -67,7 +67,7 @@
   "myAssociations": {
     "title": "Mes associations",
     "none": "Vous n'êtes membre d'aucune association.",
-    "create": "Créer une association",
+    "create": "Nouvelle association",
     "submit": "Créer l'association",
     "confirm": "Confirmer",
     "noUpcoming": "Aucune inscription à venir.",
@@ -76,8 +76,6 @@
   },
   "association": {
     "members": "Membres",
-    "changeRole": "Changer le rôle",
-    "confirmRole": "Passer {name} {role} ?",
     "confirm": "Confirmer",
     "cancel": "Annuler",
     "roleChanged": "{name} est maintenant {role}.",
@@ -93,7 +91,13 @@
     "linkRevoked": "Le lien de connexion de {name} est révoqué.",
     "sendLink": "Envoyer le lien",
     "linkSent": "Le lien de connexion de {name} est envoyé.",
-    "linkNotSent": "Le lien de connexion de {name} n'a pas pu être envoyé. Réessayez plus tard."
+    "linkNotSent": "Le lien de connexion de {name} n'a pas pu être envoyé. Réessayez plus tard.",
+    "edit": "Modifier {name}",
+    "save": "Enregistrer",
+    "signInLink": "Lien de connexion",
+    "revoke": "Révoquer",
+    "send": "Envoyer",
+    "confirmSendLink": "Envoyer le lien de connexion de {name} par e-mail ?"
   },
   "weekdays": {
     "monday": "Lundi",
@@ -127,16 +131,26 @@
     "last": "Au",
     "label": "Libellé",
     "addClosure": "Ajouter la fermeture",
-    "delete": "Supprimer",
     "slotExists": "Ce créneau existe déjà.",
     "invalid": "Vérifiez les dates et heures : le début vient avant la fin.",
     "planningPeriod": "Période de planification",
     "noPlanningPeriod": "Aucune",
     "save": "Enregistrer",
-    "clear": "Effacer",
     "myPreference": "Mes préférences",
     "membersPreferences": "Préférences des membres",
-    "noPreference": "—"
+    "noPreference": "—",
+    "addSlotTitle": "Ajouter un créneau",
+    "addClosureTitle": "Ajouter une fermeture",
+    "editPeriod": "Modifier la période",
+    "clearPeriod": "Effacer la période",
+    "confirmClearPeriod": "Effacer la période de planning ?",
+    "clearAction": "Effacer",
+    "deleteSlot": "Supprimer le créneau",
+    "confirmDeleteSlot": "Supprimer le créneau {slot} ?",
+    "deleteClosure": "Supprimer la fermeture",
+    "confirmDeleteClosure": "Supprimer la fermeture « {label} » ?",
+    "confirmDeleteUnlabelledClosure": "Supprimer la fermeture du {date} ?",
+    "deleteAction": "Supprimer"
   },
   "preferences": {
     "preferred": "Préféré",
@@ -163,5 +177,9 @@
     "close": "Fermer",
     "taken": "Quelqu'un a pris ce créneau entre-temps."
   },
-  "error": "Une erreur est survenue. Réessayez."
+  "error": "Une erreur est survenue. Réessayez.",
+  "dialog": {
+    "close": "Fermer",
+    "cancel": "Annuler"
+  }
 }

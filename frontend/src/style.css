@@ -308,3 +308,150 @@ button.link {
   background: var(--bad-soft);
   border-color: var(--bad);
 }
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 32px 0 12px;
+}
+
+.section-head h2 {
+  margin: 0;
+}
+
+button.add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+}
+
+.icon-button:hover {
+  background: var(--line);
+  color: var(--fg);
+}
+
+.icon-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.line-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: rgb(38 35 32 / 0.45);
+}
+
+.dialog {
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 100%;
+  overflow: auto;
+  padding: 16px 20px 20px;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.3);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: -8px;
+}
+
+.dialog-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 18px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--fg);
+}
+
+.dialog form {
+  display: grid;
+  gap: 12px;
+}
+
+.dialog input,
+.dialog select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.dialog .fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+  gap: 12px;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.dialog h3 {
+  margin: 8px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+/* On a narrow screen, a dialog spans the width at the bottom. */
+@media (max-width: 520px) {
+  .scrim {
+    place-items: end stretch;
+    padding: 0;
+  }
+
+  .dialog {
+    max-width: none;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .scrim {
+    background: rgb(0 0 0 / 0.6);
+  }
+}

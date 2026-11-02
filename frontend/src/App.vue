@@ -69,7 +69,15 @@ async function leave() {
       <RouterLink v-if="location.association" :to="`/associations/${location.association.id}`">{{
         location.association.name
       }}</RouterLink>
-      <span v-if="location.association && location.screen" class="sep" aria-hidden="true">›</span>
+      <RouterLink v-if="location.parent" :to="location.parent.to">{{
+        t(location.parent.screen)
+      }}</RouterLink>
+      <span
+        v-if="(location.association || location.parent) && location.screen"
+        class="sep"
+        aria-hidden="true"
+        >›</span
+      >
       <span v-if="location.screen">{{ t(location.screen) }}</span>
     </p>
     <div class="top-actions">

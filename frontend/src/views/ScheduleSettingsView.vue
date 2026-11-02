@@ -24,6 +24,9 @@ import {
   type Slot,
   type Weekday,
 } from '../api'
+import AppDialog from '../components/AppDialog.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
+import IconButton from '../components/IconButton.vue'
 import PreferenceSelect from '../components/PreferenceSelect.vue'
 import { formatDate, shortDayWithYear, WEEKDAYS } from '../dates'
 import { useLocation } from '../location'
@@ -41,11 +44,21 @@ const period = ref<PlanningPeriod | null>(null)
 const preferences = ref<Preference[]>([])
 const message = ref<string>()
 
+/** The open dialog, with its error; a confirmation names what it deletes. */
+type Open =
+  | { kind: 'period' | 'slot' | 'closure'; error: string }
+  | { kind: 'deleteSlot'; slot: Slot }
+  | { kind: 'deleteClosure'; closure: Closure }
+  | { kind: 'clearPeriod' }
+const open = ref<Open>()
+
 const weekday = ref<Weekday>('monday')
 const start = ref('09:00')
 const end = ref('09:00')
 // To follows From until the manager edits it.
 const endEdited = ref(false)
+/** The last slot added on this screen: R18 opens the next Add a slot from it. */
+const lastAdded = ref<Slot>()
 const first = ref('')
 const last = ref('')
 const label = ref('')
@@ -81,8 +94,6 @@ async function load() {
     ])
   const { id, name } = association.value!
   location.value = { association: { id, name }, screen: 'settings.title' }
-  periodFirst.value = period.value?.first ?? ''
-  periodLast.value = period.value?.last ?? ''
 }
 
 watch(() => props.id, load, { immediate: true })
@@ -104,20 +115,31 @@ watch(start, (value) => {
   if (!endEdited.value) end.value = value
 })
 
+function dialogError(text: string) {
+  if (open.value && 'error' in open.value) open.value.error = text
+}
+
+function openSlot() {
+  weekday.value = lastAdded.value?.weekday ?? 'monday'
+  start.value = lastAdded.value?.end ?? '09:00'
+  end.value = start.value
+  endEdited.value = false
+  open.value = { kind: 'slot', error: '' }
+}
+
 async function createSlot() {
-  message.value = undefined
   try {
     const slot = await addSlot(props.id, weekday.value, start.value, end.value)
     slots.value.push(slot)
-    endEdited.value = false
-    start.value = slot.end
-    end.value = slot.end
+    lastAdded.value = slot
+    open.value = undefined
   } catch (e) {
-    message.value = failure(e, t('settings.slotExists'))
+    dialogError(failure(e, t('settings.slotExists')))
   }
 }
 
 async function removeSlot(slot: Slot) {
+  open.value = undefined
   message.value = undefined
   try {
     await deleteSlot(props.id, slot.id)
@@ -146,19 +168,24 @@ async function choosePreference(slot: Slot, userId: string, value: PreferenceVal
   }
 }
 
+function openClosure() {
+  first.value = ''
+  last.value = ''
+  label.value = ''
+  open.value = { kind: 'closure', error: '' }
+}
+
 async function createClosure() {
-  message.value = undefined
   try {
     closures.value.push(await addClosure(props.id, first.value, last.value, label.value || null))
-    first.value = ''
-    last.value = ''
-    label.value = ''
+    open.value = undefined
   } catch (e) {
-    message.value = failure(e)
+    dialogError(failure(e))
   }
 }
 
 async function removeClosure(closure: Closure) {
+  open.value = undefined
   message.value = undefined
   try {
     await deleteClosure(props.id, closure.id)
@@ -168,48 +195,69 @@ async function removeClosure(closure: Closure) {
   }
 }
 
+function openPeriod() {
+  periodFirst.value = period.value?.first ?? ''
+  periodLast.value = period.value?.last ?? ''
+  open.value = { kind: 'period', error: '' }
+}
+
 async function savePeriod() {
-  message.value = undefined
   try {
     period.value = await setPlanningPeriod(props.id, periodFirst.value, periodLast.value)
+    open.value = undefined
+  } catch (e) {
+    dialogError(failure(e))
+  }
+}
+
+async function clearPeriod() {
+  open.value = undefined
+  message.value = undefined
+  try {
+    await clearPlanningPeriod(props.id)
+    period.value = null
   } catch (e) {
     message.value = failure(e)
   }
 }
 
-async function clearPeriod() {
-  message.value = undefined
-  try {
-    await clearPlanningPeriod(props.id)
-    period.value = null
-    periodFirst.value = ''
-    periodLast.value = ''
-  } catch (e) {
-    message.value = failure(e)
-  }
+function slotName(slot: Slot) {
+  return `${t(`weekdays.${slot.weekday}`)} ${slot.start}–${slot.end}`
+}
+
+function closureQuestion(closure: Closure) {
+  return closure.label
+    ? t('settings.confirmDeleteClosure', { label: closure.label })
+    : t('settings.confirmDeleteUnlabelledClosure', { date: dates(closure) })
 }
 </script>
 
 <template>
   <template v-if="association">
     <h2>{{ t('settings.planningPeriod') }}</h2>
-    <p :class="{ hint: !period }">{{ period ? dates(period) : t('settings.noPlanningPeriod') }}</p>
-    <form v-if="isManager" class="panel inline" @submit.prevent="savePeriod">
-      <label>
-        {{ t('settings.first') }}
-        <input v-model="periodFirst" type="date" required />
-      </label>
-      <label>
-        {{ t('settings.last') }}
-        <input v-model="periodLast" type="date" required />
-      </label>
-      <button type="submit">{{ t('settings.save') }}</button>
-      <button v-if="period" type="button" class="link" @click="clearPeriod">
-        {{ t('settings.clear') }}
-      </button>
-    </form>
+    <ul class="list">
+      <li>
+        <span :class="{ hint: !period }">{{
+          period ? dates(period) : t('settings.noPlanningPeriod')
+        }}</span>
+        <div v-if="isManager" class="line-actions">
+          <IconButton icon="edit" :label="t('settings.editPeriod')" @click="openPeriod" />
+          <IconButton
+            v-if="period"
+            icon="delete"
+            :label="t('settings.clearPeriod')"
+            @click="open = { kind: 'clearPeriod' }"
+          />
+        </div>
+      </li>
+    </ul>
 
-    <h2>{{ t('settings.closures') }}</h2>
+    <div class="section-head">
+      <h2>{{ t('settings.closures') }}</h2>
+      <button v-if="isManager" type="button" class="add" @click="openClosure">
+        <span aria-hidden="true">+</span> {{ t('settings.addClosureTitle') }}
+      </button>
+    </div>
     <p v-if="!closures.length" class="hint">{{ t('settings.noClosures') }}</p>
     <ul v-else class="list">
       <li v-for="closure in sortedClosures" :key="closure.id">
@@ -217,28 +265,21 @@ async function clearPeriod() {
           {{ dates(closure) }}
           <div v-if="closure.label" class="sub">{{ closure.label }}</div>
         </div>
-        <button v-if="isManager" type="button" class="link" @click="removeClosure(closure)">
-          {{ t('settings.delete') }}
-        </button>
+        <IconButton
+          v-if="isManager"
+          icon="delete"
+          :label="t('settings.deleteClosure')"
+          @click="open = { kind: 'deleteClosure', closure }"
+        />
       </li>
     </ul>
-    <form v-if="isManager" class="panel inline" @submit.prevent="createClosure">
-      <label>
-        {{ t('settings.first') }}
-        <input v-model="first" type="date" required />
-      </label>
-      <label>
-        {{ t('settings.last') }}
-        <input v-model="last" type="date" required />
-      </label>
-      <label>
-        {{ t('settings.label') }}
-        <input v-model="label" />
-      </label>
-      <button type="submit">{{ t('settings.addClosure') }}</button>
-    </form>
 
-    <h2>{{ t('settings.slots') }}</h2>
+    <div class="section-head">
+      <h2>{{ t('settings.slots') }}</h2>
+      <button v-if="isManager" type="button" class="add" @click="openSlot">
+        <span aria-hidden="true">+</span> {{ t('settings.addSlotTitle') }}
+      </button>
+    </div>
     <p v-if="!slots.length" class="hint">{{ t('settings.noSlots') }}</p>
     <ul v-else class="list">
       <li v-for="slot in sortedSlots" :key="slot.id">
@@ -252,31 +293,15 @@ async function clearPeriod() {
               @change="choosePreference(slot, user!.id, $event)"
             />
           </label>
-          <button v-if="isManager" type="button" class="link" @click="removeSlot(slot)">
-            {{ t('settings.delete') }}
-          </button>
+          <IconButton
+            v-if="isManager"
+            icon="delete"
+            :label="t('settings.deleteSlot')"
+            @click="open = { kind: 'deleteSlot', slot }"
+          />
         </div>
       </li>
     </ul>
-    <form v-if="isManager" class="panel inline" @submit.prevent="createSlot">
-      <label>
-        {{ t('settings.day') }}
-        <select v-model="weekday">
-          <option v-for="day in WEEKDAYS" :key="day" :value="day">
-            {{ t(`weekdays.${day}`) }}
-          </option>
-        </select>
-      </label>
-      <label>
-        {{ t('settings.from') }}
-        <input v-model="start" type="time" required />
-      </label>
-      <label>
-        {{ t('settings.to') }}
-        <input v-model="end" type="time" required @input="endEdited = true" />
-      </label>
-      <button type="submit">{{ t('settings.addSlot') }}</button>
-    </form>
 
     <template v-if="isManager && slots.length">
       <h2>{{ t('settings.membersPreferences') }}</h2>
@@ -306,16 +331,122 @@ async function clearPeriod() {
       </div>
     </template>
     <p v-if="message" class="error">{{ message }}</p>
+
+    <AppDialog
+      v-if="open?.kind === 'period'"
+      :title="t('settings.planningPeriod')"
+      @close="open = undefined"
+    >
+      <form @submit.prevent="savePeriod">
+        <div class="fields">
+          <label>
+            {{ t('settings.first') }}
+            <input v-model="periodFirst" type="date" required />
+          </label>
+          <label>
+            {{ t('settings.last') }}
+            <input v-model="periodLast" type="date" required />
+          </label>
+        </div>
+        <p v-if="open.error" class="error">{{ open.error }}</p>
+        <div class="dialog-actions">
+          <button type="submit">{{ t('settings.save') }}</button>
+          <button type="button" class="link" @click="open = undefined">
+            {{ t('dialog.cancel') }}
+          </button>
+        </div>
+      </form>
+    </AppDialog>
+
+    <AppDialog
+      v-if="open?.kind === 'closure'"
+      :title="t('settings.addClosureTitle')"
+      @close="open = undefined"
+    >
+      <form @submit.prevent="createClosure">
+        <div class="fields">
+          <label>
+            {{ t('settings.first') }}
+            <input v-model="first" type="date" required />
+          </label>
+          <label>
+            {{ t('settings.last') }}
+            <input v-model="last" type="date" required />
+          </label>
+        </div>
+        <label>
+          {{ t('settings.label') }}
+          <input v-model="label" />
+        </label>
+        <p v-if="open.error" class="error">{{ open.error }}</p>
+        <div class="dialog-actions">
+          <button type="submit">{{ t('settings.addClosure') }}</button>
+          <button type="button" class="link" @click="open = undefined">
+            {{ t('dialog.cancel') }}
+          </button>
+        </div>
+      </form>
+    </AppDialog>
+
+    <AppDialog
+      v-if="open?.kind === 'slot'"
+      :title="t('settings.addSlotTitle')"
+      @close="open = undefined"
+    >
+      <form @submit.prevent="createSlot">
+        <label>
+          {{ t('settings.day') }}
+          <select v-model="weekday">
+            <option v-for="day in WEEKDAYS" :key="day" :value="day">
+              {{ t(`weekdays.${day}`) }}
+            </option>
+          </select>
+        </label>
+        <div class="fields">
+          <label>
+            {{ t('settings.from') }}
+            <input v-model="start" type="time" required />
+          </label>
+          <label>
+            {{ t('settings.to') }}
+            <input v-model="end" type="time" required @input="endEdited = true" />
+          </label>
+        </div>
+        <p v-if="open.error" class="error">{{ open.error }}</p>
+        <div class="dialog-actions">
+          <button type="submit">{{ t('settings.addSlot') }}</button>
+          <button type="button" class="link" @click="open = undefined">
+            {{ t('dialog.cancel') }}
+          </button>
+        </div>
+      </form>
+    </AppDialog>
+
+    <ConfirmDialog
+      v-if="open?.kind === 'clearPeriod'"
+      :question="t('settings.confirmClearPeriod')"
+      :action="t('settings.clearAction')"
+      @confirm="clearPeriod"
+      @cancel="open = undefined"
+    />
+    <ConfirmDialog
+      v-if="open?.kind === 'deleteClosure'"
+      :question="closureQuestion(open.closure)"
+      :action="t('settings.deleteAction')"
+      @confirm="removeClosure(open.closure)"
+      @cancel="open = undefined"
+    />
+    <ConfirmDialog
+      v-if="open?.kind === 'deleteSlot'"
+      :question="t('settings.confirmDeleteSlot', { slot: slotName(open.slot) })"
+      :action="t('settings.deleteAction')"
+      @confirm="removeSlot(open.slot)"
+      @cancel="open = undefined"
+    />
   </template>
 </template>
 
 <style scoped>
-.panel.inline {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  align-items: end;
-  margin-top: 12px;
-}
-
 .grid {
   overflow-x: auto;
 }

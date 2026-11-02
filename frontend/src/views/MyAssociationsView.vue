@@ -3,7 +3,6 @@ import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink, useRouter } from 'vue-router'
 import {
-  createAssociation,
   listAssociations,
   setRegistrationStatus,
   type HomeAssociation,
@@ -20,8 +19,6 @@ const router = useRouter()
 useLocation().value = { screen: 'myAssociations.title' }
 
 const associations = ref<HomeAssociation[]>()
-const creating = ref(false)
-const name = ref('')
 const error = ref('')
 
 onMounted(async () => {
@@ -43,31 +40,9 @@ async function confirm(association: HomeAssociation, registration: Registration)
     error.value = t('error')
   }
 }
-
-async function create() {
-  error.value = ''
-  try {
-    const association = await createAssociation(name.value)
-    await router.push(`/associations/${association.id}`)
-  } catch {
-    error.value = t('error')
-  }
-}
 </script>
 
 <template>
-  <div class="toolbar">
-    <button
-      type="button"
-      class="icon"
-      :aria-label="t('myAssociations.create')"
-      :title="t('myAssociations.create')"
-      :aria-expanded="creating"
-      @click="creating = !creating"
-    >
-      +
-    </button>
-  </div>
   <template v-if="associations">
     <ul v-if="associations.length" class="list">
       <li v-for="association in associations" :key="association.id">
@@ -112,17 +87,17 @@ async function create() {
       </li>
     </ul>
     <p v-else class="hint">{{ t('myAssociations.none') }}</p>
-    <p v-if="error && !creating" class="error">{{ error }}</p>
-  </template>
-  <template v-if="creating">
-    <h2>{{ t('myAssociations.create') }}</h2>
-    <form class="panel" @submit.prevent="create">
-      <label>
-        {{ t('fields.name') }}
-        <input v-model="name" required />
-      </label>
-      <p v-if="error" class="error">{{ error }}</p>
-      <button type="submit">{{ t('myAssociations.submit') }}</button>
-    </form>
+    <p v-if="error" class="error">{{ error }}</p>
+    <p class="new">
+      <button type="button" class="add" @click="router.push('/associations/new')">
+        <span aria-hidden="true">+</span> {{ t('myAssociations.create') }}
+      </button>
+    </p>
   </template>
 </template>
+
+<style scoped>
+.new {
+  margin: 24px 0 0;
+}
+</style>

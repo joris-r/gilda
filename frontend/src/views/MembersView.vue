@@ -12,6 +12,9 @@ import {
   type Member,
   type Role,
 } from '../api'
+import AppDialog from '../components/AppDialog.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
+import IconButton from '../components/IconButton.vue'
 import { useLocation } from '../location'
 import { useSession } from '../session'
 
@@ -24,15 +27,19 @@ const { user } = useSession()
 const location = useLocation()
 
 const association = ref<Association>()
-/** The member whose line asks to confirm an action, and which one. */
-const confirming = ref<{ userId: string; action: 'role' | 'link' }>()
 const message = ref<{ text: string; ok: boolean }>()
 const showAll = ref(false)
-const adding = ref(false)
 
+/** The open Add a member dialog, with its error. */
+const adding = ref<{ error: string }>()
 const displayName = ref('')
 const email = ref('')
 const role = ref<Role>('volunteer')
+
+/** The member whose edit dialog is open, with the role chosen in it and its error. */
+const editing = ref<{ member: Member; role: Role; error: string }>()
+/** The action of the edit dialog waiting for confirmation. */
+const confirming = ref<'revoke' | 'send'>()
 
 const isManager = computed(() => association.value?.role === 'manager')
 const members = computed(() =>
@@ -57,18 +64,32 @@ async function load() {
 
 watch(() => props.id, load, { immediate: true })
 
-function otherRole(member: Member): Role {
-  return member.role === 'manager' ? 'volunteer' : 'manager'
+function openAdd() {
+  displayName.value = ''
+  email.value = ''
+  role.value = 'volunteer'
+  adding.value = { error: '' }
 }
 
-async function confirmRole(member: Member) {
-  const newRole = otherRole(member)
+function openEdit(member: Member) {
+  message.value = undefined
+  editing.value = { member, role: member.role, error: '' }
+}
+
+function closeEdit() {
+  editing.value = undefined
   confirming.value = undefined
+}
+
+async function saveRole() {
+  const edit = editing.value!
+  if (edit.role === edit.member.role) return closeEdit()
   try {
-    const updated = await changeRole(props.id, member.user_id, newRole)
-    member.role = updated.role
+    const updated = await changeRole(props.id, edit.member.user_id, edit.role)
+    edit.member.role = updated.role
     if (association.value && updated.user_id === user.value?.id)
       association.value.role = updated.role
+    closeEdit()
     message.value = {
       ok: true,
       text: t('association.roleChanged', {
@@ -77,34 +98,30 @@ async function confirmRole(member: Member) {
       }),
     }
   } catch (e) {
-    const text =
+    edit.error =
       e instanceof ApiError && e.status === 409 ? t('association.lastManager') : t('error')
-    message.value = { ok: false, text }
   }
 }
 
-async function confirmRevoke(member: Member) {
+async function confirmAction() {
+  const { member } = editing.value!
+  const action = confirming.value
   confirming.value = undefined
   try {
-    await revokeMemberLink(props.id, member.user_id)
-    member.access_link = false
-    message.value = { ok: true, text: t('association.linkRevoked', { name: member.display_name }) }
-  } catch {
-    message.value = { ok: false, text: t('error') }
-  }
-}
-
-async function sendLink(member: Member) {
-  try {
-    const updated = await sendMemberLink(props.id, member.user_id)
-    member.access_link = updated.access_link
-    message.value = { ok: true, text: t('association.linkSent', { name: member.display_name }) }
+    if (action === 'revoke') {
+      await revokeMemberLink(props.id, member.user_id)
+      member.access_link = false
+    } else {
+      member.access_link = (await sendMemberLink(props.id, member.user_id)).access_link
+    }
+    closeEdit()
+    const done = action === 'revoke' ? 'association.linkRevoked' : 'association.linkSent'
+    message.value = { ok: true, text: t(done, { name: member.display_name }) }
   } catch (e) {
-    const text =
-      e instanceof ApiError && e.status === 503
+    editing.value!.error =
+      action === 'send' && e instanceof ApiError && e.status === 503
         ? t('association.linkNotSent', { name: member.display_name })
         : t('error')
-    message.value = { ok: false, text }
   }
 }
 
@@ -113,22 +130,25 @@ async function add() {
   try {
     const member = await addMember(props.id, name, email.value, role.value)
     await load()
+    adding.value = undefined
     message.value = { ok: true, text: t('association.added', { name: member.display_name }) }
-    displayName.value = ''
-    email.value = ''
-    role.value = 'volunteer'
   } catch (e) {
-    const text =
+    adding.value!.error =
       e instanceof ApiError && e.status === 409
         ? t('association.alreadyMember', { name })
         : t('error')
-    message.value = { ok: false, text }
   }
 }
 </script>
 
 <template>
   <template v-if="association">
+    <div v-if="isManager" class="toolbar">
+      <button type="button" class="add" @click="openAdd">
+        <span aria-hidden="true">+</span> {{ t('association.addMember') }}
+      </button>
+    </div>
+    <p v-if="message" :class="['message', message.ok ? 'ok' : 'error']">{{ message.text }}</p>
     <ul class="list">
       <li v-for="member in shownMembers" :key="member.user_id">
         <div>
@@ -138,47 +158,14 @@ async function add() {
           }}</span>
           <div class="sub">{{ member.email }}</div>
         </div>
-        <div v-if="isManager && confirming?.userId === member.user_id" class="actions">
-          <span v-if="confirming.action === 'link'" class="sub">{{
-            t('association.confirmRevokeLink', { name: member.display_name })
-          }}</span>
-          <span v-else class="sub">{{
-            t('association.confirmRole', {
-              name: member.display_name,
-              role: t(`roleNames.${otherRole(member)}`),
-            })
-          }}</span>
-          <button
-            type="button"
-            @click="confirming.action === 'link' ? confirmRevoke(member) : confirmRole(member)"
-          >
-            {{ t('association.confirm') }}
-          </button>
-          <button type="button" class="link" @click="confirming = undefined">
-            {{ t('association.cancel') }}
-          </button>
-        </div>
-        <div v-else class="actions">
+        <div class="actions">
           <span :class="['role', member.role]">{{ t(`roles.${member.role}`) }}</span>
-          <button
+          <IconButton
             v-if="isManager"
-            type="button"
-            class="link"
-            @click="confirming = { userId: member.user_id, action: 'role' }"
-          >
-            {{ t('association.changeRole') }}
-          </button>
-          <button v-if="isManager" type="button" class="link" @click="sendLink(member)">
-            {{ t('association.sendLink') }}
-          </button>
-          <button
-            v-if="isManager && member.access_link"
-            type="button"
-            class="link"
-            @click="confirming = { userId: member.user_id, action: 'link' }"
-          >
-            {{ t('association.revokeLink') }}
-          </button>
+            icon="edit"
+            :label="t('association.edit', { name: member.display_name })"
+            @click="openEdit(member)"
+          />
         </div>
       </li>
     </ul>
@@ -187,13 +174,9 @@ async function add() {
         {{ t('association.showAll', { n: members.length }) }}
       </button>
     </p>
-    <p v-if="message" :class="message.ok ? 'ok' : 'error'">{{ message.text }}</p>
-    <button v-if="isManager && !adding" type="button" class="add" @click="adding = true">
-      {{ t('association.addMember') }}
-    </button>
-    <template v-if="isManager && adding">
-      <h2>{{ t('association.addMember') }}</h2>
-      <form class="panel" @submit.prevent="add">
+
+    <AppDialog v-if="adding" :title="t('association.addMember')" @close="adding = undefined">
+      <form @submit.prevent="add">
         <label>
           {{ t('fields.displayName') }}
           <input v-model="displayName" required />
@@ -209,9 +192,60 @@ async function add() {
             <option value="manager">{{ t('roles.manager') }}</option>
           </select>
         </label>
-        <button type="submit">{{ t('association.submit') }}</button>
+        <p v-if="adding.error" class="error">{{ adding.error }}</p>
+        <div class="dialog-actions">
+          <button type="submit">{{ t('association.submit') }}</button>
+          <button type="button" class="link" @click="adding = undefined">
+            {{ t('dialog.cancel') }}
+          </button>
+        </div>
       </form>
-    </template>
+    </AppDialog>
+
+    <AppDialog v-if="editing" :title="editing.member.display_name" @close="closeEdit">
+      <form @submit.prevent="saveRole">
+        <p class="sub">{{ editing.member.email }}</p>
+        <label>
+          {{ t('fields.role') }}
+          <select v-model="editing.role">
+            <option value="volunteer">{{ t('roles.volunteer') }}</option>
+            <option value="manager">{{ t('roles.manager') }}</option>
+          </select>
+        </label>
+        <p v-if="editing.error" class="error">{{ editing.error }}</p>
+        <div class="dialog-actions">
+          <button type="submit">{{ t('association.save') }}</button>
+          <button type="button" class="link" @click="closeEdit">{{ t('dialog.cancel') }}</button>
+        </div>
+      </form>
+      <h3>{{ t('association.signInLink') }}</h3>
+      <div class="dialog-actions">
+        <button type="button" @click="confirming = 'send'">
+          {{ t('association.sendLink') }}
+        </button>
+        <button
+          v-if="editing.member.access_link"
+          type="button"
+          class="link"
+          @click="confirming = 'revoke'"
+        >
+          {{ t('association.revokeLink') }}
+        </button>
+      </div>
+    </AppDialog>
+
+    <ConfirmDialog
+      v-if="editing && confirming"
+      :question="
+        t(
+          confirming === 'revoke' ? 'association.confirmRevokeLink' : 'association.confirmSendLink',
+          { name: editing.member.display_name },
+        )
+      "
+      :action="t(confirming === 'revoke' ? 'association.revoke' : 'association.send')"
+      @confirm="confirmAction"
+      @cancel="confirming = undefined"
+    />
   </template>
 </template>
 
@@ -220,7 +254,7 @@ async function add() {
   margin: 12px 0 0;
 }
 
-.add {
-  margin-top: 24px;
+.message {
+  margin: 0 0 12px;
 }
 </style>
