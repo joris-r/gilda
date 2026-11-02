@@ -59,13 +59,20 @@ async function signOut(page: Page) {
 }
 
 async function addMember(page: Page, displayName: string, email: string, role: string) {
-  if (!(await page.getByRole('button', { name: 'Add member' }).isVisible()))
-    await page.getByText('Add a member', { exact: true }).click()
-  await page.getByLabel('Display name', { exact: true }).fill(displayName)
-  await page.getByLabel('Email', { exact: true }).fill(email)
-  await page.getByRole('combobox', { name: /^Role/ }).selectOption({ label: role })
-  await page.getByRole('button', { name: 'Add member' }).click()
+  await page.getByRole('button', { name: 'Add a member' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Add a member' })
+  await dialog.getByLabel('Display name', { exact: true }).fill(displayName)
+  await dialog.getByLabel('Email', { exact: true }).fill(email)
+  await dialog.getByRole('combobox', { name: /^Role/ }).selectOption({ label: role })
+  await dialog.getByRole('button', { name: 'Add member' }).click()
   await expect(page.getByText(`${displayName} added.`)).toBeVisible()
+  await expect(dialog).toBeHidden()
+}
+
+/** Opens the edit dialog of the member `displayName` on Members. */
+async function editMember(page: Page, displayName: string) {
+  await page.getByRole('button', { name: `Edit ${displayName}`, exact: true }).click()
+  return page.getByRole('dialog', { name: displayName, exact: true })
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -88,7 +95,7 @@ async function openSchedule(page: Page, association: string) {
 }
 
 async function createAssociation(page: Page, association: string) {
-  await page.getByRole('button', { name: 'Create an association' }).click()
+  await page.getByRole('button', { name: 'New association' }).click()
   await page.getByLabel('Name', { exact: true }).fill(association)
   await page.getByRole('button', { name: 'Create association' }).click()
   await expect(page.locator('header').getByText(association)).toBeVisible()
@@ -131,9 +138,9 @@ test.describe('Scenarios', () => {
       await signUp(page, 'Bruno', bruno)
       await myLine.getByText(association, { exact: true }).click()
       await page.getByRole('link', { name: 'Members', exact: true }).click()
-      const chloeLine = page.getByRole('listitem').filter({ hasText: 'Chloé' })
-      await chloeLine.getByText('Change role', { exact: true }).click()
-      await chloeLine.getByText('Confirm', { exact: true }).click()
+      const dialog = await editMember(page, 'Chloé')
+      await dialog.getByRole('combobox', { name: /^Role/ }).selectOption({ label: 'Manager' })
+      await dialog.getByRole('button', { name: 'Save' }).click()
       await expect(page.getByText('Chloé is now manager.')).toBeVisible()
       await signOut(page)
     })
@@ -163,10 +170,9 @@ test.describe('Scenarios', () => {
       await page.locator('header').getByRole('link', { name: association }).click()
       await page.getByRole('link', { name: 'Schedule settings', exact: true }).click()
 
-      const slotForm = page
-        .locator('form')
-        .filter({ has: page.getByRole('button', { name: 'Add slot' }) })
+      const slotForm = page.getByRole('dialog', { name: 'Add a slot' })
       for (const weekday of ['Thursday', 'Saturday']) {
+        await page.getByRole('button', { name: 'Add a slot' }).click()
         await slotForm.getByRole('combobox', { name: /^Day/ }).selectOption({ label: weekday })
         await slotForm.getByLabel('From').fill('10:00')
         await slotForm.getByLabel('To').fill('13:00')
@@ -176,9 +182,8 @@ test.describe('Scenarios', () => {
         )
       }
 
-      const closureForm = page
-        .locator('form')
-        .filter({ has: page.getByRole('button', { name: 'Add closure' }) })
+      await page.getByRole('button', { name: 'Add a closure' }).click()
+      const closureForm = page.getByRole('dialog', { name: 'Add a closure' })
       await closureForm.getByLabel('From').fill(closed.iso)
       await closureForm.getByLabel('To').fill(closed.iso)
       await closureForm.getByLabel('Label').fill('Fête du quartier')
@@ -312,8 +317,9 @@ test.describe('Scenarios', () => {
       await page.getByRole('link', { name: 'Members', exact: true }).click()
       await expect(chloeLine).toContainText('chloe')
       await expect(chloeLine).not.toContainText('not joined yet')
-      await chloeLine.getByText('Revoke link', { exact: true }).click()
-      await chloeLine.getByText('Confirm', { exact: true }).click()
+      const dialog = await editMember(page, 'Chloé')
+      await dialog.getByRole('button', { name: 'Revoke link' }).click()
+      await page.getByRole('button', { name: 'Revoke', exact: true }).click()
       await expect(page.getByText("Chloé's sign-in link is revoked.")).toBeVisible()
       await signOut(page)
     })

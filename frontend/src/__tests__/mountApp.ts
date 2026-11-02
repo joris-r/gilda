@@ -1,8 +1,12 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
+import { afterEach } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import App from '../App.vue'
 import { createGildaI18n } from '../i18n'
 import { createGildaRouter } from '../router'
+
+// Unmounting also removes what a screen teleported to the document, such as a dialog.
+enableAutoUnmount(afterEach)
 
 export async function mountApp(path = '/') {
   const router = createGildaRouter(createMemoryHistory())

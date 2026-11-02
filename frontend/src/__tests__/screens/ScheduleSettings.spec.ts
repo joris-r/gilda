@@ -2,9 +2,30 @@ import type { DOMWrapper, VueWrapper } from '@vue/test-utils'
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountApp, pageText } from '../mountApp'
-import { field, fill, hasControl, header, item, mockApi, press } from '../mockApi'
+import {
+  dialog,
+  dialogs,
+  field,
+  fill,
+  hasControl,
+  header,
+  item,
+  mockApi,
+  press,
+  pressEscape,
+  showsControl,
+  showsField,
+  titleOf,
+  type Route,
+} from '../mockApi'
 import { garden, member, signedInAsAlice } from './fixtures'
-import { planningApi, preferenceOf, type Preference, type PlanningPeriod } from './planningFake'
+import {
+  planningApi,
+  preferenceOf,
+  type Closure,
+  type Preference,
+  type PlanningPeriod,
+} from './planningFake'
 
 const path = `/associations/${garden.id}/settings`
 const base = `/api/associations/${garden.id}`
@@ -13,6 +34,11 @@ function mountSettings(
   role: 'manager' | 'volunteer',
   planningPeriod: PlanningPeriod | null = { first: '2026-11-02', last: '2026-11-25' },
   preferences: Preference[] = [],
+  routes: Record<string, Route> = {},
+  closures: Closure[] = [
+    { id: 'c-fete', first: '2026-11-14', last: '2026-11-14', label: 'Fête du quartier' },
+    { id: 'c-noel', first: '2026-12-24', last: '2027-01-01', label: "Fêtes de fin d'année" },
+  ],
 ) {
   const api = planningApi({
     me: 'u-alice',
@@ -27,13 +53,10 @@ function mountSettings(
       { id: 's-sat', weekday: 'saturday', start: '10:00', end: '13:00' },
       { id: 's-thu', weekday: 'thursday', start: '10:00', end: '13:00' },
     ],
-    closures: [
-      { id: 'c-fete', first: '2026-11-14', last: '2026-11-14', label: 'Fête du quartier' },
-      { id: 'c-noel', first: '2026-12-24', last: '2027-01-01', label: "Fêtes de fin d'année" },
-    ],
+    closures,
     planningPeriod,
   })
-  const calls = mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
+  const calls = mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes, ...routes })
   return { calls, mounting: mountApp(path) }
 }
 
@@ -63,11 +86,13 @@ function memberPreferences(wrapper: VueWrapper) {
   }
 }
 
-/** The form holding the button `submit`. */
-function form(wrapper: VueWrapper, submit: string) {
-  const found = wrapper.findAll('form').find((f) => hasControl(f, submit))
-  if (found === undefined) throw new Error(`No form with "${submit}"`)
-  return found
+/** Adds a slot through the Add a slot dialog. */
+async function addSlot(wrapper: VueWrapper, weekday: string, start: string, end: string) {
+  await press(wrapper, 'Add a slot')
+  await fill(dialog(wrapper), 'Day', weekday)
+  await fill(dialog(wrapper), 'From', start)
+  await fill(dialog(wrapper), 'To', end)
+  await press(dialog(wrapper), 'Add slot')
 }
 
 beforeEach(() => {
@@ -108,7 +133,7 @@ describe('Schedule settings', () => {
     mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
     const wrapper = await mountApp(`/associations/${garden.id}/opening`)
 
-    expect(hasControl(wrapper, 'Add slot')).toBe(false)
+    expect(hasControl(wrapper, 'Add a slot')).toBe(false)
   })
 
   it('shows Planning period, then Closures, then Slots', async () => {
@@ -141,117 +166,181 @@ describe('Schedule settings', () => {
   })
 
   describe('as a manager', () => {
-    it('adds a slot with POST', async () => {
+    it('shows no form until one is opened', async () => {
+      const { mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(wrapper.findAll('form')).toHaveLength(0)
+      expect(showsField(wrapper, 'Label')).toBe(false)
+      expect(showsField(wrapper, 'Day')).toBe(false)
+    })
+
+    it('"Add a slot" opens the dialog "Add a slot"', async () => {
+      const { mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(wrapper, 'Add a slot')
+
+      const open = dialog(wrapper)
+      expect(titleOf(open)).toBe('Add a slot')
+      expect(showsField(open, 'Day')).toBe(true)
+      expect(showsField(open, 'From')).toBe(true)
+      expect(showsField(open, 'To')).toBe(true)
+      expect(showsControl(open, 'Add slot')).toBe(true)
+    })
+
+    it('adds a slot with POST and closes the dialog', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
-      const slotForm = form(wrapper, 'Add slot')
 
-      await fill(slotForm, 'Day', 'friday')
-      await fill(slotForm, 'From', '16:00')
-      await fill(slotForm, 'To', '19:00')
-      await press(slotForm, 'Add slot')
+      await addSlot(wrapper, 'friday', '16:00', '19:00')
 
       expect(calls).toContainEqual({
         method: 'POST',
         path: `${base}/slots`,
         body: { weekday: 'friday', start: '16:00', end: '19:00' },
       })
+      expect(dialogs(wrapper)).toHaveLength(0)
       expect(item(wrapper, 'Friday').text()).toContain('16:00–19:00')
     })
 
-    describe('Add slot defaults', () => {
-      /** The current value of the Add slot field `label`. */
-      function valueOf(slotForm: DOMWrapper<Element>, label: string) {
-        return (field(slotForm, label).element as HTMLInputElement).value
+    it('an existing slot keeps the dialog open, with its message', async () => {
+      const { mounting } = mountSettings('manager', undefined, [], {
+        [`POST ${base}/slots`]: { status: 409, body: { error: 'Slot exists' } },
+      })
+      const wrapper = await mounting
+
+      await addSlot(wrapper, 'thursday', '10:00', '13:00')
+
+      expect(titleOf(dialog(wrapper))).toBe('Add a slot')
+      expect(dialog(wrapper).text()).toContain('This slot already exists.')
+    })
+
+    describe('Add a slot defaults', () => {
+      /** The current value of the field `label` in the open dialog. */
+      function valueOf(wrapper: VueWrapper, label: string) {
+        return (field(dialog(wrapper), label).element as HTMLInputElement).value
       }
 
       it('R17: opens with From and To at 09:00', async () => {
-        const { mounting } = mountSettings('manager')
-        const slotForm = form(await mounting, 'Add slot')
+        const wrapper = await mountSettings('manager').mounting
+        await press(wrapper, 'Add a slot')
 
-        expect(valueOf(slotForm, 'From')).toBe('09:00')
-        expect(valueOf(slotForm, 'To')).toBe('09:00')
+        expect(valueOf(wrapper, 'From')).toBe('09:00')
+        expect(valueOf(wrapper, 'To')).toBe('09:00')
       })
 
       it('R17: changing From sets To to the same time', async () => {
-        const { mounting } = mountSettings('manager')
-        const slotForm = form(await mounting, 'Add slot')
+        const wrapper = await mountSettings('manager').mounting
+        await press(wrapper, 'Add a slot')
 
-        await fill(slotForm, 'From', '14:00')
+        await fill(dialog(wrapper), 'From', '14:00')
 
-        expect(valueOf(slotForm, 'To')).toBe('14:00')
+        expect(valueOf(wrapper, 'To')).toBe('14:00')
       })
 
       it('R17: once To is changed, changing From leaves To as it is', async () => {
-        const { mounting } = mountSettings('manager')
-        const slotForm = form(await mounting, 'Add slot')
+        const wrapper = await mountSettings('manager').mounting
+        await press(wrapper, 'Add a slot')
 
-        await fill(slotForm, 'To', '12:00')
-        await fill(slotForm, 'From', '10:00')
+        await fill(dialog(wrapper), 'To', '12:00')
+        await fill(dialog(wrapper), 'From', '10:00')
 
-        expect(valueOf(slotForm, 'From')).toBe('10:00')
-        expect(valueOf(slotForm, 'To')).toBe('12:00')
+        expect(valueOf(wrapper, 'From')).toBe('10:00')
+        expect(valueOf(wrapper, 'To')).toBe('12:00')
       })
 
-      it("R18: after a slot is added, Day keeps its value and From and To show the slot's end", async () => {
-        const { mounting } = mountSettings('manager')
-        const wrapper = await mounting
-        const slotForm = form(wrapper, 'Add slot')
+      it('R18: after a slot is added, the next dialog opens with its Day, and From and To at its end', async () => {
+        const wrapper = await mountSettings('manager').mounting
 
-        await fill(slotForm, 'Day', 'friday')
-        await fill(slotForm, 'From', '16:00')
-        await fill(slotForm, 'To', '19:00')
-        await press(slotForm, 'Add slot')
-        await flushPromises()
+        await addSlot(wrapper, 'friday', '16:00', '19:00')
+        await press(wrapper, 'Add a slot')
 
-        expect(valueOf(slotForm, 'Day')).toBe('friday')
-        expect(valueOf(slotForm, 'From')).toBe('19:00')
-        expect(valueOf(slotForm, 'To')).toBe('19:00')
+        expect(valueOf(wrapper, 'Day')).toBe('friday')
+        expect(valueOf(wrapper, 'From')).toBe('19:00')
+        expect(valueOf(wrapper, 'To')).toBe('19:00')
       })
 
-      it('R18: after a slot is added, To follows From again', async () => {
-        const { mounting } = mountSettings('manager')
-        const wrapper = await mounting
-        const slotForm = form(wrapper, 'Add slot')
+      it('R18: in the next dialog, To follows From again', async () => {
+        const wrapper = await mountSettings('manager').mounting
 
-        await fill(slotForm, 'To', '13:00')
-        await press(slotForm, 'Add slot')
-        await flushPromises()
-        await fill(slotForm, 'From', '15:00')
+        await addSlot(wrapper, 'friday', '09:00', '13:00')
+        await press(wrapper, 'Add a slot')
+        await fill(dialog(wrapper), 'From', '15:00')
 
-        expect(valueOf(slotForm, 'To')).toBe('15:00')
+        expect(valueOf(wrapper, 'To')).toBe('15:00')
       })
     })
 
-    it('deletes a slot with DELETE', async () => {
+    it('a slot\'s delete icon asks "Delete the slot Thursday 10:00–13:00?"', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
 
-      await press(item(wrapper, 'Thursday'), 'Delete')
+      await press(item(wrapper, 'Thursday'), 'Delete the slot')
+
+      expect(dialog(wrapper).text()).toContain('Delete the slot Thursday 10:00–13:00?')
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+    })
+
+    it('Delete deletes the slot with DELETE', async () => {
+      const { calls, mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Thursday'), 'Delete the slot')
+      await press(dialog(wrapper), 'Delete')
 
       expect(calls).toContainEqual({
         method: 'DELETE',
         path: `${base}/slots/s-thu`,
         body: undefined,
       })
+      expect(dialogs(wrapper)).toHaveLength(0)
       expect(wrapper.findAll('li').some((li) => li.text().includes('Thursday'))).toBe(false)
     })
 
-    it('adds a closure with POST', async () => {
+    it('Cancel keeps the slot', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
-      const closureForm = form(wrapper, 'Add closure')
 
-      await fill(closureForm, 'From', '2027-02-15')
-      await fill(closureForm, 'To', '2027-02-19')
-      await fill(closureForm, 'Label', "Vacances d'hiver")
-      await press(closureForm, 'Add closure')
+      await press(item(wrapper, 'Thursday'), 'Delete the slot')
+      await press(dialog(wrapper), 'Cancel')
+
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(item(wrapper, 'Thursday').exists()).toBe(true)
+    })
+
+    it('"Add a closure" opens the dialog "Add a closure"', async () => {
+      const { mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(wrapper, 'Add a closure')
+
+      const open = dialog(wrapper)
+      expect(titleOf(open)).toBe('Add a closure')
+      expect(showsField(open, 'From')).toBe(true)
+      expect(showsField(open, 'To')).toBe(true)
+      expect(showsField(open, 'Label')).toBe(true)
+      expect(showsControl(open, 'Add closure')).toBe(true)
+    })
+
+    it('adds a closure with POST and closes the dialog', async () => {
+      const { calls, mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(wrapper, 'Add a closure')
+      await fill(dialog(wrapper), 'From', '2027-02-15')
+      await fill(dialog(wrapper), 'To', '2027-02-19')
+      await fill(dialog(wrapper), 'Label', "Vacances d'hiver")
+      await press(dialog(wrapper), 'Add closure')
 
       expect(calls).toContainEqual({
         method: 'POST',
         path: `${base}/closures`,
         body: { first: '2027-02-15', last: '2027-02-19', label: "Vacances d'hiver" },
       })
+      expect(dialogs(wrapper)).toHaveLength(0)
       expect(item(wrapper, "Vacances d'hiver").text()).toContain(
         'Mon 15 Feb 2027 – Fri 19 Feb 2027',
       )
@@ -260,11 +349,11 @@ describe('Schedule settings', () => {
     it('adds a closure without label', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
-      const closureForm = form(wrapper, 'Add closure')
 
-      await fill(closureForm, 'From', '2027-03-01')
-      await fill(closureForm, 'To', '2027-03-01')
-      await press(closureForm, 'Add closure')
+      await press(wrapper, 'Add a closure')
+      await fill(dialog(wrapper), 'From', '2027-03-01')
+      await fill(dialog(wrapper), 'To', '2027-03-01')
+      await press(dialog(wrapper), 'Add closure')
 
       const post = calls.find((c) => c.method === 'POST' && c.path === `${base}/closures`)
       const body = post?.body as { first: string; last: string; label?: string | null }
@@ -273,61 +362,172 @@ describe('Schedule settings', () => {
       expect(pageText(wrapper)).toContain('Mon 1 Mar 2027')
     })
 
-    it('deletes a closure with DELETE', async () => {
+    it('a closure\'s delete icon asks "Delete the closure "Fête du quartier"?"', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
 
-      await press(item(wrapper, 'Fête du quartier'), 'Delete')
+      await press(item(wrapper, 'Fête du quartier'), 'Delete the closure')
+
+      expect(dialog(wrapper).text()).toContain('Delete the closure "Fête du quartier"?')
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+    })
+
+    it('without a label, it asks "Delete the closure of Sat 14 Nov 2026?"', async () => {
+      const { mounting } = mountSettings('manager', undefined, [], {}, [
+        { id: 'c-fete', first: '2026-11-14', last: '2026-11-14', label: null },
+      ])
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Sat 14 Nov 2026'), 'Delete the closure')
+
+      expect(dialog(wrapper).text()).toContain('Delete the closure of Sat 14 Nov 2026?')
+    })
+
+    it('Delete deletes the closure with DELETE', async () => {
+      const { calls, mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Fête du quartier'), 'Delete the closure')
+      await press(dialog(wrapper), 'Delete')
 
       expect(calls).toContainEqual({
         method: 'DELETE',
         path: `${base}/closures/c-fete`,
         body: undefined,
       })
+      expect(dialogs(wrapper)).toHaveLength(0)
       expect(pageText(wrapper)).not.toContain('Fête du quartier')
     })
   })
 
+  describe('Forms', () => {
+    it('Cancel closes the dialog, changing nothing', async () => {
+      const { calls, mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(wrapper, 'Add a closure')
+      await fill(dialog(wrapper), 'From', '2027-02-15')
+      await press(dialog(wrapper), 'Cancel')
+
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(calls.some((c) => c.method === 'POST')).toBe(false)
+    })
+
+    it('the close button closes the dialog, changing nothing', async () => {
+      const { calls, mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(wrapper, 'Add a closure')
+      await fill(dialog(wrapper), 'From', '2027-02-15')
+      await press(dialog(wrapper), 'Close')
+
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(calls.some((c) => c.method === 'POST')).toBe(false)
+    })
+
+    it('Escape closes the dialog, changing nothing', async () => {
+      const { calls, mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(wrapper, 'Add a closure')
+      await fill(dialog(wrapper), 'From', '2027-02-15')
+      await pressEscape(wrapper, dialog(wrapper))
+
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(calls.some((c) => c.method === 'POST')).toBe(false)
+    })
+
+    it('a dialog opened again starts afresh', async () => {
+      const { mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(wrapper, 'Add a closure')
+      await fill(dialog(wrapper), 'Label', "Vacances d'hiver")
+      await press(dialog(wrapper), 'Cancel')
+      await press(wrapper, 'Add a closure')
+
+      expect((field(dialog(wrapper), 'Label').element as HTMLInputElement).value).toBe('')
+    })
+  })
+
   describe('planning period, as a manager', () => {
-    it('sets the planning period with PUT', async () => {
+    it('"Edit the period" opens the dialog "Planning period"', async () => {
+      const { mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(wrapper, 'Edit the period')
+
+      const open = dialog(wrapper)
+      expect(titleOf(open)).toBe('Planning period')
+      expect(showsField(open, 'From')).toBe(true)
+      expect(showsField(open, 'To')).toBe(true)
+      expect(showsControl(open, 'Save')).toBe(true)
+    })
+
+    it('sets the planning period with PUT and closes the dialog', async () => {
       const { calls, mounting } = mountSettings('manager', null)
       const wrapper = await mounting
-      const periodForm = form(wrapper, 'Save')
 
-      await fill(periodForm, 'From', '2026-11-30')
-      await fill(periodForm, 'To', '2026-12-20')
-      await press(periodForm, 'Save')
+      await press(wrapper, 'Edit the period')
+      await fill(dialog(wrapper), 'From', '2026-11-30')
+      await fill(dialog(wrapper), 'To', '2026-12-20')
+      await press(dialog(wrapper), 'Save')
 
       expect(calls).toContainEqual({
         method: 'PUT',
         path: `${base}/planning-period`,
         body: { first: '2026-11-30', last: '2026-12-20' },
       })
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(pageText(wrapper)).toContain('Mon 30 Nov 2026 – Sun 20 Dec 2026')
     })
 
-    it('clears the planning period with DELETE', async () => {
+    it('offers its delete icon only when a period is set', async () => {
+      const withPeriod = await mountSettings('manager').mounting
+      expect(hasControl(withPeriod, 'Clear the period')).toBe(true)
+      withPeriod.unmount()
+
+      const without = await mountSettings('manager', null).mounting
+      expect(hasControl(without, 'Clear the period')).toBe(false)
+      expect(hasControl(without, 'Edit the period')).toBe(true)
+    })
+
+    it('its delete icon asks "Clear the planning period?"', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
 
-      await press(wrapper, 'Clear')
+      await press(wrapper, 'Clear the period')
+
+      expect(dialog(wrapper).text()).toContain('Clear the planning period?')
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+    })
+
+    it('Clear clears the planning period with DELETE', async () => {
+      const { calls, mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(wrapper, 'Clear the period')
+      await press(dialog(wrapper), 'Clear')
 
       expect(calls).toContainEqual({
         method: 'DELETE',
         path: `${base}/planning-period`,
         body: undefined,
       })
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(pageText(wrapper)).toContain('None')
     })
   })
 
   describe('planning period, as a volunteer', () => {
-    it('shows the period, without the form', async () => {
+    it('shows the period, without its icons', async () => {
       const { mounting } = mountSettings('volunteer')
       const wrapper = await mounting
 
       expect(pageText(wrapper)).toContain('Planning period')
       expect(pageText(wrapper)).toContain('Mon 2 Nov 2026 – Wed 25 Nov 2026')
-      expect(hasControl(wrapper, 'Save')).toBe(false)
-      expect(hasControl(wrapper, 'Clear')).toBe(false)
+      expect(hasControl(wrapper, 'Edit the period')).toBe(false)
+      expect(hasControl(wrapper, 'Clear the period')).toBe(false)
     })
 
     it('shows "None" when there is no period', async () => {
@@ -338,15 +538,16 @@ describe('Schedule settings', () => {
     })
   })
 
-  it('a volunteer sees the lists, without Delete and without the forms', async () => {
+  it('a volunteer sees the lists, without the add buttons and the delete icons', async () => {
     const { mounting } = mountSettings('volunteer')
     const wrapper = await mounting
 
     expect(item(wrapper, 'Thursday').text()).toContain('10:00–13:00')
     expect(item(wrapper, 'Fête du quartier').exists()).toBe(true)
-    expect(hasControl(wrapper, 'Delete')).toBe(false)
-    expect(hasControl(wrapper, 'Add slot')).toBe(false)
-    expect(hasControl(wrapper, 'Add closure')).toBe(false)
+    expect(hasControl(wrapper, 'Delete the slot')).toBe(false)
+    expect(hasControl(wrapper, 'Delete the closure')).toBe(false)
+    expect(hasControl(wrapper, 'Add a slot')).toBe(false)
+    expect(hasControl(wrapper, 'Add a closure')).toBe(false)
   })
 
   describe('My preference', () => {

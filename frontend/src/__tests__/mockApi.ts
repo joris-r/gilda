@@ -1,4 +1,4 @@
-import { flushPromises, type DOMWrapper, type VueWrapper } from '@vue/test-utils'
+import { DOMWrapper, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { vi } from 'vitest'
 
 export interface Reply {
@@ -69,10 +69,13 @@ export async function fill(wrapper: Wrapper, label: string, value: string) {
   await field(wrapper, label).setValue(value)
 }
 
-/** Whether `element` is named `name`: by its text, or else by its aria-label or title. */
+/** Whether `element` is named `name`: by its text, a leading "+" aside, or else by its aria-label or title. */
 function named(element: DOMWrapper<Element>, name: string): boolean {
   return (
-    element.text().trim() === name ||
+    element
+      .text()
+      .trim()
+      .replace(/^\+\s*/, '') === name ||
     element.attributes('aria-label') === name ||
     element.attributes('title') === name
   )
@@ -136,4 +139,43 @@ export function item(wrapper: Wrapper, text: string): DOMWrapper<Element> {
   const element = wrapper.findAll('li').find((li) => li.text().includes(text))
   if (element === undefined) throw new Error(`No list item mentioning "${text}"`)
   return element
+}
+
+const DIALOG = '[role="dialog"], [role="alertdialog"], dialog[open]'
+
+/** The open dialogs, inside `wrapper` or teleported to the document, innermost last. */
+export function dialogs(wrapper: VueWrapper): DOMWrapper<Element>[] {
+  const elements = new Set<Element>([
+    ...wrapper.findAll(DIALOG).map((d) => d.element),
+    ...document.body.querySelectorAll(DIALOG),
+  ])
+  return [...elements].map((e) => new DOMWrapper(e)).filter((d) => d.isVisible())
+}
+
+/** The title of `dialog`: its aria-label, its aria-labelledby element, or its first heading. */
+export function titleOf(dialog: DOMWrapper<Element>): string {
+  const label = dialog.attributes('aria-label')
+  if (label) return label.trim()
+  const by = dialog.attributes('aria-labelledby')
+  const labelling = by ? dialog.element.querySelector(`[id="${by}"]`) : null
+  if (labelling) return labelling.textContent?.trim() ?? ''
+  return dialog.find('h1, h2, h3').exists() ? dialog.find('h1, h2, h3').text().trim() : ''
+}
+
+/** The innermost open dialog, failing when none is open. */
+export function dialog(wrapper: VueWrapper): DOMWrapper<Element> {
+  const open = dialogs(wrapper)
+  if (open.length === 0) throw new Error('No open dialog')
+  return open[open.length - 1]!
+}
+
+/** Presses Escape in `target`, then on the document if it is still open. */
+export async function pressEscape(wrapper: VueWrapper, target: DOMWrapper<Element>) {
+  const escape = () => new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+  target.element.dispatchEvent(escape())
+  await flushPromises()
+  if (dialogs(wrapper).some((d) => d.element === target.element)) {
+    document.dispatchEvent(escape())
+    await flushPromises()
+  }
 }
