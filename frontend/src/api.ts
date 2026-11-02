@@ -291,6 +291,36 @@ export function deletePreference(id: string, slotId: string, userId: string) {
   return request<void>('DELETE', `/api/associations/${id}/preferences/${slotId}/${userId}`)
 }
 
+export interface Absence {
+  id: string
+  first: string
+  last: string
+}
+
+export function listAbsences(id: string) {
+  return request<Absence[]>('GET', `/api/associations/${id}/absences`)
+}
+
+export function addAbsence(id: string, first: string, last: string) {
+  return request<Absence>('POST', `/api/associations/${id}/absences`, { first, last })
+}
+
+export function editAbsence(id: string, absenceId: string, first: string, last: string) {
+  return request<Absence>('PUT', `/api/associations/${id}/absences/${absenceId}`, { first, last })
+}
+
+export function deleteAbsence(id: string, absenceId: string) {
+  return request<void>('DELETE', `/api/associations/${id}/absences/${absenceId}`)
+}
+
+export async function getNote(id: string) {
+  return (await request<{ text: string }>('GET', `/api/associations/${id}/note`)).text
+}
+
+export async function setNote(id: string, text: string) {
+  return (await request<{ text: string }>('PUT', `/api/associations/${id}/note`, { text })).text
+}
+
 export function getRegistrationCounts(id: string) {
   return request<RegistrationCount[] | null>('GET', `/api/associations/${id}/registration-counts`)
 }

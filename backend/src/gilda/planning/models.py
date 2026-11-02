@@ -70,3 +70,21 @@ class Preference(UUIDv7Base):
     user_id: Mapped[UUID] = mapped_column(ForeignKey("user_account.id", ondelete="CASCADE"))
     slot_id: Mapped[UUID] = mapped_column(ForeignKey("slot.id", ondelete="CASCADE"))
     value: Mapped[str] = mapped_column(String(16))
+
+
+class Absence(UUIDv7Base):
+    __tablename__ = "absence"
+
+    association_id: Mapped[UUID] = mapped_column(ForeignKey("association.id", ondelete="CASCADE"))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user_account.id", ondelete="CASCADE"))
+    first: Mapped[date]
+    last: Mapped[date]
+
+
+class Note(UUIDv7Base):
+    __tablename__ = "note"
+    __table_args__ = (UniqueConstraint("association_id", "user_id"),)
+
+    association_id: Mapped[UUID] = mapped_column(ForeignKey("association.id", ondelete="CASCADE"))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user_account.id", ondelete="CASCADE"))
+    text: Mapped[str]

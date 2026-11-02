@@ -167,6 +167,9 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
 <template>
   <template v-if="association">
     <p class="links">
+      <RouterLink :to="`/associations/${id}/availability`">{{
+        t('availability.title')
+      }}</RouterLink>
       <RouterLink :to="`/associations/${id}/members`">{{ t('association.members') }}</RouterLink>
       <RouterLink :to="`/associations/${id}/settings`">{{ t('settings.title') }}</RouterLink>
     </p>

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouterHistory } from 'vue-router'
 import CreateAccountView from '../views/CreateAccountView.vue'
 import AccessLinkView from '../views/AccessLinkView.vue'
 import ForgotPasswordView from '../views/ForgotPasswordView.vue'
+import MyAvailabilityView from '../views/MyAvailabilityView.vue'
 import MembersView from '../views/MembersView.vue'
 import MyAssociationsView from '../views/MyAssociationsView.vue'
 import NewAssociationView from '../views/NewAssociationView.vue'
@@ -55,6 +56,12 @@ export function createGildaRouter(history: RouterHistory = createWebHistory()) {
         path: '/associations/:id/settings',
         name: 'settings',
         component: ScheduleSettingsView,
+        props: true,
+      },
+      {
+        path: '/associations/:id/availability',
+        name: 'availability',
+        component: MyAvailabilityView,
         props: true,
       },
     ],

@@ -37,6 +37,21 @@ class ClosureRead(msgspec.Struct):
     label: str | None
 
 
+class AbsenceCreate(msgspec.Struct):
+    first: date
+    last: date
+
+
+class AbsenceRead(msgspec.Struct):
+    id: UUID
+    first: date
+    last: date
+
+
+class NoteData(msgspec.Struct):
+    text: str
+
+
 class PreferenceUpdate(msgspec.Struct):
     value: PreferenceValue
 

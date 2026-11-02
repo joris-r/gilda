@@ -136,7 +136,6 @@
     "planningPeriod": "Période de planification",
     "noPlanningPeriod": "Aucune",
     "save": "Enregistrer",
-    "myPreference": "Mes préférences",
     "membersPreferences": "Préférences des membres",
     "noPreference": "—",
     "addSlotTitle": "Ajouter un créneau",
@@ -153,6 +152,23 @@
     "confirmDeleteClosure": "Supprimer la fermeture « {label} » ?",
     "confirmDeleteUnlabelledClosure": "Supprimer la fermeture du {date} ?",
     "deleteAction": "Supprimer"
+  },
+  "availability": {
+    "title": "Mes disponibilités",
+    "preferences": "Mes préférences",
+    "noSlots": "Aucun",
+    "absences": "Absences",
+    "noAbsences": "Aucune",
+    "addAbsence": "Ajouter une absence",
+    "addAbsenceAction": "Ajouter l'absence",
+    "editAbsence": "Modifier l'absence",
+    "deleteAbsence": "Supprimer l'absence",
+    "confirmDeleteAbsence": "Supprimer l'absence du {dates} ?",
+    "note": "Note pour les responsables",
+    "noNote": "Aucune",
+    "editNote": "Modifier la note",
+    "text": "Texte",
+    "invalid": "Vérifiez les dates : le début vient avant la fin."
   },
   "preferences": {
     "preferred": "Préféré",

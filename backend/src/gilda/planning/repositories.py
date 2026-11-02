@@ -3,7 +3,15 @@ from uuid import UUID
 from advanced_alchemy.repository import SQLAlchemyAsyncRepository
 from sqlalchemy.dialects.postgresql import insert
 
-from gilda.planning.models import Closure, PlanningPeriod, Preference, Registration, Slot
+from gilda.planning.models import (
+    Absence,
+    Closure,
+    Note,
+    PlanningPeriod,
+    Preference,
+    Registration,
+    Slot,
+)
 
 
 class SlotRepository(SQLAlchemyAsyncRepository[Slot]):
@@ -30,5 +38,23 @@ class PreferenceRepository(SQLAlchemyAsyncRepository[Preference]):
             insert(Preference)
             .values(user_id=user_id, slot_id=slot_id, value=value)
             .on_conflict_do_update(index_elements=["user_id", "slot_id"], set_={"value": value})
+        )
+        await self.session.execute(statement)
+
+
+class AbsenceRepository(SQLAlchemyAsyncRepository[Absence]):
+    model_type = Absence
+
+
+class NoteRepository(SQLAlchemyAsyncRepository[Note]):
+    model_type = Note
+
+    async def set_text(self, association_id: UUID, user_id: UUID, text: str) -> None:
+        statement = (
+            insert(Note)
+            .values(association_id=association_id, user_id=user_id, text=text)
+            .on_conflict_do_update(
+                index_elements=["association_id", "user_id"], set_={"text": text}
+            )
         )
         await self.session.execute(statement)

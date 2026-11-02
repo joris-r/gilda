@@ -10,8 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from gilda.core.controllers import provide_current_user
 from gilda.core.models import User
 from gilda.planning.schemas import (
+    AbsenceCreate,
+    AbsenceRead,
     ClosureCreate,
     ClosureRead,
+    NoteData,
     PlanningPeriodData,
     PreferenceRead,
     PreferenceUpdate,
@@ -162,6 +165,69 @@ class PlanningController(Controller):
         closure_id: FromPath[UUID],
     ) -> None:
         await PlanningService(db_session).delete_closure(current_user, association_id, closure_id)
+
+    @get("/absences")
+    async def list_absences(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+    ) -> list[AbsenceRead]:
+        return await PlanningService(db_session).list_absences(current_user, association_id)
+
+    @post("/absences")
+    async def add_absence(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+        data: JSONBody[AbsenceCreate],
+    ) -> AbsenceRead:
+        return await PlanningService(db_session).add_absence(
+            current_user, association_id, data.first, data.last
+        )
+
+    @put("/absences/{absence_id:uuid}")
+    async def edit_absence(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+        absence_id: FromPath[UUID],
+        data: JSONBody[AbsenceCreate],
+    ) -> AbsenceRead:
+        return await PlanningService(db_session).edit_absence(
+            current_user, association_id, absence_id, data.first, data.last
+        )
+
+    @delete("/absences/{absence_id:uuid}")
+    async def delete_absence(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+        absence_id: FromPath[UUID],
+    ) -> None:
+        await PlanningService(db_session).delete_absence(current_user, association_id, absence_id)
+
+    @get("/note")
+    async def get_note(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+    ) -> NoteData:
+        return await PlanningService(db_session).get_note(current_user, association_id)
+
+    @put("/note")
+    async def set_note(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+        data: JSONBody[NoteData],
+    ) -> NoteData:
+        return await PlanningService(db_session).set_note(current_user, association_id, data.text)
 
     @get("/planning-period")
     async def get_planning_period(

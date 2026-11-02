@@ -174,7 +174,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   font: inherit;
   font-weight: 400;
   padding: 8px 10px;
@@ -407,7 +408,8 @@ button.add {
 }
 
 .dialog input,
-.dialog select {
+.dialog select,
+.dialog textarea {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;

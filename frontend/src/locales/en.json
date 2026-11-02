@@ -136,7 +136,6 @@
     "planningPeriod": "Planning period",
     "noPlanningPeriod": "None",
     "save": "Save",
-    "myPreference": "My preference",
     "membersPreferences": "Members' preferences",
     "noPreference": "—",
     "addSlotTitle": "Add a slot",
@@ -153,6 +152,23 @@
     "confirmDeleteClosure": "Delete the closure \"{label}\"?",
     "confirmDeleteUnlabelledClosure": "Delete the closure of {date}?",
     "deleteAction": "Delete"
+  },
+  "availability": {
+    "title": "My availability",
+    "preferences": "My preferences",
+    "noSlots": "None",
+    "absences": "Absences",
+    "noAbsences": "None",
+    "addAbsence": "Add an absence",
+    "addAbsenceAction": "Add absence",
+    "editAbsence": "Edit the absence",
+    "deleteAbsence": "Delete the absence",
+    "confirmDeleteAbsence": "Delete the absence of {dates}?",
+    "note": "Note for the managers",
+    "noNote": "None",
+    "editNote": "Edit the note",
+    "text": "Text",
+    "invalid": "Check the dates: the start comes before the end."
   },
   "preferences": {
     "preferred": "Preferred",

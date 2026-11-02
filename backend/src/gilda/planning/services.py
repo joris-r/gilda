@@ -11,16 +11,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from gilda.core.models import Association, Membership, User
 from gilda.core.repositories import MembershipRepository
 from gilda.core.services import ConflictException
-from gilda.planning.models import Closure, PlanningPeriod, Preference, Registration, Slot
+from gilda.planning.models import (
+    Absence,
+    Closure,
+    PlanningPeriod,
+    Preference,
+    Registration,
+    Slot,
+)
 from gilda.planning.repositories import (
+    AbsenceRepository,
     ClosureRepository,
+    NoteRepository,
     PlanningPeriodRepository,
     PreferenceRepository,
     RegistrationRepository,
     SlotRepository,
 )
 from gilda.planning.schemas import (
+    AbsenceRead,
     ClosureRead,
+    NoteData,
     OccurrenceRead,
     OccurrenceRegistration,
     PlanningPeriodData,
@@ -65,6 +76,16 @@ def closure_read(closure: Closure) -> ClosureRead:
     return ClosureRead(id=closure.id, first=closure.first, last=closure.last, label=closure.label)
 
 
+def set_absence(absence: Absence, first: date, last: date) -> None:
+    if last < first:
+        raise ClientException("The last date must not be before the first.")
+    absence.first, absence.last = first, last
+
+
+def absence_read(absence: Absence) -> AbsenceRead:
+    return AbsenceRead(id=absence.id, first=absence.first, last=absence.last)
+
+
 def preference_read(preference: Preference) -> PreferenceRead:
     return PreferenceRead(
         user_id=preference.user_id,
@@ -102,6 +123,8 @@ class PlanningService:
         self.registrations = RegistrationRepository(session=db_session)
         self.planning_periods = PlanningPeriodRepository(session=db_session)
         self.preferences = PreferenceRepository(session=db_session)
+        self.absences = AbsenceRepository(session=db_session)
+        self.notes = NoteRepository(session=db_session)
 
     # Slots
 
@@ -263,6 +286,53 @@ class PlanningService:
         if closure is None:
             raise NotFoundException("Closure not found.")
         return closure
+
+    # Absences, each the user's own
+
+    async def list_absences(self, user: User, association_id: UUID) -> list[AbsenceRead]:
+        await self._membership_of(user, association_id)
+        absences = await self.absences.list(association_id=association_id, user_id=user.id)
+        return [absence_read(a) for a in sorted(absences, key=lambda a: (a.first, a.last))]
+
+    async def add_absence(
+        self, user: User, association_id: UUID, first: date, last: date
+    ) -> AbsenceRead:
+        await self._membership_of(user, association_id)
+        absence = Absence(association_id=association_id, user_id=user.id)
+        set_absence(absence, first, last)
+        return absence_read(await self.absences.add(absence))
+
+    async def edit_absence(
+        self, user: User, association_id: UUID, absence_id: UUID, first: date, last: date
+    ) -> AbsenceRead:
+        absence = await self._absence(user, association_id, absence_id)
+        set_absence(absence, first, last)
+        return absence_read(await self.absences.update(absence))
+
+    async def delete_absence(self, user: User, association_id: UUID, absence_id: UUID) -> None:
+        absence = await self._absence(user, association_id, absence_id)
+        await self.absences.delete(absence.id)
+
+    async def _absence(self, user: User, association_id: UUID, absence_id: UUID) -> Absence:
+        await self._membership_of(user, association_id)
+        absence = await self.absences.get_one_or_none(
+            id=absence_id, association_id=association_id, user_id=user.id
+        )
+        if absence is None:
+            raise NotFoundException("Absence not found.")
+        return absence
+
+    # Note, the user's own
+
+    async def get_note(self, user: User, association_id: UUID) -> NoteData:
+        await self._membership_of(user, association_id)
+        note = await self.notes.get_one_or_none(association_id=association_id, user_id=user.id)
+        return NoteData(text=note.text if note else "")
+
+    async def set_note(self, user: User, association_id: UUID, text: str) -> NoteData:
+        await self._membership_of(user, association_id)
+        await self.notes.set_text(association_id, user.id, text)
+        return NoteData(text=text)
 
     # Planning period
 

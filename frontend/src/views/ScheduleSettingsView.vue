@@ -32,12 +32,10 @@ import IconButton from '../components/IconButton.vue'
 import PreferenceSelect from '../components/PreferenceSelect.vue'
 import { formatDate, shortDayWithYear, WEEKDAYS } from '../dates'
 import { useLocation } from '../location'
-import { useSession } from '../session'
 
 const props = defineProps<{ id: string }>()
 const { t, locale } = useI18n()
 const location = useLocation()
-const { user } = useSession()
 
 const association = ref<Association>()
 const slots = ref<Slot[]>([])
@@ -330,13 +328,6 @@ function closureQuestion(closure: Closure) {
         <span>{{ t(`weekdays.${slot.weekday}`) }}</span>
         <div class="actions">
           <span>{{ slot.start }}–{{ slot.end }}</span>
-          <label>
-            {{ t('settings.myPreference') }}
-            <PreferenceSelect
-              :value="preferenceOf(slot, user!.id)"
-              @change="choosePreference(slot, user!.id, $event)"
-            />
-          </label>
           <template v-if="isManager">
             <IconButton icon="edit" :label="t('settings.editSlot')" @click="openSlotEdit(slot)" />
             <IconButton
