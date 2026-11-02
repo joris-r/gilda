@@ -45,6 +45,12 @@ export interface Preference {
   value: PreferenceValue
 }
 
+export interface Absence {
+  id: string
+  first: string
+  last: string
+}
+
 export interface RegistrationCount {
   user_id: string
   count: number
@@ -68,6 +74,8 @@ export function planningApi(options: {
   planningPeriod?: PlanningPeriod | null
   preferences?: Preference[]
   registrationCounts?: RegistrationCount[] | null
+  absences?: Absence[]
+  note?: string
 }) {
   const occurrences = options.occurrences ?? []
   const registrations = [...(options.registrations ?? [])]
@@ -75,6 +83,8 @@ export function planningApi(options: {
   const slots = [...(options.slots ?? [])]
   let planningPeriod = options.planningPeriod ?? null
   const preferences = [...(options.preferences ?? [])]
+  const absences = [...(options.absences ?? [])]
+  let note = options.note ?? ''
   const scheduleRequests: { from: string | null; to: string | null }[] = []
   let next = 1
 
@@ -164,6 +174,22 @@ export function planningApi(options: {
       status: 200,
       body: preferences.filter((p) => options.role === 'manager' || p.user_id === options.me),
     }),
+    [`GET ${base}/absences`]: () => ({
+      status: 200,
+      body: [...absences].sort((a, b) => a.first.localeCompare(b.first)),
+    }),
+    [`POST ${base}/absences`]: (body) => {
+      const absence = { id: `ab-new-${next++}`, ...(body as Omit<Absence, 'id'>) }
+      absences.push(absence)
+      addPut('absences', absences, absence.id)
+      addDelete('absences', absences, absence.id)
+      return { status: 201, body: absence }
+    },
+    [`GET ${base}/note`]: () => ({ status: 200, body: { text: note } }),
+    [`PUT ${base}/note`]: (body) => {
+      note = (body as { text: string }).text
+      return { status: 200, body: { text: note } }
+    },
     [`GET ${base}/registration-counts`]: () =>
       options.role === 'manager'
         ? { status: 200, body: planningPeriod ? (options.registrationCounts ?? []) : null }
@@ -230,6 +256,8 @@ export function planningApi(options: {
   slots.forEach(addPreferenceRoutes)
   closures.forEach((c) => addPut('closures', closures, c.id))
   closures.forEach((c) => addDelete('closures', closures, c.id))
+  absences.forEach((a) => addPut('absences', absences, a.id))
+  absences.forEach((a) => addDelete('absences', absences, a.id))
 
   return { routes, scheduleRequests, preferences }
 }

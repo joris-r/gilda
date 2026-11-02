@@ -60,11 +60,6 @@ function mountSettings(
   return { calls, mounting: mountApp(path) }
 }
 
-/** The "My preference" selector of the slot listed with `weekday`. */
-function myPreference(wrapper: VueWrapper, weekday: string) {
-  return field(item(wrapper, weekday), 'My preference')
-}
-
 /** The selected option's text of a selector. */
 function shown(select: DOMWrapper<Element>) {
   const element = select.element as HTMLSelectElement
@@ -680,91 +675,16 @@ describe('Schedule settings', () => {
     expect(hasControl(wrapper, 'Edit the closure')).toBe(false)
   })
 
-  describe('My preference', () => {
-    it.each(['manager', 'volunteer'] as const)(
-      'a %s sees their own preference on each slot, "—" when none',
-      async (role) => {
-        const { mounting } = mountSettings(role, null, [
-          { user_id: 'u-alice', slot_id: 's-thu', value: 'preferred' },
-          { user_id: 'u-bruno', slot_id: 's-sat', value: 'unavailable' },
-        ])
-        const wrapper = await mounting
-
-        expect(shown(myPreference(wrapper, 'Thursday'))).toBe('Preferred')
-        expect(shown(myPreference(wrapper, 'Saturday'))).toBe('—')
-      },
-    )
-
-    it('offers "—", Preferred, Possible and Unavailable', async () => {
-      const { mounting } = mountSettings('volunteer')
+  it.each(['manager', 'volunteer'] as const)(
+    'a %s sees no preference selector on the slots',
+    async (role) => {
+      const { mounting } = mountSettings(role)
       const wrapper = await mounting
 
-      const options = myPreference(wrapper, 'Thursday')
-        .findAll('option')
-        .map((o) => o.text().trim())
-      expect(options).toEqual(['—', 'Preferred', 'Possible', 'Unavailable'])
-    })
-
-    it('choosing a value saves it at once with PUT', async () => {
-      const { calls, mounting } = mountSettings('volunteer')
-      const wrapper = await mounting
-
-      await myPreference(wrapper, 'Thursday').setValue('possible')
-      await flushPromises()
-
-      expect(calls).toContainEqual({
-        method: 'PUT',
-        path: `${base}/preferences/s-thu/u-alice`,
-        body: { value: 'possible' },
-      })
-    })
-
-    it('choosing "—" deletes it with DELETE', async () => {
-      const { calls, mounting } = mountSettings('volunteer', null, [
-        { user_id: 'u-alice', slot_id: 's-thu', value: 'preferred' },
-      ])
-      const wrapper = await mounting
-
-      const select = myPreference(wrapper, 'Thursday')
-      const none = select.findAll('option').find((o) => o.text().trim() === '—')!
-      await select.setValue((none.element as HTMLOptionElement).value)
-      await flushPromises()
-
-      expect(calls).toContainEqual({
-        method: 'DELETE',
-        path: `${base}/preferences/s-thu/u-alice`,
-        body: undefined,
-      })
-    })
-
-    it('the selector is marked with its value, unmarked for "—"', async () => {
-      const { mounting } = mountSettings('volunteer', null, [
-        { user_id: 'u-alice', slot_id: 's-thu', value: 'unavailable' },
-      ])
-      const wrapper = await mounting
-
-      expect(preferenceOf(myPreference(wrapper, 'Thursday'))).toBe('unavailable')
-      expect(preferenceOf(myPreference(wrapper, 'Saturday'))).toBeNull()
-
-      await myPreference(wrapper, 'Saturday').setValue('preferred')
-      await flushPromises()
-
-      expect(preferenceOf(myPreference(wrapper, 'Saturday'))).toBe('preferred')
-    })
-
-    it('in French, "Mes préférences" and the values', async () => {
-      localStorage.setItem('gilda.locale', 'fr')
-      const { mounting } = mountSettings('volunteer')
-      const wrapper = await mounting
-
-      expect(pageText(wrapper)).toContain('Mes préférences')
-      const options = wrapper
-        .find('li select')
-        .findAll('option')
-        .map((o) => o.text().trim())
-      expect(options).toEqual(['—', 'Préféré', 'Possible', 'Indisponible'])
-    })
-  })
+      expect(item(wrapper, 'Thursday').find('select').exists()).toBe(false)
+      expect(pageText(wrapper)).not.toContain('My preference')
+    },
+  )
 
   describe("Members' preferences", () => {
     const set: Preference[] = [

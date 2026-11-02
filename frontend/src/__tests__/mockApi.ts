@@ -62,7 +62,7 @@ export function field(wrapper: Wrapper, label: string): DOMWrapper<Element> {
   const element = wrapper.findAll('label').find((l) => l.text().trim().startsWith(label))
   if (element === undefined) throw new Error(`No field labelled "${label}"`)
   const id = element.attributes('for')
-  return id ? wrapper.find(`#${id}`) : element.find('input, select')
+  return id ? wrapper.find(`#${id}`) : element.find('input, select, textarea')
 }
 
 export async function fill(wrapper: Wrapper, label: string, value: string) {

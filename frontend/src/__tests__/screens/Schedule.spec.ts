@@ -125,10 +125,11 @@ describe('Schedule', () => {
     expect(text).not.toContain('Members')
   })
 
-  it('"Members" and "Schedule settings" lead to those screens', async () => {
+  it('"My availability", "Members" and "Schedule settings" lead to those screens', async () => {
     const { mounting } = mountSchedule()
     const wrapper = await mounting
 
+    expect(control(wrapper, 'My availability').attributes('href')).toBe(`${path}/availability`)
     expect(control(wrapper, 'Members').attributes('href')).toBe(`${path}/members`)
     expect(control(wrapper, 'Schedule settings').attributes('href')).toBe(`${path}/settings`)
   })
