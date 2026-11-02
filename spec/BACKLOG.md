@@ -1,6 +1,5 @@
 # Backlog
 
-- Mailer: the confirmation email is English-only; send a bilingual (English/French) message instead, as every later email will be.
 - Accounts: password reset for a forgotten password, by an emailed link.
 - Accounts: a very simple sign-in for volunteers: a revocable personal access link, sent by email, signs them in on one click (e.g. on a phone) to manage their registrations; it grants no management rights. (Today the association's shared spreadsheet is a public, writable link.)
 - Communication: a manager emails the members on demand, e.g. to send them their access link.
