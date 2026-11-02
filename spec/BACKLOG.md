@@ -1,6 +1,5 @@
 # Backlog
 
-- Deployment: an "invitation only" setting, so that only emails a manager already added as members can create an account (today anyone can sign up); the superuser can always create an account.
 - Mailer: the confirmation email is English-only; send a bilingual (English/French) message instead, as every later email will be.
 - Accounts: password reset for a forgotten password, by an emailed link.
 - Accounts: a very simple sign-in for volunteers: a revocable personal access link, sent by email, signs them in on one click (e.g. on a phone) to manage their registrations; it grants no management rights. (Today the association's shared spreadsheet is a public, writable link.)

@@ -27,6 +27,7 @@
     "title": "Create an account",
     "submit": "Create account",
     "exists": "An account already exists for this email. Sign in instead.",
+    "notInvited": "This email has not been invited. Ask a manager of your association to add you as a member.",
     "notSent": "We couldn't send the confirmation email. Try again later.",
     "haveAccount": "Already have an account?",
     "signIn": "Sign in",

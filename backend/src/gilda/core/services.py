@@ -32,10 +32,17 @@ _hasher = PasswordHasher()
 TOKEN_LIFETIME = timedelta(hours=24)
 
 
-def is_superuser(user: User) -> bool:
+def is_superuser_email(email: str) -> bool:
     superuser_email = os.environ.get("SUPERUSER_EMAIL")
-    # User emails are stored lowercased.
-    return superuser_email is not None and superuser_email.lower() == user.email
+    return superuser_email is not None and superuser_email.lower() == email.lower()
+
+
+def is_superuser(user: User) -> bool:
+    return is_superuser_email(user.email)
+
+
+def invitation_only() -> bool:
+    return os.environ.get("INVITATION_ONLY") == "true"
 
 
 class ConflictException(ClientException):
@@ -66,6 +73,8 @@ class AccountService:
         password_hash = _hasher.hash(password)
         user = await self.find_by_email(email)
         if user is None:
+            if invitation_only() and not is_superuser_email(email):
+                raise PermissionDeniedException("This email has not been invited.")
             user = await self.users.add(
                 User(display_name=display_name, email=email.lower(), password_hash=password_hash)
             )

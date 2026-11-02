@@ -20,6 +20,7 @@ async function submit() {
     createdEmail.value = email.value
   } catch (e) {
     if (e instanceof ApiError && e.status === 409) error.value = t('signUp.exists')
+    else if (e instanceof ApiError && e.status === 403) error.value = t('signUp.notInvited')
     else if (e instanceof ApiError && e.status === 503) error.value = t('signUp.notSent')
     else error.value = t('error')
   }
