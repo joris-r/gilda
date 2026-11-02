@@ -51,6 +51,15 @@ export interface Absence {
   last: string
 }
 
+export interface MemberAbsence extends Absence {
+  user_id: string
+}
+
+export interface Note {
+  user_id: string
+  text: string
+}
+
 export interface RegistrationCount {
   user_id: string
   count: number
@@ -76,6 +85,8 @@ export function planningApi(options: {
   registrationCounts?: RegistrationCount[] | null
   absences?: Absence[]
   note?: string
+  memberAbsences?: MemberAbsence[]
+  notes?: Note[]
 }) {
   const occurrences = options.occurrences ?? []
   const registrations = [...(options.registrations ?? [])]
@@ -190,6 +201,25 @@ export function planningApi(options: {
       note = (body as { text: string }).text
       return { status: 200, body: { text: note } }
     },
+    [`GET ${base}/member-absences`]: () =>
+      options.role === 'manager'
+        ? {
+            status: 200,
+            body: [...(options.memberAbsences ?? [])].sort((a, b) =>
+              a.first.localeCompare(b.first),
+            ),
+          }
+        : { status: 403, body: { error: 'Managers only' } },
+    [`GET ${base}/notes`]: () =>
+      options.role === 'manager'
+        ? {
+            status: 200,
+            body: options.members.map((m) => ({
+              user_id: m.user_id,
+              text: options.notes?.find((n) => n.user_id === m.user_id)?.text ?? '',
+            })),
+          }
+        : { status: 403, body: { error: 'Managers only' } },
     [`GET ${base}/registration-counts`]: () =>
       options.role === 'manager'
         ? { status: 200, body: planningPeriod ? (options.registrationCounts ?? []) : null }
@@ -294,6 +324,11 @@ export async function open(element: DOMWrapper<Element>) {
 }
 
 const PREFERENCE_VALUES: PreferenceValue[] = ['preferred', 'possible', 'unavailable']
+
+/** Whether an element is marked absent, by its class `absent`. */
+export function isAbsent(element: DOMWrapper<Element>): boolean {
+  return element.classes().includes('absent')
+}
 
 /** The preference an element is marked with, by its class `preference-<value>`; null when none. */
 export function preferenceOf(element: DOMWrapper<Element>): PreferenceValue | null {

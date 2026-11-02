@@ -21,6 +21,8 @@ NOTE = "Always group my registrations in pairs."
         ("DELETE", f"absences/{UNKNOWN_ID}", None),
         ("GET", "note", None),
         ("PUT", "note", {"text": NOTE}),
+        ("GET", "member-absences", None),
+        ("GET", "notes", None),
     ],
 )
 def test_absences_and_note_401_when_signed_out(
@@ -39,6 +41,8 @@ def test_absences_and_note_401_when_signed_out(
         ("POST", "absences", {"first": "2026-11-09", "last": "2026-11-15"}),
         ("GET", "note", None),
         ("PUT", "note", {"text": NOTE}),
+        ("GET", "member-absences", None),
+        ("GET", "notes", None),
     ],
 )
 def test_absences_and_note_404_when_not_a_member(
@@ -291,4 +295,98 @@ def test_put_api_note_400_when_text_is_missing_or_invalid(
     response = planning.bruno_client.put(planning.path("note"), json=body)
 
     assert response.status_code == 400
+    assert "error" in response.json()
+
+
+# GET /api/associations/{id}/member-absences
+
+
+def test_get_api_member_absences_lists_all_members_by_first_date(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    planning = Planning(client, new_client)
+    chloes = add_absence(planning.chloe_client, planning, "2026-12-21", "2027-01-03")
+    brunos = add_absence(planning.bruno_client, planning, "2026-11-09", "2026-11-15")
+    alices = add_absence(client, planning, "2026-11-30", "2026-11-30")
+
+    response = client.get(planning.path("member-absences"))
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {**brunos, "user_id": planning.bruno["id"]},
+        {**alices, "user_id": planning.alice["id"]},
+        {**chloes, "user_id": planning.chloe["id"]},
+    ]
+
+
+def test_get_api_member_absences_lists_past_ones_too(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    planning = Planning(client, new_client)
+    past = add_absence(planning.bruno_client, planning, "2020-01-06", "2020-01-10")
+
+    response = client.get(planning.path("member-absences"))
+
+    assert response.json() == [{**past, "user_id": planning.bruno["id"]}]
+
+
+def test_get_api_member_absences_is_per_association(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    planning = Planning(client, new_client)
+    other = create_association(client, "Repair Café Belleville")
+    add_absence(client, planning, "2026-11-09", "2026-11-15")
+
+    response = client.get(f"/api/associations/{other['id']}/member-absences")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_get_api_member_absences_403_for_a_volunteer(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    planning = Planning(client, new_client)
+
+    response = planning.bruno_client.get(planning.path("member-absences"))
+
+    assert response.status_code == 403
+    assert "error" in response.json()
+
+
+# GET /api/associations/{id}/notes
+
+
+def test_get_api_notes_one_entry_per_member(client: Any, new_client: Callable[[], Any]) -> None:
+    planning = Planning(client, new_client)
+    planning.bruno_client.put(planning.path("note"), json={"text": NOTE})
+
+    response = client.get(planning.path("notes"))
+
+    assert response.status_code == 200
+    by_user = {entry["user_id"]: entry["text"] for entry in response.json()}
+    assert len(response.json()) == 3
+    assert by_user == {
+        planning.alice["id"]: "",
+        planning.bruno["id"]: NOTE,
+        planning.chloe["id"]: "",
+    }
+
+
+def test_get_api_notes_is_per_association(client: Any, new_client: Callable[[], Any]) -> None:
+    planning = Planning(client, new_client)
+    other = create_association(client, "Repair Café Belleville")
+    client.put(planning.path("note"), json={"text": NOTE})
+
+    response = client.get(f"/api/associations/{other['id']}/notes")
+
+    assert response.json() == [{"user_id": planning.alice["id"], "text": ""}]
+
+
+def test_get_api_notes_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
+    planning = Planning(client, new_client)
+
+    response = planning.bruno_client.get(planning.path("notes"))
+
+    assert response.status_code == 403
     assert "error" in response.json()

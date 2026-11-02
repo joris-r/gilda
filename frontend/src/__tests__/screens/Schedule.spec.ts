@@ -6,11 +6,14 @@ import { garden, member, signedInAsAlice } from './fixtures'
 import {
   day,
   hasDay,
+  isAbsent,
   open,
   planningApi,
   preferenceOf,
   slotItem,
   type Closure,
+  type MemberAbsence,
+  type Note,
   type Occurrence,
   type PlanningPeriod,
   type Preference,
@@ -74,13 +77,18 @@ function mountSchedule(
     planningPeriod?: PlanningPeriod
     preferences?: Preference[]
     registrationCounts?: RegistrationCount[]
+    memberAbsences?: MemberAbsence[]
+    notes?: Note[]
+    members?: ReturnType<typeof member>[]
   } = {},
   at = path,
 ) {
   const api = planningApi({
     me: alice.user_id,
     role,
-    members: [{ ...alice, role }, bruno, chloe],
+    members: (overrides.members ?? [alice, bruno, chloe]).map((m) =>
+      m.user_id === alice.user_id ? { ...m, role } : m,
+    ),
     occurrences: overrides.occurrences ?? occurrences(['2026-11-14']),
     registrations: overrides.registrations ?? registrations.map((r) => ({ ...r })),
     closures: [closure],
@@ -91,6 +99,8 @@ function mountSchedule(
     planningPeriod: overrides.planningPeriod ?? null,
     preferences: overrides.preferences,
     registrationCounts: overrides.registrationCounts,
+    memberAbsences: overrides.memberAbsences,
+    notes: overrides.notes,
   })
   const calls = mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
   return { calls, api, mounting: mountApp(at) }
@@ -619,7 +629,7 @@ describe('Schedule', () => {
       ])
     })
 
-    it('the order of the members and the actions are unchanged', async () => {
+    it('the actions are unchanged', async () => {
       const { calls, mounting } = mountSchedule('manager', {
         preferences,
         registrationCounts,
@@ -629,11 +639,6 @@ describe('Schedule', () => {
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
       expect(hasControl(wrapper, 'Sign up')).toBe(true)
-      expect(memberButtons(wrapper).map((b) => b.text().trim())).toEqual([
-        'Alice (1)',
-        'Bruno (0)',
-        'Chloé (2)',
-      ])
       await press(wrapper, 'Chloé (2)')
 
       expect(calls).toContainEqual({
@@ -650,6 +655,217 @@ describe('Schedule', () => {
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
       expect(hasControl(wrapper, 'Sign up')).toBe(true)
       expect(calls.some((c) => c.path.endsWith('/registration-counts'))).toBe(false)
+    })
+  })
+
+  describe('menu, for a manager: absences and notes', () => {
+    const brunoAway: MemberAbsence = {
+      id: 'ab-bruno',
+      user_id: 'u-bruno',
+      first: '2026-11-16',
+      last: '2026-11-19',
+    }
+
+    it('a member with an absence covering the date is marked absent', async () => {
+      const { mounting } = mountSchedule('manager', { memberAbsences: [brunoAway] })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(isAbsent(control(wrapper, 'Bruno'))).toBe(true)
+      expect(isAbsent(control(wrapper, 'Alice'))).toBe(false)
+      expect(isAbsent(control(wrapper, 'Chloé'))).toBe(false)
+    })
+
+    it('an absence covers the dates from its first to its last', async () => {
+      const { mounting } = mountSchedule('manager', {
+        memberAbsences: [
+          { id: 'ab-bruno', user_id: 'u-bruno', first: '2026-11-19', last: '2026-11-25' },
+          { id: 'ab-chloe', user_id: 'u-chloe', first: '2026-11-10', last: '2026-11-19' },
+          { id: 'ab-alice-1', user_id: 'u-alice', first: '2026-11-13', last: '2026-11-18' },
+          { id: 'ab-alice-2', user_id: 'u-alice', first: '2026-11-20', last: '2026-11-21' },
+        ],
+      })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(isAbsent(control(wrapper, 'Bruno'))).toBe(true)
+      expect(isAbsent(control(wrapper, 'Chloé'))).toBe(true)
+      expect(isAbsent(control(wrapper, 'Alice'))).toBe(false)
+    })
+
+    it('an absent member keeps no preference colour, and can still be proposed the occurrence', async () => {
+      const { calls, mounting } = mountSchedule('manager', {
+        memberAbsences: [brunoAway],
+        preferences: [{ user_id: 'u-bruno', slot_id: 's-thu', value: 'preferred' }],
+      })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(preferenceOf(control(wrapper, 'Bruno'))).toBeNull()
+      await press(wrapper, 'Bruno')
+
+      expect(calls).toContainEqual({
+        method: 'POST',
+        path: registrationsPath,
+        body: { user_id: 'u-bruno', date: '2026-11-19', start: '10:00', end: '13:00' },
+      })
+    })
+
+    it("hovering a name shows the member's note", async () => {
+      const { mounting } = mountSchedule('manager', {
+        notes: [{ user_id: 'u-bruno', text: 'Always group my registrations in pairs.' }],
+      })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(control(wrapper, 'Bruno').attributes('title')).toBe(
+        'Always group my registrations in pairs.',
+      )
+    })
+
+    it('a member with an empty note shows nothing on hover', async () => {
+      const { mounting } = mountSchedule('manager', {
+        notes: [{ user_id: 'u-bruno', text: 'Always group my registrations in pairs.' }],
+      })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(control(wrapper, 'Chloé').attributes('title')).toBeUndefined()
+    })
+
+    it('a volunteer does not load the absences and notes of the members', async () => {
+      const { calls, mounting } = mountSchedule('volunteer')
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(hasControl(wrapper, 'Sign up')).toBe(true)
+      expect(calls.some((c) => c.path.endsWith('/member-absences'))).toBe(false)
+      expect(calls.some((c) => c.path.endsWith('/notes'))).toBe(false)
+    })
+  })
+
+  describe('R27', () => {
+    const planningPeriod = { first: '2026-11-02', last: '2026-11-25' }
+
+    /** The display names of the menu's buttons proposing the occurrence, in order. */
+    async function namesOn(
+      overrides: Parameters<typeof mountSchedule>[1],
+      dayLabel = 'Thu 19 Nov',
+    ) {
+      const { mounting } = mountSchedule('manager', overrides)
+      const wrapper = await mounting
+      await open(slotItem(wrapper, dayLabel, '10–13'))
+      return wrapper
+        .findAll('button')
+        .map((b) => b.text().trim())
+        .filter((t) => /^(Alice|Bruno|Chloé)( \(\d+\))?$/.test(t))
+        .map((t) => t.replace(/ \(\d+\)$/, ''))
+    }
+
+    it('Preferred, then Possible, then none stated', async () => {
+      const names = await namesOn({
+        preferences: [
+          { user_id: 'u-alice', slot_id: 's-thu', value: 'possible' },
+          { user_id: 'u-chloe', slot_id: 's-thu', value: 'preferred' },
+        ],
+      })
+      expect(names).toEqual(['Chloé', 'Alice', 'Bruno'])
+    })
+
+    it('none stated, then Unavailable', async () => {
+      const names = await namesOn({
+        preferences: [
+          { user_id: 'u-alice', slot_id: 's-thu', value: 'unavailable' },
+          { user_id: 'u-chloe', slot_id: 's-thu', value: 'preferred' },
+        ],
+      })
+      expect(names).toEqual(['Chloé', 'Bruno', 'Alice'])
+    })
+
+    it("follows the preferences for the occurrence's slot", async () => {
+      const names = await namesOn(
+        {
+          preferences: [
+            { user_id: 'u-alice', slot_id: 's-thu', value: 'preferred' },
+            { user_id: 'u-chloe', slot_id: 's-thu', value: 'unavailable' },
+            { user_id: 'u-chloe', slot_id: 's-sat', value: 'preferred' },
+          ],
+        },
+        'Sat 21 Nov',
+      )
+      expect(names).toEqual(['Chloé', 'Alice', 'Bruno'])
+    })
+
+    it('absent members come last, whatever their preference', async () => {
+      const names = await namesOn({
+        preferences: [
+          { user_id: 'u-alice', slot_id: 's-thu', value: 'unavailable' },
+          { user_id: 'u-bruno', slot_id: 's-thu', value: 'preferred' },
+        ],
+        memberAbsences: [
+          { id: 'ab-bruno', user_id: 'u-bruno', first: '2026-11-19', last: '2026-11-19' },
+        ],
+      })
+      expect(names).toEqual(['Chloé', 'Alice', 'Bruno'])
+    })
+
+    it('then by fewest registrations', async () => {
+      const names = await namesOn({
+        planningPeriod,
+        registrationCounts: [
+          { user_id: 'u-alice', count: 2 },
+          { user_id: 'u-bruno', count: 0 },
+          { user_id: 'u-chloe', count: 1 },
+        ],
+      })
+      expect(names).toEqual(['Bruno', 'Chloé', 'Alice'])
+    })
+
+    it('the preference comes before the registrations', async () => {
+      const names = await namesOn({
+        planningPeriod,
+        preferences: [{ user_id: 'u-chloe', slot_id: 's-thu', value: 'preferred' }],
+        registrationCounts: [
+          { user_id: 'u-alice', count: 0 },
+          { user_id: 'u-bruno', count: 1 },
+          { user_id: 'u-chloe', count: 2 },
+        ],
+      })
+      expect(names).toEqual(['Chloé', 'Alice', 'Bruno'])
+    })
+
+    it('absent members are sorted by fewest registrations too', async () => {
+      const names = await namesOn({
+        planningPeriod,
+        registrationCounts: [
+          { user_id: 'u-alice', count: 0 },
+          { user_id: 'u-bruno', count: 2 },
+          { user_id: 'u-chloe', count: 1 },
+        ],
+        memberAbsences: [
+          { id: 'ab-bruno', user_id: 'u-bruno', first: '2026-11-19', last: '2026-11-19' },
+          { id: 'ab-chloe', user_id: 'u-chloe', first: '2026-11-19', last: '2026-11-19' },
+        ],
+      })
+      expect(names).toEqual(['Alice', 'Chloé', 'Bruno'])
+    })
+
+    it('then by display name', async () => {
+      const names = await namesOn({ members: [chloe, bruno, alice] })
+      expect(names).toEqual(['Alice', 'Bruno', 'Chloé'])
+    })
+
+    it('then by display name, with equal registrations', async () => {
+      const names = await namesOn({
+        members: [chloe, bruno, alice],
+        planningPeriod,
+        registrationCounts: [
+          { user_id: 'u-alice', count: 1 },
+          { user_id: 'u-bruno', count: 1 },
+          { user_id: 'u-chloe', count: 1 },
+        ],
+      })
+      expect(names).toEqual(['Alice', 'Bruno', 'Chloé'])
     })
   })
 })
