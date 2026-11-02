@@ -55,6 +55,12 @@ def slot_read(slot: Slot) -> SlotRead:
     )
 
 
+def set_closure(closure: Closure, first: date, last: date, label: str | None) -> None:
+    if last < first:
+        raise ClientException("The last date must not be before the first.")
+    closure.first, closure.last, closure.label = first, last, label
+
+
 def closure_read(closure: Closure) -> ClosureRead:
     return ClosureRead(id=closure.id, first=closure.first, last=closure.last, label=closure.label)
 
@@ -107,27 +113,50 @@ class PlanningService:
         self, user: User, association_id: UUID, weekday: Weekday, start: str, end: str
     ) -> SlotRead:
         await self._manager_of(user, association_id)
+        slot = Slot(association_id=association_id)
+        await self._set_slot(slot, weekday, start, end)
+        return slot_read(await self.slots.add(slot))
+
+    async def edit_slot(
+        self,
+        user: User,
+        association_id: UUID,
+        slot_id: UUID,
+        weekday: Weekday,
+        start: str,
+        end: str,
+    ) -> SlotRead:
+        await self._manager_of(user, association_id)
+        slot = await self._slot(association_id, slot_id)
+        await self._set_slot(slot, weekday, start, end)
+        return slot_read(await self.slots.update(slot))
+
+    async def delete_slot(self, user: User, association_id: UUID, slot_id: UUID) -> None:
+        await self._manager_of(user, association_id)
+        slot = await self._slot(association_id, slot_id)
+        await self.slots.delete(slot.id)
+
+    async def _slot(self, association_id: UUID, slot_id: UUID) -> Slot:
+        slot = await self.slots.get_one_or_none(id=slot_id, association_id=association_id)
+        if slot is None:
+            raise NotFoundException("Slot not found.")
+        return slot
+
+    async def _set_slot(self, slot: Slot, weekday: Weekday, start: str, end: str) -> None:
+        """Gives `slot` these values, unless they are invalid or another slot has them."""
         start_time, end_time = parse_clock(start), parse_clock(end)
         if start_time >= end_time:
             raise ClientException("The start must be before the end.")
         weekday_index = WEEKDAYS.index(weekday)
-        if await self.slots.exists(
-            association_id=association_id, weekday=weekday_index, start=start_time, end=end_time
-        ):
-            raise ConflictException("This slot already exists.")
-        slot = await self.slots.add(
-            Slot(
-                association_id=association_id, weekday=weekday_index, start=start_time, end=end_time
-            )
+        same = await self.slots.get_one_or_none(
+            association_id=slot.association_id,
+            weekday=weekday_index,
+            start=start_time,
+            end=end_time,
         )
-        return slot_read(slot)
-
-    async def delete_slot(self, user: User, association_id: UUID, slot_id: UUID) -> None:
-        await self._manager_of(user, association_id)
-        slot = await self.slots.get_one_or_none(id=slot_id, association_id=association_id)
-        if slot is None:
-            raise NotFoundException("Slot not found.")
-        await self.slots.delete(slot.id)
+        if same is not None and same.id != slot.id:
+            raise ConflictException("This slot already exists.")
+        slot.weekday, slot.start, slot.end = weekday_index, start_time, end_time
 
     # Preferences
 
@@ -206,19 +235,34 @@ class PlanningService:
         self, user: User, association_id: UUID, first: date, last: date, label: str | None
     ) -> ClosureRead:
         await self._manager_of(user, association_id)
-        if last < first:
-            raise ClientException("The last date must not be before the first.")
-        closure = await self.closures.add(
-            Closure(association_id=association_id, first=first, last=last, label=label)
-        )
-        return closure_read(closure)
+        closure = Closure(association_id=association_id)
+        set_closure(closure, first, last, label)
+        return closure_read(await self.closures.add(closure))
+
+    async def edit_closure(
+        self,
+        user: User,
+        association_id: UUID,
+        closure_id: UUID,
+        first: date,
+        last: date,
+        label: str | None,
+    ) -> ClosureRead:
+        await self._manager_of(user, association_id)
+        closure = await self._closure(association_id, closure_id)
+        set_closure(closure, first, last, label)
+        return closure_read(await self.closures.update(closure))
 
     async def delete_closure(self, user: User, association_id: UUID, closure_id: UUID) -> None:
         await self._manager_of(user, association_id)
+        closure = await self._closure(association_id, closure_id)
+        await self.closures.delete(closure.id)
+
+    async def _closure(self, association_id: UUID, closure_id: UUID) -> Closure:
         closure = await self.closures.get_one_or_none(id=closure_id, association_id=association_id)
         if closure is None:
             raise NotFoundException("Closure not found.")
-        await self.closures.delete(closure.id)
+        return closure
 
     # Planning period
 

@@ -9,6 +9,8 @@ import {
   deleteClosure,
   deletePreference,
   deleteSlot,
+  editClosure,
+  editSlot,
   getAssociation,
   getPlanningPeriod,
   listClosures,
@@ -44,9 +46,14 @@ const period = ref<PlanningPeriod | null>(null)
 const preferences = ref<Preference[]>([])
 const message = ref<string>()
 
-/** The open dialog, with its error; a confirmation names what it deletes. */
+/**
+ * The open dialog, with its error; a slot or closure dialog names what it edits, if any, and a
+ * confirmation what it deletes.
+ */
 type Open =
-  | { kind: 'period' | 'slot' | 'closure'; error: string }
+  | { kind: 'period'; error: string }
+  | { kind: 'slot'; error: string; editing?: Slot }
+  | { kind: 'closure'; error: string; editing?: Closure }
   | { kind: 'deleteSlot'; slot: Slot }
   | { kind: 'deleteClosure'; closure: Closure }
   | { kind: 'clearPeriod' }
@@ -127,11 +134,24 @@ function openSlot() {
   open.value = { kind: 'slot', error: '' }
 }
 
-async function createSlot() {
+function openSlotEdit(slot: Slot) {
+  weekday.value = slot.weekday
+  start.value = slot.start
+  end.value = slot.end
+  endEdited.value = true
+  open.value = { kind: 'slot', error: '', editing: slot }
+}
+
+async function saveSlot(editing?: Slot) {
   try {
-    const slot = await addSlot(props.id, weekday.value, start.value, end.value)
-    slots.value.push(slot)
-    lastAdded.value = slot
+    if (editing) {
+      const slot = await editSlot(props.id, editing.id, weekday.value, start.value, end.value)
+      slots.value = slots.value.map((s) => (s.id === slot.id ? slot : s))
+    } else {
+      const slot = await addSlot(props.id, weekday.value, start.value, end.value)
+      slots.value.push(slot)
+      lastAdded.value = slot
+    }
     open.value = undefined
   } catch (e) {
     dialogError(failure(e, t('settings.slotExists')))
@@ -175,9 +195,27 @@ function openClosure() {
   open.value = { kind: 'closure', error: '' }
 }
 
-async function createClosure() {
+function openClosureEdit(closure: Closure) {
+  first.value = closure.first
+  last.value = closure.last
+  label.value = closure.label ?? ''
+  open.value = { kind: 'closure', error: '', editing: closure }
+}
+
+async function saveClosure(editing?: Closure) {
   try {
-    closures.value.push(await addClosure(props.id, first.value, last.value, label.value || null))
+    if (editing) {
+      const closure = await editClosure(
+        props.id,
+        editing.id,
+        first.value,
+        last.value,
+        label.value || null,
+      )
+      closures.value = closures.value.map((c) => (c.id === closure.id ? closure : c))
+    } else {
+      closures.value.push(await addClosure(props.id, first.value, last.value, label.value || null))
+    }
     open.value = undefined
   } catch (e) {
     dialogError(failure(e))
@@ -265,12 +303,18 @@ function closureQuestion(closure: Closure) {
           {{ dates(closure) }}
           <div v-if="closure.label" class="sub">{{ closure.label }}</div>
         </div>
-        <IconButton
-          v-if="isManager"
-          icon="delete"
-          :label="t('settings.deleteClosure')"
-          @click="open = { kind: 'deleteClosure', closure }"
-        />
+        <div v-if="isManager" class="line-actions">
+          <IconButton
+            icon="edit"
+            :label="t('settings.editClosure')"
+            @click="openClosureEdit(closure)"
+          />
+          <IconButton
+            icon="delete"
+            :label="t('settings.deleteClosure')"
+            @click="open = { kind: 'deleteClosure', closure }"
+          />
+        </div>
       </li>
     </ul>
 
@@ -293,12 +337,14 @@ function closureQuestion(closure: Closure) {
               @change="choosePreference(slot, user!.id, $event)"
             />
           </label>
-          <IconButton
-            v-if="isManager"
-            icon="delete"
-            :label="t('settings.deleteSlot')"
-            @click="open = { kind: 'deleteSlot', slot }"
-          />
+          <template v-if="isManager">
+            <IconButton icon="edit" :label="t('settings.editSlot')" @click="openSlotEdit(slot)" />
+            <IconButton
+              icon="delete"
+              :label="t('settings.deleteSlot')"
+              @click="open = { kind: 'deleteSlot', slot }"
+            />
+          </template>
         </div>
       </li>
     </ul>
@@ -360,10 +406,10 @@ function closureQuestion(closure: Closure) {
 
     <AppDialog
       v-if="open?.kind === 'closure'"
-      :title="t('settings.addClosureTitle')"
+      :title="t(open.editing ? 'settings.editClosure' : 'settings.addClosureTitle')"
       @close="open = undefined"
     >
-      <form @submit.prevent="createClosure">
+      <form @submit.prevent="saveClosure(open.editing)">
         <div class="fields">
           <label>
             {{ t('settings.first') }}
@@ -380,7 +426,9 @@ function closureQuestion(closure: Closure) {
         </label>
         <p v-if="open.error" class="error">{{ open.error }}</p>
         <div class="dialog-actions">
-          <button type="submit">{{ t('settings.addClosure') }}</button>
+          <button type="submit">
+            {{ t(open.editing ? 'settings.save' : 'settings.addClosure') }}
+          </button>
           <button type="button" class="link" @click="open = undefined">
             {{ t('dialog.cancel') }}
           </button>
@@ -390,10 +438,10 @@ function closureQuestion(closure: Closure) {
 
     <AppDialog
       v-if="open?.kind === 'slot'"
-      :title="t('settings.addSlotTitle')"
+      :title="t(open.editing ? 'settings.editSlot' : 'settings.addSlotTitle')"
       @close="open = undefined"
     >
-      <form @submit.prevent="createSlot">
+      <form @submit.prevent="saveSlot(open.editing)">
         <label>
           {{ t('settings.day') }}
           <select v-model="weekday">
@@ -414,7 +462,9 @@ function closureQuestion(closure: Closure) {
         </div>
         <p v-if="open.error" class="error">{{ open.error }}</p>
         <div class="dialog-actions">
-          <button type="submit">{{ t('settings.addSlot') }}</button>
+          <button type="submit">
+            {{ t(open.editing ? 'settings.save' : 'settings.addSlot') }}
+          </button>
           <button type="button" class="link" @click="open = undefined">
             {{ t('dialog.cancel') }}
           </button>

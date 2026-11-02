@@ -198,6 +198,10 @@ export function addSlot(id: string, weekday: Weekday, start: string, end: string
   return request<Slot>('POST', `/api/associations/${id}/slots`, { weekday, start, end })
 }
 
+export function editSlot(id: string, slotId: string, weekday: Weekday, start: string, end: string) {
+  return request<Slot>('PUT', `/api/associations/${id}/slots/${slotId}`, { weekday, start, end })
+}
+
 export function deleteSlot(id: string, slotId: string) {
   return request<void>('DELETE', `/api/associations/${id}/slots/${slotId}`)
 }
@@ -208,6 +212,20 @@ export function listClosures(id: string) {
 
 export function addClosure(id: string, first: string, last: string, label: string | null) {
   return request<Closure>('POST', `/api/associations/${id}/closures`, { first, last, label })
+}
+
+export function editClosure(
+  id: string,
+  closureId: string,
+  first: string,
+  last: string,
+  label: string | null,
+) {
+  return request<Closure>('PUT', `/api/associations/${id}/closures/${closureId}`, {
+    first,
+    last,
+    label,
+  })
 }
 
 export function deleteClosure(id: string, closureId: string) {

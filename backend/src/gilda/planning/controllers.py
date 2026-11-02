@@ -51,6 +51,19 @@ class PlanningController(Controller):
             current_user, association_id, data.weekday, data.start, data.end
         )
 
+    @put("/slots/{slot_id:uuid}")
+    async def edit_slot(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+        slot_id: FromPath[UUID],
+        data: JSONBody[SlotCreate],
+    ) -> SlotRead:
+        return await PlanningService(db_session).edit_slot(
+            current_user, association_id, slot_id, data.weekday, data.start, data.end
+        )
+
     @delete("/slots/{slot_id:uuid}")
     async def delete_slot(
         self,
@@ -125,6 +138,19 @@ class PlanningController(Controller):
     ) -> ClosureRead:
         return await PlanningService(db_session).add_closure(
             current_user, association_id, data.first, data.last, data.label
+        )
+
+    @put("/closures/{closure_id:uuid}")
+    async def edit_closure(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+        closure_id: FromPath[UUID],
+        data: JSONBody[ClosureCreate],
+    ) -> ClosureRead:
+        return await PlanningService(db_session).edit_closure(
+            current_user, association_id, closure_id, data.first, data.last, data.label
         )
 
     @delete("/closures/{closure_id:uuid}")
