@@ -284,6 +284,22 @@ def test_deleting_a_slot_deletes_its_preferences(
     }
 
 
+def test_editing_a_slot_keeps_its_preferences(client: Any, new_client: Callable[[], Any]) -> None:
+    planning = Planning(client, new_client)
+    slot = planning.add_slot("thursday", "10:00", "13:00")
+    set_preference(planning, planning.bruno_client, slot, planning.bruno, "preferred")
+
+    response = client.put(
+        planning.path(f"slots/{slot['id']}"),
+        json={"weekday": "friday", "start": "14:00", "end": "17:00"},
+    )
+
+    assert response.status_code == 200
+    assert by_user_and_slot(preferences(planning, client)) == {
+        (planning.bruno["id"], slot["id"], "preferred")
+    }
+
+
 def test_a_slot_added_again_has_no_preferences(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")

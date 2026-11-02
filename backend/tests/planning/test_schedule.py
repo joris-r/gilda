@@ -185,6 +185,26 @@ def test_a_registration_whose_slot_changed_hours_is_obsolete(
     ]
 
 
+def test_a_registration_whose_slot_was_edited_is_obsolete(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    planning = Planning(client, new_client)
+    slot = planning.add_slot("thursday", "10:00", "13:00")
+    thursday = day_of_week("thursday")
+    registration = planning.registered(client, planning.bruno, thursday, "10:00", "13:00")
+
+    client.put(
+        planning.path(f"slots/{slot['id']}"),
+        json={"weekday": "thursday", "start": "14:00", "end": "17:00"},
+    )
+
+    body = planning.schedule(client, thursday, thursday)
+    assert body["occurrences"] == [
+        {"date": thursday, "start": "14:00", "end": "17:00", "registration": None}
+    ]
+    assert body["obsolete"] == [registration]
+
+
 def test_a_registration_on_a_closure_date_is_obsolete(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -198,6 +218,28 @@ def test_a_registration_on_a_closure_date_is_obsolete(
 
     assert body["occurrences"] == []
     assert [r["display_name"] for r in body["obsolete"]] == ["Bruno"]
+
+
+def test_a_registration_on_a_date_an_edited_closure_covers_is_obsolete(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    planning = Planning(client, new_client)
+    planning.add_slot("thursday", "10:00", "13:00")
+    planning.add_slot("saturday", "10:00", "13:00")
+    thursday = day_of_week("thursday")
+    saturday = day_of_week("saturday")
+    planning.registered(planning.bruno_client, planning.bruno, thursday, "10:00", "13:00")
+    closure = planning.add_closure(saturday, saturday, "Fête du quartier")
+
+    client.put(
+        planning.path(f"closures/{closure['id']}"),
+        json={"first": thursday, "last": thursday, "label": "Fête du quartier"},
+    )
+
+    body = planning.schedule(client, thursday, saturday)
+    assert [(o["date"], o["registration"]) for o in body["occurrences"]] == [(saturday, None)]
+    assert [(r["display_name"], r["date"]) for r in body["obsolete"]] == [("Bruno", thursday)]
+    assert [(c["first"], c["last"]) for c in body["closures"]] == [(thursday, thursday)]
 
 
 def test_a_cancelled_registration_is_never_obsolete(

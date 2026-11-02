@@ -17,9 +17,15 @@ UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
     [
         ("GET", "slots", None),
         ("POST", "slots", {"weekday": "thursday", "start": "10:00", "end": "13:00"}),
+        ("PUT", f"slots/{UNKNOWN_ID}", {"weekday": "thursday", "start": "10:00", "end": "13:00"}),
         ("DELETE", f"slots/{UNKNOWN_ID}", None),
         ("GET", "closures", None),
         ("POST", "closures", {"first": "2026-12-24", "last": "2026-12-26", "label": None}),
+        (
+            "PUT",
+            f"closures/{UNKNOWN_ID}",
+            {"first": "2026-12-24", "last": "2026-12-26", "label": None},
+        ),
         ("DELETE", f"closures/{UNKNOWN_ID}", None),
         ("GET", "schedule?from=2026-11-02&to=2026-11-08", None),
         (
@@ -164,6 +170,88 @@ def test_post_api_slots_400_when_a_field_is_missing_or_invalid(
     assert "error" in response.json()
 
 
+def test_put_api_slot_edits_it(client: Any, new_client: Callable[[], Any]) -> None:
+    planning = Planning(client, new_client)
+    slot = planning.add_slot("thursday", "10:00", "13:00")
+
+    response = client.put(
+        planning.path(f"slots/{slot['id']}"),
+        json={"weekday": "friday", "start": "14:00", "end": "17:30"},
+    )
+
+    assert response.status_code == 200
+    edited = {"id": slot["id"], "weekday": "friday", "start": "14:00", "end": "17:30"}
+    assert response.json() == edited
+    assert client.get(planning.path("slots")).json() == [edited]
+
+
+def test_put_api_slot_to_its_own_values(client: Any, new_client: Callable[[], Any]) -> None:
+    planning = Planning(client, new_client)
+    slot = planning.add_slot("thursday", "10:00", "13:00")
+
+    response = client.put(
+        planning.path(f"slots/{slot['id']}"),
+        json={"weekday": "thursday", "start": "10:00", "end": "13:00"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == slot
+
+
+def test_put_api_slot_409_when_the_association_already_has_that_slot(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    planning = Planning(client, new_client)
+    planning.add_slot("thursday", "10:00", "13:00")
+    saturday = planning.add_slot("saturday", "10:00", "13:00")
+
+    response = client.put(
+        planning.path(f"slots/{saturday['id']}"),
+        json={"weekday": "thursday", "start": "10:00", "end": "13:00"},
+    )
+
+    assert response.status_code == 409
+    assert "error" in response.json()
+    assert [s["weekday"] for s in client.get(planning.path("slots")).json()] == [
+        "thursday",
+        "saturday",
+    ]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"start": "10:00", "end": "13:00"},
+        {"weekday": "someday", "start": "10:00", "end": "13:00"},
+        {"weekday": "thursday", "start": "13:00", "end": "10:00"},
+        {"weekday": "thursday", "start": "10h", "end": "13:00"},
+    ],
+)
+def test_put_api_slot_400_when_a_field_is_missing_or_invalid(
+    client: Any, new_client: Callable[[], Any], body: dict[str, str]
+) -> None:
+    planning = Planning(client, new_client)
+    slot = planning.add_slot("thursday", "10:00", "13:00")
+
+    response = client.put(planning.path(f"slots/{slot['id']}"), json=body)
+
+    assert response.status_code == 400
+    assert "error" in response.json()
+
+
+def test_put_api_slot_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
+    planning = Planning(client, new_client)
+    slot = planning.add_slot("thursday", "10:00", "13:00")
+
+    response = planning.bruno_client.put(
+        planning.path(f"slots/{slot['id']}"),
+        json={"weekday": "friday", "start": "10:00", "end": "13:00"},
+    )
+
+    assert response.status_code == 403
+    assert client.get(planning.path("slots")).json() == [slot]
+
+
 def test_slots_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -273,3 +361,75 @@ def test_closures_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]
 
     assert (created.status_code, deleted.status_code) == (403, 403)
     assert len(client.get(planning.path("closures")).json()) == 1
+
+
+def test_put_api_closure_edits_it(client: Any, new_client: Callable[[], Any]) -> None:
+    planning = Planning(client, new_client)
+    closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+
+    response = client.put(
+        planning.path(f"closures/{closure['id']}"),
+        json={"first": "2026-11-13", "last": "2026-11-15", "label": "Fête du quartier élargie"},
+    )
+
+    assert response.status_code == 200
+    edited = {
+        "id": closure["id"],
+        "first": "2026-11-13",
+        "last": "2026-11-15",
+        "label": "Fête du quartier élargie",
+    }
+    assert response.json() == edited
+    assert client.get(planning.path("closures")).json() == [edited]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"first": "2026-11-14", "last": "2026-11-14"},
+        {"first": "2026-11-14", "last": "2026-11-14", "label": None},
+    ],
+)
+def test_put_api_closure_label_is_optional(
+    client: Any, new_client: Callable[[], Any], body: dict[str, Any]
+) -> None:
+    planning = Planning(client, new_client)
+    closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+
+    response = client.put(planning.path(f"closures/{closure['id']}"), json=body)
+
+    assert response.status_code == 200
+    assert response.json()["label"] is None
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"last": "2026-11-14"},
+        {"first": "2026-11-15", "last": "2026-11-14"},
+        {"first": "14/11/2026", "last": "2026-11-14"},
+    ],
+)
+def test_put_api_closure_400_when_a_field_is_missing_or_invalid(
+    client: Any, new_client: Callable[[], Any], body: dict[str, str]
+) -> None:
+    planning = Planning(client, new_client)
+    closure = planning.add_closure("2026-11-14", "2026-11-14")
+
+    response = client.put(planning.path(f"closures/{closure['id']}"), json=body)
+
+    assert response.status_code == 400
+    assert "error" in response.json()
+
+
+def test_put_api_closure_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
+    planning = Planning(client, new_client)
+    closure = planning.add_closure("2026-11-14", "2026-11-14")
+
+    response = planning.bruno_client.put(
+        planning.path(f"closures/{closure['id']}"),
+        json={"first": "2026-12-24", "last": "2026-12-26"},
+    )
+
+    assert response.status_code == 403
+    assert client.get(planning.path("closures")).json() == [closure]

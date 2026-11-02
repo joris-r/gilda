@@ -132,6 +132,7 @@ export function planningApi(options: {
     [`POST ${base}/slots`]: (body) => {
       const slot = { id: `s-new-${next++}`, ...(body as Omit<Slot, 'id'>) }
       slots.push(slot)
+      addPut('slots', slots, slot.id)
       addDelete('slots', slots, slot.id)
       addPreferenceRoutes(slot)
       return { status: 201, body: slot }
@@ -146,6 +147,7 @@ export function planningApi(options: {
         label: given.label ?? null,
       }
       closures.push(closure)
+      addPut('closures', closures, closure.id)
       addDelete('closures', closures, closure.id)
       return { status: 201, body: closure }
     },
@@ -200,6 +202,18 @@ export function planningApi(options: {
     }
   }
 
+  function addPut(kind: string, list: { id: string }[], id: string) {
+    routes[`PUT ${base}/${kind}/${id}`] = (body): Reply => {
+      const edited = { id, ...(kind === 'closures' ? { label: null } : {}), ...(body as object) }
+      list.splice(
+        list.findIndex((x) => x.id === id),
+        1,
+        edited,
+      )
+      return { status: 200, body: edited }
+    }
+  }
+
   function addDelete(kind: string, list: { id: string }[], id: string) {
     routes[`DELETE ${base}/${kind}/${id}`] = (): Reply => {
       list.splice(
@@ -211,8 +225,10 @@ export function planningApi(options: {
   }
 
   registrations.forEach(addPatch)
+  slots.forEach((s) => addPut('slots', slots, s.id))
   slots.forEach((s) => addDelete('slots', slots, s.id))
   slots.forEach(addPreferenceRoutes)
+  closures.forEach((c) => addPut('closures', closures, c.id))
   closures.forEach((c) => addDelete('closures', closures, c.id))
 
   return { routes, scheduleRequests, preferences }

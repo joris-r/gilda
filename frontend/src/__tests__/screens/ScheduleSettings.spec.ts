@@ -273,6 +273,80 @@ describe('Schedule settings', () => {
       })
     })
 
+    describe('Edit the slot', () => {
+      /** The current value of the field `label` in the open dialog. */
+      function valueOf(wrapper: VueWrapper, label: string) {
+        return (field(dialog(wrapper), label).element as HTMLInputElement).value
+      }
+
+      it('a slot\'s edit icon opens the dialog "Edit the slot", filled with the slot', async () => {
+        const wrapper = await mountSettings('manager').mounting
+
+        await press(item(wrapper, 'Thursday'), 'Edit the slot')
+
+        const open = dialog(wrapper)
+        expect(titleOf(open)).toBe('Edit the slot')
+        expect(valueOf(wrapper, 'Day')).toBe('thursday')
+        expect(valueOf(wrapper, 'From')).toBe('10:00')
+        expect(valueOf(wrapper, 'To')).toBe('13:00')
+        expect(showsControl(open, 'Save')).toBe(true)
+      })
+
+      it('Save edits the slot with PUT and closes the dialog', async () => {
+        const { calls, mounting } = mountSettings('manager')
+        const wrapper = await mounting
+
+        await press(item(wrapper, 'Thursday'), 'Edit the slot')
+        await fill(dialog(wrapper), 'Day', 'friday')
+        await fill(dialog(wrapper), 'To', '14:00')
+        await press(dialog(wrapper), 'Save')
+
+        expect(calls).toContainEqual({
+          method: 'PUT',
+          path: `${base}/slots/s-thu`,
+          body: { weekday: 'friday', start: '10:00', end: '14:00' },
+        })
+        expect(dialogs(wrapper)).toHaveLength(0)
+        expect(item(wrapper, 'Friday').text()).toContain('10:00–14:00')
+        expect(wrapper.findAll('li').some((li) => li.text().includes('Thursday'))).toBe(false)
+      })
+
+      it('an existing slot keeps the dialog open, with its message', async () => {
+        const { mounting } = mountSettings('manager', undefined, [], {
+          [`PUT ${base}/slots/s-thu`]: { status: 409, body: { error: 'Slot exists' } },
+        })
+        const wrapper = await mounting
+
+        await press(item(wrapper, 'Thursday'), 'Edit the slot')
+        await fill(dialog(wrapper), 'Day', 'saturday')
+        await press(dialog(wrapper), 'Save')
+
+        expect(titleOf(dialog(wrapper))).toBe('Edit the slot')
+        expect(dialog(wrapper).text()).toContain('This slot already exists.')
+      })
+
+      it('changing From leaves To as it is', async () => {
+        const wrapper = await mountSettings('manager').mounting
+
+        await press(item(wrapper, 'Thursday'), 'Edit the slot')
+        await fill(dialog(wrapper), 'From', '09:00')
+
+        expect(valueOf(wrapper, 'To')).toBe('13:00')
+      })
+
+      it('R18: after a slot is edited, Add a slot still opens as in R17', async () => {
+        const wrapper = await mountSettings('manager').mounting
+
+        await press(item(wrapper, 'Thursday'), 'Edit the slot')
+        await fill(dialog(wrapper), 'Day', 'friday')
+        await press(dialog(wrapper), 'Save')
+        await press(wrapper, 'Add a slot')
+
+        expect(valueOf(wrapper, 'From')).toBe('09:00')
+        expect(valueOf(wrapper, 'To')).toBe('09:00')
+      })
+    })
+
     it('a slot\'s delete icon asks "Delete the slot Thursday 10:00–13:00?"', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -360,6 +434,54 @@ describe('Schedule settings', () => {
       expect(body.first).toBe('2027-03-01')
       expect(body.label ?? null).toBeNull()
       expect(pageText(wrapper)).toContain('Mon 1 Mar 2027')
+    })
+
+    it('a closure\'s edit icon opens the dialog "Edit the closure", filled with the closure', async () => {
+      const wrapper = await mountSettings('manager').mounting
+
+      await press(item(wrapper, 'Fête du quartier'), 'Edit the closure')
+
+      const open = dialog(wrapper)
+      const valueOf = (label: string) => (field(open, label).element as HTMLInputElement).value
+      expect(titleOf(open)).toBe('Edit the closure')
+      expect(valueOf('From')).toBe('2026-11-14')
+      expect(valueOf('To')).toBe('2026-11-14')
+      expect(valueOf('Label')).toBe('Fête du quartier')
+      expect(showsControl(open, 'Save')).toBe(true)
+    })
+
+    it('Save edits the closure with PUT and closes the dialog', async () => {
+      const { calls, mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Fête du quartier'), 'Edit the closure')
+      await fill(dialog(wrapper), 'To', '2026-11-15')
+      await fill(dialog(wrapper), 'Label', 'Fête du quartier élargie')
+      await press(dialog(wrapper), 'Save')
+
+      expect(calls).toContainEqual({
+        method: 'PUT',
+        path: `${base}/closures/c-fete`,
+        body: { first: '2026-11-14', last: '2026-11-15', label: 'Fête du quartier élargie' },
+      })
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(item(wrapper, 'Fête du quartier élargie').text()).toContain(
+        'Sat 14 Nov 2026 – Sun 15 Nov 2026',
+      )
+    })
+
+    it('Save with the label emptied removes it', async () => {
+      const { calls, mounting } = mountSettings('manager')
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Fête du quartier'), 'Edit the closure')
+      await fill(dialog(wrapper), 'Label', '')
+      await press(dialog(wrapper), 'Save')
+
+      const put = calls.find((c) => c.method === 'PUT' && c.path === `${base}/closures/c-fete`)
+      const body = put?.body as { label?: string | null }
+      expect(body.label ?? null).toBeNull()
+      expect(pageText(wrapper)).not.toContain('Fête du quartier')
     })
 
     it('a closure\'s delete icon asks "Delete the closure "Fête du quartier"?"', async () => {
@@ -548,6 +670,14 @@ describe('Schedule settings', () => {
     expect(hasControl(wrapper, 'Delete the closure')).toBe(false)
     expect(hasControl(wrapper, 'Add a slot')).toBe(false)
     expect(hasControl(wrapper, 'Add a closure')).toBe(false)
+  })
+
+  it('a volunteer sees no edit icons on slots and closures', async () => {
+    const { mounting } = mountSettings('volunteer')
+    const wrapper = await mounting
+
+    expect(hasControl(wrapper, 'Edit the slot')).toBe(false)
+    expect(hasControl(wrapper, 'Edit the closure')).toBe(false)
   })
 
   describe('My preference', () => {
