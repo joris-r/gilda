@@ -213,6 +213,91 @@ def test_post_api_accounts_400_when_the_body_is_not_json(client: Any) -> None:
     assert "error" in response.json()
 
 
+def test_r19_invitation_only_403_for_an_email_not_invited(
+    client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sign_up(client, "Alice")
+    association = create_association(client)
+    email = unique_email("Mallory")
+    monkeypatch.setenv("INVITATION_ONLY", "true")
+
+    response = new_client().post(
+        "/api/accounts",
+        json={"display_name": "Mallory", "email": email, "password": PASSWORD},
+    )
+
+    assert response.status_code == 403
+    assert "error" in response.json()
+    # Nothing saved: adding the email afterwards creates a new user, named by the manager.
+    member = add_member(client, association["id"], "Marie", email).json()
+    assert member["display_name"] == "Marie"
+    assert member["has_account"] is False
+
+
+def test_r19_invitation_only_creates_the_account_of_an_added_member(
+    client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sign_up(client, "Alice")
+    association = create_association(client)
+    chloe_email = unique_email("Chloe")
+    add_member(client, association["id"], "Chloé", chloe_email)
+    monkeypatch.setenv("INVITATION_ONLY", "true")
+
+    response = new_client().post(
+        "/api/accounts",
+        json={"display_name": "Chloé", "email": chloe_email.upper(), "password": PASSWORD},
+    )
+
+    assert response.status_code == 201
+
+
+def test_r19_invitation_only_creates_the_account_of_the_superuser(
+    new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = unique_email("Root")
+    monkeypatch.setenv("INVITATION_ONLY", "true")
+    monkeypatch.setenv("SUPERUSER_EMAIL", email)
+
+    response = new_client().post(
+        "/api/accounts",
+        json={"display_name": "Root", "email": email, "password": PASSWORD},
+    )
+
+    assert response.status_code == 201
+
+
+def test_r19_invitation_only_still_409_for_an_email_with_an_account(
+    client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+    monkeypatch.setenv("INVITATION_ONLY", "true")
+
+    response = new_client().post(
+        "/api/accounts",
+        json={"display_name": "Alice", "email": email, "password": PASSWORD},
+    )
+
+    assert response.status_code == 409
+
+
+@pytest.mark.parametrize("value", [None, "", "false", "yes"])
+def test_r19_sign_up_is_open_unless_invitation_only_is_true(
+    value: str | None, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    if value is None:
+        monkeypatch.delenv("INVITATION_ONLY", raising=False)
+    else:
+        monkeypatch.setenv("INVITATION_ONLY", value)
+
+    response = new_client().post(
+        "/api/accounts",
+        json={"display_name": "Alice", "email": unique_email("Alice"), "password": PASSWORD},
+    )
+
+    assert response.status_code == 201
+
+
 # POST /api/session
 
 

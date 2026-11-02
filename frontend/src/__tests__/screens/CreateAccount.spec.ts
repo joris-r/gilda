@@ -81,6 +81,21 @@ describe('Create an account', () => {
     )
   })
 
+  it('says so when the email was not invited (R19)', async () => {
+    mockApi({
+      'GET /api/session': signedOut,
+      'POST /api/accounts': { status: 403, body: { error: 'Not invited' } },
+    })
+    const wrapper = await mountApp('/signup')
+
+    await fillTheForm(wrapper)
+    await press(wrapper, 'Create account')
+
+    expect(pageText(wrapper)).toContain(
+      'This email has not been invited. Ask a manager of your association to add you as a member.',
+    )
+  })
+
   it('says so when the confirmation email cannot be sent', async () => {
     mockApi({
       'GET /api/session': signedOut,
