@@ -1,6 +1,12 @@
 from advanced_alchemy.repository import SQLAlchemyAsyncRepository
 
-from gilda.core.models import Association, EmailVerificationToken, Membership, User
+from gilda.core.models import (
+    Association,
+    EmailVerificationToken,
+    Membership,
+    PasswordResetToken,
+    User,
+)
 
 
 class UserRepository(SQLAlchemyAsyncRepository[User]):
@@ -9,6 +15,10 @@ class UserRepository(SQLAlchemyAsyncRepository[User]):
 
 class EmailVerificationTokenRepository(SQLAlchemyAsyncRepository[EmailVerificationToken]):
     model_type = EmailVerificationToken
+
+
+class PasswordResetTokenRepository(SQLAlchemyAsyncRepository[PasswordResetToken]):
+    model_type = PasswordResetToken
 
 
 class AssociationRepository(SQLAlchemyAsyncRepository[Association]):

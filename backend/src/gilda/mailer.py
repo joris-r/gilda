@@ -16,6 +16,17 @@ _VERIFICATION_TEXTS: dict[Language, tuple[str, str]] = {
     "fr": ("Confirmez votre adresse e-mail", "Confirmez votre adresse e-mail en ouvrant ce lien :"),
 }
 
+_RESET_TEXTS: dict[Language, tuple[str, str]] = {
+    "en": (
+        "Reset your password",
+        "Choose a new password by opening this link, valid for one hour:",
+    ),
+    "fr": (
+        "Réinitialisez votre mot de passe",
+        "Choisissez un nouveau mot de passe en ouvrant ce lien, valable une heure :",
+    ),
+}
+
 
 def preferred_language(accept_language: str | None) -> Language:
     """French when the Accept-Language header prefers it over English, English otherwise."""
@@ -37,8 +48,16 @@ def preferred_language(accept_language: str | None) -> Language:
 
 
 def send_verification_email(to_email: str, token: str, language: Language) -> None:
-    link = f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/verify-email?token={token}"
-    subject, text = _VERIFICATION_TEXTS[language]
+    _send_link(to_email, "verify-email", token, _VERIFICATION_TEXTS[language])
+
+
+def send_password_reset_email(to_email: str, token: str, language: Language) -> None:
+    _send_link(to_email, "reset-password", token, _RESET_TEXTS[language])
+
+
+def _send_link(to_email: str, page: str, token: str, texts: tuple[str, str]) -> None:
+    link = f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/{page}?token={token}"
+    subject, text = texts
     message = EmailMessage()
     message["Subject"] = subject
     message["From"] = os.environ.get("SMTP_FROM", "no-reply@gilda.example")

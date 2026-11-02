@@ -87,6 +87,14 @@ export function resendVerification(email: string) {
   return request<void>('POST', '/api/accounts/verify/resend', { email })
 }
 
+export function requestPasswordReset(email: string) {
+  return request<void>('POST', '/api/accounts/password-reset', { email })
+}
+
+export function resetPassword(token: string, password: string) {
+  return request<User>('POST', '/api/accounts/password-reset/confirm', { token, password })
+}
+
 export function listAssociations() {
   return request<HomeAssociation[]>('GET', '/api/associations')
 }

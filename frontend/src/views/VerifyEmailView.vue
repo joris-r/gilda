@@ -1,26 +1,28 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { verifyEmail } from '../api'
+import { useSession } from '../session'
 
 const { t } = useI18n()
 const route = useRoute()
-const confirmed = ref<boolean>()
+const router = useRouter()
+const { user } = useSession()
+const invalid = ref(false)
 
 onMounted(async () => {
   try {
-    await verifyEmail(String(route.query.token ?? ''))
-    confirmed.value = true
+    user.value = await verifyEmail(String(route.query.token ?? ''))
+    await router.push('/')
   } catch {
-    confirmed.value = false
+    invalid.value = true
   }
 })
 </script>
 
 <template>
-  <p v-if="confirmed === true">{{ t('verifyEmail.confirmed') }}</p>
-  <template v-else-if="confirmed === false">
+  <template v-if="invalid">
     <p>{{ t('verifyEmail.invalid') }}</p>
     <RouterLink to="/signup">{{ t('signIn.createAccount') }}</RouterLink>
   </template>

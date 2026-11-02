@@ -58,5 +58,16 @@ class EmailVerificationToken(UUIDv7Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
+class PasswordResetToken(UUIDv7Base):
+    __tablename__ = "password_reset_token"
+
+    # One pending reset per user: issuing a new one replaces it (R8).
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("user_account.id", ondelete="CASCADE"), unique=True
+    )
+    token: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class UserSession(SessionModelMixin):
     __tablename__ = "user_session"

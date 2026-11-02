@@ -17,6 +17,8 @@ from gilda.core.schemas import (
     MemberCreate,
     MemberRead,
     MemberUpdate,
+    PasswordResetConfirm,
+    PasswordResetRequest,
     ResendRequest,
     SessionRead,
     UserRead,
@@ -46,6 +48,11 @@ def session_read(user: User) -> SessionRead:
     )
 
 
+def sign_in_as(request: Request[Any, Any, Any], user: User) -> SessionRead:
+    set_session_with_new_id(request, {SESSION_USER_KEY: str(user.id)})
+    return session_read(user)
+
+
 async def provide_current_user(
     request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession]
 ) -> User:
@@ -71,10 +78,13 @@ class AccountController(Controller):
 
     @post("/accounts/verify", status_code=200)
     async def verify_email(
-        self, db_session: NamedDependency[AsyncSession], data: JSONBody[VerifyRequest]
-    ) -> UserRead:
+        self,
+        request: Request[Any, Any, Any],
+        db_session: NamedDependency[AsyncSession],
+        data: JSONBody[VerifyRequest],
+    ) -> SessionRead:
         user = await AccountService(db_session).confirm(data.token)
-        return user_read(user)
+        return sign_in_as(request, user)
 
     @post("/accounts/verify/resend", status_code=204)
     async def resend_verification(
@@ -85,6 +95,25 @@ class AccountController(Controller):
     ) -> None:
         await AccountService(db_session).resend_confirmation(data.email, email_language(request))
 
+    @post("/accounts/password-reset", status_code=204)
+    async def request_password_reset(
+        self,
+        request: Request[Any, Any, Any],
+        db_session: NamedDependency[AsyncSession],
+        data: JSONBody[PasswordResetRequest],
+    ) -> None:
+        await AccountService(db_session).request_password_reset(data.email, email_language(request))
+
+    @post("/accounts/password-reset/confirm", status_code=200)
+    async def reset_password(
+        self,
+        request: Request[Any, Any, Any],
+        db_session: NamedDependency[AsyncSession],
+        data: JSONBody[PasswordResetConfirm],
+    ) -> SessionRead:
+        user = await AccountService(db_session).reset_password(data.token, data.password)
+        return sign_in_as(request, user)
+
     @post("/session", status_code=200)
     async def sign_in(
         self,
@@ -93,8 +122,7 @@ class AccountController(Controller):
         data: JSONBody[Credentials],
     ) -> SessionRead:
         user = await AccountService(db_session).authenticate(data.email, data.password)
-        set_session_with_new_id(request, {SESSION_USER_KEY: str(user.id)})
-        return session_read(user)
+        return sign_in_as(request, user)
 
     @get("/session", dependencies={"current_user": Provide(provide_current_user)})
     async def get_session(self, current_user: NamedDependency[User]) -> SessionRead:

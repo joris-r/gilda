@@ -29,6 +29,15 @@ class ResendRequest(msgspec.Struct):
     email: Email
 
 
+class PasswordResetRequest(msgspec.Struct):
+    email: Email
+
+
+class PasswordResetConfirm(msgspec.Struct):
+    token: str
+    password: Password
+
+
 class UserRead(msgspec.Struct):
     id: UUID
     display_name: str

@@ -17,19 +17,33 @@ from litestar.exceptions import (
 from litestar.status_codes import HTTP_409_CONFLICT
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gilda.core.models import Association, EmailVerificationToken, Membership, Role, User
+from gilda.core.models import (
+    Association,
+    EmailVerificationToken,
+    Membership,
+    PasswordResetToken,
+    Role,
+    User,
+)
 from gilda.core.repositories import (
     AssociationRepository,
     EmailVerificationTokenRepository,
     MembershipRepository,
+    PasswordResetTokenRepository,
     UserRepository,
 )
 from gilda.core.schemas import AssociationDetail, AssociationRead, MemberRead
-from gilda.mailer import EmailNotSentError, Language, send_verification_email
+from gilda.mailer import (
+    EmailNotSentError,
+    Language,
+    send_password_reset_email,
+    send_verification_email,
+)
 
 _logger = logging.getLogger(__name__)
 _hasher = PasswordHasher()
 TOKEN_LIFETIME = timedelta(hours=24)
+RESET_TOKEN_LIFETIME = timedelta(hours=1)
 
 
 def is_superuser_email(email: str) -> bool:
@@ -65,6 +79,7 @@ class AccountService:
     def __init__(self, db_session: AsyncSession) -> None:
         self.users = UserRepository(session=db_session)
         self.tokens = EmailVerificationTokenRepository(session=db_session)
+        self.reset_tokens = PasswordResetTokenRepository(session=db_session)
 
     async def find_by_email(self, email: str) -> User | None:
         return await self.users.get_one_or_none(email=email.lower())
@@ -130,6 +145,40 @@ class AccountService:
             except EmailNotSentError:
                 # Still 204: an error here would reveal that the email has a pending account.
                 _logger.exception("Resending the confirmation email failed")
+
+    async def request_password_reset(self, email: str, language: Language) -> None:
+        user = await self.find_by_email(email)
+        if user is None or not user.has_account:
+            return
+        existing = await self.reset_tokens.get_one_or_none(user_id=user.id)
+        if existing is not None:
+            await self.reset_tokens.delete(existing.id)
+        token = await self.reset_tokens.add(
+            PasswordResetToken(
+                user_id=user.id,
+                token=secrets.token_urlsafe(32),
+                expires_at=datetime.now(UTC) + RESET_TOKEN_LIFETIME,
+            )
+        )
+        try:
+            send_password_reset_email(user.email, token.token, language)
+        except EmailNotSentError:
+            # Still 204: an error here would reveal that the email has an account.
+            _logger.exception("Sending the password reset email failed")
+
+    async def reset_password(self, token: str, password: str) -> User:
+        record = await self.reset_tokens.get_one_or_none(token=token)
+        if record is None or record.expires_at < datetime.now(UTC):
+            raise NotFoundException("This reset link is unknown or expired.")
+        user = await self.get(record.user_id)
+        assert user is not None  # the foreign key guarantees it
+        user.password_hash = _hasher.hash(password)
+        if user.email_verified_at is None:
+            # The link reached the user's mailbox, which proves the email.
+            user.email_verified_at = datetime.now(UTC)
+        await self.users.update(user)
+        await self.reset_tokens.delete(record.id)
+        return user
 
     async def _issue_token(self, user: User, language: Language) -> None:
         # R8: a new token replaces any pending one.

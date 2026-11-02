@@ -21,7 +21,8 @@
     "submit": "Se connecter",
     "wrong": "E-mail ou mot de passe incorrect.",
     "noAccount": "Pas encore de compte ?",
-    "createAccount": "Créer un compte"
+    "createAccount": "Créer un compte",
+    "forgot": "Mot de passe oublié ?"
   },
   "signUp": {
     "title": "Créer un compte",
@@ -36,8 +37,20 @@
     "resent": "E-mail envoyé."
   },
   "verifyEmail": {
-    "confirmed": "E-mail confirmé. Vous pouvez maintenant vous connecter.",
     "invalid": "Ce lien n'est plus valide."
+  },
+  "forgotPassword": {
+    "title": "Mot de passe oublié ?",
+    "submit": "Envoyer un lien de réinitialisation",
+    "sent": "Si {email} a un compte, un lien de réinitialisation lui a été envoyé.",
+    "back": "Retour à la connexion"
+  },
+  "resetPassword": {
+    "title": "Choisissez un nouveau mot de passe",
+    "password": "Nouveau mot de passe",
+    "submit": "Enregistrer le mot de passe",
+    "invalid": "Ce lien n'est plus valide.",
+    "requestNew": "Demander un nouveau lien"
   },
   "myAssociations": {
     "title": "Mes associations",

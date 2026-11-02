@@ -21,7 +21,8 @@
     "submit": "Sign in",
     "wrong": "Wrong email or password.",
     "noAccount": "No account yet?",
-    "createAccount": "Create an account"
+    "createAccount": "Create an account",
+    "forgot": "Forgot your password?"
   },
   "signUp": {
     "title": "Create an account",
@@ -36,8 +37,20 @@
     "resent": "Email sent."
   },
   "verifyEmail": {
-    "confirmed": "Email confirmed. You can now sign in.",
     "invalid": "This link is no longer valid."
+  },
+  "forgotPassword": {
+    "title": "Forgot your password?",
+    "submit": "Send a reset link",
+    "sent": "If {email} has an account, a reset link has been sent to it.",
+    "back": "Back to Sign in"
+  },
+  "resetPassword": {
+    "title": "Choose a new password",
+    "password": "New password",
+    "submit": "Set password",
+    "invalid": "This link is no longer valid.",
+    "requestNew": "Request a new link"
   },
   "myAssociations": {
     "title": "My associations",
