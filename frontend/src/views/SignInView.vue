@@ -36,6 +36,7 @@ async function submit() {
     <p v-if="error" class="error">{{ error }}</p>
     <button type="submit">{{ t('signIn.submit') }}</button>
     <RouterLink to="/forgot-password">{{ t('signIn.forgot') }}</RouterLink>
+    <RouterLink to="/sign-in-link">{{ t('signIn.emailLink') }}</RouterLink>
   </form>
   <p class="hint">
     {{ t('signIn.noAccount') }}

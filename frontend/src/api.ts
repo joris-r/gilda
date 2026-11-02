@@ -26,6 +26,7 @@ export interface Member {
   email: string
   has_account: boolean
   email_verified: boolean
+  access_link: boolean
   role: Role
 }
 
@@ -95,6 +96,18 @@ export function resetPassword(token: string, password: string) {
   return request<User>('POST', '/api/accounts/password-reset/confirm', { token, password })
 }
 
+export function requestAccessLink(email: string) {
+  return request<void>('POST', '/api/access-link', { email })
+}
+
+export function signInWithLink(token: string) {
+  return request<User>('POST', '/api/session/access-link', { token })
+}
+
+export function revokeAccessLink() {
+  return request<void>('DELETE', '/api/access-link')
+}
+
 export function listAssociations() {
   return request<HomeAssociation[]>('GET', '/api/associations')
 }
@@ -113,6 +126,10 @@ export function addMember(id: string, display_name: string, email: string, role:
 
 export function changeRole(id: string, userId: string, role: Role) {
   return request<Member>('PATCH', `/api/associations/${id}/members/${userId}`, { role })
+}
+
+export function revokeMemberLink(id: string, userId: string) {
+  return request<void>('DELETE', `/api/associations/${id}/members/${userId}/access-link`)
 }
 
 export type Weekday =

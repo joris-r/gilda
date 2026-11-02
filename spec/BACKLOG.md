@@ -1,6 +1,5 @@
 # Backlog
 
-- Accounts: a very simple sign-in for volunteers: a revocable personal access link, sent by email, signs them in on one click (e.g. on a phone) to manage their registrations; it grants no management rights. (Today the association's shared spreadsheet is a public, writable link.)
 - Communication: a manager emails the members on demand, e.g. to send them their access link.
 - UX: no inline creation or editing on pages; a button opens a form to create, an icon opens editing. Study it as one consistent design across the pages it affects, before the new forms below.
 - Planning: a personal page per association, e.g. "My availability" ("Mes disponibilités"), where a member sets their slot preferences (moved out of Schedule settings), their absence periods, and a note for the managers with standing instructions (e.g. "always group my registrations in pairs").
@@ -16,6 +15,7 @@
 - Association: a manager can change the association's timezone (fixed to Europe/Paris for now) and set its preferred language, used for emails sent to its members by someone else (e.g. a manager); My associations then needs the timezone in `GET /api/associations`.
 - Spec: `GET /api/associations` and My associations sit in the core pages though R12–R14 are planning's; move them to a home page once other modules add their part.
 - Cleanup: purge expired sessions (Advanced Alchemy's delete_expired) and expired email confirmation and password reset tokens regularly, so their tables stay small.
+- API: drop `has_account` from members, which no screen uses since the access link.
 
 ## Quality
 

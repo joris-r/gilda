@@ -22,7 +22,8 @@
     "wrong": "Wrong email or password.",
     "noAccount": "No account yet?",
     "createAccount": "Create an account",
-    "forgot": "Forgot your password?"
+    "forgot": "Forgot your password?",
+    "emailLink": "Sign in with an email link"
   },
   "signUp": {
     "title": "Create an account",
@@ -45,6 +46,17 @@
     "sent": "If {email} has an account, a reset link has been sent to it.",
     "back": "Back to Sign in"
   },
+  "signInLink": {
+    "title": "Sign in with an email link",
+    "submit": "Send me a link",
+    "sent": "If {email} is known here, a sign-in link has been sent to it.",
+    "back": "Back to Sign in"
+  },
+  "accessLink": {
+    "revoke": "Revoke my sign-in link",
+    "confirmRevoke": "Revoke your sign-in link? Sessions opened with it are signed out.",
+    "revoked": "Your sign-in link is revoked."
+  },
   "resetPassword": {
     "title": "Choose a new password",
     "password": "New password",
@@ -64,8 +76,6 @@
   },
   "association": {
     "members": "Members",
-    "noAccount": "no account",
-    "pending": "pending",
     "changeRole": "Change role",
     "confirmRole": "Make {name} {role}?",
     "confirm": "Confirm",
@@ -76,7 +86,11 @@
     "submit": "Add member",
     "added": "{name} added.",
     "alreadyMember": "{name} is already a member.",
-    "showAll": "Show all {n} members"
+    "showAll": "Show all {n} members",
+    "notJoined": "not joined yet",
+    "revokeLink": "Revoke link",
+    "confirmRevokeLink": "Revoke {name}'s sign-in link?",
+    "linkRevoked": "{name}'s sign-in link is revoked."
   },
   "weekdays": {
     "monday": "Monday",

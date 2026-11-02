@@ -38,6 +38,14 @@ class PasswordResetConfirm(msgspec.Struct):
     password: Password
 
 
+class AccessLinkRequest(msgspec.Struct):
+    email: Email
+
+
+class AccessLinkSignIn(msgspec.Struct):
+    token: NonEmpty
+
+
 class UserRead(msgspec.Struct):
     id: UUID
     display_name: str
@@ -74,6 +82,7 @@ class MemberRead(msgspec.Struct):
     email: str
     has_account: bool
     email_verified: bool
+    access_link: bool
     role: Role
 
 

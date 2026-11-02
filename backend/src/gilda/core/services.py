@@ -18,6 +18,7 @@ from litestar.status_codes import HTTP_409_CONFLICT
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from gilda.core.models import (
+    AccessLink,
     Association,
     EmailVerificationToken,
     Membership,
@@ -26,6 +27,7 @@ from gilda.core.models import (
     User,
 )
 from gilda.core.repositories import (
+    AccessLinkRepository,
     AssociationRepository,
     EmailVerificationTokenRepository,
     MembershipRepository,
@@ -36,6 +38,7 @@ from gilda.core.schemas import AssociationDetail, AssociationRead, MemberRead
 from gilda.mailer import (
     EmailNotSentError,
     Language,
+    send_access_link_email,
     send_password_reset_email,
     send_verification_email,
 )
@@ -63,7 +66,7 @@ class ConflictException(ClientException):
     status_code = HTTP_409_CONFLICT
 
 
-def member_read(membership: Membership) -> MemberRead:
+def member_read(membership: Membership, access_link: bool) -> MemberRead:
     user = membership.user
     return MemberRead(
         user_id=user.id,
@@ -71,6 +74,7 @@ def member_read(membership: Membership) -> MemberRead:
         email=user.email,
         has_account=user.has_account,
         email_verified=user.email_verified,
+        access_link=access_link,
         role=cast(Role, membership.role),
     )
 
@@ -80,6 +84,7 @@ class AccountService:
         self.users = UserRepository(session=db_session)
         self.tokens = EmailVerificationTokenRepository(session=db_session)
         self.reset_tokens = PasswordResetTokenRepository(session=db_session)
+        self.access_links = AccessLinkRepository(session=db_session)
 
     async def find_by_email(self, email: str) -> User | None:
         return await self.users.get_one_or_none(email=email.lower())
@@ -180,6 +185,40 @@ class AccountService:
         await self.reset_tokens.delete(record.id)
         return user
 
+    async def send_access_link(self, email: str, language: Language) -> None:
+        user = await self.find_by_email(email)
+        if user is None:
+            return
+        # R25: the same link until it is revoked, so older emails keep working.
+        link = await self.access_links.get_one_or_none(user_id=user.id)
+        if link is None:
+            link = await self.access_links.add(
+                AccessLink(user_id=user.id, token=secrets.token_urlsafe(32))
+            )
+        try:
+            send_access_link_email(user.email, link.token, language)
+        except EmailNotSentError:
+            # Still 204: an error here would reveal that the email is known.
+            _logger.exception("Sending the access link email failed")
+
+    async def sign_in_with_link(self, token: str) -> tuple[User, AccessLink]:
+        link = await self.access_links.get_one_or_none(token=token)
+        if link is None:
+            raise NotFoundException("This link is unknown or revoked.")
+        user = await self.get(link.user_id)
+        assert user is not None  # the foreign key guarantees it
+        if user.email_verified_at is None:
+            # The link reached the user's mailbox, which proves the email.
+            user.email_verified_at = datetime.now(UTC)
+            await self.users.update(user)
+        return user, link
+
+    async def link_exists(self, link_id: UUID) -> bool:
+        return await self.access_links.exists(id=link_id)
+
+    async def revoke_link(self, user_id: UUID) -> None:
+        await revoke_access_link(self.access_links, user_id)
+
     async def _issue_token(self, user: User, language: Language) -> None:
         # R8: a new token replaces any pending one.
         existing = await self.tokens.get_one_or_none(user_id=user.id)
@@ -195,11 +234,19 @@ class AccountService:
         send_verification_email(user.email, token.token, language)
 
 
+async def revoke_access_link(links: AccessLinkRepository, user_id: UUID) -> None:
+    # R23: sessions opened by the link check it still exists (see provide_current_user).
+    link = await links.get_one_or_none(user_id=user_id)
+    if link is not None:
+        await links.delete(link.id)
+
+
 class AssociationService:
     def __init__(self, db_session: AsyncSession) -> None:
         self.users = UserRepository(session=db_session)
         self.associations = AssociationRepository(session=db_session)
         self.memberships = MembershipRepository(session=db_session)
+        self.access_links = AccessLinkRepository(session=db_session)
 
     async def create(self, user: User, name: str) -> AssociationRead:
         association = await self.associations.add(Association(name=name))
@@ -211,12 +258,16 @@ class AssociationService:
     async def detail(self, user: User, association_id: UUID) -> AssociationDetail:
         own = await self._membership_of(user, association_id)
         members = await self.memberships.list(association_id=association_id)
+        user_ids = [m.user_id for m in members]
+        with_link = {
+            link.user_id for link in await self.access_links.list(AccessLink.user_id.in_(user_ids))
+        }
         return AssociationDetail(
             id=own.association.id,
             name=own.association.name,
             timezone=own.association.timezone,
             role=cast(Role, own.role),
-            members=[member_read(m) for m in members],
+            members=[member_read(m, m.user_id in with_link) for m in members],
         )
 
     async def add_member(
@@ -234,7 +285,7 @@ class AssociationService:
             Membership(user_id=user.id, association_id=association_id, role=role),
             auto_refresh=True,
         )
-        return member_read(membership)
+        return await self._member_read(membership)
 
     async def change_role(
         self, manager: User, association_id: UUID, user_id: UUID, role: Role
@@ -250,7 +301,16 @@ class AssociationService:
             if managers == 1:
                 raise ConflictException("An association keeps at least one manager.")
         membership.role = role
-        return member_read(await self.memberships.update(membership))
+        return await self._member_read(await self.memberships.update(membership))
+
+    async def revoke_member_link(self, manager: User, association_id: UUID, user_id: UUID) -> None:
+        await self._manager_of(manager, association_id)
+        if not await self.memberships.exists(user_id=user_id, association_id=association_id):
+            raise NotFoundException("Not a member of this association.")
+        await revoke_access_link(self.access_links, user_id)
+
+    async def _member_read(self, membership: Membership) -> MemberRead:
+        return member_read(membership, await self.access_links.exists(user_id=membership.user_id))
 
     async def _membership_of(self, user: User, association_id: UUID) -> Membership:
         membership = await self.memberships.get_one_or_none(

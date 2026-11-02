@@ -7,8 +7,10 @@ from litestar.exceptions import NotAuthorizedException
 from litestar.params import FromPath, JSONBody
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gilda.core.models import User
+from gilda.core.models import AccessLink, User
 from gilda.core.schemas import (
+    AccessLinkRequest,
+    AccessLinkSignIn,
     AccountCreate,
     AssociationCreate,
     AssociationDetail,
@@ -29,6 +31,7 @@ from gilda.core.sessions import set_session_with_new_id
 from gilda.mailer import Language, preferred_language
 
 SESSION_USER_KEY = "user_id"
+SESSION_LINK_KEY = "access_link_id"
 
 
 def email_language(request: Request[Any, Any, Any]) -> Language:
@@ -48,16 +51,26 @@ def session_read(user: User) -> SessionRead:
     )
 
 
-def sign_in_as(request: Request[Any, Any, Any], user: User) -> SessionRead:
-    set_session_with_new_id(request, {SESSION_USER_KEY: str(user.id)})
+def sign_in_as(
+    request: Request[Any, Any, Any], user: User, access_link: AccessLink | None = None
+) -> SessionRead:
+    session = {SESSION_USER_KEY: str(user.id)}
+    if access_link is not None:
+        session[SESSION_LINK_KEY] = str(access_link.id)
+    set_session_with_new_id(request, session)
     return session_read(user)
 
 
 async def provide_current_user(
     request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession]
 ) -> User:
-    user_id = request.session.get(SESSION_USER_KEY) if request.session else None
-    user = await AccountService(db_session).get(UUID(user_id)) if user_id else None
+    session = request.session or {}
+    accounts = AccountService(db_session)
+    user_id = session.get(SESSION_USER_KEY)
+    user = await accounts.get(UUID(user_id)) if user_id else None
+    link_id = session.get(SESSION_LINK_KEY)
+    if link_id and not await accounts.link_exists(UUID(link_id)):
+        user = None
     if user is None:
         raise NotAuthorizedException("Not signed in.")
     return user
@@ -124,6 +137,31 @@ class AccountController(Controller):
         user = await AccountService(db_session).authenticate(data.email, data.password)
         return sign_in_as(request, user)
 
+    @post("/access-link", status_code=204)
+    async def send_access_link(
+        self,
+        request: Request[Any, Any, Any],
+        db_session: NamedDependency[AsyncSession],
+        data: JSONBody[AccessLinkRequest],
+    ) -> None:
+        await AccountService(db_session).send_access_link(data.email, email_language(request))
+
+    @post("/session/access-link", status_code=200)
+    async def sign_in_with_link(
+        self,
+        request: Request[Any, Any, Any],
+        db_session: NamedDependency[AsyncSession],
+        data: JSONBody[AccessLinkSignIn],
+    ) -> SessionRead:
+        user, link = await AccountService(db_session).sign_in_with_link(data.token)
+        return sign_in_as(request, user, link)
+
+    @delete("/access-link", dependencies={"current_user": Provide(provide_current_user)})
+    async def revoke_access_link(
+        self, current_user: NamedDependency[User], db_session: NamedDependency[AsyncSession]
+    ) -> None:
+        await AccountService(db_session).revoke_link(current_user.id)
+
     @get("/session", dependencies={"current_user": Provide(provide_current_user)})
     async def get_session(self, current_user: NamedDependency[User]) -> SessionRead:
         return session_read(current_user)
@@ -178,4 +216,16 @@ class AssociationController(Controller):
     ) -> MemberRead:
         return await AssociationService(db_session).change_role(
             current_user, association_id, user_id, data.role
+        )
+
+    @delete("/{association_id:uuid}/members/{user_id:uuid}/access-link")
+    async def revoke_member_link(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+        user_id: FromPath[UUID],
+    ) -> None:
+        await AssociationService(db_session).revoke_member_link(
+            current_user, association_id, user_id
         )

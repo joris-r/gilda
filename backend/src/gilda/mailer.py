@@ -27,6 +27,18 @@ _RESET_TEXTS: dict[Language, tuple[str, str]] = {
     ),
 }
 
+_ACCESS_LINK_TEXTS: dict[Language, tuple[str, str]] = {
+    "en": (
+        "Your sign-in link",
+        "Sign in by opening this link. Keep this email: the link stays valid until you revoke it.",
+    ),
+    "fr": (
+        "Votre lien de connexion",
+        "Connectez-vous en ouvrant ce lien. Conservez cet e-mail : le lien"
+        " reste valable jusqu'à ce que vous le révoquiez.",
+    ),
+}
+
 
 def preferred_language(accept_language: str | None) -> Language:
     """French when the Accept-Language header prefers it over English, English otherwise."""
@@ -53,6 +65,10 @@ def send_verification_email(to_email: str, token: str, language: Language) -> No
 
 def send_password_reset_email(to_email: str, token: str, language: Language) -> None:
     _send_link(to_email, "reset-password", token, _RESET_TEXTS[language])
+
+
+def send_access_link_email(to_email: str, token: str, language: Language) -> None:
+    _send_link(to_email, "access", token, _ACCESS_LINK_TEXTS[language])
 
 
 def _send_link(to_email: str, page: str, token: str, texts: tuple[str, str]) -> None:

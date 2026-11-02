@@ -22,7 +22,8 @@
     "wrong": "E-mail ou mot de passe incorrect.",
     "noAccount": "Pas encore de compte ?",
     "createAccount": "Créer un compte",
-    "forgot": "Mot de passe oublié ?"
+    "forgot": "Mot de passe oublié ?",
+    "emailLink": "Se connecter par un lien envoyé par e-mail"
   },
   "signUp": {
     "title": "Créer un compte",
@@ -45,6 +46,17 @@
     "sent": "Si {email} a un compte, un lien de réinitialisation lui a été envoyé.",
     "back": "Retour à la connexion"
   },
+  "signInLink": {
+    "title": "Se connecter par un lien envoyé par e-mail",
+    "submit": "M'envoyer un lien",
+    "sent": "Si {email} est connu ici, un lien de connexion lui a été envoyé.",
+    "back": "Retour à la connexion"
+  },
+  "accessLink": {
+    "revoke": "Révoquer mon lien de connexion",
+    "confirmRevoke": "Révoquer votre lien de connexion ? Les sessions ouvertes avec lui seront déconnectées.",
+    "revoked": "Votre lien de connexion est révoqué."
+  },
   "resetPassword": {
     "title": "Choisissez un nouveau mot de passe",
     "password": "Nouveau mot de passe",
@@ -64,8 +76,6 @@
   },
   "association": {
     "members": "Membres",
-    "noAccount": "sans compte",
-    "pending": "en attente",
     "changeRole": "Changer le rôle",
     "confirmRole": "Passer {name} {role} ?",
     "confirm": "Confirmer",
@@ -76,7 +86,11 @@
     "submit": "Ajouter",
     "added": "{name} ajouté·e.",
     "alreadyMember": "{name} est déjà membre.",
-    "showAll": "Voir les {n} membres"
+    "showAll": "Voir les {n} membres",
+    "notJoined": "pas encore connecté·e",
+    "revokeLink": "Révoquer le lien",
+    "confirmRevokeLink": "Révoquer le lien de connexion de {name} ?",
+    "linkRevoked": "Le lien de connexion de {name} est révoqué."
   },
   "weekdays": {
     "monday": "Lundi",

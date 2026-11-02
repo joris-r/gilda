@@ -6,6 +6,7 @@ import {
   ApiError,
   changeRole,
   getAssociation,
+  revokeMemberLink,
   type Association,
   type Member,
   type Role,
@@ -22,7 +23,8 @@ const { user } = useSession()
 const location = useLocation()
 
 const association = ref<Association>()
-const confirming = ref<string>()
+/** The member whose line asks to confirm an action, and which one. */
+const confirming = ref<{ userId: string; action: 'role' | 'link' }>()
 const message = ref<{ text: string; ok: boolean }>()
 const showAll = ref(false)
 const adding = ref(false)
@@ -80,6 +82,17 @@ async function confirmRole(member: Member) {
   }
 }
 
+async function confirmRevoke(member: Member) {
+  confirming.value = undefined
+  try {
+    await revokeMemberLink(props.id, member.user_id)
+    member.access_link = false
+    message.value = { ok: true, text: t('association.linkRevoked', { name: member.display_name }) }
+  } catch {
+    message.value = { ok: false, text: t('error') }
+  }
+}
+
 async function add() {
   const name = displayName.value
   try {
@@ -105,22 +118,25 @@ async function add() {
       <li v-for="member in shownMembers" :key="member.user_id">
         <div>
           {{ member.display_name }}
-          <span v-if="!member.has_account" class="no-account">{{
-            t('association.noAccount')
-          }}</span>
-          <span v-else-if="!member.email_verified" class="no-account">{{
-            t('association.pending')
+          <span v-if="!member.email_verified" class="no-account">{{
+            t('association.notJoined')
           }}</span>
           <div class="sub">{{ member.email }}</div>
         </div>
-        <div v-if="isManager && confirming === member.user_id" class="actions">
-          <span class="sub">{{
+        <div v-if="isManager && confirming?.userId === member.user_id" class="actions">
+          <span v-if="confirming.action === 'link'" class="sub">{{
+            t('association.confirmRevokeLink', { name: member.display_name })
+          }}</span>
+          <span v-else class="sub">{{
             t('association.confirmRole', {
               name: member.display_name,
               role: t(`roleNames.${otherRole(member)}`),
             })
           }}</span>
-          <button type="button" @click="confirmRole(member)">
+          <button
+            type="button"
+            @click="confirming.action === 'link' ? confirmRevoke(member) : confirmRole(member)"
+          >
             {{ t('association.confirm') }}
           </button>
           <button type="button" class="link" @click="confirming = undefined">
@@ -129,8 +145,21 @@ async function add() {
         </div>
         <div v-else class="actions">
           <span :class="['role', member.role]">{{ t(`roles.${member.role}`) }}</span>
-          <button v-if="isManager" type="button" class="link" @click="confirming = member.user_id">
+          <button
+            v-if="isManager"
+            type="button"
+            class="link"
+            @click="confirming = { userId: member.user_id, action: 'role' }"
+          >
             {{ t('association.changeRole') }}
+          </button>
+          <button
+            v-if="isManager && member.access_link"
+            type="button"
+            class="link"
+            @click="confirming = { userId: member.user_id, action: 'link' }"
+          >
+            {{ t('association.revokeLink') }}
           </button>
         </div>
       </li>
