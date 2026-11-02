@@ -42,6 +42,7 @@ def manager_and_volunteer(
             {"display_name": "Chloé", "email": "chloe@example.org", "role": "volunteer"},
         ),
         ("PATCH", f"/api/associations/{UNKNOWN_ID}/members/{UNKNOWN_ID}", {"role": "manager"}),
+        ("DELETE", f"/api/associations/{UNKNOWN_ID}/members/{UNKNOWN_ID}/access-link", None),
     ],
 )
 def test_associations_401_when_signed_out(
@@ -147,6 +148,7 @@ def test_get_api_association_shows_its_members(client: Any, new_client: Callable
             "email": alice_email,
             "has_account": True,
             "email_verified": True,
+            "access_link": False,
             "role": "manager",
         },
         {
@@ -155,6 +157,7 @@ def test_get_api_association_shows_its_members(client: Any, new_client: Callable
             "email": chloe_email,
             "has_account": False,
             "email_verified": False,
+            "access_link": False,
             "role": "volunteer",
         },
     ]
@@ -208,6 +211,7 @@ def test_post_api_members_creates_a_user_without_password(client: Any) -> None:
         "email": email,
         "has_account": False,
         "email_verified": False,
+        "access_link": False,
         "role": "volunteer",
     }
     uuid.UUID(body["user_id"])
@@ -240,6 +244,7 @@ def test_r3_adding_an_existing_user_keeps_their_display_name(
         "email": bruno_email,
         "has_account": True,
         "email_verified": True,
+        "access_link": False,
         "role": "volunteer",
     }
 
@@ -318,6 +323,7 @@ def test_patch_api_member_changes_the_role(client: Any, new_client: Callable[[],
         "email": bruno_user["email"],
         "has_account": True,
         "email_verified": True,
+        "access_link": False,
         "role": "manager",
     }
     assert bruno.get(f"/api/associations/{association['id']}").json()["role"] == "manager"

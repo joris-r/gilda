@@ -269,4 +269,58 @@ test.describe('Scenarios', () => {
       await signIn(page, alice, newPassword)
     })
   })
+
+  test('a volunteer signs in by link', async ({ page }) => {
+    const association = `Jardin partagé ${Date.now()}`
+    const alice = uniqueEmail('Alice')
+    const chloe = uniqueEmail('Chloe')
+    const chloeLine = page.getByRole('listitem').filter({ hasText: 'Chloé' })
+    let link = ''
+
+    await test.step('1. Alice adds Chloé, who shows "not joined yet"', async () => {
+      await signUp(page, 'Alice', alice)
+      await createAssociation(page, association)
+      await page.getByRole('link', { name: 'Members', exact: true }).click()
+      await addMember(page, 'Chloé', chloe, 'Volunteer')
+      await expect(chloeLine).toContainText('not joined yet')
+      await signOut(page)
+    })
+
+    await test.step('2. Chloé asks for a link and signs in with it', async () => {
+      await page.getByText('Sign in with an email link', { exact: true }).click()
+      await page.getByLabel('Email', { exact: true }).fill(chloe)
+      await page.getByRole('button', { name: 'Send me a link' }).click()
+      await expect(page.getByText(`If ${chloe} is known here`)).toBeVisible()
+      link = `/access?token=${await latestToken(chloe)}`
+      await page.goto(link)
+      await expect(page.getByText('My associations')).toBeVisible()
+      await expect(page.getByRole('listitem').filter({ hasText: association })).toContainText(
+        /volunteer/i,
+      )
+      await signOut(page)
+    })
+
+    await test.step('3. Chloé opens the link again and is signed in', async () => {
+      await page.goto(link)
+      await expect(page.getByText('My associations')).toBeVisible()
+      await signOut(page)
+    })
+
+    await test.step("4. Alice sees Chloé joined and revokes her link", async () => {
+      await signIn(page, alice)
+      await page.getByText(association, { exact: true }).click()
+      await page.getByRole('link', { name: 'Members', exact: true }).click()
+      await expect(chloeLine).toContainText('chloe')
+      await expect(chloeLine).not.toContainText('not joined yet')
+      await chloeLine.getByText('Revoke link', { exact: true }).click()
+      await chloeLine.getByText('Confirm', { exact: true }).click()
+      await expect(page.getByText("Chloé's sign-in link is revoked.")).toBeVisible()
+      await signOut(page)
+    })
+
+    await test.step('5. The link is no longer valid', async () => {
+      await page.goto(link)
+      await expect(page.getByText('This link is no longer valid.')).toBeVisible()
+    })
+  })
 })

@@ -104,22 +104,29 @@ describe('Members', () => {
     expect(names).toEqual(['Alice', 'Zoé', 'Bruno', 'Chloé'])
   })
 
-  it('marks members without an account with "no account"', async () => {
+  it('marks a member without a password as "not joined yet"', async () => {
     const { mounting } = mountAs('manager', [alice, chloe])
     const wrapper = await mounting
 
-    expect(item(wrapper, 'Chloé').text()).toContain('no account')
-    expect(item(wrapper, 'Alice').text()).not.toContain('no account')
+    expect(item(wrapper, 'Chloé').text()).toContain('not joined yet')
+    expect(item(wrapper, 'Alice').text()).not.toContain('not joined yet')
   })
 
-  it('marks a member with a password but an unconfirmed email as "pending"', async () => {
-    const bruno_pending = member('u-bruno', 'Bruno', 'volunteer', true, false)
-    const { mounting } = mountAs('manager', [alice, bruno_pending])
+  it('marks a member with a password but an unconfirmed email as "not joined yet"', async () => {
+    const brunoPending = member('u-bruno', 'Bruno', 'volunteer', true, false)
+    const { mounting } = mountAs('manager', [alice, brunoPending])
     const wrapper = await mounting
 
-    expect(item(wrapper, 'Bruno').text()).toContain('pending')
-    expect(item(wrapper, 'Bruno').text()).not.toContain('no account')
-    expect(item(wrapper, 'Alice').text()).not.toContain('pending')
+    expect(item(wrapper, 'Bruno').text()).toContain('not joined yet')
+  })
+
+  it('does not mark a member without a password whose email is confirmed', async () => {
+    const chloeByLink = member('u-chloe', 'Chloé', 'volunteer', false, true, true)
+    const { mounting } = mountAs('manager', [alice, chloeByLink])
+    const wrapper = await mounting
+
+    expect(item(wrapper, 'Chloé').text()).not.toContain('not joined yet')
+    expect(item(wrapper, 'Chloé').text()).not.toContain('no account')
   })
 
   describe('member list', () => {
@@ -294,13 +301,72 @@ describe('Members', () => {
     })
   })
 
+  describe('Revoke link', () => {
+    const brunoWithLink = member('u-bruno', 'Bruno', 'volunteer', true, true, true)
+
+    it('shows only for a member with an access link', async () => {
+      const { mounting } = mountAs('manager', [alice, brunoWithLink])
+      const wrapper = await mounting
+
+      expect(hasControl(item(wrapper, 'Bruno'), 'Revoke link')).toBe(true)
+      expect(hasControl(item(wrapper, 'Alice'), 'Revoke link')).toBe(false)
+    })
+
+    it('asks for confirmation before calling the API', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, brunoWithLink])
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Bruno'), 'Revoke link')
+
+      expect(item(wrapper, 'Bruno').text()).toContain("Revoke Bruno's sign-in link?")
+      expect(hasControl(item(wrapper, 'Bruno'), 'Change role')).toBe(false)
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+    })
+
+    it('Confirm revokes it with DELETE and says so', async () => {
+      let members = [alice, brunoWithLink]
+      const { calls, mounting } = mountAs('manager', [], {
+        [`GET /api/associations/${garden.id}`]: () => associationAs('manager', members),
+        [`DELETE ${membersPath}/u-bruno/access-link`]: () => {
+          members = [alice, bruno]
+          return { status: 204 }
+        },
+      })
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Bruno'), 'Revoke link')
+      await press(item(wrapper, 'Bruno'), 'Confirm')
+
+      expect(calls).toContainEqual({
+        method: 'DELETE',
+        path: `${membersPath}/u-bruno/access-link`,
+        body: undefined,
+      })
+      expect(pageText(wrapper)).toContain("Bruno's sign-in link is revoked.")
+      expect(hasControl(item(wrapper, 'Bruno'), 'Revoke link')).toBe(false)
+    })
+
+    it('Cancel leaves the link', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, brunoWithLink])
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Bruno'), 'Revoke link')
+      await press(item(wrapper, 'Bruno'), 'Cancel')
+
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+      expect(hasControl(item(wrapper, 'Bruno'), 'Revoke link')).toBe(true)
+    })
+  })
+
   describe('as a volunteer', () => {
-    it('shows members and roles without Change role or Add a member', async () => {
-      const { mounting } = mountAs('volunteer', [zoe, bruno, alice])
+    it('shows members and roles without Change role, Revoke link or Add a member', async () => {
+      const brunoWithLink = member('u-bruno', 'Bruno', 'volunteer', true, true, true)
+      const { mounting } = mountAs('volunteer', [zoe, brunoWithLink, alice])
       const wrapper = await mounting
 
       expect(item(wrapper, 'Zoé').text().toLowerCase()).toContain('manager')
       expect(pageText(wrapper)).not.toContain('Change role')
+      expect(pageText(wrapper)).not.toContain('Revoke link')
       expect(pageText(wrapper)).not.toContain('Add a member')
       expect(() => control(wrapper, 'Add member')).toThrow()
     })

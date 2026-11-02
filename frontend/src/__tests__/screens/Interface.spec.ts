@@ -128,18 +128,76 @@ describe("An email the user triggers is in the interface's language", () => {
 })
 
 describe('Header', () => {
-  it('signed in, the display name opens a menu with the language selector and Sign out', async () => {
+  it('signed in, the display name opens a menu with the language selector, "Revoke my sign-in link" and Sign out', async () => {
     const wrapper = await mountApp('/')
     const top = header(wrapper)
 
     expect(top.text()).toContain('Alice')
     expect(showsField(top, 'Language')).toBe(false)
     expect(showsControl(top, 'Sign out')).toBe(false)
+    expect(showsControl(top, 'Revoke my sign-in link')).toBe(false)
 
     await openUserMenu(wrapper, 'Alice')
 
     expect(showsField(header(wrapper), 'Language')).toBe(true)
+    expect(showsControl(header(wrapper), 'Revoke my sign-in link')).toBe(true)
     expect(showsControl(header(wrapper), 'Sign out')).toBe(true)
+  })
+
+  it('"Revoke my sign-in link" asks for confirmation before calling the API', async () => {
+    const calls = mockApi({
+      'GET /api/session': signedInAsAlice,
+      'GET /api/associations': { status: 200, body: [] },
+    })
+    const wrapper = await mountApp('/')
+
+    await openUserMenu(wrapper, 'Alice')
+    await press(header(wrapper), 'Revoke my sign-in link')
+
+    expect(pageText(wrapper)).toContain(
+      'Revoke your sign-in link? Sessions opened with it are signed out.',
+    )
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+
+    await press(wrapper, 'Cancel')
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+  })
+
+  it('Confirm revokes the link with DELETE and says so', async () => {
+    const calls = mockApi({
+      'GET /api/session': signedInAsAlice,
+      'GET /api/associations': { status: 200, body: [] },
+      'DELETE /api/access-link': { status: 204 },
+    })
+    const wrapper = await mountApp('/')
+
+    await openUserMenu(wrapper, 'Alice')
+    await press(header(wrapper), 'Revoke my sign-in link')
+    await press(wrapper, 'Confirm')
+
+    expect(calls).toContainEqual({ method: 'DELETE', path: '/api/access-link', body: undefined })
+    expect(pageText(wrapper)).toContain('Your sign-in link is revoked.')
+    expect(pageText(wrapper)).toContain('My associations')
+  })
+
+  it('Confirm leads to Sign in when this session was opened with the link', async () => {
+    let revoked = false
+    mockApi({
+      'GET /api/session': () => (revoked ? signedOut : signedInAsAlice),
+      'GET /api/associations': () => (revoked ? signedOut : { status: 200, body: [] }),
+      'DELETE /api/access-link': () => {
+        revoked = true
+        return { status: 204 }
+      },
+    })
+    const wrapper = await mountApp('/')
+
+    await openUserMenu(wrapper, 'Alice')
+    await press(header(wrapper), 'Revoke my sign-in link')
+    await press(wrapper, 'Confirm')
+
+    expect(wrapper.vm.$route.path).toBe('/')
+    expect(showsField(wrapper, 'Password')).toBe(true)
   })
 
   it('the language selector switches between English and French', async () => {

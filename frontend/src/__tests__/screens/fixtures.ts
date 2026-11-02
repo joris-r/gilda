@@ -13,6 +13,7 @@ export function member(
   role: 'manager' | 'volunteer',
   hasAccount = true,
   emailVerified = hasAccount,
+  accessLink = false,
 ) {
   return {
     user_id: userId,
@@ -20,6 +21,7 @@ export function member(
     email: `${displayName.toLowerCase()}@example.org`,
     has_account: hasAccount,
     email_verified: emailVerified,
+    access_link: accessLink,
     role,
   }
 }

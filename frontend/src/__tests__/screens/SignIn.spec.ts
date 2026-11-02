@@ -82,6 +82,17 @@ describe('Sign in', () => {
     expect(field(wrapper, 'Email').exists()).toBe(true)
   })
 
+  it('"Sign in with an email link" leads to /sign-in-link', async () => {
+    mockApi({ 'GET /api/session': signedOut })
+    const wrapper = await mountApp('/')
+
+    await press(wrapper, 'Sign in with an email link')
+
+    expect(wrapper.vm.$route.path).toBe('/sign-in-link')
+    expect(pageText(wrapper)).toContain('Sign in with an email link')
+    expect(field(wrapper, 'Email').exists()).toBe(true)
+  })
+
   it('is shown on an association page when signed out', async () => {
     mockApi({ 'GET /api/session': signedOut })
 
