@@ -1,6 +1,5 @@
 # Backlog
 
-- Schedule: in the list of members a manager can propose an occurrence to, show who is absent on its date and each member's note on hovering their name (managers are assumed to use a real screen); sort it first by preference for its slot (Preferred, Possible, Unavailable, then absent), then by fewest registrations in the planning period.
 - Association: a manager can remove a member from the association.
 - Planning: a volunteer whose registration becomes obsolete (its slot removed or closed) is told so and acknowledges it; today it silently disappears from their Home summary.
 - Frontend: the page width is capped at 640px, cramped on a wide screen; raise the cap (check the Schedule week grid there). The Create an account form is also narrower on a wide screen than on a narrow one.
