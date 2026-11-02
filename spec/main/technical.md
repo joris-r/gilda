@@ -25,7 +25,7 @@
   - PostgreSQL, through SQLAlchemy async with asyncpg; schema changes
     through Advanced Alchemy's Alembic migrations.
   - Configuration from environment variables; the database from
-    `DATABASE_URL`.
+    `DATABASE_URL`, the superuser from `SUPERUSER_EMAIL`.
   - Setting a preference is a single PostgreSQL
     `INSERT … ON CONFLICT (user_id, slot_id) DO UPDATE`; the last write
     wins.

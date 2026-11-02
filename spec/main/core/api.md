@@ -86,9 +86,12 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 Set-Cookie: session=…
 
-{"id": "0b6f…", "display_name": "Alice", "email": "alice@example.org"}
+{"id": "0b6f…", "display_name": "Alice", "email": "alice@example.org", "superuser": false}
 ```
 
+- `superuser` is true when the user's email equals
+  `SUPERUSER_EMAIL`, ignoring case; always false when that variable
+  is unset.
 - 401 when the email is unknown, has no account, the email is not
   confirmed, or the password is wrong; the response does not say
   which.
