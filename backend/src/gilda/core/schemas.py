@@ -35,6 +35,10 @@ class UserRead(msgspec.Struct):
     email: str
 
 
+class SessionRead(UserRead):
+    superuser: bool
+
+
 class AssociationCreate(msgspec.Struct):
     name: NonEmpty
 

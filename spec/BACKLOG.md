@@ -1,6 +1,6 @@
 # Backlog
 
-- Deployment: an "invitation only" setting, so that only emails a manager already added as members can create an account (today anyone can sign up).
+- Deployment: an "invitation only" setting, so that only emails a manager already added as members can create an account (today anyone can sign up); the superuser can always create an account.
 - Mailer: the confirmation email is English-only; send a bilingual (English/French) message instead, as every later email will be.
 - Accounts: password reset for a forgotten password, by an emailed link.
 - Accounts: a very simple sign-in for volunteers: a revocable personal access link, sent by email, signs them in on one click (e.g. on a phone) to manage their registrations; it grants no management rights. (Today the association's shared spreadsheet is a public, writable link.)
@@ -16,7 +16,6 @@
 - Planning: with many slots in a day, the narrow-screen Schedule becomes unusable; stack a day's slots vertically in a single column. (3–4 slots a day, as at La Fabrique, work today.)
 - Schedule: opening it waits for the planning period before loading the weeks; let `GET …/schedule` default to the range the screen needs (six weeks, extended to the period) so it takes one request.
 - Planning: a manager creates a revocable read-only share link to the Schedule, viewable without signing in (e.g. on the association's office PC).
-- Admin: a superuser, the account whose email is set in an environment variable; its powers are still to define.
 - Association: a manager can change the association's timezone (fixed to Europe/Paris for now); My associations then needs it in `GET /api/associations`.
 - Spec: `GET /api/associations` and My associations sit in the core pages though R12–R14 are planning's; move them to a home page once other modules add their part.
 - Sessions: purge expired sessions regularly (Advanced Alchemy's delete_expired), so the user_session table stays small.

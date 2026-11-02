@@ -1,4 +1,5 @@
 import logging
+import os
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import cast
@@ -29,6 +30,12 @@ from gilda.mailer import EmailNotSentError, send_verification_email
 _logger = logging.getLogger(__name__)
 _hasher = PasswordHasher()
 TOKEN_LIFETIME = timedelta(hours=24)
+
+
+def is_superuser(user: User) -> bool:
+    superuser_email = os.environ.get("SUPERUSER_EMAIL")
+    # User emails are stored lowercased.
+    return superuser_email is not None and superuser_email.lower() == user.email
 
 
 class ConflictException(ClientException):

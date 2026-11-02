@@ -18,10 +18,11 @@ from gilda.core.schemas import (
     MemberRead,
     MemberUpdate,
     ResendRequest,
+    SessionRead,
     UserRead,
     VerifyRequest,
 )
-from gilda.core.services import AccountService, AssociationService
+from gilda.core.services import AccountService, AssociationService, is_superuser
 from gilda.core.sessions import set_session_with_new_id
 
 SESSION_USER_KEY = "user_id"
@@ -29,6 +30,15 @@ SESSION_USER_KEY = "user_id"
 
 def user_read(user: User) -> UserRead:
     return UserRead(id=user.id, display_name=user.display_name, email=user.email)
+
+
+def session_read(user: User) -> SessionRead:
+    return SessionRead(
+        id=user.id,
+        display_name=user.display_name,
+        email=user.email,
+        superuser=is_superuser(user),
+    )
 
 
 async def provide_current_user(
@@ -72,14 +82,14 @@ class AccountController(Controller):
         request: Request[Any, Any, Any],
         db_session: NamedDependency[AsyncSession],
         data: JSONBody[Credentials],
-    ) -> UserRead:
+    ) -> SessionRead:
         user = await AccountService(db_session).authenticate(data.email, data.password)
         set_session_with_new_id(request, {SESSION_USER_KEY: str(user.id)})
-        return user_read(user)
+        return session_read(user)
 
     @get("/session", dependencies={"current_user": Provide(provide_current_user)})
-    async def get_session(self, current_user: NamedDependency[User]) -> UserRead:
-        return user_read(current_user)
+    async def get_session(self, current_user: NamedDependency[User]) -> SessionRead:
+        return session_read(current_user)
 
     @delete("/session")
     async def sign_out(self, request: Request[Any, Any, Any]) -> None:
