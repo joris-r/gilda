@@ -1,6 +1,6 @@
 # Backlog
 
-- UX: no inline creation or editing on pages; a button opens a form to create, an icon opens editing. Study it as one consistent design across the pages it affects, before the new forms below.
+- Planning: a manager edits a closure or a slot, from an edit icon on its line in Schedule settings opening the same dialog as Add (`forms` left them add and delete only, as the API cannot change them); for a slot, decide what happens to its registrations.
 - Planning: a personal page per association, e.g. "My availability" ("Mes disponibilités"), where a member sets their slot preferences (moved out of Schedule settings), their absence periods, and a note for the managers with standing instructions (e.g. "always group my registrations in pairs").
 - Schedule: in the list of members a manager can propose an occurrence to, show who is absent on its date and each member's note on hovering their name (managers are assumed to use a real screen); sort it first by preference for its slot (Preferred, Possible, Unavailable, then absent), then by fewest registrations in the planning period.
 - Association: a manager can remove a member from the association.
