@@ -25,7 +25,7 @@ from gilda.core.repositories import (
     UserRepository,
 )
 from gilda.core.schemas import AssociationDetail, AssociationRead, MemberRead
-from gilda.mailer import EmailNotSentError, send_verification_email
+from gilda.mailer import EmailNotSentError, Language, send_verification_email
 
 _logger = logging.getLogger(__name__)
 _hasher = PasswordHasher()
@@ -69,7 +69,9 @@ class AccountService:
     async def find_by_email(self, email: str) -> User | None:
         return await self.users.get_one_or_none(email=email.lower())
 
-    async def create_account(self, display_name: str, email: str, password: str) -> User:
+    async def create_account(
+        self, display_name: str, email: str, password: str, language: Language
+    ) -> User:
         password_hash = _hasher.hash(password)
         user = await self.find_by_email(email)
         if user is None:
@@ -86,7 +88,7 @@ class AccountService:
             user.password_hash = password_hash
             user = await self.users.update(user)
         try:
-            await self._issue_token(user)
+            await self._issue_token(user, language)
         except EmailNotSentError as error:
             # R10: an error response rolls the transaction back, so nothing is saved.
             raise ServiceUnavailableException(
@@ -120,16 +122,16 @@ class AccountService:
         await self.tokens.delete(record.id)
         return user
 
-    async def resend_confirmation(self, email: str) -> None:
+    async def resend_confirmation(self, email: str, language: Language) -> None:
         user = await self.find_by_email(email)
         if user is not None and not user.email_verified:
             try:
-                await self._issue_token(user)
+                await self._issue_token(user, language)
             except EmailNotSentError:
                 # Still 204: an error here would reveal that the email has a pending account.
                 _logger.exception("Resending the confirmation email failed")
 
-    async def _issue_token(self, user: User) -> None:
+    async def _issue_token(self, user: User, language: Language) -> None:
         # R8: a new token replaces any pending one.
         existing = await self.tokens.get_one_or_none(user_id=user.id)
         if existing is not None:
@@ -141,7 +143,7 @@ class AccountService:
                 expires_at=datetime.now(UTC) + TOKEN_LIFETIME,
             )
         )
-        send_verification_email(user.email, token.token)
+        send_verification_email(user.email, token.token, language)
 
 
 class AssociationService:

@@ -1,3 +1,5 @@
+import { currentLocale } from './i18n'
+
 export type Role = 'manager' | 'volunteer'
 
 export interface User {
@@ -42,9 +44,11 @@ export class ApiError extends Error {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = { 'Accept-Language': currentLocale() }
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
   const response = await fetch(path, {
     method,
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!response.ok) {

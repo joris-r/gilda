@@ -7,13 +7,25 @@ export type Locale = (typeof LOCALES)[number]
 
 const STORAGE_KEY = 'gilda.locale'
 
+let active: ReturnType<typeof build> | undefined
+
 export function createGildaI18n() {
-  return createI18n<[typeof en], Locale>({
+  active = build()
+  return active
+}
+
+function build() {
+  return createI18n<[typeof en], Locale, false>({
     legacy: false,
     locale: storedLocale() ?? browserLocale(),
     fallbackLocale: 'en',
     messages: { en, fr },
   })
+}
+
+/** The interface's current language. */
+export function currentLocale(): Locale {
+  return active?.global.locale.value ?? storedLocale() ?? browserLocale()
 }
 
 export function storeLocale(locale: Locale) {

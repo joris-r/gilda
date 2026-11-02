@@ -24,8 +24,13 @@ from gilda.core.schemas import (
 )
 from gilda.core.services import AccountService, AssociationService, is_superuser
 from gilda.core.sessions import set_session_with_new_id
+from gilda.mailer import Language, preferred_language
 
 SESSION_USER_KEY = "user_id"
+
+
+def email_language(request: Request[Any, Any, Any]) -> Language:
+    return preferred_language(request.headers.get("accept-language"))
 
 
 def user_read(user: User) -> UserRead:
@@ -55,11 +60,12 @@ class AccountController(Controller):
     @post("/accounts")
     async def create_account(
         self,
+        request: Request[Any, Any, Any],
         db_session: NamedDependency[AsyncSession],
         data: JSONBody[AccountCreate],
     ) -> UserRead:
         user = await AccountService(db_session).create_account(
-            data.display_name, data.email, data.password
+            data.display_name, data.email, data.password, email_language(request)
         )
         return user_read(user)
 
@@ -72,9 +78,12 @@ class AccountController(Controller):
 
     @post("/accounts/verify/resend", status_code=204)
     async def resend_verification(
-        self, db_session: NamedDependency[AsyncSession], data: JSONBody[ResendRequest]
+        self,
+        request: Request[Any, Any, Any],
+        db_session: NamedDependency[AsyncSession],
+        data: JSONBody[ResendRequest],
     ) -> None:
-        await AccountService(db_session).resend_confirmation(data.email)
+        await AccountService(db_session).resend_confirmation(data.email, email_language(request))
 
     @post("/session", status_code=200)
     async def sign_in(
