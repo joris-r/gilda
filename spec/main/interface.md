@@ -29,8 +29,8 @@ Signed out:
   is:
   - My associations: "My associations";
   - Schedule: the association's name;
-  - Members, Schedule settings: the association's name, then the
-    screen's name;
+  - Members, Schedule settings, My availability: the association's
+    name, then the screen's name;
   - New association: "My associations", leading to `/`, then "New
     association".
 - The association's name leads to its Schedule.

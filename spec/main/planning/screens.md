@@ -13,8 +13,8 @@ CLOSURES                                       [+ Add a closure]
   Fêtes de fin d'année
 
 SLOTS                                             [+ Add a slot]
-  Thursday   10:00–13:00   My preference [Preferred ▾]  ✎  🗑
-  Saturday   10:00–13:00   My preference [—         ▾]  ✎  🗑
+  Thursday   10:00–13:00                                ✎  🗑
+  Saturday   10:00–13:00                                ✎  🗑
 
 Members' preferences
            Thu 10:00–13:00   Sat 10:00–13:00
@@ -44,18 +44,48 @@ Members' preferences
 - R18: After a slot is added, the next Add a slot dialog of the screen
   opens with the added slot's Day, and From and To both at its end; To
   follows From again as in R17.
-- Every member sees "My preference" on each slot. Choosing a value
-  saves it at once; "—" deletes it.
 - "Members' preferences" is shown to managers only: one row per member,
   one column per slot, each cell a selector that saves at once like
-  "My preference".
+  those of My availability.
 - When "Members' preferences" scrolls horizontally, the member names
   stay in view (not testable).
+- In French: "Préférences des membres".
+
+## `/associations/{id}/availability`: My availability
+
+```
+(logo)  Jardin partagé des Lilas › My availability        Alice ▾
+
+MY PREFERENCES
+  Thursday   10:00–13:00   [Preferred ▾]
+  Saturday   10:00–13:00   [—         ▾]
+
+ABSENCES                                     [+ Add an absence]
+  Mon 9 Nov 2026 – Sun 15 Nov 2026                      ✎  🗑
+
+NOTE FOR THE MANAGERS                                         ✎
+  Always group my registrations in pairs.
+```
+
+- Every member, manager or volunteer, sees and changes only their own
+  preferences, absences and note here.
+- A selector on each slot sets the member's preference; choosing a
+  value saves it at once; "—" deletes it.
 - Each value has a colour: Preferred green, Possible orange,
-  Unavailable red; "—" has none. Selectors show their value's colour.
-  (Look of colours not testable.)
-- In French: "Mes préférences", "Préférences des membres", "Préféré",
-  "Possible", "Indisponible".
+  Unavailable red; "—" has none. Selectors show their value's colour,
+  here and in Members' preferences. (Look of colours not testable.)
+- With no slot, no absence or an empty note, the section shows "None".
+- Absences are listed from those ending today on; earlier ones do not
+  show.
+- "Add an absence" opens the dialog "Add an absence": From, To, [Add
+  absence]. An absence's edit icon opens the dialog "Edit the
+  absence", filled with it, with [Save]. Its delete icon asks "Delete
+  the absence of Mon 9 Nov 2026 – Sun 15 Nov 2026?" with [Delete].
+- The note's edit icon opens the dialog "Note for the managers": a
+  multi-line Text, [Save].
+- In French: "Mes disponibilités", "Mes préférences", "Préféré",
+  "Possible", "Indisponible", "Absences", "Ajouter une absence",
+  "Note pour les responsables".
 
 ## `/associations/{id}`: Schedule
 
@@ -63,7 +93,7 @@ Wide screen:
 
 ```
 (logo)  Jardin partagé des Lilas                           Alice ▾
-                                       Members  Schedule settings
+                      My availability  Members  Schedule settings
 
 Week 43
        Thu 22 Oct        Sat 24 Oct
@@ -108,7 +138,8 @@ Thu 29   [Chloé      ]
 Sat 31   [Bruno ?    ]
 ```
 
-- "Members" and "Schedule settings" lead to those screens.
+- "My availability", "Members" and "Schedule settings" lead to those
+  screens.
 - It opens on the week before the current one and shows six weeks,
   and more if needed to reach the week after the one that holds the
   planning period's last date; "More weeks", at the end, adds four

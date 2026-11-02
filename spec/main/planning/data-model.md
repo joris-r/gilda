@@ -19,6 +19,14 @@
   - value: `preferred`, `possible` or `unavailable`
   - A member without a preference on a slot has stated none.
   - Deleting a slot deletes its preferences; editing it keeps them.
+- Absence: a member away for whole days
+  - id: UUID
+  - user: a member of the association
+  - first, last: dates; last on or after first
+- Note: a member's standing instructions for the managers, at most one
+  per member
+  - user: a member of the association
+  - text: free text; empty by default
 - Occurrence (computed, not stored): a slot on a date of its weekday,
   unless a closure of the association covers that date. It is
   identified by its association, date, start and end. Its slot is the

@@ -123,6 +123,47 @@ Content-Type: application/json
 - 404 when the slot is not of this association, or the user is not a
   member.
 
+## Absences
+
+```http
+POST /api/associations/5c1e…/absences
+Content-Type: application/json
+
+{"first": "2026-11-09", "last": "2026-11-15"}
+```
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"id": "3b8e…", "first": "2026-11-09", "last": "2026-11-15"}
+```
+
+- They are the user's own: `GET /api/associations/{id}/absences` lists
+  them by first date; `PUT /api/associations/{id}/absences/{absence_id}`
+  takes the body of `POST` and returns the absence, as `POST` does,
+  with 200; `DELETE /api/associations/{id}/absences/{absence_id}`: 204.
+- 404 when the absence is not the user's in this association.
+
+## Note
+
+```http
+PUT /api/associations/5c1e…/note
+Content-Type: application/json
+
+{"text": "Always group my registrations in pairs."}
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"text": "Always group my registrations in pairs."}
+```
+
+- It is the user's own: `PUT` replaces it; `GET` returns it, with
+  `""` when never set.
+
 ## GET /api/associations/{id}/registration-counts
 
 ```http
