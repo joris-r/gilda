@@ -1,5 +1,6 @@
 # Backlog
 
+- an icon for present volunteer note on registration form
 - Association: a manager can remove a member from the association.
 - Planning: a volunteer whose registration becomes obsolete (its slot removed or closed) is told so and acknowledges it; today it silently disappears from their Home summary.
 - Frontend: the page width is capped at 640px, cramped on a wide screen; raise the cap (check the Schedule week grid there). The Create an account form is also narrower on a wide screen than on a narrow one.
