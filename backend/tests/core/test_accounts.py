@@ -224,9 +224,9 @@ def test_post_api_session_signs_in(client: Any, new_client: Callable[[], Any]) -
     response = browser.post("/api/session", json={"email": email, "password": PASSWORD})
 
     assert response.status_code == 200
-    assert response.json() == user
+    assert response.json() == {**user, "superuser": False}
     assert "session" in response.headers.get("set-cookie", "")
-    assert browser.get("/api/session").json() == user
+    assert browser.get("/api/session").json() == {**user, "superuser": False}
 
 
 def test_post_api_session_ignores_the_case_of_the_email(
@@ -309,7 +309,61 @@ def test_r16_sign_in_replaces_the_id_of_an_existing_session(
     assert attacker.get("/api/session").status_code == 401
 
 
+def test_post_api_session_superuser_is_true_for_superuser_email_ignoring_case(
+    new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = unique_email("Alice")
+    monkeypatch.setenv("SUPERUSER_EMAIL", email.upper())
+    client = new_client()
+    sign_up(client, "Alice", email)
+
+    response = new_client().post("/api/session", json={"email": email, "password": PASSWORD})
+
+    assert response.status_code == 200
+    assert response.json()["superuser"] is True
+
+
+def test_post_api_session_superuser_is_false_for_another_email(
+    new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("SUPERUSER_EMAIL", unique_email("Root"))
+    client = new_client()
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+
+    response = new_client().post("/api/session", json={"email": email, "password": PASSWORD})
+
+    assert response.json()["superuser"] is False
+
+
+def test_post_api_session_superuser_is_false_when_superuser_email_is_unset(
+    new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("SUPERUSER_EMAIL", raising=False)
+    client = new_client()
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+
+    response = new_client().post("/api/session", json={"email": email, "password": PASSWORD})
+
+    assert response.json()["superuser"] is False
+
+
 # GET /api/session
+
+
+def test_get_api_session_tells_the_superuser(
+    new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = unique_email("Alice")
+    monkeypatch.setenv("SUPERUSER_EMAIL", email)
+    client = new_client()
+    sign_up(client, "Alice", email)
+
+    response = client.get("/api/session")
+
+    assert response.status_code == 200
+    assert response.json()["superuser"] is True
 
 
 def test_get_api_session_401_when_signed_out(client: Any) -> None:
