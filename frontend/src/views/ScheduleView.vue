@@ -8,12 +8,16 @@ import {
   getPlanningPeriod,
   getRegistrationCounts,
   getSchedule,
+  listMemberAbsences,
+  listNotes,
   listPreferences,
   listSlots,
   register,
   setRegistrationStatus,
   type Association,
   type Member,
+  type MemberAbsence,
+  type MemberNote,
   type PlanningPeriod,
   type Preference,
   type RegistrationCount,
@@ -44,6 +48,8 @@ const period = ref<PlanningPeriod | null>(null)
 const slots = ref<Slot[]>([])
 const preferences = ref<Preference[]>([])
 const counts = ref<RegistrationCount[] | null>(null)
+const absences = ref<MemberAbsence[]>([])
+const notes = ref<MemberNote[]>([])
 const openItem = ref<Item>()
 const anchor = ref<DOMRect>()
 const message = ref<string>()
@@ -88,14 +94,17 @@ async function load() {
   if (found.value.role === 'manager') await loadManagerData()
 }
 
-/** What the menu shows a manager of each member: their preferences and registration counts. */
+/** What the menu shows a manager of each member: preferences, counts, absences and notes. */
 async function loadManagerData() {
   try {
-    ;[slots.value, preferences.value, counts.value] = await Promise.all([
-      listSlots(props.id),
-      listPreferences(props.id),
-      getRegistrationCounts(props.id),
-    ])
+    ;[slots.value, preferences.value, counts.value, absences.value, notes.value] =
+      await Promise.all([
+        listSlots(props.id),
+        listPreferences(props.id),
+        getRegistrationCounts(props.id),
+        listMemberAbsences(props.id),
+        listNotes(props.id),
+      ])
   } catch {
     message.value = t('error')
   }
@@ -198,6 +207,8 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
       :slots="slots"
       :preferences="preferences"
       :counts="counts"
+      :absences="absences"
+      :notes="notes"
       @sign-up="signUp(openItem)"
       @propose="propose(openItem, $event)"
       @set-status="setStatus(openItem, $event)"

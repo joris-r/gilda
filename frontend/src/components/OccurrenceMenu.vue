@@ -1,7 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { Member, Preference, RegistrationCount, Slot } from '../api'
+import type {
+  Member,
+  MemberAbsence,
+  MemberNote,
+  Preference,
+  PreferenceValue,
+  RegistrationCount,
+  Slot,
+} from '../api'
 import { WEEKDAYS, weekdayIndex } from '../dates'
 import { dayLabel, times, type Actions, type Item } from '../schedule'
 
@@ -14,6 +22,8 @@ const props = defineProps<{
   slots: Slot[]
   preferences: Preference[]
   counts: RegistrationCount[] | null
+  absences: MemberAbsence[]
+  notes: MemberNote[]
 }>()
 const emit = defineEmits<{
   signUp: []
@@ -59,6 +69,30 @@ function preferenceFor(member: Member) {
 function countOf(member: Member) {
   return props.counts?.find((c) => c.user_id === member.user_id)?.count ?? 0
 }
+
+function isAbsent(member: Member) {
+  return props.absences.some(
+    (a) => a.user_id === member.user_id && a.first <= props.item.date && props.item.date <= a.last,
+  )
+}
+
+/** The member's note for the tooltip of their name; undefined when empty. */
+function noteOf(member: Member) {
+  return props.notes.find((n) => n.user_id === member.user_id)?.text || undefined
+}
+
+const RANKS: (PreferenceValue | null)[] = ['preferred', 'possible', null, 'unavailable']
+
+function rankOf(member: Member) {
+  return isAbsent(member) ? RANKS.length : RANKS.indexOf(preferenceFor(member))
+}
+
+/** The members in the order of R27; `members` comes sorted by display name. */
+const people = computed(() =>
+  props.members
+    .map((member) => ({ member, rank: rankOf(member), count: countOf(member) }))
+    .sort((a, b) => a.rank - b.rank || a.count - b.count),
+)
 </script>
 
 <template>
@@ -98,10 +132,16 @@ function countOf(member: Member) {
         <p class="sub">{{ t('schedule.proposeTo') }}</p>
         <div class="people">
           <button
-            v-for="member in members"
+            v-for="{ member } in people"
             :key="member.user_id"
             type="button"
-            :class="['person', preferenceFor(member) && `preference-${preferenceFor(member)}`]"
+            :class="[
+              'person',
+              isAbsent(member)
+                ? 'absent'
+                : preferenceFor(member) && `preference-${preferenceFor(member)}`,
+            ]"
+            :title="noteOf(member)"
             @click="emit('propose', member)"
           >
             {{ member.display_name }}<template v-if="counts"> ({{ countOf(member) }})</template>
@@ -181,6 +221,12 @@ function countOf(member: Member) {
 .person.preference-unavailable {
   background: var(--bad-soft);
   border-color: var(--bad);
+}
+
+.person.absent {
+  background: var(--line);
+  border-color: var(--muted);
+  color: var(--muted);
 }
 
 .close {

@@ -31,6 +31,8 @@ from gilda.planning.repositories import (
 from gilda.planning.schemas import (
     AbsenceRead,
     ClosureRead,
+    MemberAbsenceRead,
+    MemberNote,
     NoteData,
     OccurrenceRead,
     OccurrenceRegistration,
@@ -294,6 +296,16 @@ class PlanningService:
         absences = await self.absences.list(association_id=association_id, user_id=user.id)
         return [absence_read(a) for a in sorted(absences, key=lambda a: (a.first, a.last))]
 
+    async def list_member_absences(
+        self, user: User, association_id: UUID
+    ) -> list[MemberAbsenceRead]:
+        await self._manager_of(user, association_id)
+        absences = await self.absences.list(association_id=association_id)
+        return [
+            MemberAbsenceRead(id=a.id, user_id=a.user_id, first=a.first, last=a.last)
+            for a in sorted(absences, key=lambda a: (a.first, a.last))
+        ]
+
     async def add_absence(
         self, user: User, association_id: UUID, first: date, last: date
     ) -> AbsenceRead:
@@ -328,6 +340,12 @@ class PlanningService:
         await self._membership_of(user, association_id)
         note = await self.notes.get_one_or_none(association_id=association_id, user_id=user.id)
         return NoteData(text=note.text if note else "")
+
+    async def list_notes(self, user: User, association_id: UUID) -> list[MemberNote]:
+        await self._manager_of(user, association_id)
+        notes = {n.user_id: n.text for n in await self.notes.list(association_id=association_id)}
+        memberships = await self.memberships.list(association_id=association_id)
+        return [MemberNote(user_id=m.user_id, text=notes.get(m.user_id, "")) for m in memberships]
 
     async def set_note(self, user: User, association_id: UUID, text: str) -> NoteData:
         await self._membership_of(user, association_id)

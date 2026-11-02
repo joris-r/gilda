@@ -313,6 +313,23 @@ export function deleteAbsence(id: string, absenceId: string) {
   return request<void>('DELETE', `/api/associations/${id}/absences/${absenceId}`)
 }
 
+export interface MemberAbsence extends Absence {
+  user_id: string
+}
+
+export function listMemberAbsences(id: string) {
+  return request<MemberAbsence[]>('GET', `/api/associations/${id}/member-absences`)
+}
+
+export interface MemberNote {
+  user_id: string
+  text: string
+}
+
+export function listNotes(id: string) {
+  return request<MemberNote[]>('GET', `/api/associations/${id}/notes`)
+}
+
 export async function getNote(id: string) {
   return (await request<{ text: string }>('GET', `/api/associations/${id}/note`)).text
 }

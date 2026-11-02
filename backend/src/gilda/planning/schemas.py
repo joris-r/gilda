@@ -48,7 +48,19 @@ class AbsenceRead(msgspec.Struct):
     last: date
 
 
+class MemberAbsenceRead(msgspec.Struct):
+    id: UUID
+    user_id: UUID
+    first: date
+    last: date
+
+
 class NoteData(msgspec.Struct):
+    text: str
+
+
+class MemberNote(msgspec.Struct):
+    user_id: UUID
     text: str
 
 
