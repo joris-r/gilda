@@ -173,11 +173,17 @@ Sat 31   [Bruno ?    ]
   opens a menu on it:
   - free or cancelled: "Sign up"; for a manager, also the members'
     display names, each proposing the occurrence to that member. Each
-    name has the background colour of the member's preference for the
-    occurrence's slot, none when they have stated none (look of colours
-    not testable), and is followed by the member's registration count
-    in parentheses, e.g. "Alice (2)"; without a planning period, no
-    count is shown;
+    name is followed by the member's registration count in
+    parentheses, e.g. "Alice (2)"; without a planning period, no count
+    is shown. A member is absent when one of their absences covers the
+    occurrence's date. Each name has the background colour of the
+    member's preference for the occurrence's slot, none when they have
+    stated none, or grey when they are absent (look of colours not
+    testable). Hovering a name shows the member's note, if not empty;
+  - R27: The names are sorted by the member's preference for the
+    occurrence's slot: Preferred, Possible, none stated, Unavailable,
+    then absent members whatever their preference; then by fewest
+    registrations (R15); then by display name;
   - the user's own proposed registration, or any proposed one for a
     manager: "Confirm";
   - the user's own registration, or any for a manager: "Cancel

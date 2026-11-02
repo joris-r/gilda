@@ -145,6 +145,20 @@ Content-Type: application/json
   with 200; `DELETE /api/associations/{id}/absences/{absence_id}`: 204.
 - 404 when the absence is not the user's in this association.
 
+```http
+GET /api/associations/5c1e…/member-absences
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[{"id": "3b8e…", "user_id": "0b6f…", "first": "2026-11-09", "last": "2026-11-15"}]
+```
+
+- The absences of all members, by first date. Managers only: 403 for
+  a volunteer.
+
 ## Note
 
 ```http
@@ -163,6 +177,20 @@ Content-Type: application/json
 
 - It is the user's own: `PUT` replaces it; `GET` returns it, with
   `""` when never set.
+
+```http
+GET /api/associations/5c1e…/notes
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[{"user_id": "0b6f…", "text": "Always group my registrations in pairs."},
+ {"user_id": "77c0…", "text": ""}]
+```
+
+- One entry per member. Managers only: 403 for a volunteer.
 
 ## GET /api/associations/{id}/registration-counts
 
