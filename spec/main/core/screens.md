@@ -168,15 +168,15 @@ As a manager:
 ```
 (logo)  Jardin partagé des Lilas › Members                 Alice ▾
 
-  Alice                     MANAGER  Change role  Revoke link
+  Alice                     MANAGER  Change role  Send link  Revoke link
   alice@example.org
-  Bruno                   VOLUNTEER  Change role  Revoke link
+  Bruno                   VOLUNTEER  Change role  Send link  Revoke link
   bruno@example.org
-  Chloé  not joined yet   VOLUNTEER  Change role
+  Chloé  not joined yet   VOLUNTEER  Change role  Send link
   chloe@example.org
-  David  not joined yet   VOLUNTEER  Change role
+  David  not joined yet   VOLUNTEER  Change role  Send link
   david@example.org
-  Emma                                 VOLUNTEER  Change role
+  Emma                    VOLUNTEER  Change role  Send link
   emma@example.org
   Show all 7 members
 
@@ -207,8 +207,12 @@ Add a member
   it replaces his line's actions with "Revoke Bruno's sign-in link?
   [Confirm] Cancel"; Confirm revokes it and shows "Bruno's sign-in link
   is revoked."
+- "Send link" on Chloé sends her access link (R26) and shows "Chloé's
+  sign-in link is sent."; her line then shows "Revoke link". When the
+  email cannot be sent: "We couldn't send Chloé's sign-in link. Try
+  again later."
 - A volunteer sees the members and their roles, without "Change role",
-  "Revoke link" and "Add a member".
+  "Send link", "Revoke link" and "Add a member".
 - Signed out, every page but `/signup`, `/verify-email`,
   `/forgot-password`, `/reset-password`, `/sign-in-link` and `/access`
   shows Sign in.

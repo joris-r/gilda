@@ -386,6 +386,22 @@ Content-Type: application/json
 - 409 when it would leave the association without a manager (R1).
 - 404 when the user is not a member.
 
+### POST /api/associations/{id}/members/{user_id}/access-link
+
+Sends a member their access link. Managers only: 403 for a volunteer.
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "access_link": true, "role": "volunteer"}
+```
+
+- R26: Sends the member the email of R24, in the language R20 sets
+  from the manager's request; R25 applies.
+- 404 when the user is not a member.
+- 503 when the email cannot be sent.
+
 ### DELETE /api/associations/{id}/members/{user_id}/access-link
 
 Revokes a member's AccessLink (R23), in every association they belong
