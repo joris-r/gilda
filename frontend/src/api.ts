@@ -128,6 +128,10 @@ export function changeRole(id: string, userId: string, role: Role) {
   return request<Member>('PATCH', `/api/associations/${id}/members/${userId}`, { role })
 }
 
+export function sendMemberLink(id: string, userId: string) {
+  return request<Member>('POST', `/api/associations/${id}/members/${userId}/access-link`)
+}
+
 export function revokeMemberLink(id: string, userId: string) {
   return request<void>('DELETE', `/api/associations/${id}/members/${userId}/access-link`)
 }

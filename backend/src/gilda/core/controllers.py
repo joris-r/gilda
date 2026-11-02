@@ -218,6 +218,19 @@ class AssociationController(Controller):
             current_user, association_id, user_id, data.role
         )
 
+    @post("/{association_id:uuid}/members/{user_id:uuid}/access-link", status_code=200)
+    async def send_member_link(
+        self,
+        request: Request[Any, Any, Any],
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+        user_id: FromPath[UUID],
+    ) -> MemberRead:
+        return await AssociationService(db_session).send_member_link(
+            current_user, association_id, user_id, email_language(request)
+        )
+
     @delete("/{association_id:uuid}/members/{user_id:uuid}/access-link")
     async def revoke_member_link(
         self,

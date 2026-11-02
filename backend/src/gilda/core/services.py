@@ -189,14 +189,8 @@ class AccountService:
         user = await self.find_by_email(email)
         if user is None:
             return
-        # R25: the same link until it is revoked, so older emails keep working.
-        link = await self.access_links.get_one_or_none(user_id=user.id)
-        if link is None:
-            link = await self.access_links.add(
-                AccessLink(user_id=user.id, token=secrets.token_urlsafe(32))
-            )
         try:
-            send_access_link_email(user.email, link.token, language)
+            await send_access_link(self.access_links, user, language)
         except EmailNotSentError:
             # Still 204: an error here would reveal that the email is known.
             _logger.exception("Sending the access link email failed")
@@ -232,6 +226,14 @@ class AccountService:
             )
         )
         send_verification_email(user.email, token.token, language)
+
+
+async def send_access_link(links: AccessLinkRepository, user: User, language: Language) -> None:
+    # R25: the same link until it is revoked, so older emails keep working.
+    link = await links.get_one_or_none(user_id=user.id)
+    if link is None:
+        link = await links.add(AccessLink(user_id=user.id, token=secrets.token_urlsafe(32)))
+    send_access_link_email(user.email, link.token, language)
 
 
 async def revoke_access_link(links: AccessLinkRepository, user_id: UUID) -> None:
@@ -302,6 +304,24 @@ class AssociationService:
                 raise ConflictException("An association keeps at least one manager.")
         membership.role = role
         return await self._member_read(await self.memberships.update(membership))
+
+    async def send_member_link(
+        self, manager: User, association_id: UUID, user_id: UUID, language: Language
+    ) -> MemberRead:
+        await self._manager_of(manager, association_id)
+        membership = await self.memberships.get_one_or_none(
+            user_id=user_id, association_id=association_id
+        )
+        if membership is None:
+            raise NotFoundException("Not a member of this association.")
+        try:
+            await send_access_link(self.access_links, membership.user, language)
+        except EmailNotSentError as error:
+            # An error response rolls the transaction back, so no link is created.
+            raise ServiceUnavailableException(
+                "The sign-in link could not be sent. Try again later."
+            ) from error
+        return await self._member_read(membership)
 
     async def revoke_member_link(self, manager: User, association_id: UUID, user_id: UUID) -> None:
         await self._manager_of(manager, association_id)

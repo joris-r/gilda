@@ -90,7 +90,10 @@
     "notJoined": "not joined yet",
     "revokeLink": "Revoke link",
     "confirmRevokeLink": "Revoke {name}'s sign-in link?",
-    "linkRevoked": "{name}'s sign-in link is revoked."
+    "linkRevoked": "{name}'s sign-in link is revoked.",
+    "sendLink": "Send link",
+    "linkSent": "{name}'s sign-in link is sent.",
+    "linkNotSent": "We couldn't send {name}'s sign-in link. Try again later."
   },
   "weekdays": {
     "monday": "Monday",

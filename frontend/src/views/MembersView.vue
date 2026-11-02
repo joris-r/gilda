@@ -7,6 +7,7 @@ import {
   changeRole,
   getAssociation,
   revokeMemberLink,
+  sendMemberLink,
   type Association,
   type Member,
   type Role,
@@ -93,6 +94,20 @@ async function confirmRevoke(member: Member) {
   }
 }
 
+async function sendLink(member: Member) {
+  try {
+    const updated = await sendMemberLink(props.id, member.user_id)
+    member.access_link = updated.access_link
+    message.value = { ok: true, text: t('association.linkSent', { name: member.display_name }) }
+  } catch (e) {
+    const text =
+      e instanceof ApiError && e.status === 503
+        ? t('association.linkNotSent', { name: member.display_name })
+        : t('error')
+    message.value = { ok: false, text }
+  }
+}
+
 async function add() {
   const name = displayName.value
   try {
@@ -152,6 +167,9 @@ async function add() {
             @click="confirming = { userId: member.user_id, action: 'role' }"
           >
             {{ t('association.changeRole') }}
+          </button>
+          <button v-if="isManager" type="button" class="link" @click="sendLink(member)">
+            {{ t('association.sendLink') }}
           </button>
           <button
             v-if="isManager && member.access_link"

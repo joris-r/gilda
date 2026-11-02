@@ -90,7 +90,10 @@
     "notJoined": "pas encore connecté·e",
     "revokeLink": "Révoquer le lien",
     "confirmRevokeLink": "Révoquer le lien de connexion de {name} ?",
-    "linkRevoked": "Le lien de connexion de {name} est révoqué."
+    "linkRevoked": "Le lien de connexion de {name} est révoqué.",
+    "sendLink": "Envoyer le lien",
+    "linkSent": "Le lien de connexion de {name} est envoyé.",
+    "linkNotSent": "Le lien de connexion de {name} n'a pas pu être envoyé. Réessayez plus tard."
   },
   "weekdays": {
     "monday": "Lundi",
