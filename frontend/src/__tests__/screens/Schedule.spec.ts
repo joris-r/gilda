@@ -623,8 +623,8 @@ describe('Schedule', () => {
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
       expect(memberButtons(wrapper).map((b) => b.text().trim())).toEqual([
-        'Alice',
         'Bruno',
+        'Alice',
         'Chloé',
       ])
     })
