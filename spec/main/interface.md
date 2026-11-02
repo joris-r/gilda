@@ -11,10 +11,11 @@ Signed in:
 
 ```
 (logo)  Jardin partagé des Lilas › Members                 Alice ▾
-                                                   ┌────────────────┐
-                                                   │ [English ▾]    │
-                                                   │ Sign out       │
-                                                   └────────────────┘
+                                           ┌────────────────────────┐
+                                           │ [English ▾]            │
+                                           │ Revoke my sign-in link │
+                                           │ Sign out               │
+                                           └────────────────────────┘
 ```
 
 Signed out:
@@ -33,8 +34,12 @@ Signed out:
 - The association's name leads to its Schedule.
 - A long location is shortened on a narrow screen (not testable).
 - Signed in, the user's display name opens a menu with the language
-  selector and Sign out. Signed out, the language selector stands
-  alone at the header's right.
+  selector, "Revoke my sign-in link" and Sign out. Signed out, the
+  language selector stands alone at the header's right.
+- "Revoke my sign-in link" asks "Revoke your sign-in link? Sessions
+  opened with it are signed out. [Confirm] Cancel"; Confirm revokes it
+  and shows "Your sign-in link is revoked.", or leads to Sign in when
+  this session was opened with it.
 - The language selector switches between English and French; the
   choice is kept in the browser across visits and wins over the
   browser's preference.

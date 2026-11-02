@@ -10,6 +10,7 @@ Sign in
   Password  [                    ]
   [Sign in]
   Forgot your password?
+  Sign in with an email link
 
 No account yet? Create an account
 ```
@@ -17,6 +18,29 @@ No account yet? Create an account
 - Wrong credentials show "Wrong email or password." under the form.
 - "Create an account" leads to `/signup`.
 - "Forgot your password?" leads to `/forgot-password`.
+- "Sign in with an email link" leads to `/sign-in-link`.
+
+## `/sign-in-link`: Sign-in link
+
+```
+(logo)                                     [English ▾]
+
+Sign in with an email link
+  Email     [                    ]
+  [Send me a link]
+
+Back to Sign in
+```
+
+- On submit, shows "If alice@example.org is known here, a sign-in link
+  has been sent to it." instead of the form.
+
+## `/access`: Access link
+
+- Reached from the access link's `token` query parameter.
+- On success, leads to My associations, signed in.
+- An unknown token or a revoked link shows "This link is no longer
+  valid." with a way to `/sign-in-link` to request a new one.
 
 ## `/forgot-password`: Forgot password
 
@@ -144,13 +168,13 @@ As a manager:
 ```
 (logo)  Jardin partagé des Lilas › Members                 Alice ▾
 
-  Alice                                  MANAGER  Change role
+  Alice                     MANAGER  Change role  Revoke link
   alice@example.org
-  Bruno                                VOLUNTEER  Change role
+  Bruno                   VOLUNTEER  Change role  Revoke link
   bruno@example.org
-  Chloé  no account                    VOLUNTEER  Change role
+  Chloé  not joined yet   VOLUNTEER  Change role
   chloe@example.org
-  David  pending                       VOLUNTEER  Change role
+  David  not joined yet   VOLUNTEER  Change role
   david@example.org
   Emma                                 VOLUNTEER  Change role
   emma@example.org
@@ -178,13 +202,16 @@ Add a member
   manager." and changes nothing.
 - Adding a member shows "Chloé added."; an existing member shows
   "Chloé is already a member."
-- A member with a password but an unconfirmed email shows "pending"
-  instead of nothing; a member with no password shows "no account"
-  regardless.
-- A volunteer sees the members and their roles, without "Change role"
-  and without "Add a member".
+- A member whose email is not confirmed shows "not joined yet".
+- "Revoke link" shows only for a member with an access link. On Bruno,
+  it replaces his line's actions with "Revoke Bruno's sign-in link?
+  [Confirm] Cancel"; Confirm revokes it and shows "Bruno's sign-in link
+  is revoked."
+- A volunteer sees the members and their roles, without "Change role",
+  "Revoke link" and "Add a member".
 - Signed out, every page but `/signup`, `/verify-email`,
-  `/forgot-password` and `/reset-password` shows Sign in.
+  `/forgot-password`, `/reset-password`, `/sign-in-link` and `/access`
+  shows Sign in.
 
 In French, e.g.:
 

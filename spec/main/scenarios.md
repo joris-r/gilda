@@ -36,3 +36,17 @@
    associations shows, signed in. She signs out.
 3. She signs in with her new password; her old one shows "Wrong email
    or password."
+
+## A volunteer signs in by link
+
+1. Alice, a manager of Jardin partagé, adds Chloé as a volunteer: on
+   Members, Chloé shows "not joined yet". Alice signs out.
+2. Chloé, on Sign in, follows "Sign in with an email link" and asks
+   for a link. She opens the link from her email: My associations
+   shows Jardin partagé, VOLUNTEER. She signs out.
+3. She opens the link again: My associations shows, signed in. She
+   signs out.
+4. Alice signs in and opens Members: Chloé no longer shows "not joined
+   yet". Alice revokes Chloé's link: "Chloé's sign-in link is
+   revoked."
+5. Chloé opens the link: "This link is no longer valid."

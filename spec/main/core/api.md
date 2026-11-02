@@ -188,6 +188,74 @@ Set-Cookie: session=…
 - R16: On success, the `session` cookie set holds a new value, and the
   session ID the request came with, if any, no longer authenticates.
 
+### POST /api/access-link
+
+Asks for the user's access link.
+
+```http
+POST /api/access-link
+Content-Type: application/json
+
+{"email": "chloe@example.org"}
+```
+
+```http
+HTTP/1.1 204 No Content
+```
+
+- R24: When a user with this email exists, with or without a password,
+  an email is sent to it with their AccessLink, created if they have
+  none, as a link to `/access?token=…`, in the language R20 sets:
+
+  ```
+  Subject: Your sign-in link
+
+  Sign in by opening this link. Keep this email: the link stays valid
+  until you revoke it.
+
+  https://…/access?token=…
+  ```
+
+  ```
+  Subject: Votre lien de connexion
+
+  Connectez-vous en ouvrant ce lien. Conservez cet e-mail : le lien
+  reste valable jusqu'à ce que vous le révoquiez.
+
+  https://…/access?token=…
+  ```
+- R25: A user who already has an AccessLink is sent the same link.
+- No email is sent to an unknown email.
+- Always 204, as `POST /api/accounts/verify/resend`.
+
+### POST /api/session/access-link
+
+Signs in from an access link's token.
+
+```http
+POST /api/session/access-link
+Content-Type: application/json
+
+{"token": "…"}
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Set-Cookie: session=…
+
+{"id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "superuser": false}
+```
+
+- Sets the user's email_verified_at if still null, and signs them in,
+  as `POST /api/session` does (R16). The link stays usable.
+- 404 when the token is unknown or its link revoked.
+
+### DELETE /api/access-link
+
+Revokes the signed-in user's AccessLink (R23): 204, also when they
+have none; 401 when signed out.
+
 ### GET /api/session
 
 Returns the signed-in user, as `POST /api/session` does; 401 when
@@ -263,13 +331,14 @@ Content-Type: application/json
   "timezone": "Europe/Paris",
   "role": "manager",
   "members": [
-    {"user_id": "0b6f…", "display_name": "Alice", "email": "alice@example.org", "has_account": true, "email_verified": true, "role": "manager"},
-    {"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "role": "volunteer"}
+    {"user_id": "0b6f…", "display_name": "Alice", "email": "alice@example.org", "has_account": true, "email_verified": true, "access_link": true, "role": "manager"},
+    {"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "access_link": false, "role": "volunteer"}
   ]
 }
 ```
 
 - `role` is the signed-in user's role.
+- `access_link` is true when the member has an AccessLink.
 - 404 when the association does not exist or the signed-in user is not
   a member.
 
@@ -288,7 +357,7 @@ Content-Type: application/json
 HTTP/1.1 201 Created
 Content-Type: application/json
 
-{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "role": "volunteer"}
+{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "access_link": false, "role": "volunteer"}
 ```
 
 - R3: When a user already has this email, that user becomes the
@@ -311,10 +380,18 @@ Content-Type: application/json
 HTTP/1.1 200 OK
 Content-Type: application/json
 
-{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "role": "manager"}
+{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "access_link": false, "role": "manager"}
 ```
 
 - 409 when it would leave the association without a manager (R1).
+- 404 when the user is not a member.
+
+### DELETE /api/associations/{id}/members/{user_id}/access-link
+
+Revokes a member's AccessLink (R23), in every association they belong
+to. Managers only: 403 for a volunteer.
+
+- 204, also when the member has none.
 - 404 when the user is not a member.
 
 ## Errors

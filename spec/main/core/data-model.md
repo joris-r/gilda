@@ -6,8 +6,9 @@
   - email: unique, compared ignoring case
   - password: optional; a user with a password has an account, a user
     without one is only a member of associations
-  - email_verified_at: timestamp, null until the email is confirmed; a
-    user can only sign in once it is set
+  - email_verified_at: timestamp, null until the email is confirmed (by
+    its confirmation link, a password reset or an access link); a user
+    can only sign in with their password once it is set
 - EmailVerificationToken: a pending confirmation for a user
   - token: random, unique
   - user_id
@@ -19,6 +20,12 @@
   - token: random, unique
   - user_id
   - expires_at: 1 hour after creation
+- AccessLink: a user's lasting sign-in link, at most one per user
+  - token: random, unique
+  - user_id
+  - It does not expire.
+  - R23: Revoking it deletes it; the sessions it signed in no longer
+    authenticate.
 - Association
   - id: UUID
   - name: free text, not empty
