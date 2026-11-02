@@ -79,7 +79,7 @@ describe("An email the user triggers is in the interface's language", () => {
       'POST /api/accounts/verify/resend': { status: 204 },
     })
     const wrapper = await mountApp('/signup')
-    await field(wrapper, interfaceLanguage === 'fr' ? 'Langue' : 'Language').setValue(
+    await field(wrapper, interfaceLanguage === 'fr' ? 'Language' : 'Langue').setValue(
       interfaceLanguage,
     )
     const french = interfaceLanguage === 'fr'
