@@ -358,14 +358,65 @@ describe('Members', () => {
     })
   })
 
+  describe('Send link', () => {
+    const chloeWithLink = member('u-chloe', 'Chloé', 'volunteer', false, false, true)
+
+    it('shows on each member', async () => {
+      const { mounting } = mountAs('manager', [alice, chloe])
+      const wrapper = await mounting
+
+      expect(hasControl(item(wrapper, 'Alice'), 'Send link')).toBe(true)
+      expect(hasControl(item(wrapper, 'Chloé'), 'Send link')).toBe(true)
+    })
+
+    it('sends the link with POST and says so (R26)', async () => {
+      let members = [alice, chloe]
+      const { calls, mounting } = mountAs('manager', [], {
+        [`GET /api/associations/${garden.id}`]: () => associationAs('manager', members),
+        [`POST ${membersPath}/u-chloe/access-link`]: () => {
+          members = [alice, chloeWithLink]
+          return { status: 200, body: chloeWithLink }
+        },
+      })
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Chloé'), 'Send link')
+
+      expect(calls).toContainEqual({
+        method: 'POST',
+        path: `${membersPath}/u-chloe/access-link`,
+        body: undefined,
+      })
+      expect(pageText(wrapper)).toContain("Chloé's sign-in link is sent.")
+      expect(hasControl(item(wrapper, 'Chloé'), 'Revoke link')).toBe(true)
+    })
+
+    it('says when the email cannot be sent', async () => {
+      const { mounting } = mountAs('manager', [alice, chloe], {
+        [`POST ${membersPath}/u-chloe/access-link`]: {
+          status: 503,
+          body: { error: 'Email unavailable' },
+        },
+      })
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Chloé'), 'Send link')
+
+      expect(pageText(wrapper)).toContain("We couldn't send Chloé's sign-in link. Try again later.")
+      expect(pageText(wrapper)).not.toContain('link is sent')
+      expect(hasControl(item(wrapper, 'Chloé'), 'Revoke link')).toBe(false)
+    })
+  })
+
   describe('as a volunteer', () => {
-    it('shows members and roles without Change role, Revoke link or Add a member', async () => {
+    it('shows members and roles without Change role, Send link, Revoke link or Add a member', async () => {
       const brunoWithLink = member('u-bruno', 'Bruno', 'volunteer', true, true, true)
       const { mounting } = mountAs('volunteer', [zoe, brunoWithLink, alice])
       const wrapper = await mounting
 
       expect(item(wrapper, 'Zoé').text().toLowerCase()).toContain('manager')
       expect(pageText(wrapper)).not.toContain('Change role')
+      expect(pageText(wrapper)).not.toContain('Send link')
       expect(pageText(wrapper)).not.toContain('Revoke link')
       expect(pageText(wrapper)).not.toContain('Add a member')
       expect(() => control(wrapper, 'Add member')).toThrow()

@@ -436,3 +436,122 @@ def test_manager_revoke_404_when_the_user_is_not_a_member(
     assert response.status_code == 404
     assert "error" in response.json()
     assert open_link(new_client(), token).status_code == 200
+
+
+# POST /api/associations/{id}/members/{user_id}/access-link
+
+
+def send_link(
+    client: Any, association_id: str, user_id: str, accept_language: str | None = None
+) -> Any:
+    headers = {} if accept_language is None else {"Accept-Language": accept_language}
+    return client.post(
+        f"/api/associations/{association_id}/members/{user_id}/access-link", headers=headers
+    )
+
+
+def test_r26_a_manager_sends_a_member_their_access_link(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    association, chloe, chloe_email = manager_with_member(client)
+
+    response = send_link(client, association["id"], chloe["user_id"])
+
+    assert response.status_code == 200
+    assert response.json() == {**chloe, "access_link": True}
+    sent = latest_email(chloe_email)
+    assert sent["Subject"] == ENGLISH["Subject"]
+    assert normalized(sent["Text"]).startswith(normalized(ENGLISH["Text"]))
+    browser = new_client()
+    assert open_link(browser, latest_access_token(chloe_email)).status_code == 200
+    assert browser.get("/api/session").json()["id"] == chloe["user_id"]
+
+
+def test_r26_the_email_follows_the_managers_language(client: Any) -> None:
+    association, chloe, chloe_email = manager_with_member(client)
+
+    send_link(client, association["id"], chloe["user_id"], "fr-FR,fr;q=0.9,en;q=0.8")
+
+    sent = latest_email(chloe_email)
+    assert sent["Subject"] == FRENCH["Subject"]
+    assert normalized(sent["Text"]).startswith(normalized(FRENCH["Text"]))
+
+
+def test_r26_r25_sending_again_sends_the_same_link(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    association, chloe, chloe_email = manager_with_member(client)
+    ask_for_link(new_client(), chloe_email)
+    first_token = latest_access_token(chloe_email)
+    time.sleep(0.01)  # Mailpit orders by Created, at millisecond precision.
+
+    send_link(client, association["id"], chloe["user_id"])
+
+    assert email_count(chloe_email) == 2
+    assert latest_access_token(chloe_email) == first_token
+
+
+def test_r26_a_manager_sends_their_own_link(client: Any) -> None:
+    association, _, _ = manager_with_member(client)
+    alice = next(
+        m
+        for m in client.get(f"/api/associations/{association['id']}").json()["members"]
+        if m["role"] == "manager"
+    )
+
+    response = send_link(client, association["id"], alice["user_id"])
+
+    assert response.status_code == 200
+    latest_access_token(alice["email"])
+
+
+def test_manager_send_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
+    association, chloe, chloe_email = manager_with_member(client)
+    bruno = new_client()
+    bruno_email = unique_email("Bruno")
+    sign_up(bruno, "Bruno", bruno_email)
+    add_member(client, association["id"], "Bruno", bruno_email)
+
+    response = send_link(bruno, association["id"], chloe["user_id"])
+
+    assert response.status_code == 403
+    assert "error" in response.json()
+    assert_no_email_sent(chloe_email)
+
+
+def test_manager_send_404_when_the_user_is_not_a_member(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    association, _, _ = manager_with_member(client)
+    outsider_email = unique_email("Emma")
+    outsider = sign_up(new_client(), "Emma", outsider_email)
+    time.sleep(0.01)  # Mailpit orders by Created, at millisecond precision.
+
+    response = send_link(client, association["id"], outsider["id"])
+
+    assert response.status_code == 404
+    assert "error" in response.json()
+    assert email_count(outsider_email) == 1  # only the confirmation email
+
+
+def test_manager_send_401_when_signed_out(client: Any, new_client: Callable[[], Any]) -> None:
+    association, chloe, _ = manager_with_member(client)
+
+    response = send_link(new_client(), association["id"], chloe["user_id"])
+
+    assert response.status_code == 401
+
+
+def test_manager_send_503_when_the_email_cannot_be_sent(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    association, chloe, chloe_email = manager_with_member(client)
+    monkeypatch.setenv("SMTP_HOST", "localhost")
+    monkeypatch.setenv("SMTP_PORT", "1")
+
+    response = send_link(client, association["id"], chloe["user_id"])
+
+    assert response.status_code == 503
+    assert "error" in response.json()
+    monkeypatch.undo()
+    assert_no_email_sent(chloe_email)
