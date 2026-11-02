@@ -31,9 +31,13 @@ Content-Type: application/json
 {"id": "c90b…", "weekday": "saturday", "start": "10:00", "end": "13:00"}
 ```
 
+- `PUT /api/associations/{id}/slots/{slot_id}` takes the body of
+  `POST` and returns the slot, as `POST` does, with 200.
 - `DELETE /api/associations/{id}/slots/{slot_id}`: 204.
-- `POST` and `DELETE` are for managers only: 403 for a volunteer.
-- 409 when the association already has that slot.
+- `POST`, `PUT` and `DELETE` are for managers only: 403 for a
+  volunteer.
+- 409 when the association already has that slot, other than the one
+  edited.
 - Slots are listed by weekday, then start.
 
 ## Closures
@@ -53,8 +57,11 @@ Content-Type: application/json
 ```
 
 - `GET /api/associations/{id}/closures` lists them by first date;
+  `PUT /api/associations/{id}/closures/{closure_id}` takes the body of
+  `POST` and returns the closure, as `POST` does, with 200;
   `DELETE /api/associations/{id}/closures/{closure_id}`: 204.
-- `POST` and `DELETE` are for managers only: 403 for a volunteer.
+- `POST`, `PUT` and `DELETE` are for managers only: 403 for a
+  volunteer.
 - `label` may be omitted or `null`.
 
 ## Planning period

@@ -7,14 +7,14 @@ PLANNING PERIOD
   Mon 2 Nov 2026 – Wed 25 Nov 2026                      ✎  🗑
 
 CLOSURES                                       [+ Add a closure]
-  Sat 14 Nov 2026                                          🗑
+  Sat 14 Nov 2026                                       ✎  🗑
   Fête du quartier
-  Thu 24 Dec 2026 – Fri 1 Jan 2027                         🗑
+  Thu 24 Dec 2026 – Fri 1 Jan 2027                      ✎  🗑
   Fêtes de fin d'année
 
 SLOTS                                             [+ Add a slot]
-  Thursday   10:00–13:00   My preference [Preferred ▾]     🗑
-  Saturday   10:00–13:00   My preference [—         ▾]     🗑
+  Thursday   10:00–13:00   My preference [Preferred ▾]  ✎  🗑
+  Saturday   10:00–13:00   My preference [—         ▾]  ✎  🗑
 
 Members' preferences
            Thu 10:00–13:00   Sat 10:00–13:00
@@ -30,12 +30,15 @@ Members' preferences
   [Save]. Its delete icon shows only when a period is set; it asks
   "Clear the planning period?" with [Clear].
 - "Add a closure" opens the dialog "Add a closure": From, To, Label,
-  [Add closure]. A closure's delete icon asks "Delete the closure
-  "Fête du quartier"?", or "Delete the closure of Sat 14 Nov 2026?"
-  without a label, with [Delete].
+  [Add closure]. A closure's edit icon opens the dialog "Edit the
+  closure", filled with the closure, with [Save]. Its delete icon asks
+  "Delete the closure "Fête du quartier"?", or "Delete the closure of
+  Sat 14 Nov 2026?" without a label, with [Delete].
 - "Add a slot" opens the dialog "Add a slot": Day, From, To, [Add
-  slot]. A slot's delete icon asks "Delete the slot Thursday
-  10:00–13:00?" with [Delete].
+  slot]. A slot's edit icon opens the dialog "Edit the slot", filled
+  with the slot, with [Save]; From and To do not follow each other as
+  in R17. Its delete icon asks "Delete the slot Thursday 10:00–13:00?"
+  with [Delete].
 - R17: The Add a slot dialog opens with From at 09:00 and To at 09:00.
   Changing From sets To to the same time, until the manager changes To.
 - R18: After a slot is added, the next Add a slot dialog of the screen

@@ -18,7 +18,7 @@
   - slot
   - value: `preferred`, `possible` or `unavailable`
   - A member without a preference on a slot has stated none.
-  - Deleting a slot deletes its preferences.
+  - Deleting a slot deletes its preferences; editing it keeps them.
 - Occurrence (computed, not stored): a slot on a date of its weekday,
   unless a closure of the association covers that date. It is
   identified by its association, date, start and end. Its slot is the
