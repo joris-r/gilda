@@ -15,6 +15,13 @@ export interface Call {
   body: unknown
 }
 
+const callHeaders = new WeakMap<Call, Headers>()
+
+/** The headers `call` was sent with. */
+export function headersOf(call: Call): Headers {
+  return callHeaders.get(call) ?? new Headers()
+}
+
 /**
  * Stubs fetch with routes keyed by "METHOD /path". Unmocked requests answer 500,
  * so a test sees them fail. Returns the calls made, in order.
@@ -27,7 +34,9 @@ export function mockApi(routes: Record<string, Route>): Call[] {
     const method = (init?.method ?? request?.method ?? 'GET').toUpperCase()
     const raw = init?.body ?? (request ? await request.text() : undefined)
     const body = raw ? JSON.parse(String(raw)) : undefined
-    calls.push({ method, path: url.pathname, body })
+    const call = { method, path: url.pathname, body }
+    callHeaders.set(call, new Headers(init?.headers ?? request?.headers))
+    calls.push(call)
     const route = routes[`${method} ${url.pathname}`]
     const reply: Reply =
       route === undefined

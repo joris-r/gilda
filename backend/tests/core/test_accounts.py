@@ -1,3 +1,4 @@
+import re
 import uuid
 from collections.abc import Callable
 from typing import Any
@@ -8,6 +9,7 @@ from tests.core.conftest import (
     PASSWORD,
     add_member,
     create_association,
+    latest_email,
     latest_verification_token,
     sign_up,
     unique_email,
@@ -42,6 +44,64 @@ def test_r9_sign_up_sends_a_confirmation_email(client: Any) -> None:
 
     assert response.status_code == 201
     latest_verification_token(email)  # raises if no email was sent
+
+
+ENGLISH = {"Subject": "Confirm your email", "Text": "Confirm your email by opening this link:"}
+FRENCH = {
+    "Subject": "Confirmez votre adresse e-mail",
+    "Text": "Confirmez votre adresse e-mail en ouvrant ce lien :",
+}
+
+
+def sign_up_with_language(client: Any, accept_language: str | None) -> dict[str, str]:
+    """Signs up with this Accept-Language header, or none, and returns the email sent."""
+    email = unique_email("Alice")
+    headers = {} if accept_language is None else {"Accept-Language": accept_language}
+    response = client.post(
+        "/api/accounts",
+        json={"display_name": "Alice", "email": email, "password": PASSWORD},
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    return latest_email(email)
+
+
+def assert_written_in(sent: dict[str, str], language: dict[str, str]) -> None:
+    assert sent["Subject"] == language["Subject"]
+    assert sent["Text"].startswith(language["Text"])
+    assert re.search(r"/verify-email\?token=[\w-]+", sent["Text"])
+
+
+@pytest.mark.parametrize(
+    "accept_language",
+    ["fr", "fr-FR", "fr-FR,fr;q=0.9,en;q=0.8", "de,fr;q=0.5", "en;q=0.4,fr;q=0.9"],
+)
+def test_r20_confirmation_email_is_in_french_when_the_request_prefers_french(
+    client: Any, accept_language: str
+) -> None:
+    assert_written_in(sign_up_with_language(client, accept_language), FRENCH)
+
+
+@pytest.mark.parametrize("accept_language", [None, "en", "en-GB,en;q=0.9,fr;q=0.8", "de", "*"])
+def test_r20_confirmation_email_is_in_english_otherwise(
+    client: Any, accept_language: str | None
+) -> None:
+    assert_written_in(sign_up_with_language(client, accept_language), ENGLISH)
+
+
+def test_r20_resent_confirmation_email_follows_the_resend_request(client: Any) -> None:
+    email = unique_email("Alice")
+    client.post(
+        "/api/accounts", json={"display_name": "Alice", "email": email, "password": PASSWORD}
+    )
+    assert_written_in(latest_email(email), ENGLISH)
+
+    response = client.post(
+        "/api/accounts/verify/resend", json={"email": email}, headers={"Accept-Language": "fr"}
+    )
+
+    assert response.status_code == 204
+    assert_written_in(latest_email(email), FRENCH)
 
 
 def test_post_api_accounts_user_ids_are_uuids(client: Any) -> None:

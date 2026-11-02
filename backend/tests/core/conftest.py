@@ -22,8 +22,8 @@ def unique_email(name: str) -> str:
     return f"{name.lower()}-{uuid.uuid4().hex[:12]}@example.org"
 
 
-def latest_verification_token(email: str, timeout: float = 5.0) -> str:
-    """Reads the confirmation link Mailpit caught for `email`, and returns its token."""
+def latest_email(email: str, timeout: float = 5.0) -> dict[str, str]:
+    """The latest email Mailpit caught for `email`, as its Subject and Text."""
     deadline = time.monotonic() + timeout
     while True:
         response = httpx.get(f"{MAILPIT_URL}/api/v1/search", params={"query": f"to:{email}"})
@@ -31,13 +31,19 @@ def latest_verification_token(email: str, timeout: float = 5.0) -> str:
         if messages:
             # Mailpit IDs are not ordered by time; Created has millisecond precision.
             latest = max(messages, key=lambda m: datetime.fromisoformat(m["Created"]))
-            text = httpx.get(f"{MAILPIT_URL}/api/v1/message/{latest['ID']}").json()["Text"]
-            match = re.search(r"token=([\w-]+)", text)
-            assert match, f"no verification link in the email sent to {email}"
-            return match.group(1)
+            message = httpx.get(f"{MAILPIT_URL}/api/v1/message/{latest['ID']}").json()
+            return {"Subject": message["Subject"], "Text": message["Text"]}
         if time.monotonic() > deadline:
             raise AssertionError(f"no email was sent to {email}")
         time.sleep(0.2)
+
+
+def latest_verification_token(email: str, timeout: float = 5.0) -> str:
+    """Reads the confirmation link Mailpit caught for `email`, and returns its token."""
+    text = latest_email(email, timeout)["Text"]
+    match = re.search(r"token=([\w-]+)", text)
+    assert match, f"no verification link in the email sent to {email}"
+    return match.group(1)
 
 
 @pytest.fixture
