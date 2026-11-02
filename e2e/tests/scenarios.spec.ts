@@ -7,8 +7,8 @@ function uniqueEmail(name: string) {
   return `${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.org`
 }
 
-/** Reads the confirmation link Mailpit caught for `email`, and returns its token. */
-async function latestVerificationToken(email: string, timeout = 5000): Promise<string> {
+/** Reads the latest link Mailpit caught for `email`, and returns its token. */
+async function latestToken(email: string, timeout = 5000): Promise<string> {
   const deadline = Date.now() + timeout
   while (true) {
     const search = await fetch(
@@ -21,7 +21,7 @@ async function latestVerificationToken(email: string, timeout = 5000): Promise<s
       const message = await fetch(`${MAILPIT_URL}/api/v1/message/${latest.ID}`)
       const { Text: text } = (await message.json()) as { Text: string }
       const match = /token=([\w-]+)/.exec(text)
-      if (!match) throw new Error(`no verification link in the email sent to ${email}`)
+      if (!match) throw new Error(`no link with a token in the email sent to ${email}`)
       return match[1]
     }
     if (Date.now() > deadline) throw new Error(`no email was sent to ${email}`)
@@ -38,17 +38,15 @@ async function signUp(page: Page, displayName: string, email: string) {
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page.getByText(email)).toBeVisible()
 
-  const token = await latestVerificationToken(email)
+  const token = await latestToken(email)
   await page.goto(`/verify-email?token=${token}`)
-  await expect(page.getByText('Email confirmed. You can now sign in.')).toBeVisible()
-
-  await signIn(page, email)
+  await expect(page.getByText('My associations')).toBeVisible()
 }
 
-async function signIn(page: Page, email: string) {
+async function signIn(page: Page, email: string, password = PASSWORD) {
   await page.goto('/')
   await page.getByLabel('Email', { exact: true }).fill(email)
-  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
+  await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByText('My associations')).toBeVisible()
 }
@@ -237,6 +235,38 @@ test.describe('Scenarios', () => {
       await expect(occurrence(page, thursday.label, '10–13')).toContainText('David')
       await expect(occurrence(page, thursday.label, '10–13').locator('s')).toHaveCount(0)
       await expect(occurrence(page, thursday.label, '10–13')).not.toContainText('Chloé')
+    })
+  })
+
+  test('a forgotten password', async ({ page }) => {
+    const alice = uniqueEmail('Alice')
+    const newPassword = 'battery staple'
+    await signUp(page, 'Alice', alice)
+    await signOut(page)
+
+    await test.step('1. Alice asks for a reset link from Sign in', async () => {
+      await page.getByText('Forgot your password?', { exact: true }).click()
+      await page.getByLabel('Email', { exact: true }).fill(alice)
+      await page.getByRole('button', { name: 'Send a reset link' }).click()
+      await expect(page.getByText(`If ${alice} has an account`)).toBeVisible()
+    })
+
+    await test.step('2. Alice opens the link and chooses a new password', async () => {
+      await page.waitForTimeout(10) // Mailpit orders by Created, at millisecond precision.
+      const token = await latestToken(alice)
+      await page.goto(`/reset-password?token=${token}`)
+      await page.getByLabel('New password', { exact: true }).fill(newPassword)
+      await page.getByRole('button', { name: 'Set password' }).click()
+      await expect(page.getByText('My associations')).toBeVisible()
+      await signOut(page)
+    })
+
+    await test.step('3. Alice signs in with her new password, not her old one', async () => {
+      await page.getByLabel('Email', { exact: true }).fill(alice)
+      await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
+      await page.getByRole('button', { name: 'Sign in' }).click()
+      await expect(page.getByText('Wrong email or password.')).toBeVisible()
+      await signIn(page, alice, newPassword)
     })
   })
 })

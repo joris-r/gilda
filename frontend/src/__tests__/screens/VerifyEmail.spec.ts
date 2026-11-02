@@ -12,10 +12,15 @@ afterEach(() => {
 })
 
 describe('Confirm email', () => {
-  it('confirms the token from the link and says sign-in is now possible', async () => {
+  it('confirms the token from the link and leads to My associations, signed in', async () => {
+    let verified = false
     const calls = mockApi({
-      'GET /api/session': signedOut,
-      'POST /api/accounts/verify': { status: 200, body: alice },
+      'GET /api/session': () => (verified ? { status: 200, body: alice } : signedOut),
+      'POST /api/accounts/verify': () => {
+        verified = true
+        return { status: 200, body: { ...alice, superuser: false } }
+      },
+      'GET /api/associations': { status: 200, body: [] },
     })
 
     const wrapper = await mountApp('/verify-email?token=abc123')
@@ -25,7 +30,9 @@ describe('Confirm email', () => {
       path: '/api/accounts/verify',
       body: { token: 'abc123' },
     })
-    expect(pageText(wrapper)).toContain('Email confirmed. You can now sign in.')
+    expect(wrapper.vm.$route.path).toBe('/')
+    expect(pageText(wrapper)).toContain('My associations')
+    expect(pageText(wrapper)).toContain('Alice')
   })
 
   it('says the link is no longer valid for an unknown or expired token', async () => {

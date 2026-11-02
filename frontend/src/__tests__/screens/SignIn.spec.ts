@@ -71,6 +71,17 @@ describe('Sign in', () => {
     expect(field(wrapper, 'Display name').exists()).toBe(true)
   })
 
+  it('"Forgot your password?" leads to /forgot-password', async () => {
+    mockApi({ 'GET /api/session': signedOut })
+    const wrapper = await mountApp('/')
+
+    await press(wrapper, 'Forgot your password?')
+
+    expect(wrapper.vm.$route.path).toBe('/forgot-password')
+    expect(pageText(wrapper)).toContain('Forgot your password?')
+    expect(field(wrapper, 'Email').exists()).toBe(true)
+  })
+
   it('is shown on an association page when signed out', async () => {
     mockApi({ 'GET /api/session': signedOut })
 

@@ -46,6 +46,20 @@ def latest_verification_token(email: str, timeout: float = 5.0) -> str:
     return match.group(1)
 
 
+def latest_reset_token(email: str, timeout: float = 5.0) -> str:
+    """Reads the reset link Mailpit caught for `email`, and returns its token."""
+    text = latest_email(email, timeout)["Text"]
+    match = re.search(r"/reset-password\?token=([\w-]+)", text)
+    assert match, f"no reset link in the email sent to {email}"
+    return match.group(1)
+
+
+def email_count(email: str) -> int:
+    """How many emails Mailpit caught for `email`."""
+    response = httpx.get(f"{MAILPIT_URL}/api/v1/search", params={"query": f"to:{email}"})
+    return len(response.json()["messages"])
+
+
 @pytest.fixture
 def new_client() -> Iterator[Callable[[], Any]]:
     """Opens extra clients, each with its own cookies (its own browser)."""

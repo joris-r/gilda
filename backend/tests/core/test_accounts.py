@@ -534,7 +534,9 @@ def test_delete_api_session_signs_out(client: Any) -> None:
 # POST /api/accounts/verify
 
 
-def test_post_api_accounts_verify_confirms_and_allows_sign_in(client: Any) -> None:
+def test_post_api_accounts_verify_confirms_and_signs_in(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
     email = unique_email("Alice")
     client.post(
         "/api/accounts", json={"display_name": "Alice", "email": email, "password": PASSWORD}
@@ -545,10 +547,32 @@ def test_post_api_accounts_verify_confirms_and_allows_sign_in(client: Any) -> No
 
     assert response.status_code == 200
     body = response.json()
-    assert body == {"id": body["id"], "display_name": "Alice", "email": email}
+    assert body == {"id": body["id"], "display_name": "Alice", "email": email, "superuser": False}
+    assert client.get("/api/session").json() == body
     assert (
-        client.post("/api/session", json={"email": email, "password": PASSWORD}).status_code == 200
+        new_client().post("/api/session", json={"email": email, "password": PASSWORD}).status_code
+        == 200
     )
+
+
+def test_r16_verify_replaces_a_session_id_planted_in_the_browser(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    email = unique_email("Alice")
+    client.post(
+        "/api/accounts", json={"display_name": "Alice", "email": email, "password": PASSWORD}
+    )
+    token = latest_verification_token(email)
+    planted = uuid.uuid4().hex
+    client.cookies.set("session", planted)
+    attacker = new_client()
+    attacker.cookies.set("session", planted)
+
+    response = client.post("/api/accounts/verify", json={"token": token})
+
+    assert response.status_code == 200
+    assert response.cookies.get("session") not in (None, planted)
+    assert attacker.get("/api/session").status_code == 401
 
 
 def test_post_api_accounts_verify_404_when_the_token_is_unknown(client: Any) -> None:
