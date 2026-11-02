@@ -9,12 +9,45 @@ Sign in
   Email     [                    ]
   Password  [                    ]
   [Sign in]
+  Forgot your password?
 
 No account yet? Create an account
 ```
 
 - Wrong credentials show "Wrong email or password." under the form.
 - "Create an account" leads to `/signup`.
+- "Forgot your password?" leads to `/forgot-password`.
+
+## `/forgot-password`: Forgot password
+
+```
+(logo)                                     [English ▾]
+
+Forgot your password?
+  Email     [                    ]
+  [Send a reset link]
+
+Back to Sign in
+```
+
+- On submit, shows "If alice@example.org has an account, a reset link
+  has been sent to it." instead of the form.
+
+## `/reset-password`: Reset password
+
+```
+(logo)                                     [English ▾]
+
+Choose a new password
+  New password  [                ]
+  [Set password]
+```
+
+- Reached from the reset link's `token` query parameter.
+- On success, leads to My associations, signed in.
+- An unknown, expired, or already-used token shows "This link is no
+  longer valid." with a way to `/forgot-password` to request a new
+  one.
 
 ## `/signup`: Create an account
 
@@ -42,13 +75,8 @@ Already have an account? Sign in
 
 ## `/verify-email`: Confirm email
 
-```
-(logo)                                     [English ▾]
-
-Email confirmed. You can now sign in.
-```
-
 - Reached from the confirmation link's `token` query parameter.
+- On success, leads to My associations, signed in.
 - An unknown, expired, or already-used token shows "This link is no
   longer valid." with a way back to `/signup` to request a new one.
 
@@ -155,8 +183,8 @@ Add a member
   regardless.
 - A volunteer sees the members and their roles, without "Change role"
   and without "Add a member".
-- Signed out, every page but `/signup` and `/verify-email` shows Sign
-  in.
+- Signed out, every page but `/signup`, `/verify-email`,
+  `/forgot-password` and `/reset-password` shows Sign in.
 
 In French, e.g.:
 

@@ -27,3 +27,12 @@
    name shows struck, red.
 5. David, a volunteer, signs up for that Thursday: his name replaces
    Chloé's, green.
+
+## A forgotten password
+
+1. Alice, who has an account, cannot remember her password. On Sign
+   in, she follows "Forgot your password?" and asks for a reset link.
+2. She opens the link from her email and chooses a new password: My
+   associations shows, signed in. She signs out.
+3. She signs in with her new password; her old one shows "Wrong email
+   or password."

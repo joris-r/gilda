@@ -14,6 +14,11 @@
   - expires_at: 24 hours after creation
   - R8: Creating a new token for a user deletes that user's previous
     one.
+- PasswordResetToken: a pending password reset for a user, as
+  EmailVerificationToken (R8 applies)
+  - token: random, unique
+  - user_id
+  - expires_at: 1 hour after creation
 - Association
   - id: UUID
   - name: free text, not empty

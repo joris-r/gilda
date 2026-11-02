@@ -67,11 +67,13 @@ Content-Type: application/json
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
+Set-Cookie: session=…
 
-{"id": "0b6f…", "display_name": "Alice", "email": "alice@example.org"}
+{"id": "0b6f…", "display_name": "Alice", "email": "alice@example.org", "superuser": false}
 ```
 
-- Sets email_verified_at on the token's user, and deletes the token.
+- Sets email_verified_at on the token's user, deletes the token, and
+  signs the user in, as `POST /api/session` does (R16).
 - 404 when the token is unknown, expired, or already used.
 
 ### POST /api/accounts/verify/resend
@@ -92,6 +94,71 @@ HTTP/1.1 204 No Content
   in the language given by R20.
 - Always 204, whether or not such a user exists, so the response
   cannot be used to probe for an email.
+
+### POST /api/accounts/password-reset
+
+Asks for a password reset link.
+
+```http
+POST /api/accounts/password-reset
+Content-Type: application/json
+
+{"email": "alice@example.org"}
+```
+
+```http
+HTTP/1.1 204 No Content
+```
+
+- R21: When a user with this email has a password, a
+  PasswordResetToken is created and an email sent to it, with a link
+  to `/reset-password?token=…`, in the language R20 sets:
+
+  ```
+  Subject: Reset your password
+
+  Choose a new password by opening this link, valid for one hour:
+
+  https://…/reset-password?token=…
+  ```
+
+  ```
+  Subject: Réinitialisez votre mot de passe
+
+  Choisissez un nouveau mot de passe en ouvrant ce lien, valable une heure :
+
+  https://…/reset-password?token=…
+  ```
+- No email is sent to a user without a password, nor to an unknown
+  email.
+- Always 204, as `POST /api/accounts/verify/resend`.
+
+### POST /api/accounts/password-reset/confirm
+
+Sets a new password from the link's token.
+
+```http
+POST /api/accounts/password-reset/confirm
+Content-Type: application/json
+
+{"token": "…", "password": "battery staple"}
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Set-Cookie: session=…
+
+{"id": "0b6f…", "display_name": "Alice", "email": "alice@example.org", "superuser": false}
+```
+
+- R22: Replaces the token's user's password, sets their
+  email_verified_at if still null, deletes the token, and signs the
+  user in, as `POST /api/session` does (R16). The user's other
+  sessions stay signed in.
+- 404 when the token is unknown, expired, or already used.
+- 400 when the password has fewer than 8 characters; the token stays
+  usable.
 
 ### POST /api/session
 
