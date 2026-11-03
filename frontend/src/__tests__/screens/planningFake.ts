@@ -317,6 +317,13 @@ export function slotItem(wrapper: Wrapper, dayLabel: string, times: string): DOM
   return element
 }
 
+/** The open menu of the schedule. */
+export function menu(wrapper: Wrapper): DOMWrapper<Element> {
+  const element = wrapper.find('[role="dialog"]')
+  if (!element.exists()) throw new Error('No open menu')
+  return element
+}
+
 /** Clicks an item of the schedule, to open its menu. */
 export async function open(element: DOMWrapper<Element>) {
   const button = element.find('button')

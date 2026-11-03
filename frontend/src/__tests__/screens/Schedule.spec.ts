@@ -7,6 +7,7 @@ import {
   day,
   hasDay,
   isAbsent,
+  menu,
   open,
   planningApi,
   preferenceOf,
@@ -280,8 +281,8 @@ describe('Schedule', () => {
     const { mounting } = mountSchedule()
     const wrapper = await mounting
 
-    await open(slotItem(wrapper, 'Thu 29 Oct', '10–13'))
-    expect(wrapper.find('[role="dialog"]').text()).toContain('Thu 29 Oct · 10–13')
+    await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+    expect(menu(wrapper).text()).toContain('Thu 19 Nov · 10–13')
   })
 
   it('a cancelled registration shows its name struck', async () => {
@@ -525,8 +526,8 @@ describe('Schedule', () => {
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
       expect(hasControl(wrapper, 'Sign up')).toBe(true)
-      expect(hasControl(wrapper, 'Chloé')).toBe(true)
-      await press(wrapper, 'Bruno')
+      expect(hasControl(menu(wrapper), 'Chloé')).toBe(true)
+      await press(menu(wrapper), 'Bruno')
 
       expect(calls).toContainEqual({
         method: 'POST',
@@ -597,9 +598,9 @@ describe('Schedule', () => {
       const wrapper = await mounting
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
-      expect(preferenceOf(control(wrapper, 'Alice'))).toBe('possible')
-      expect(preferenceOf(control(wrapper, 'Bruno'))).toBe('preferred')
-      expect(preferenceOf(control(wrapper, 'Chloé'))).toBeNull()
+      expect(preferenceOf(control(menu(wrapper), 'Alice'))).toBe('possible')
+      expect(preferenceOf(control(menu(wrapper), 'Bruno'))).toBe('preferred')
+      expect(preferenceOf(control(menu(wrapper), 'Chloé'))).toBeNull()
     })
 
     it('on another slot, the names follow that slot', async () => {
@@ -607,9 +608,9 @@ describe('Schedule', () => {
       const wrapper = await mounting
 
       await open(slotItem(wrapper, 'Sat 21 Nov', '10–13'))
-      expect(preferenceOf(control(wrapper, 'Alice'))).toBeNull()
-      expect(preferenceOf(control(wrapper, 'Bruno'))).toBe('unavailable')
-      expect(preferenceOf(control(wrapper, 'Chloé'))).toBe('preferred')
+      expect(preferenceOf(control(menu(wrapper), 'Alice'))).toBeNull()
+      expect(preferenceOf(control(menu(wrapper), 'Bruno'))).toBe('unavailable')
+      expect(preferenceOf(control(menu(wrapper), 'Chloé'))).toBe('preferred')
     })
 
     it('each name is followed by the registration count, in parentheses', async () => {
@@ -621,9 +622,9 @@ describe('Schedule', () => {
       const wrapper = await mounting
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
-      expect(hasControl(wrapper, 'Alice (1)')).toBe(true)
-      expect(hasControl(wrapper, 'Bruno (0)')).toBe(true)
-      expect(hasControl(wrapper, 'Chloé (2)')).toBe(true)
+      expect(hasControl(menu(wrapper), 'Alice (1)')).toBe(true)
+      expect(hasControl(menu(wrapper), 'Bruno (0)')).toBe(true)
+      expect(hasControl(menu(wrapper), 'Chloé (2)')).toBe(true)
     })
 
     it('without a planning period, no count is shown', async () => {
@@ -631,7 +632,7 @@ describe('Schedule', () => {
       const wrapper = await mounting
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
-      expect(memberButtons(wrapper).map((b) => b.text().trim())).toEqual([
+      expect(memberButtons(menu(wrapper)).map((b) => b.text().trim())).toEqual([
         'Bruno',
         'Alice',
         'Chloé',
@@ -648,7 +649,7 @@ describe('Schedule', () => {
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
       expect(hasControl(wrapper, 'Sign up')).toBe(true)
-      await press(wrapper, 'Chloé (2)')
+      await press(menu(wrapper), 'Chloé (2)')
 
       expect(calls).toContainEqual({
         method: 'POST',
@@ -680,9 +681,9 @@ describe('Schedule', () => {
       const wrapper = await mounting
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
-      expect(isAbsent(control(wrapper, 'Bruno'))).toBe(true)
-      expect(isAbsent(control(wrapper, 'Alice'))).toBe(false)
-      expect(isAbsent(control(wrapper, 'Chloé'))).toBe(false)
+      expect(isAbsent(control(menu(wrapper), 'Bruno'))).toBe(true)
+      expect(isAbsent(control(menu(wrapper), 'Alice'))).toBe(false)
+      expect(isAbsent(control(menu(wrapper), 'Chloé'))).toBe(false)
     })
 
     it('an absence covers the dates from its first to its last', async () => {
@@ -697,9 +698,9 @@ describe('Schedule', () => {
       const wrapper = await mounting
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
-      expect(isAbsent(control(wrapper, 'Bruno'))).toBe(true)
-      expect(isAbsent(control(wrapper, 'Chloé'))).toBe(true)
-      expect(isAbsent(control(wrapper, 'Alice'))).toBe(false)
+      expect(isAbsent(control(menu(wrapper), 'Bruno'))).toBe(true)
+      expect(isAbsent(control(menu(wrapper), 'Chloé'))).toBe(true)
+      expect(isAbsent(control(menu(wrapper), 'Alice'))).toBe(false)
     })
 
     it('an absent member keeps no preference colour, and can still be proposed the occurrence', async () => {
@@ -710,8 +711,8 @@ describe('Schedule', () => {
       const wrapper = await mounting
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
-      expect(preferenceOf(control(wrapper, 'Bruno'))).toBeNull()
-      await press(wrapper, 'Bruno')
+      expect(preferenceOf(control(menu(wrapper), 'Bruno'))).toBeNull()
+      await press(menu(wrapper), 'Bruno')
 
       expect(calls).toContainEqual({
         method: 'POST',
@@ -797,7 +798,7 @@ describe('Schedule', () => {
       await press(wrapper, note)
 
       expect(menuText(wrapper)).toContain(note)
-      expect(hasControl(wrapper, 'Bruno')).toBe(true)
+      expect(hasControl(menu(wrapper), 'Bruno')).toBe(true)
       expect(calls.some((c) => c.method === 'POST')).toBe(false)
     })
 
@@ -872,7 +873,7 @@ describe('Schedule', () => {
       const { mounting } = mountSchedule('manager', overrides)
       const wrapper = await mounting
       await open(slotItem(wrapper, dayLabel, '10–13'))
-      return wrapper
+      return menu(wrapper)
         .findAll('button')
         .map((b) => b.text().trim())
         .filter((t) => /^(Alice|Bruno|Chloé)( \(\d+\))?$/.test(t))
