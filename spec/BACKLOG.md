@@ -1,6 +1,5 @@
 # Backlog
 
-- Frontend: the page width is capped at 640px, cramped on a wide screen; raise the cap (check the Schedule week grid there). The Create an account form is also narrower on a wide screen than on a narrow one.
 - Schedule: on a wide screen, drop the times ("10–13") from the occurrence blocks, as the narrow screen does; the menu opened by clicking one already shows them, and the hour axis places it. An unregistered occurrence then shows as an empty red block; the narrow-screen mock-up already shows no times, against the rule that an occurrence shows its times.
 - Schedule: make the planning period stand out more than its two marker lines do today, e.g. with a different background for its weeks.
 - Planning: with many slots in a day, the narrow-screen Schedule becomes unusable; stack a day's slots vertically in a single column. (3–4 slots a day, as at La Fabrique, work today.)
