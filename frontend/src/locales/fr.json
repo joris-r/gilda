@@ -193,6 +193,8 @@
     "yesCancel": "Oui, annuler",
     "keep": "La garder",
     "close": "Fermer",
+    "absentOn": "Absent le {date}",
+    "absentFrom": "Absent du {first} au {last}",
     "taken": "Quelqu'un a pris ce créneau entre-temps."
   },
   "error": "Une erreur est survenue. Réessayez.",

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** A button showing only an icon, named by `label`. */
-defineProps<{ icon: 'edit' | 'delete'; label: string }>()
+defineProps<{ icon: 'edit' | 'delete' | 'note' | 'absence'; label: string }>()
 </script>
 
 <template>
@@ -9,6 +9,14 @@ defineProps<{ icon: 'edit' | 'delete'; label: string }>()
       <template v-if="icon === 'edit'">
         <path d="M4 20h4L19 9l-4-4L4 16v4z" />
         <path d="M13.5 6.5l4 4" />
+      </template>
+      <template v-else-if="icon === 'note'">
+        <path d="M4 5h16v11H9l-5 4V5z" />
+        <path d="M8 9h8M8 12h5" />
+      </template>
+      <template v-else-if="icon === 'absence'">
+        <path d="M4 8h16v11H4z" />
+        <path d="M9 8V5h6v3M9 8v11M15 8v11" />
       </template>
       <path v-else d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />
     </svg>

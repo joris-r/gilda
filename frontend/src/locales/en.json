@@ -193,6 +193,8 @@
     "yesCancel": "Yes, cancel",
     "keep": "Keep it",
     "close": "Close",
+    "absentOn": "Absent {date}",
+    "absentFrom": "Absent {first} – {last}",
     "taken": "Someone took this slot in the meantime."
   },
   "error": "Something went wrong. Try again.",

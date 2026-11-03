@@ -10,8 +10,9 @@ import type {
   RegistrationCount,
   Slot,
 } from '../api'
-import { WEEKDAYS, weekdayIndex } from '../dates'
+import { formatDate, shortDayWithYear, WEEKDAYS, weekdayIndex } from '../dates'
 import { dayLabel, times, type Actions, type Item } from '../schedule'
+import IconButton from './IconButton.vue'
 
 const props = defineProps<{
   item: Item
@@ -70,15 +71,37 @@ function countOf(member: Member) {
   return props.counts?.find((c) => c.user_id === member.user_id)?.count ?? 0
 }
 
-function isAbsent(member: Member) {
-  return props.absences.some(
+/** The member's absence covering the item's date; undefined when they are not absent. */
+function absenceOf(member: Member) {
+  return props.absences.find(
     (a) => a.user_id === member.user_id && a.first <= props.item.date && props.item.date <= a.last,
   )
 }
 
-/** The member's note for the tooltip of their name; undefined when empty. */
+function isAbsent(member: Member) {
+  return absenceOf(member) !== undefined
+}
+
+/** The text of the member's absence icon; undefined when they are not absent. */
+function absenceText(member: Member) {
+  const absence = absenceOf(member)
+  if (absence === undefined) return undefined
+  const format = (iso: string) => formatDate(iso, locale.value, shortDayWithYear)
+  return absence.first === absence.last
+    ? t('schedule.absentOn', { date: format(absence.first) })
+    : t('schedule.absentFrom', { first: format(absence.first), last: format(absence.last) })
+}
+
+/** The member's note, the text of their note icon; undefined when empty. */
 function noteOf(member: Member) {
   return props.notes.find((n) => n.user_id === member.user_id)?.text || undefined
+}
+
+/** The text of the icon clicked last, shown under the names; null when none is shown. */
+const shown = ref<string | null>(null)
+
+function toggle(text: string) {
+  shown.value = shown.value === text ? null : text
 }
 
 const RANKS: (PreferenceValue | null)[] = ['preferred', 'possible', null, 'unavailable']
@@ -131,22 +154,43 @@ const people = computed(() =>
       <template v-if="actions.propose">
         <p class="sub">{{ t('schedule.proposeTo') }}</p>
         <div class="people">
-          <button
+          <span
             v-for="{ member } in people"
             :key="member.user_id"
-            type="button"
             :class="[
               'person',
               isAbsent(member)
                 ? 'absent'
                 : preferenceFor(member) && `preference-${preferenceFor(member)}`,
             ]"
-            :title="noteOf(member)"
-            @click="emit('propose', member)"
           >
-            {{ member.display_name }}<template v-if="counts"> ({{ countOf(member) }})</template>
-          </button>
+            <button
+              type="button"
+              :class="[
+                'name',
+                isAbsent(member)
+                  ? 'absent'
+                  : preferenceFor(member) && `preference-${preferenceFor(member)}`,
+              ]"
+              @click="emit('propose', member)"
+            >
+              {{ member.display_name }}<template v-if="counts"> ({{ countOf(member) }})</template>
+            </button>
+            <IconButton
+              v-if="absenceText(member)"
+              icon="absence"
+              :label="absenceText(member)!"
+              @click="toggle(absenceText(member)!)"
+            />
+            <IconButton
+              v-if="noteOf(member)"
+              icon="note"
+              :label="noteOf(member)!"
+              @click="toggle(noteOf(member)!)"
+            />
+          </span>
         </div>
+        <p v-if="shown" class="shown">{{ shown }}</p>
       </template>
     </template>
     <button
@@ -200,12 +244,41 @@ const people = computed(() =>
 }
 
 .person {
-  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--bg);
   color: var(--fg);
+}
+
+.person .name {
+  padding: 4px 8px 4px 12px;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
   font-weight: 400;
+}
+
+.person .icon-button {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  color: inherit;
+}
+
+.person .icon-button :deep(svg) {
+  width: 15px;
+  height: 15px;
+}
+
+.shown {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  white-space: pre-line;
 }
 
 .person.preference-preferred {
