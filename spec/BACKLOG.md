@@ -1,6 +1,6 @@
 # Backlog
 
-- Schedule: make the planning period stand out more than its two marker lines do today, e.g. with a different background for its weeks.
+- Schedule: make the period's two lines shorter and matching, like the Today line, e.g. "Planning start · Monday 2 November 2026" and "Planning end · …" ("Début de planification · …", "Fin de planification · …").
 - Planning: with many slots in a day, the narrow-screen Schedule becomes unusable; stack a day's slots vertically in a single column. (3–4 slots a day, as at La Fabrique, work today.)
 - Schedule: opening it waits for the planning period before loading the weeks; let `GET …/schedule` default to the range the screen needs (six weeks, extended to the period) so it takes one request.
 - Planning: a manager creates a revocable read-only share link to the Schedule, viewable without signing in (e.g. on the association's office PC).

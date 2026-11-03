@@ -168,7 +168,14 @@ function click(item: Item, event: MouseEvent) {
             :key="day.date"
             role="group"
             :aria-label="dayLabel(day.date, locale)"
-            :class="['day', { past: day.date < day0, after: period && day.date > period.last }]"
+            :class="[
+              'day',
+              {
+                past: day.date < day0,
+                within: period && day.date >= period.first && day.date <= period.last,
+                after: period && day.date > period.last,
+              },
+            ]"
           >
             <div class="day-head">{{ dayLabel(day.date, locale) }}</div>
             <div class="track" :style="{ '--day-lanes': day.lanes }">
@@ -256,12 +263,12 @@ function click(item: Item, event: MouseEvent) {
 }
 
 .line.period {
-  color: var(--muted);
+  color: var(--period);
 }
 
 .line.period::before,
 .line.period::after {
-  background: var(--muted);
+  background: var(--period);
 }
 
 .days {
@@ -306,6 +313,10 @@ function click(item: Item, event: MouseEvent) {
   background-color: var(--surface);
   background-image: linear-gradient(to bottom, var(--line) 1px, transparent 1px);
   background-size: 100% calc(100% / var(--hours));
+}
+
+.day.within .track {
+  background-color: var(--period-soft);
 }
 
 .axis .track {
@@ -458,6 +469,10 @@ function click(item: Item, event: MouseEvent) {
     height: calc(var(--day-lanes, 1) * var(--lane-px));
     background-image: linear-gradient(to right, var(--line) 1px, transparent 1px);
     background-size: calc(100% / var(--hours)) 100%;
+  }
+
+  .day.within .track {
+    background-color: var(--period-soft);
   }
 
   .axis .track {
