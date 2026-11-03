@@ -250,13 +250,14 @@ describe('Schedule', () => {
     expect(texts).not.toContain('18h')
   })
 
-  it("an occurrence shows its times and its registration's display name", async () => {
+  it("an occurrence shows its registration's display name, and no times", async () => {
     const { mounting } = mountSchedule()
     const wrapper = await mounting
 
     const occurrence = slotItem(wrapper, 'Thu 29 Oct', '10–13')
     expect(occurrence.text()).toContain('Chloé')
     expect(occurrence.text()).not.toMatch(/Chloé\s*\?/)
+    expect(occurrence.text()).not.toContain('10–13')
   })
 
   it('a proposed registration shows "?"', async () => {
@@ -265,14 +266,22 @@ describe('Schedule', () => {
     expect(slotItem(await mounting, 'Sat 31 Oct', '10–13').text()).toMatch(/Alice\s*\?/)
   })
 
-  it('an occurrence without registration shows its times only', async () => {
+  it('an occurrence without registration is empty', async () => {
     const { mounting } = mountSchedule()
 
     expect(
       slotItem(await mounting, 'Thu 19 Nov', '10–13')
         .text()
         .trim(),
-    ).toBe('10–13')
+    ).toBe('')
+  })
+
+  it('the menu of an occurrence is titled with its day and times', async () => {
+    const { mounting } = mountSchedule()
+    const wrapper = await mounting
+
+    await open(slotItem(wrapper, 'Thu 29 Oct', '10–13'))
+    expect(wrapper.find('[role="dialog"]').text()).toContain('Thu 29 Oct · 10–13')
   })
 
   it('a cancelled registration shows its name struck', async () => {

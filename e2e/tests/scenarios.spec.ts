@@ -101,11 +101,12 @@ async function createAssociation(page: Page, association: string) {
   await expect(page.locator('header').getByText(association)).toBeVisible()
 }
 
+/** The occurrence of a day, by its times ("10–13"), which its aria-label or its body's holds. */
 function occurrence(page: Page, dayLabel: string, times: string) {
+  const labelled = `[aria-label*="${times}"]`
   return page
     .getByRole('group', { name: dayLabel, exact: true })
-    .getByRole('listitem')
-    .filter({ hasText: times })
+    .locator(`li${labelled}, li:has(${labelled})`)
 }
 
 test.describe('Scenarios', () => {

@@ -307,11 +307,12 @@ export function hasDay(wrapper: Wrapper, prefix: string): boolean {
     .some((g) => (g.attributes('aria-label') ?? '').startsWith(prefix))
 }
 
-/** The occurrence or obsolete registration of a day, by its times as shown ("10–13"). */
+/** The occurrence or obsolete registration of a day, by its times ("10–13"), which its aria-label or its body's holds. */
 export function slotItem(wrapper: Wrapper, dayLabel: string, times: string): DOMWrapper<Element> {
+  const labelled = (e: DOMWrapper<Element>) => (e.attributes('aria-label') ?? '').includes(times)
   const element = day(wrapper, dayLabel)
     .findAll('li')
-    .find((li) => li.text().includes(times))
+    .find((li) => labelled(li) || li.findAll('button, div').some(labelled))
   if (element === undefined) throw new Error(`No item ${times} on "${dayLabel}"`)
   return element
 }
