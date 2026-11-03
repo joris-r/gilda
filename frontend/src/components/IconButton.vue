@@ -15,8 +15,10 @@ defineProps<{ icon: 'edit' | 'delete' | 'note' | 'absence'; label: string }>()
         <path d="M8 9h8M8 12h5" />
       </template>
       <template v-else-if="icon === 'absence'">
-        <path d="M4 8h16v11H4z" />
-        <path d="M9 8V5h6v3M9 8v11M15 8v11" />
+        <path d="M4 21c3-1.5 13-1.5 16 0" />
+        <path d="M10 20.5c.5-4 1.5-7.5 3-10.5" />
+        <path d="M13 10c-1.5-2.5-4.5-3-7.5-1.5M13 10c2-2.5 5-2.5 7.5-.5" />
+        <path d="M13 10c-.5-3-2.5-5-5.5-5.5M13 10c1-3 3-4.5 6-4.5" />
       </template>
       <path v-else d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />
     </svg>

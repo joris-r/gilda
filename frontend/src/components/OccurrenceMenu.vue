@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type {
   Member,
@@ -103,6 +103,9 @@ const shown = ref<string | null>(null)
 function toggle(text: string) {
   shown.value = shown.value === text ? null : text
 }
+
+// The menu changes height with its content: place it again so it stays inside the window.
+watch([shown, asking], () => nextTick(() => placeMenu(props.anchor)))
 
 const RANKS: (PreferenceValue | null)[] = ['preferred', 'possible', null, 'unavailable']
 
@@ -209,6 +212,8 @@ const people = computed(() =>
   position: fixed;
   z-index: 10;
   width: min(280px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   display: grid;
   gap: 10px;
   padding: 14px;
