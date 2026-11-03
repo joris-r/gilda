@@ -140,9 +140,7 @@ Sat 31   [Bruno ?    ]
 
 - "My availability", "Members" and "Schedule settings" lead to those
   screens.
-- It opens on the week before the current one and shows six weeks,
-  and more if needed to reach the week after the one that holds the
-  planning period's last date; "More weeks", at the end, adds four
+- It opens on the weeks of R32; "More weeks", at the end, adds four
   more.
 - Each week has one column per weekday on which an occurrence of the
   shown weeks falls. Time runs down, on the same scale in every week,

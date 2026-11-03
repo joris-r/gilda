@@ -219,6 +219,8 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 
 {
+  "from": "2026-11-02",
+  "to": "2026-11-15",
   "occurrences": [
     {"date": "2026-11-05", "start": "10:00", "end": "13:00",
      "registration": {"id": "1d3a…", "user_id": "77c0…", "display_name": "Chloé", "status": "confirmed"}},
@@ -236,6 +238,11 @@ Content-Type: application/json
 }
 ```
 
+- R32: Without `from` and `to`, the range starts on the Monday of the
+  week before today's and spans six weeks, and more if needed to reach
+  the end of the week after the one that holds the planning period's
+  last date.
+- 400 when only one of `from` and `to` is given.
 - An occurrence's `registration` is the one that is not cancelled;
   else the latest cancelled one; else `null`.
 - `closures` holds those that cover at least one date of the range.
