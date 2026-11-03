@@ -109,7 +109,7 @@ Week 44
      │Chloé         │  │Bruno ?       │
 13h  └──────────────┘  └──────────────┘
 
-── Planning period · from Monday 2 November 2026 ───────────
+── Planning start · Monday 2 November 2026 ─────────────────
 
 Week 45
        Thu 5 Nov         Sat 7 Nov
@@ -122,7 +122,7 @@ Week 48
        Thu 26 Nov        Sat 28 Nov
        (greyed)          (greyed)
 
-── End of planning period · Wednesday 25 November 2026 ─────
+── Planning end · Wednesday 25 November 2026 ───────────────
 
 Week 49      (greyed)
 …
