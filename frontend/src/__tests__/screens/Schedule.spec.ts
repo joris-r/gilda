@@ -320,7 +320,7 @@ describe('Schedule', () => {
       const { mounting } = mountSchedule('volunteer', { planningPeriod: period })
       const text = pageText(await mounting)
 
-      const line = text.indexOf('Planning period · from Wednesday 4 November 2026')
+      const line = text.indexOf('Planning start · Wednesday 4 November 2026')
       expect(line).toBeGreaterThan(text.indexOf('Week 44'))
       expect(line).toBeLessThan(text.indexOf('Week 45'))
     })
@@ -329,7 +329,7 @@ describe('Schedule', () => {
       const { mounting } = mountSchedule('volunteer', { planningPeriod: period })
       const text = pageText(await mounting)
 
-      const line = text.indexOf('End of planning period · Wednesday 18 November 2026')
+      const line = text.indexOf('Planning end · Wednesday 18 November 2026')
       expect(line).toBeGreaterThan(text.indexOf('Week 47'))
       expect(line).toBeLessThan(text.indexOf('Week 48'))
     })
@@ -341,7 +341,7 @@ describe('Schedule', () => {
       const text = pageText(await mounting)
 
       const today = text.indexOf('Today · Wednesday 28 October 2026')
-      const first = text.indexOf('Planning period · from Monday 26 October 2026')
+      const first = text.indexOf('Planning start · Monday 26 October 2026')
       expect(today).toBeGreaterThan(text.indexOf('Week 43'))
       expect(first).toBeGreaterThan(today)
       expect(first).toBeLessThan(text.indexOf('Week 44'))
@@ -380,8 +380,8 @@ describe('Schedule', () => {
       const { mounting } = mountSchedule()
       const text = pageText(await mounting)
 
-      expect(text).not.toContain('Planning period')
-      expect(text).not.toContain('End of planning period')
+      expect(text).not.toContain('Planning start')
+      expect(text).not.toContain('Planning end')
     })
 
     it('an occurrence after the last date keeps its menu', async () => {
