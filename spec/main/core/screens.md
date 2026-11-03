@@ -110,6 +110,7 @@ Already have an account? Sign in
 (logo)  My associations                                    Alice ▾
 
   Jardin partagé des Lilas                 MANAGER
+    Thu 12 Nov, 10:00–13:00: this slot no longer takes place.  [OK]
     Thu 5 Nov, 10:00–13:00
     Sat 14 Nov, 10:00–13:00 ?  [Confirm]
 
@@ -129,6 +130,9 @@ Already have an account? Sign in
 - Sign out leads to Sign in.
 - Each association lists its `upcoming` registrations; a proposed one
   is marked "?" and has "Confirm", which confirms it.
+- Its `obsolete` registrations come first, each followed by "this slot
+  no longer takes place." and "OK", which cancels it; it then no longer
+  shows.
 - R14: When the association has a planning period that ends today or
   later and the user has no registration in it (`registrations` is 0),
   the summary shows "No registration yet for the planning period,"
@@ -145,6 +149,7 @@ In French, e.g.:
 ```
 Mes associations
   Jardin partagé des Lilas             RESPONSABLE
+    jeu. 12 nov., 10:00–13:00 : ce créneau n'a plus lieu.  [OK]
     jeu. 5 nov., 10:00–13:00
     sam. 14 nov., 10:00–13:00 ?  [Confirmer]
   Repair Café Belleville                  BÉNÉVOLE
