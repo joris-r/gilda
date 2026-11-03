@@ -100,6 +100,7 @@ def test_get_api_associations_lists_the_users_associations_with_their_role(
             "name": association["name"],
             "role": "volunteer",
             "upcoming": [],
+            "obsolete": [],
             "planning_period": None,
         },
         {
@@ -107,6 +108,7 @@ def test_get_api_associations_lists_the_users_associations_with_their_role(
             "name": "Repair Café Belleville",
             "role": "manager",
             "upcoming": [],
+            "obsolete": [],
             "planning_period": None,
         },
     ]

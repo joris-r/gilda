@@ -68,6 +68,8 @@ def test_get_api_associations_example(planning: Planning) -> None:
     set_period(planning, -2, 21)
     mine = confirmed(planning, 1)
     to_confirm = proposed(planning, 10)
+    gone = confirmed(planning, 8)
+    planning.add_closure(day(8), day(8))
     other = create_association(planning.bruno_client, "Repair Café Belleville")
 
     response = planning.bruno_client.get("/api/associations")
@@ -79,6 +81,7 @@ def test_get_api_associations_example(planning: Planning) -> None:
             "name": "Jardin partagé des Lilas",
             "role": "volunteer",
             "upcoming": [mine, to_confirm],
+            "obsolete": [gone],
             "planning_period": {"first": day(-2), "last": day(21), "registrations": 2},
         },
         {
@@ -86,6 +89,7 @@ def test_get_api_associations_example(planning: Planning) -> None:
             "name": "Repair Café Belleville",
             "role": "manager",
             "upcoming": [],
+            "obsolete": [],
             "planning_period": None,
         },
     ]
@@ -118,7 +122,9 @@ def test_only_the_signed_in_users_registrations(planning: Planning) -> None:
     assert entry["planning_period"]["registrations"] == 0
 
 
-def test_obsolete_registrations_are_neither_shown_nor_counted(planning: Planning) -> None:
+def test_r12_r13_obsolete_registrations_are_neither_upcoming_nor_counted(
+    planning: Planning,
+) -> None:
     set_period(planning, 0, 10)
     slot = planning.add_slot(WEEKDAYS[(TODAY + timedelta(days=2)).weekday()], "14:00", "16:00")
     confirmed(planning, 2, "14:00", "16:00")
@@ -129,6 +135,93 @@ def test_obsolete_registrations_are_neither_shown_nor_counted(planning: Planning
 
     assert entry["upcoming"] == []
     assert entry["planning_period"]["registrations"] == 0
+
+
+def obsolete_dates(planning: Planning) -> list[str]:
+    return [r["date"] for r in summary(planning, planning.bruno_client)["obsolete"]]
+
+
+def test_r31_a_removed_slot_makes_its_registrations_obsolete(planning: Planning) -> None:
+    slot = planning.add_slot(WEEKDAYS[(TODAY + timedelta(days=2)).weekday()], "14:00", "16:00")
+    registration = confirmed(planning, 2, "14:00", "16:00")
+    assert planning.alice_client.delete(planning.path(f"slots/{slot['id']}")).status_code == 204
+
+    assert summary(planning, planning.bruno_client)["obsolete"] == [registration]
+
+
+def test_r31_a_closure_makes_its_registrations_obsolete(planning: Planning) -> None:
+    confirmed(planning, 3)
+    proposed(planning, 4)
+    confirmed(planning, 6)
+    planning.add_closure(day(3), day(4))
+
+    assert obsolete_dates(planning) == [day(3), day(4)]
+    assert upcoming_dates(planning) == [day(6)]
+
+
+def test_r31_an_edited_slot_makes_its_registrations_obsolete(planning: Planning) -> None:
+    slot = planning.add_slot(WEEKDAYS[(TODAY + timedelta(days=2)).weekday()], "14:00", "16:00")
+    confirmed(planning, 2, "14:00", "16:00")
+    response = planning.alice_client.put(
+        planning.path(f"slots/{slot['id']}"),
+        json={"weekday": slot["weekday"], "start": "15:00", "end": "17:00"},
+    )
+    assert response.status_code == 200, response.text
+
+    obsolete = summary(planning, planning.bruno_client)["obsolete"]
+
+    assert [(r["date"], r["start"]) for r in obsolete] == [(day(2), "14:00")]
+
+
+def test_r31_whatever_their_date(planning: Planning) -> None:
+    set_period(planning, 0, 10)
+    confirmed(planning, 60)
+    planning.add_closure(day(60), day(60))
+
+    assert obsolete_dates(planning) == [day(60)]
+
+
+def test_r31_sorted_by_date_then_start(planning: Planning) -> None:
+    planning.add_slot(WEEKDAYS[(TODAY + timedelta(days=2)).weekday()], "08:00", "09:00")
+    confirmed(planning, 2)
+    proposed(planning, 1)
+    confirmed(planning, 2, "08:00", "09:00")
+    planning.add_closure(day(1), day(2))
+
+    obsolete = summary(planning, planning.bruno_client)["obsolete"]
+
+    assert [(r["date"], r["start"]) for r in obsolete] == [
+        (day(1), "10:00"),
+        (day(2), "08:00"),
+        (day(2), "10:00"),
+    ]
+
+
+def test_r31_today_is_included_and_earlier_dates_are_not(
+    planning: Planning, clock: time_machine.Traveller
+) -> None:
+    confirmed(planning, 1)
+    confirmed(planning, 2)
+    planning.add_closure(day(1), day(2))
+
+    clock.shift(timedelta(days=2))
+
+    assert obsolete_dates(planning) == [day(2)]
+
+
+def test_r31_cancelled_registrations_are_not_listed(planning: Planning) -> None:
+    registration = confirmed(planning, 2)
+    planning.add_closure(day(2), day(2))
+    assert planning.set_status(planning.bruno_client, registration, "cancelled").status_code == 200
+
+    assert obsolete_dates(planning) == []
+
+
+def test_r31_only_the_signed_in_users_registrations(planning: Planning) -> None:
+    planning.registered(planning.chloe_client, planning.chloe, day(2), "10:00", "13:00")
+    planning.add_closure(day(2), day(2))
+
+    assert obsolete_dates(planning) == []
 
 
 def test_r12_cancelled_registrations_are_not_shown(planning: Planning) -> None:

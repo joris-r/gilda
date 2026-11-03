@@ -26,8 +26,8 @@ afterEach(() => {
 const myAssociations = {
   status: 200,
   body: [
-    { ...garden, role: 'manager', upcoming: [], planning_period: null },
-    { ...repairCafe, role: 'volunteer', upcoming: [], planning_period: null },
+    { ...garden, role: 'manager', upcoming: [], obsolete: [], planning_period: null },
+    { ...repairCafe, role: 'volunteer', upcoming: [], obsolete: [], planning_period: null },
   ],
 }
 

@@ -326,7 +326,8 @@ Content-Type: application/json
   or later, sorted by date, then start.
 - R13: `planning_period` is `null` when the association has none; else
   `registrations` counts the user's confirmed and proposed
-  registrations dated within the period, both dates included.
+  registrations dated within the period, both dates included, and not
+  obsolete.
 
 ### POST /api/associations
 

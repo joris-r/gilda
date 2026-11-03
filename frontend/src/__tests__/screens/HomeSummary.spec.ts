@@ -25,8 +25,9 @@ function summary(
   upcoming: Registration[] = [],
   planningPeriod: ReturnType<typeof period> | null = null,
   role = 'volunteer',
+  obsolete: Registration[] = [],
 ) {
-  return { ...association, role, upcoming, planning_period: planningPeriod }
+  return { ...association, role, upcoming, obsolete, planning_period: planningPeriod }
 }
 
 /** The drawing of My associations. */
@@ -39,6 +40,7 @@ const drawing = [
     ],
     period('2026-11-02', '2026-11-25', 2),
     'manager',
+    [registration('r-12', 'confirmed', '2026-11-12')],
   ),
   summary(repairCafe, [], period('2026-11-02', '2026-11-25', 0)),
   summary(atelier),
@@ -134,6 +136,73 @@ describe('My associations', () => {
 
       expect(pageText(item(wrapper, atelier.name))).toContain('No upcoming registration.')
       expect(pageText(item(wrapper, garden.name))).not.toContain('No upcoming registration.')
+    })
+  })
+
+  describe('obsolete registrations', () => {
+    it('come first, each saying "this slot no longer takes place." with "OK"', async () => {
+      const wrapper = await mountHome(drawing).mounting
+
+      const text = pageText(item(wrapper, garden.name))
+      expect(pageText(line(wrapper, 'Thu 12 Nov'))).toContain(
+        'Thu 12 Nov, 10:00–13:00: this slot no longer takes place.',
+      )
+      expect(hasControl(line(wrapper, 'Thu 12 Nov'), 'OK')).toBe(true)
+      expect(text.indexOf('Thu 12 Nov')).toBeLessThan(text.indexOf('Thu 5 Nov'))
+    })
+
+    it('upcoming registrations say nothing of the kind and have no "OK"', async () => {
+      const wrapper = await mountHome(drawing).mounting
+
+      for (const shown of [line(wrapper, 'Thu 5 Nov'), line(wrapper, 'Sat 14 Nov')]) {
+        expect(pageText(shown)).not.toContain('no longer takes place')
+        expect(hasControl(shown, 'OK')).toBe(false)
+      }
+    })
+
+    it('a proposed one has "OK" but no "Confirm"', async () => {
+      const wrapper = await mountHome([
+        summary(garden, [], null, 'volunteer', [registration('r-12', 'proposed', '2026-11-12')]),
+      ]).mounting
+
+      const shown = line(wrapper, 'Thu 12 Nov')
+      expect(hasControl(shown, 'OK')).toBe(true)
+      expect(hasControl(shown, 'Confirm')).toBe(false)
+    })
+
+    it('"OK" cancels the registration, which then no longer shows', async () => {
+      let status: Registration['status'] = 'confirmed'
+      const calls = mockApi({
+        'GET /api/session': signedInAsAlice,
+        'GET /api/associations': () => ({
+          status: 200,
+          body: [
+            summary(
+              garden,
+              [registration('r-5', 'confirmed', '2026-11-05')],
+              null,
+              'volunteer',
+              status === 'cancelled' ? [] : [registration('r-12', status, '2026-11-12')],
+            ),
+          ],
+        }),
+        [`PATCH /api/associations/${garden.id}/registrations/r-12`]: (body) => {
+          status = (body as { status: Registration['status'] }).status
+          return { status: 200, body: registration('r-12', status, '2026-11-12') }
+        },
+      })
+      const wrapper = await mountApp('/')
+
+      await press(line(wrapper, 'Thu 12 Nov'), 'OK')
+
+      expect(calls).toContainEqual({
+        method: 'PATCH',
+        path: `/api/associations/${garden.id}/registrations/r-12`,
+        body: { status: 'cancelled' },
+      })
+      const text = pageText(item(wrapper, garden.name))
+      expect(text).not.toContain('Thu 12 Nov')
+      expect(text).toContain('Thu 5 Nov, 10:00–13:00')
     })
   })
 
@@ -240,6 +309,8 @@ describe('My associations', () => {
     const wrapper = await mountHome(drawing).mounting
 
     const gardenText = pageText(item(wrapper, garden.name))
+    expect(gardenText).toContain("jeu. 12 nov., 10:00–13:00 : ce créneau n'a plus lieu.")
+    expect(control(line(wrapper, 'jeu. 12 nov.'), 'OK').exists()).toBe(true)
     expect(gardenText).toContain('jeu. 5 nov., 10:00–13:00')
     expect(gardenText).toContain('sam. 14 nov., 10:00–13:00 ?')
     expect(control(line(wrapper, 'sam. 14 nov.'), 'Confirmer').exists()).toBe(true)
