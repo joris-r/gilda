@@ -184,8 +184,8 @@
   "schedule": {
     "week": "Week {n}",
     "today": "Today · {date}",
-    "periodStart": "Planning period · from {date}",
-    "periodEnd": "End of planning period · {date}",
+    "periodStart": "Planning start · {date}",
+    "periodEnd": "Planning end · {date}",
     "hour": "{h}h",
     "obsolete": "obsolete",
     "closed": "Closed",

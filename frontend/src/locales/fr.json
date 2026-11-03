@@ -184,8 +184,8 @@
   "schedule": {
     "week": "Semaine {n}",
     "today": "Aujourd'hui · {date}",
-    "periodStart": "Période de planification · à partir du {date}",
-    "periodEnd": "Fin de la période de planification · {date}",
+    "periodStart": "Début de planification · {date}",
+    "periodEnd": "Fin de planification · {date}",
     "hour": "{h}h",
     "obsolete": "obsolète",
     "closed": "Fermé",
