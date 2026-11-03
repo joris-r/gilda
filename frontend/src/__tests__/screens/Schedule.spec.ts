@@ -711,26 +711,134 @@ describe('Schedule', () => {
       })
     })
 
-    it("hovering a name shows the member's note", async () => {
-      const { mounting } = mountSchedule('manager', {
-        notes: [{ user_id: 'u-bruno', text: 'Always group my registrations in pairs.' }],
-      })
+    const note = 'Always group my registrations in pairs.'
+    const absence = 'Absent Mon 16 Nov 2026 – Thu 19 Nov 2026'
+
+    /** The text of the open menu. */
+    function menuText(wrapper: Awaited<ReturnType<typeof mountSchedule>['mounting']>) {
+      return wrapper.find('[role="dialog"]').text()
+    }
+
+    it("hovering an absent member's absence icon shows the absence", async () => {
+      const { mounting } = mountSchedule('manager', { memberAbsences: [brunoAway] })
       const wrapper = await mounting
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
-      expect(control(wrapper, 'Bruno').attributes('title')).toBe(
-        'Always group my registrations in pairs.',
-      )
+      expect(control(wrapper, absence).attributes('title')).toBe(absence)
+      expect(control(wrapper, absence).text()).not.toContain('Bruno')
     })
 
-    it('a member with an empty note shows nothing on hover', async () => {
+    it('a member who is not absent has no absence icon', async () => {
       const { mounting } = mountSchedule('manager', {
-        notes: [{ user_id: 'u-bruno', text: 'Always group my registrations in pairs.' }],
+        memberAbsences: [
+          { id: 'ab-chloe', user_id: 'u-chloe', first: '2026-11-20', last: '2026-11-25' },
+        ],
       })
       const wrapper = await mounting
 
       await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
-      expect(control(wrapper, 'Chloé').attributes('title')).toBeUndefined()
+      expect(hasControl(wrapper, 'Absent Fri 20 Nov 2026 – Wed 25 Nov 2026')).toBe(false)
+    })
+
+    it("hovering a member's note icon shows the note", async () => {
+      const { mounting } = mountSchedule('manager', {
+        notes: [{ user_id: 'u-bruno', text: note }],
+      })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(control(wrapper, note).attributes('title')).toBe(note)
+      expect(control(wrapper, note).text()).not.toContain('Bruno')
+    })
+
+    it('a member with an empty note has no note icon', async () => {
+      const withoutNotes = mountSchedule('manager')
+      const without = await withoutNotes.mounting
+      await open(slotItem(without, 'Thu 19 Nov', '10–13'))
+      const buttons = without.findAll('button').length
+      without.unmount()
+
+      const { mounting } = mountSchedule('manager', {
+        notes: [{ user_id: 'u-chloe', text: '' }],
+      })
+      const wrapper = await mounting
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(wrapper.findAll('button').length).toBe(buttons)
+    })
+
+    it('the texts of the icons are not shown before a click', async () => {
+      const { mounting } = mountSchedule('manager', {
+        memberAbsences: [brunoAway],
+        notes: [{ user_id: 'u-chloe', text: note }],
+      })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(menuText(wrapper)).not.toContain(note)
+      expect(menuText(wrapper)).not.toContain(absence)
+    })
+
+    it('clicking a note icon shows the note under the names, and proposes nothing', async () => {
+      const { calls, mounting } = mountSchedule('manager', {
+        notes: [{ user_id: 'u-bruno', text: note }],
+      })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      await press(wrapper, note)
+
+      expect(menuText(wrapper)).toContain(note)
+      expect(hasControl(wrapper, 'Bruno')).toBe(true)
+      expect(calls.some((c) => c.method === 'POST')).toBe(false)
+    })
+
+    it('clicking an absence icon shows the absence under the names, and proposes nothing', async () => {
+      const { calls, mounting } = mountSchedule('manager', { memberAbsences: [brunoAway] })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      await press(wrapper, absence)
+
+      expect(menuText(wrapper)).toContain(absence)
+      expect(calls.some((c) => c.method === 'POST')).toBe(false)
+    })
+
+    it('clicking the icon whose text is shown hides it', async () => {
+      const { mounting } = mountSchedule('manager', {
+        notes: [{ user_id: 'u-bruno', text: note }],
+      })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      await press(wrapper, note)
+      await press(wrapper, note)
+
+      expect(menuText(wrapper)).not.toContain(note)
+    })
+
+    it('clicking another icon shows its text in place of the text shown', async () => {
+      const { mounting } = mountSchedule('manager', {
+        memberAbsences: [brunoAway],
+        notes: [{ user_id: 'u-chloe', text: note }],
+      })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      await press(wrapper, note)
+      await press(wrapper, absence)
+
+      expect(menuText(wrapper)).toContain(absence)
+      expect(menuText(wrapper)).not.toContain(note)
+    })
+
+    it('the absence icon in French', async () => {
+      localStorage.setItem('gilda.locale', 'fr')
+      const { mounting } = mountSchedule('manager', { memberAbsences: [brunoAway] })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'jeu. 19 nov.', '10–13'))
+      const french = 'Absent du lun. 16 nov. 2026 au jeu. 19 nov. 2026'
+      expect(control(wrapper, french).attributes('title')).toBe(french)
     })
 
     it('a volunteer does not load the absences and notes of the members', async () => {
