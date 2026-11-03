@@ -7,6 +7,8 @@ export interface Location {
   parent?: { to: string; screen: string }
   /** The i18n key of the screen's name. */
   screen?: string
+  /** A title leading nowhere, shown signed in or not, in place of the above. */
+  title?: string
 }
 
 const key: InjectionKey<Ref<Location>> = Symbol('location')

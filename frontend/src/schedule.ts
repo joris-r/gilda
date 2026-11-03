@@ -1,5 +1,5 @@
-import type { OccurrenceRegistration } from './api'
-import { formatDate, shortClock, shortDay } from './dates'
+import type { OccurrenceRegistration, Schedule } from './api'
+import { addDays, formatDate, shortClock, shortDay } from './dates'
 
 /** An occurrence, or an obsolete registration placed like one. */
 export interface Item {
@@ -35,3 +35,25 @@ export function actions(item: Item, userId: string | undefined, isManager: boole
 }
 
 export type Actions = ReturnType<typeof actions>
+
+/** The weeks the Schedule shows on opening, and how many "More weeks" adds. */
+export const MORE_WEEKS = 4
+
+/** The number of weeks from `from`, a Monday, to `to`, a Sunday. */
+export function weeksBetween(from: string, to: string) {
+  let count = 1
+  while (addDays(from, 7 * count - 1) < to) count++
+  return count
+}
+
+/** `schedule` followed by `added`, the weeks right after it. */
+export function appendSchedule(schedule: Schedule, added: Schedule): Schedule {
+  const known = new Set(schedule.closures.map((c) => c.id))
+  return {
+    from: schedule.from,
+    to: added.to,
+    occurrences: [...schedule.occurrences, ...added.occurrences],
+    obsolete: [...schedule.obsolete, ...added.obsolete],
+    closures: [...schedule.closures, ...added.closures.filter((c) => !known.has(c.id))],
+  }
+}

@@ -353,3 +353,35 @@ export async function setNote(id: string, text: string) {
 export function getRegistrationCounts(id: string) {
   return request<RegistrationCount[] | null>('GET', `/api/associations/${id}/registration-counts`)
 }
+
+export interface ShareLink {
+  token: string
+}
+
+export function getShareLink(id: string) {
+  return request<ShareLink | null>('GET', `/api/associations/${id}/share-link`)
+}
+
+export function createShareLink(id: string) {
+  return request<ShareLink>('POST', `/api/associations/${id}/share-link`)
+}
+
+export function revokeShareLink(id: string) {
+  return request<void>('DELETE', `/api/associations/${id}/share-link`)
+}
+
+export interface SharedAssociation {
+  name: string
+  timezone: string
+  planning_period: PlanningPeriod | null
+}
+
+export function getShared(token: string) {
+  return request<SharedAssociation>('GET', `/api/shared/${encodeURIComponent(token)}`)
+}
+
+/** Without a range, the API picks the one the Schedule opens on. */
+export function getSharedSchedule(token: string, range?: { from: string; to: string }) {
+  const query = range ? `?${new URLSearchParams(range)}` : ''
+  return request<Schedule>('GET', `/api/shared/${encodeURIComponent(token)}/schedule${query}`)
+}

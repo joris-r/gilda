@@ -1,3 +1,4 @@
+import secrets
 from datetime import date, datetime, time, timedelta
 from typing import cast, get_args
 from uuid import UUID
@@ -17,6 +18,7 @@ from gilda.planning.models import (
     PlanningPeriod,
     Preference,
     Registration,
+    ShareLink,
     Slot,
 )
 from gilda.planning.repositories import (
@@ -26,6 +28,7 @@ from gilda.planning.repositories import (
     PlanningPeriodRepository,
     PreferenceRepository,
     RegistrationRepository,
+    ShareLinkRepository,
     SlotRepository,
 )
 from gilda.planning.schemas import (
@@ -44,6 +47,8 @@ from gilda.planning.schemas import (
     RegistrationCount,
     RegistrationRead,
     ScheduleRead,
+    SharedAssociation,
+    ShareLinkRead,
     SlotRead,
     Status,
     Weekday,
@@ -121,7 +126,9 @@ def occurrence_registration(registration: Registration) -> OccurrenceRegistratio
 
 class PlanningService:
     def __init__(self, db_session: AsyncSession) -> None:
+        self.db_session = db_session
         self.memberships = MembershipRepository(session=db_session)
+        self.share_links = ShareLinkRepository(session=db_session)
         self.slots = SlotRepository(session=db_session)
         self.closures = ClosureRepository(session=db_session)
         self.registrations = RegistrationRepository(session=db_session)
@@ -389,8 +396,14 @@ class PlanningService:
         self, user: User, association_id: UUID, first: date | None, last: date | None
     ) -> ScheduleRead:
         own = await self._membership_of(user, association_id)
+        return await self._schedule(own.association, first, last)
+
+    async def _schedule(
+        self, association: Association, first: date | None, last: date | None
+    ) -> ScheduleRead:
+        association_id = association.id
         if first is None and last is None:
-            first, last = await self._default_range(own.association)
+            first, last = await self._default_range(association)
         elif first is None or last is None:
             raise ClientException("Give both from and to, or neither.")
         slots = await self._slots(association_id)
@@ -453,6 +466,50 @@ class PlanningService:
             week_after_end = period.last + timedelta(days=13 - period.last.weekday())
             last = max(last, week_after_end)
         return first, last
+
+    # Share link
+
+    async def get_share_link(self, user: User, association_id: UUID) -> ShareLinkRead | None:
+        await self._manager_of(user, association_id)
+        link = await self.share_links.get_one_or_none(association_id=association_id)
+        return None if link is None else ShareLinkRead(token=link.token)
+
+    async def create_share_link(self, user: User, association_id: UUID) -> ShareLinkRead:
+        await self._manager_of(user, association_id)
+        await self.share_links.delete_where(association_id=association_id)
+        link = await self.share_links.add(
+            ShareLink(association_id=association_id, token=secrets.token_urlsafe(32))
+        )
+        return ShareLinkRead(token=link.token)
+
+    async def revoke_share_link(self, user: User, association_id: UUID) -> None:
+        await self._manager_of(user, association_id)
+        await self.share_links.delete_where(association_id=association_id)
+
+    async def shared(self, token: str) -> SharedAssociation:
+        association = await self._shared_association(token)
+        period = await self.planning_periods.get_one_or_none(association_id=association.id)
+        return SharedAssociation(
+            name=association.name,
+            timezone=association.timezone,
+            planning_period=None
+            if period is None
+            else PlanningPeriodData(first=period.first, last=period.last),
+        )
+
+    async def shared_schedule(
+        self, token: str, first: date | None, last: date | None
+    ) -> ScheduleRead:
+        return await self._schedule(await self._shared_association(token), first, last)
+
+    async def _shared_association(self, token: str) -> Association:
+        link = await self.share_links.get_one_or_none(token=token)
+        association = (
+            None if link is None else await self.db_session.get(Association, link.association_id)
+        )
+        if association is None:
+            raise NotFoundException("This link is no longer valid.")
+        return association
 
     # Summary
 

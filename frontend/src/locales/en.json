@@ -157,7 +157,17 @@
     "deleteClosure": "Delete the closure",
     "confirmDeleteClosure": "Delete the closure \"{label}\"?",
     "confirmDeleteUnlabelledClosure": "Delete the closure of {date}?",
-    "deleteAction": "Delete"
+    "deleteAction": "Delete",
+    "shareLink": "Share link",
+    "createShareLink": "Create a share link",
+    "noShareLink": "None",
+    "copy": "Copy",
+    "linkCopied": "Link copied.",
+    "revokeShareLink": "Revoke the share link",
+    "confirmReplaceShareLink": "Replace the share link? The current link no longer shows the Schedule.",
+    "replaceAction": "Replace",
+    "confirmRevokeShareLink": "Revoke the share link? It no longer shows the Schedule.",
+    "revokeAction": "Revoke"
   },
   "availability": {
     "title": "My availability",

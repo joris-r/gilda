@@ -80,7 +80,10 @@ async function leave() {
     <RouterLink to="/" class="brand" aria-label="Gilda">
       <img class="logo" src="/favicon.svg" alt="" />
     </RouterLink>
-    <p v-if="user" class="where">
+    <p v-if="location.title" class="where">
+      <span>{{ location.title }}</span>
+    </p>
+    <p v-else-if="user" class="where">
       <RouterLink v-if="location.association" :to="`/associations/${location.association.id}`">{{
         location.association.name
       }}</RouterLink>
@@ -96,7 +99,7 @@ async function leave() {
       <span v-if="location.screen">{{ t(location.screen) }}</span>
     </p>
     <div class="top-actions">
-      <div v-if="user" class="user" @click.stop>
+      <div v-if="user && !route.meta.shared" class="user" @click.stop>
         <button
           type="button"
           class="user-button"

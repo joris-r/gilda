@@ -6,6 +6,7 @@ import {
   addSlot,
   ApiError,
   clearPlanningPeriod,
+  createShareLink,
   deleteClosure,
   deletePreference,
   deleteSlot,
@@ -13,9 +14,11 @@ import {
   editSlot,
   getAssociation,
   getPlanningPeriod,
+  getShareLink,
   listClosures,
   listPreferences,
   listSlots,
+  revokeShareLink,
   setPlanningPeriod,
   setPreference,
   type Association,
@@ -23,6 +26,7 @@ import {
   type PlanningPeriod,
   type Preference,
   type PreferenceValue,
+  type ShareLink,
   type Slot,
   type Weekday,
 } from '../api'
@@ -42,6 +46,8 @@ const slots = ref<Slot[]>([])
 const closures = ref<Closure[]>([])
 const period = ref<PlanningPeriod | null>(null)
 const preferences = ref<Preference[]>([])
+const shareLink = ref<ShareLink | null>(null)
+const copied = ref(false)
 const message = ref<string>()
 
 /**
@@ -55,6 +61,8 @@ type Open =
   | { kind: 'deleteSlot'; slot: Slot }
   | { kind: 'deleteClosure'; closure: Closure }
   | { kind: 'clearPeriod' }
+  | { kind: 'replaceShareLink' }
+  | { kind: 'revokeShareLink' }
 const open = ref<Open>()
 
 const weekday = ref<Weekday>('monday')
@@ -99,6 +107,7 @@ async function load() {
     ])
   const { id, name } = association.value!
   location.value = { association: { id, name }, screen: 'settings.title' }
+  shareLink.value = isManager.value ? await getShareLink(props.id) : null
 }
 
 watch(() => props.id, load, { immediate: true })
@@ -257,6 +266,48 @@ async function clearPeriod() {
   }
 }
 
+const shareUrl = computed(() =>
+  shareLink.value ? `${window.location.origin}/shared/${shareLink.value.token}` : '',
+)
+
+function askShareLink() {
+  if (shareLink.value) open.value = { kind: 'replaceShareLink' }
+  else void makeShareLink()
+}
+
+async function makeShareLink() {
+  open.value = undefined
+  message.value = undefined
+  copied.value = false
+  try {
+    shareLink.value = await createShareLink(props.id)
+  } catch (e) {
+    message.value = failure(e)
+  }
+}
+
+async function revokeLink() {
+  open.value = undefined
+  message.value = undefined
+  copied.value = false
+  try {
+    await revokeShareLink(props.id)
+    shareLink.value = null
+  } catch (e) {
+    message.value = failure(e)
+  }
+}
+
+async function copyShareLink() {
+  message.value = undefined
+  try {
+    await navigator.clipboard.writeText(shareUrl.value)
+    copied.value = true
+  } catch (e) {
+    message.value = failure(e)
+  }
+}
+
 function slotName(slot: Slot) {
   return `${t(`weekdays.${slot.weekday}`)} ${slot.start}–${slot.end}`
 }
@@ -339,6 +390,30 @@ function closureQuestion(closure: Closure) {
         </div>
       </li>
     </ul>
+
+    <template v-if="isManager">
+      <div class="section-head">
+        <h2>{{ t('settings.shareLink') }}</h2>
+        <button type="button" class="add" @click="askShareLink">
+          <span aria-hidden="true">+</span> {{ t('settings.createShareLink') }}
+        </button>
+      </div>
+      <p v-if="!shareLink" class="hint">{{ t('settings.noShareLink') }}</p>
+      <ul v-else class="list">
+        <li>
+          <span class="share-url">{{ shareUrl }}</span>
+          <div class="actions">
+            <button type="button" @click="copyShareLink">{{ t('settings.copy') }}</button>
+            <IconButton
+              icon="delete"
+              :label="t('settings.revokeShareLink')"
+              @click="open = { kind: 'revokeShareLink' }"
+            />
+          </div>
+        </li>
+      </ul>
+      <p v-if="copied" class="ok">{{ t('settings.linkCopied') }}</p>
+    </template>
 
     <template v-if="isManager && slots.length">
       <h2>{{ t('settings.membersPreferences') }}</h2>
@@ -478,6 +553,20 @@ function closureQuestion(closure: Closure) {
       @cancel="open = undefined"
     />
     <ConfirmDialog
+      v-if="open?.kind === 'replaceShareLink'"
+      :question="t('settings.confirmReplaceShareLink')"
+      :action="t('settings.replaceAction')"
+      @confirm="makeShareLink"
+      @cancel="open = undefined"
+    />
+    <ConfirmDialog
+      v-if="open?.kind === 'revokeShareLink'"
+      :question="t('settings.confirmRevokeShareLink')"
+      :action="t('settings.revokeAction')"
+      @confirm="revokeLink"
+      @cancel="open = undefined"
+    />
+    <ConfirmDialog
       v-if="open?.kind === 'deleteSlot'"
       :question="t('settings.confirmDeleteSlot', { slot: slotName(open.slot) })"
       :action="t('settings.deleteAction')"
@@ -488,6 +577,10 @@ function closureQuestion(closure: Closure) {
 </template>
 
 <style scoped>
+.share-url {
+  overflow-wrap: anywhere;
+}
+
 .grid {
   overflow-x: auto;
 }

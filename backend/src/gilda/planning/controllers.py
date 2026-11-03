@@ -25,6 +25,8 @@ from gilda.planning.schemas import (
     RegistrationRead,
     RegistrationUpdate,
     ScheduleRead,
+    SharedAssociation,
+    ShareLinkRead,
     SlotCreate,
     SlotRead,
 )
@@ -290,6 +292,33 @@ class PlanningController(Controller):
     ) -> ScheduleRead:
         return await PlanningService(db_session).schedule(current_user, association_id, first, last)
 
+    @get("/share-link")
+    async def get_share_link(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+    ) -> ShareLinkRead | None:
+        return await PlanningService(db_session).get_share_link(current_user, association_id)
+
+    @post("/share-link")
+    async def create_share_link(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+    ) -> ShareLinkRead:
+        return await PlanningService(db_session).create_share_link(current_user, association_id)
+
+    @delete("/share-link")
+    async def revoke_share_link(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+    ) -> None:
+        await PlanningService(db_session).revoke_share_link(current_user, association_id)
+
     @post("/registrations")
     async def register(
         self,
@@ -314,3 +343,25 @@ class PlanningController(Controller):
         return await PlanningService(db_session).change_status(
             current_user, association_id, registration_id, data.status
         )
+
+
+class SharedScheduleController(Controller):
+    """The Schedule read with a share link's token, signed in or not."""
+
+    path = "/shared/{token:str}"
+
+    @get()
+    async def shared(
+        self, db_session: NamedDependency[AsyncSession], token: FromPath[str]
+    ) -> SharedAssociation:
+        return await PlanningService(db_session).shared(token)
+
+    @get("/schedule")
+    async def schedule(
+        self,
+        db_session: NamedDependency[AsyncSession],
+        token: FromPath[str],
+        first: Annotated[date | None, QueryParameter(name="from")] = None,
+        last: Annotated[date | None, QueryParameter(name="to")] = None,
+    ) -> ScheduleRead:
+        return await PlanningService(db_session).shared_schedule(token, first, last)

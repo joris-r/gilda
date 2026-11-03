@@ -88,3 +88,12 @@ class Note(UUIDv7Base):
     association_id: Mapped[UUID] = mapped_column(ForeignKey("association.id", ondelete="CASCADE"))
     user_id: Mapped[UUID] = mapped_column(ForeignKey("user_account.id", ondelete="CASCADE"))
     text: Mapped[str]
+
+
+class ShareLink(UUIDv7Base):
+    __tablename__ = "share_link"
+
+    association_id: Mapped[UUID] = mapped_column(
+        ForeignKey("association.id", ondelete="CASCADE"), unique=True
+    )
+    token: Mapped[str] = mapped_column(String(64), unique=True)

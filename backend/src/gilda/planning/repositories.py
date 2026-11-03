@@ -10,6 +10,7 @@ from gilda.planning.models import (
     PlanningPeriod,
     Preference,
     Registration,
+    ShareLink,
     Slot,
 )
 
@@ -58,3 +59,7 @@ class NoteRepository(SQLAlchemyAsyncRepository[Note]):
             )
         )
         await self.session.execute(statement)
+
+
+class ShareLinkRepository(SQLAlchemyAsyncRepository[ShareLink]):
+    model_type = ShareLink

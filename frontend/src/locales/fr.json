@@ -157,7 +157,17 @@
     "deleteClosure": "Supprimer la fermeture",
     "confirmDeleteClosure": "Supprimer la fermeture « {label} » ?",
     "confirmDeleteUnlabelledClosure": "Supprimer la fermeture du {date} ?",
-    "deleteAction": "Supprimer"
+    "deleteAction": "Supprimer",
+    "shareLink": "Lien de partage",
+    "createShareLink": "Créer un lien de partage",
+    "noShareLink": "Aucun",
+    "copy": "Copier",
+    "linkCopied": "Lien copié.",
+    "revokeShareLink": "Révoquer le lien de partage",
+    "confirmReplaceShareLink": "Remplacer le lien de partage ? Le lien actuel n'affiche plus le planning.",
+    "replaceAction": "Remplacer",
+    "confirmRevokeShareLink": "Révoquer le lien de partage ? Il n'affiche plus le planning.",
+    "revokeAction": "Révoquer"
   },
   "availability": {
     "title": "Mes disponibilités",

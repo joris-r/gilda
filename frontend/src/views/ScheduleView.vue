@@ -28,10 +28,8 @@ import OccurrenceMenu from '../components/OccurrenceMenu.vue'
 import ScheduleWeeks from '../components/ScheduleWeeks.vue'
 import { addDays, today } from '../dates'
 import { useLocation } from '../location'
-import { actions, type Item } from '../schedule'
+import { actions, appendSchedule, MORE_WEEKS, weeksBetween, type Item } from '../schedule'
 import { useSession } from '../session'
-
-const MORE_WEEKS = 4
 
 const props = defineProps<{ id: string }>()
 const { t } = useI18n()
@@ -61,13 +59,6 @@ const members = computed(() =>
     a.display_name.localeCompare(b.display_name),
   ),
 )
-
-/** The number of weeks from `from`, a Monday, to `to`, a Sunday. */
-function weeksBetween(from: string, to: string) {
-  let count = 1
-  while (addDays(from, 7 * count - 1) < to) count++
-  return count
-}
 
 /** The weeks failing to load still leave the header and an error message. */
 async function load() {
@@ -119,14 +110,7 @@ async function reload() {
 async function more() {
   const from = addDays(lastDay.value, 1)
   const added = await getSchedule(props.id, { from, to: addDays(from, 7 * MORE_WEEKS - 1) })
-  const known = new Set(schedule.value.closures.map((c) => c.id))
-  schedule.value = {
-    from: schedule.value.from,
-    to: added.to,
-    occurrences: [...schedule.value.occurrences, ...added.occurrences],
-    obsolete: [...schedule.value.obsolete, ...added.obsolete],
-    closures: [...schedule.value.closures, ...added.closures.filter((c) => !known.has(c.id))],
-  }
+  schedule.value = appendSchedule(schedule.value, added)
   weeks.value += MORE_WEEKS
 }
 
