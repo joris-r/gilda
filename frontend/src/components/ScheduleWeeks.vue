@@ -114,6 +114,19 @@ function clickable(item: Item) {
   )
 }
 
+/** The accessible name of an item: its times, which it does not show, then what it shows. */
+function label(item: Item) {
+  const r = item.registration
+  return [
+    times(item),
+    r?.display_name,
+    r?.status === 'proposed' ? '?' : undefined,
+    item.obsolete ? t('schedule.obsolete') : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
 function click(item: Item, event: MouseEvent) {
   if (clickable(item))
     emit('toggle', item, (event.currentTarget as HTMLElement).getBoundingClientRect())
@@ -178,9 +191,9 @@ function click(item: Item, event: MouseEvent) {
                     :is="clickable(item) ? 'button' : 'div'"
                     :type="clickable(item) ? 'button' : undefined"
                     class="occ-body"
+                    :aria-label="label(item)"
                     @click.stop="click(item, $event)"
                   >
-                    <span class="times">{{ times(item) }}</span>
                     <span v-if="item.registration" class="name">
                       <s v-if="item.registration.status === 'cancelled'">{{
                         item.registration.display_name
@@ -381,12 +394,6 @@ function click(item: Item, event: MouseEvent) {
   text-align: left;
 }
 
-.times {
-  font-size: 11px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
 .name {
   font-weight: 600;
   max-width: 100%;
@@ -481,10 +488,6 @@ function click(item: Item, event: MouseEvent) {
     width: calc((var(--e) - var(--s)) * 100% - 2px);
     top: calc(var(--lane) / var(--lanes) * 100% + 1px);
     height: calc(100% / var(--lanes) - 2px);
-  }
-
-  .times {
-    display: none;
   }
 }
 </style>
