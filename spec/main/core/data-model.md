@@ -3,12 +3,15 @@
 - User
   - id: UUID
   - display_name: free text, not empty; may be a pseudonym
-  - email: unique, compared ignoring case
+  - email: unique, compared ignoring case; null once the account is
+    deleted
   - password: optional; a user with a password has an account, a user
     without one is only a member of associations
   - email_verified_at: timestamp, null until the email is confirmed (by
     its confirmation link, a password reset or an access link); a user
     can only sign in with their password once it is set
+  - deleted_at: timestamp, null until the user deletes their account
+    (R29)
 - EmailVerificationToken: a pending confirmation for a user
   - token: random, unique
   - user_id

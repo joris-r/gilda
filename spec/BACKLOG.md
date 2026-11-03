@@ -22,4 +22,4 @@
 
 ## Future
 
-- Cleanup: a procedure to purge old planning data (e.g. past absences, registrations and closures), which today is kept forever.
+- Cleanup: a procedure to purge old planning data (e.g. past absences, registrations and closures), which today is kept forever; also associations left without members once their last member deletes their account.

@@ -160,6 +160,27 @@ Set-Cookie: session=…
 - 400 when the password has fewer than 8 characters; the token stays
   usable.
 
+### DELETE /api/accounts/me
+
+Deletes the signed-in user's account.
+
+```http
+DELETE /api/accounts/me
+```
+
+```http
+HTTP/1.1 204 No Content
+```
+
+- R29: Sets deleted_at, sets email and password to null, deletes the
+  user's tokens and AccessLink, signs out all their sessions, and ends
+  each of their memberships (R28). Their email can then be used by a
+  new user, through `POST /api/accounts` or
+  `POST /api/associations/{id}/members`.
+- R30: In an association where the user was the only manager, every
+  remaining member becomes a manager.
+- 401 when signed out.
+
 ### POST /api/session
 
 Signs in.
@@ -383,6 +404,15 @@ Content-Type: application/json
 {"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "access_link": false, "role": "manager"}
 ```
 
+- 409 when it would leave the association without a manager (R1).
+- 404 when the user is not a member.
+
+### DELETE /api/associations/{id}/members/{user_id}
+
+Removes a member from the association, ending their membership (R28).
+Managers only: 403 for a volunteer.
+
+- 204. A manager may remove themself.
 - 409 when it would leave the association without a manager (R1).
 - 404 when the user is not a member.
 

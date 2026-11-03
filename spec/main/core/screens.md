@@ -205,6 +205,8 @@ As a manager:
 │                                                   │
 │ SIGN-IN LINK                                      │
 │ [Send link]  Revoke link                          │
+│                                                   │
+│ Remove from the association                       │
 └───────────────────────────────────────────────────┘
 ```
 
@@ -219,6 +221,12 @@ As a manager:
   confirming sends it (R26) and shows "Chloé's sign-in link is sent."
   When the email cannot be sent: "We couldn't send Chloé's sign-in
   link. Try again later."
+- "Remove from the association" asks "Remove Chloé from the
+  association? Their upcoming registrations are cancelled." with
+  [Remove]; confirming removes Chloé (R28) and shows "Chloé is removed."
+  Removing the last manager shows "An association keeps at least one
+  manager." and changes nothing. A manager who removes themself is
+  led to My associations.
 - A volunteer sees the members and their roles, without "Add a member"
   and without the edit icons.
 - Signed out, every page but `/signup`, `/verify-email`,

@@ -33,7 +33,7 @@
   slot of its weekday, start and end.
 - Registration: a member on an occurrence
   - id: UUID
-  - user: a member of the association
+  - user: a member of the association when it was created
   - date, start, end: those of the occurrence; there is no link to
     the slot
   - status: `proposed`, `confirmed` or `cancelled`
@@ -44,5 +44,9 @@
 - R15: A member's registration count is the number of their
   registrations dated within the planning period, `proposed` or
   `confirmed`, and not obsolete.
+- R28: When a user's membership ends, their registrations in the
+  association dated today or later and not cancelled become cancelled,
+  and their preferences, absences and note there are deleted. Their
+  other registrations stay, with their display name.
 - R11: Today, wherever the specification refers to it, is the current
   date in the association's timezone.
