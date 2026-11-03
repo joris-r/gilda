@@ -31,10 +31,14 @@ function remindsPeriod(association: HomeAssociation): boolean {
   return period !== null && period.registrations === 0 && period.last >= today(TIMEZONE)
 }
 
-async function confirm(association: HomeAssociation, registration: Registration) {
+async function setStatus(
+  association: HomeAssociation,
+  registration: Registration,
+  status: 'confirmed' | 'cancelled',
+) {
   error.value = ''
   try {
-    await setRegistrationStatus(association.id, registration.id, 'confirmed')
+    await setRegistrationStatus(association.id, registration.id, status)
     associations.value = await listAssociations()
   } catch {
     error.value = t('error')
@@ -49,7 +53,17 @@ async function confirm(association: HomeAssociation, registration: Registration)
         <RouterLink :to="`/associations/${association.id}`">{{ association.name }}</RouterLink>
         <span :class="['role', association.role]">{{ t(`roles.${association.role}`) }}</span>
         <div class="summary">
-          <ul v-if="association.upcoming.length" class="upcoming">
+          <ul v-if="association.obsolete.length || association.upcoming.length" class="upcoming">
+            <li v-for="registration in association.obsolete" :key="registration.id">
+              <span>
+                {{ formatDate(registration.date, locale, shortDay) }}, {{ registration.start }}–{{
+                  registration.end
+                }}{{ t('myAssociations.obsolete') }}
+              </span>
+              <button type="button" @click="setStatus(association, registration, 'cancelled')">
+                {{ t('myAssociations.acknowledge') }}
+              </button>
+            </li>
             <li v-for="registration in association.upcoming" :key="registration.id">
               <span>
                 {{ formatDate(registration.date, locale, shortDay) }}, {{ registration.start }}–{{
@@ -60,7 +74,7 @@ async function confirm(association: HomeAssociation, registration: Registration)
               <button
                 v-if="registration.status === 'proposed'"
                 type="button"
-                @click="confirm(association, registration)"
+                @click="setStatus(association, registration, 'confirmed')"
               >
                 {{ t('myAssociations.confirm') }}
               </button>

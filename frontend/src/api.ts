@@ -17,6 +17,7 @@ export interface AssociationSummary {
 /** An association as My associations shows it. */
 export interface HomeAssociation extends AssociationSummary {
   upcoming: Registration[]
+  obsolete: Registration[]
   planning_period: PlanningPeriodSummary | null
 }
 

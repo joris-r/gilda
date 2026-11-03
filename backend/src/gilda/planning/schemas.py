@@ -133,4 +133,5 @@ class ScheduleRead(msgspec.Struct):
 
 class PlanningSummary(msgspec.Struct):
     upcoming: list[RegistrationRead]
+    obsolete: list[RegistrationRead]
     planning_period: PlanningPeriodSummary | None

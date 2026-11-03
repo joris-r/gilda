@@ -457,8 +457,14 @@ class PlanningService:
             (r for r in live if r.date >= today and (r.status == "proposed" or r.date <= until)),
             key=lambda r: (r.date, r.start),
         )
+        live_ids = {r.id for r in live}
+        obsolete = sorted(
+            (r for r in registrations if r.date >= today and r.id not in live_ids),
+            key=lambda r: (r.date, r.start),
+        )
         return PlanningSummary(
             upcoming=[registration_read(r) for r in upcoming],
+            obsolete=[registration_read(r) for r in obsolete],
             planning_period=None
             if period is None
             else PlanningPeriodSummary(

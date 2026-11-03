@@ -71,6 +71,8 @@
     "submit": "Créer l'association",
     "confirm": "Confirmer",
     "noUpcoming": "Aucune inscription à venir.",
+    "obsolete": " : ce créneau n'a plus lieu.",
+    "acknowledge": "OK",
     "noRegistrationInPeriod": "Aucune inscription pour la période de planning, {dates}.",
     "chooseSlots": "Choisir mes créneaux"
   },

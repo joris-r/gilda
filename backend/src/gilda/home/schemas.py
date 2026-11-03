@@ -11,4 +11,5 @@ class HomeAssociation(msgspec.Struct):
     name: str
     role: Role
     upcoming: list[RegistrationRead]
+    obsolete: list[RegistrationRead]
     planning_period: PlanningPeriodSummary | None

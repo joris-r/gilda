@@ -25,6 +25,7 @@ class HomeService:
                     name=membership.association.name,
                     role=cast(Role, membership.role),
                     upcoming=planning.upcoming,
+                    obsolete=planning.obsolete,
                     planning_period=planning.planning_period,
                 )
             )

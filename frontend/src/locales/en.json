@@ -71,6 +71,8 @@
     "submit": "Create association",
     "confirm": "Confirm",
     "noUpcoming": "No upcoming registration.",
+    "obsolete": ": this slot no longer takes place.",
+    "acknowledge": "OK",
     "noRegistrationInPeriod": "No registration yet for the planning period, {dates}.",
     "chooseSlots": "Choose your slots"
   },
