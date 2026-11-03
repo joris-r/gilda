@@ -179,7 +179,13 @@ Sat 31   [Bruno ?    ]
     occurrence's date. Each name has the background colour of the
     member's preference for the occurrence's slot, none when they have
     stated none, or grey when they are absent (look of colours not
-    testable). Hovering a name shows the member's note, if not empty;
+    testable). An absent member's name has an absence icon, whose text
+    is "Absent Mon 9 Nov 2026 – Sun 15 Nov 2026", the absence covering
+    the occurrence's date; a member with a non-empty note has a note
+    icon, whose text is the note. Hovering an icon shows its text;
+    clicking it shows its text under the names, in place of the text
+    shown, or hides it when it is already shown, and proposes nothing.
+    In French: "Absent du lun. 9 nov. 2026 au dim. 15 nov. 2026";
   - R27: The names are sorted by the member's preference for the
     occurrence's slot: Preferred, Possible, none stated, Unavailable,
     then absent members whatever their preference; then by fewest
