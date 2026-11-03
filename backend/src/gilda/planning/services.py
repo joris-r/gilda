@@ -52,6 +52,8 @@ from gilda.planning.schemas import (
 WEEKDAYS: tuple[Weekday, ...] = get_args(Weekday)
 # Confirmed registrations show at least this many days ahead, further to the planning period's end.
 UPCOMING_DAYS = 27
+# The Schedule opens on at least this many weeks, further to the planning period's end.
+SCHEDULE_WEEKS = 6
 
 
 def clock(value: time) -> str:
@@ -384,9 +386,13 @@ class PlanningService:
     # Schedule
 
     async def schedule(
-        self, user: User, association_id: UUID, first: date, last: date
+        self, user: User, association_id: UUID, first: date | None, last: date | None
     ) -> ScheduleRead:
-        await self._membership_of(user, association_id)
+        own = await self._membership_of(user, association_id)
+        if first is None and last is None:
+            first, last = await self._default_range(own.association)
+        elif first is None or last is None:
+            raise ClientException("Give both from and to, or neither.")
         slots = await self._slots(association_id)
         closures = await self._closures_between(association_id, first, last)
         registrations = await self.registrations.list(
@@ -430,10 +436,23 @@ class PlanningService:
             key=lambda r: (r.date, r.start),
         )
         return ScheduleRead(
+            from_=first,
+            to=last,
             occurrences=occurrences,
             obsolete=[registration_read(r) for r in obsolete],
             closures=[closure_read(c) for c in closures],
         )
+
+    async def _default_range(self, association: Association) -> tuple[date, date]:
+        """The range the Schedule opens on (R32)."""
+        today = datetime.now(ZoneInfo(association.timezone)).date()
+        first = today - timedelta(days=today.weekday() + 7)
+        last = first + timedelta(weeks=SCHEDULE_WEEKS, days=-1)
+        period = await self.planning_periods.get_one_or_none(association_id=association.id)
+        if period is not None:
+            week_after_end = period.last + timedelta(days=13 - period.last.weekday())
+            last = max(last, week_after_end)
+        return first, last
 
     # Summary
 

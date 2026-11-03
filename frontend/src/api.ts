@@ -194,6 +194,8 @@ export interface Occurrence {
 }
 
 export interface Schedule {
+  from: string
+  to: string
   occurrences: Occurrence[]
   obsolete: Registration[]
   closures: Closure[]
@@ -253,9 +255,10 @@ export function clearPlanningPeriod(id: string) {
   return request<void>('DELETE', `/api/associations/${id}/planning-period`)
 }
 
-export function getSchedule(id: string, from: string, to: string) {
-  const query = new URLSearchParams({ from, to })
-  return request<Schedule>('GET', `/api/associations/${id}/schedule?${query}`)
+/** Without a range, the API picks the one the Schedule opens on. */
+export function getSchedule(id: string, range?: { from: string; to: string }) {
+  const query = range ? `?${new URLSearchParams(range)}` : ''
+  return request<Schedule>('GET', `/api/associations/${id}/schedule${query}`)
 }
 
 export function register(id: string, userId: string, date: string, start: string, end: string) {

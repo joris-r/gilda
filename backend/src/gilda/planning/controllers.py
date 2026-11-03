@@ -285,8 +285,8 @@ class PlanningController(Controller):
         current_user: NamedDependency[User],
         db_session: NamedDependency[AsyncSession],
         association_id: FromPath[UUID],
-        first: Annotated[date, QueryParameter(name="from")],
-        last: Annotated[date, QueryParameter(name="to")],
+        first: Annotated[date | None, QueryParameter(name="from")] = None,
+        last: Annotated[date | None, QueryParameter(name="to")] = None,
     ) -> ScheduleRead:
         return await PlanningService(db_session).schedule(current_user, association_id, first, last)
 

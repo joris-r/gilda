@@ -126,6 +126,8 @@ class OccurrenceRead(msgspec.Struct):
 
 
 class ScheduleRead(msgspec.Struct):
+    from_: date = msgspec.field(name="from")
+    to: date
     occurrences: list[OccurrenceRead]
     obsolete: list[RegistrationRead]
     closures: list[ClosureRead]

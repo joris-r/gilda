@@ -1,6 +1,5 @@
 # Backlog
 
-- Schedule: opening it waits for the planning period before loading the weeks; let `GET …/schedule` default to the range the screen needs (six weeks, extended to the period) so it takes one request.
 - Planning: a manager creates a revocable read-only share link to the Schedule, viewable without signing in (e.g. on the association's office PC).
 - Association: a manager can change the association's timezone (fixed to Europe/Paris for now) and set its preferred language, used for emails sent to its members by someone else (e.g. a manager); My associations then needs the timezone in `GET /api/associations`.
 - Spec: `GET /api/associations` and My associations sit in the core pages though R12–R14 are planning's; move them to a home page once other modules add their part.

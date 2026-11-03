@@ -26,12 +26,11 @@ import {
 } from '../api'
 import OccurrenceMenu from '../components/OccurrenceMenu.vue'
 import ScheduleWeeks from '../components/ScheduleWeeks.vue'
-import { addDays, mondayOf, today } from '../dates'
+import { addDays, today } from '../dates'
 import { useLocation } from '../location'
 import { actions, type Item } from '../schedule'
 import { useSession } from '../session'
 
-const FIRST_WEEKS = 6
 const MORE_WEEKS = 4
 
 const props = defineProps<{ id: string }>()
@@ -41,9 +40,10 @@ const location = useLocation()
 
 /** Today in the association's timezone, set once the association is loaded. */
 const day0 = ref('')
-const weeks = ref(FIRST_WEEKS)
+const firstMonday = ref('')
+const weeks = ref(0)
 const association = ref<Association>()
-const schedule = ref<Schedule>({ occurrences: [], obsolete: [], closures: [] })
+const schedule = ref<Schedule>({ from: '', to: '', occurrences: [], obsolete: [], closures: [] })
 const period = ref<PlanningPeriod | null>(null)
 const slots = ref<Slot[]>([])
 const preferences = ref<Preference[]>([])
@@ -54,7 +54,6 @@ const openItem = ref<Item>()
 const anchor = ref<DOMRect>()
 const message = ref<string>()
 
-const firstMonday = computed(() => addDays(mondayOf(day0.value), -7))
 const lastDay = computed(() => addDays(firstMonday.value, 7 * weeks.value - 1))
 const isManager = computed(() => association.value?.role === 'manager')
 const members = computed(() =>
@@ -63,20 +62,19 @@ const members = computed(() =>
   ),
 )
 
-/** Six weeks, or more to reach the week after the one that holds the period's last date. */
-function firstWeeks(found: PlanningPeriod | null) {
-  if (found === null) return FIRST_WEEKS
-  const weekAfter = addDays(mondayOf(found.last), 7)
-  let count = FIRST_WEEKS
-  while (addDays(firstMonday.value, 7 * (count - 1)) < weekAfter) count++
+/** The number of weeks from `from`, a Monday, to `to`, a Sunday. */
+function weeksBetween(from: string, to: string) {
+  let count = 1
+  while (addDays(from, 7 * count - 1) < to) count++
   return count
 }
 
 /** The weeks failing to load still leave the header and an error message. */
 async function load() {
-  const [found, foundPeriod] = await Promise.allSettled([
+  const [found, foundPeriod, foundSchedule] = await Promise.allSettled([
     getAssociation(props.id),
     getPlanningPeriod(props.id),
+    getSchedule(props.id),
   ])
   if (found.status === 'rejected') throw found.reason
   const { id, name, timezone } = found.value
@@ -84,8 +82,11 @@ async function load() {
   day0.value = today(timezone)
   try {
     if (foundPeriod.status === 'rejected') throw foundPeriod.reason
-    weeks.value = firstWeeks(foundPeriod.value)
-    schedule.value = await getSchedule(props.id, firstMonday.value, lastDay.value)
+    if (foundSchedule.status === 'rejected') throw foundSchedule.reason
+    const { from, to } = foundSchedule.value
+    firstMonday.value = from
+    weeks.value = weeksBetween(from, to)
+    schedule.value = foundSchedule.value
     period.value = foundPeriod.value
   } catch {
     message.value = t('error')
@@ -111,15 +112,17 @@ async function loadManagerData() {
 }
 
 async function reload() {
-  schedule.value = await getSchedule(props.id, firstMonday.value, lastDay.value)
+  schedule.value = await getSchedule(props.id, { from: firstMonday.value, to: lastDay.value })
   if (isManager.value) counts.value = await getRegistrationCounts(props.id)
 }
 
 async function more() {
   const from = addDays(lastDay.value, 1)
-  const added = await getSchedule(props.id, from, addDays(from, 7 * MORE_WEEKS - 1))
+  const added = await getSchedule(props.id, { from, to: addDays(from, 7 * MORE_WEEKS - 1) })
   const known = new Set(schedule.value.closures.map((c) => c.id))
   schedule.value = {
+    from: schedule.value.from,
+    to: added.to,
     occurrences: [...schedule.value.occurrences, ...added.occurrences],
     obsolete: [...schedule.value.obsolete, ...added.obsolete],
     closures: [...schedule.value.closures, ...added.closures.filter((c) => !known.has(c.id))],
