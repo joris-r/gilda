@@ -1,6 +1,7 @@
 import logging
 import os
 import secrets
+from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from uuid import UUID
@@ -55,7 +56,7 @@ def is_superuser_email(email: str) -> bool:
 
 
 def is_superuser(user: User) -> bool:
-    return is_superuser_email(user.email)
+    return user.email is not None and is_superuser_email(user.email)
 
 
 def invitation_only() -> bool:
@@ -66,12 +67,24 @@ class ConflictException(ClientException):
     status_code = HTTP_409_CONFLICT
 
 
+# What another domain does when a user's membership of an association ends (R28).
+MembershipEndHook = Callable[[AsyncSession, Association, UUID], Awaitable[None]]
+
+
+async def end_membership(
+    db_session: AsyncSession, membership: Membership, hooks: Sequence[MembershipEndHook]
+) -> None:
+    for hook in hooks:
+        await hook(db_session, membership.association, membership.user_id)
+    await MembershipRepository(session=db_session).delete(membership.id)
+
+
 def member_read(membership: Membership, access_link: bool) -> MemberRead:
     user = membership.user
     return MemberRead(
         user_id=user.id,
         display_name=user.display_name,
-        email=user.email,
+        email=user.address,
         has_account=user.has_account,
         email_verified=user.email_verified,
         access_link=access_link,
@@ -81,6 +94,7 @@ def member_read(membership: Membership, access_link: bool) -> MemberRead:
 
 class AccountService:
     def __init__(self, db_session: AsyncSession) -> None:
+        self.db_session = db_session
         self.users = UserRepository(session=db_session)
         self.tokens = EmailVerificationTokenRepository(session=db_session)
         self.reset_tokens = PasswordResetTokenRepository(session=db_session)
@@ -131,6 +145,25 @@ class AccountService:
     async def get(self, user_id: UUID) -> User | None:
         return await self.users.get_one_or_none(id=user_id)
 
+    async def get_active(self, user_id: UUID) -> User | None:
+        """The user, unless their account is deleted: its sessions no longer authenticate."""
+        user = await self.get(user_id)
+        return None if user is None or user.deleted_at is not None else user
+
+    async def delete_account(self, user: User, hooks: Sequence[MembershipEndHook]) -> None:
+        memberships = MembershipRepository(session=self.db_session)
+        for membership in await memberships.list(user_id=user.id):
+            if membership.role == "manager":
+                await promote_if_last_manager(memberships, membership)
+            await end_membership(self.db_session, membership, hooks)
+        await self.tokens.delete_where(user_id=user.id)
+        await self.reset_tokens.delete_where(user_id=user.id)
+        await self.access_links.delete_where(user_id=user.id)
+        user.email = None
+        user.password_hash = None
+        user.deleted_at = datetime.now(UTC)
+        await self.users.update(user)
+
     async def confirm(self, token: str) -> User:
         record = await self.tokens.get_one_or_none(token=token)
         if record is None or record.expires_at < datetime.now(UTC):
@@ -166,7 +199,7 @@ class AccountService:
             )
         )
         try:
-            send_password_reset_email(user.email, token.token, language)
+            send_password_reset_email(user.address, token.token, language)
         except EmailNotSentError:
             # Still 204: an error here would reveal that the email has an account.
             _logger.exception("Sending the password reset email failed")
@@ -225,7 +258,21 @@ class AccountService:
                 expires_at=datetime.now(UTC) + TOKEN_LIFETIME,
             )
         )
-        send_verification_email(user.email, token.token, language)
+        send_verification_email(user.address, token.token, language)
+
+
+async def promote_if_last_manager(memberships: MembershipRepository, leaving: Membership) -> None:
+    """R30: when the only manager leaves, every remaining member becomes a manager."""
+    others = [
+        m
+        for m in await memberships.list(association_id=leaving.association_id)
+        if m.id != leaving.id
+    ]
+    if any(m.role == "manager" for m in others):
+        return
+    for member in others:
+        member.role = "manager"
+        await memberships.update(member)
 
 
 async def send_access_link(links: AccessLinkRepository, user: User, language: Language) -> None:
@@ -233,7 +280,7 @@ async def send_access_link(links: AccessLinkRepository, user: User, language: La
     link = await links.get_one_or_none(user_id=user.id)
     if link is None:
         link = await links.add(AccessLink(user_id=user.id, token=secrets.token_urlsafe(32)))
-    send_access_link_email(user.email, link.token, language)
+    send_access_link_email(user.address, link.token, language)
 
 
 async def revoke_access_link(links: AccessLinkRepository, user_id: UUID) -> None:
@@ -245,6 +292,7 @@ async def revoke_access_link(links: AccessLinkRepository, user_id: UUID) -> None
 
 class AssociationService:
     def __init__(self, db_session: AsyncSession) -> None:
+        self.db_session = db_session
         self.users = UserRepository(session=db_session)
         self.associations = AssociationRepository(session=db_session)
         self.memberships = MembershipRepository(session=db_session)
@@ -322,6 +370,25 @@ class AssociationService:
                 "The sign-in link could not be sent. Try again later."
             ) from error
         return await self._member_read(membership)
+
+    async def remove_member(
+        self,
+        manager: User,
+        association_id: UUID,
+        user_id: UUID,
+        hooks: Sequence[MembershipEndHook],
+    ) -> None:
+        await self._manager_of(manager, association_id)
+        membership = await self.memberships.get_one_or_none(
+            user_id=user_id, association_id=association_id
+        )
+        if membership is None:
+            raise NotFoundException("Not a member of this association.")
+        if membership.role == "manager":
+            managers = await self.memberships.count(association_id=association_id, role="manager")
+            if managers == 1:
+                raise ConflictException("An association keeps at least one manager.")
+        await end_membership(self.db_session, membership, hooks)
 
     async def revoke_member_link(self, manager: User, association_id: UUID, user_id: UUID) -> None:
         await self._manager_of(manager, association_id)

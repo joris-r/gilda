@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import {
   addMember,
   ApiError,
   changeRole,
   getAssociation,
+  removeMember,
   revokeMemberLink,
   sendMemberLink,
   type Association,
@@ -23,6 +25,7 @@ const FIRST_MEMBERS = 5
 
 const props = defineProps<{ id: string }>()
 const { t } = useI18n()
+const router = useRouter()
 const { user } = useSession()
 const location = useLocation()
 
@@ -39,7 +42,18 @@ const role = ref<Role>('volunteer')
 /** The member whose edit dialog is open, with the role chosen in it and its error. */
 const editing = ref<{ member: Member; role: Role; error: string }>()
 /** The action of the edit dialog waiting for confirmation. */
-const confirming = ref<'revoke' | 'send'>()
+const confirming = ref<'revoke' | 'send' | 'remove'>()
+
+const questions = {
+  revoke: 'association.confirmRevokeLink',
+  send: 'association.confirmSendLink',
+  remove: 'association.confirmRemove',
+}
+const actions = {
+  revoke: 'association.revoke',
+  send: 'association.send',
+  remove: 'association.remove',
+}
 
 const isManager = computed(() => association.value?.role === 'manager')
 const members = computed(() =>
@@ -103,10 +117,25 @@ async function saveRole() {
   }
 }
 
+async function remove(member: Member) {
+  try {
+    await removeMember(props.id, member.user_id)
+  } catch (e) {
+    editing.value!.error =
+      e instanceof ApiError && e.status === 409 ? t('association.lastManager') : t('error')
+    return
+  }
+  closeEdit()
+  if (member.user_id === user.value?.id) return router.push('/')
+  await load()
+  message.value = { ok: true, text: t('association.removed', { name: member.display_name }) }
+}
+
 async function confirmAction() {
   const { member } = editing.value!
   const action = confirming.value
   confirming.value = undefined
+  if (action === 'remove') return remove(member)
   try {
     if (action === 'revoke') {
       await revokeMemberLink(props.id, member.user_id)
@@ -232,17 +261,17 @@ async function add() {
           {{ t('association.revokeLink') }}
         </button>
       </div>
+      <div class="dialog-actions remove">
+        <button type="button" class="link danger" @click="confirming = 'remove'">
+          {{ t('association.removeMember') }}
+        </button>
+      </div>
     </AppDialog>
 
     <ConfirmDialog
       v-if="editing && confirming"
-      :question="
-        t(
-          confirming === 'revoke' ? 'association.confirmRevokeLink' : 'association.confirmSendLink',
-          { name: editing.member.display_name },
-        )
-      "
-      :action="t(confirming === 'revoke' ? 'association.revoke' : 'association.send')"
+      :question="t(questions[confirming], { name: editing.member.display_name })"
+      :action="t(actions[confirming])"
       @confirm="confirmAction"
       @cancel="confirming = undefined"
     />
@@ -256,5 +285,13 @@ async function add() {
 
 .message {
   margin: 0 0 12px;
+}
+
+.remove {
+  margin-top: 24px;
+}
+
+.danger {
+  color: var(--danger);
 }
 </style>

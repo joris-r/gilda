@@ -14,10 +14,17 @@ class User(UUIDv7Base):
     __tablename__ = "user_account"
 
     display_name: Mapped[str]
-    # Stored lowercased, so uniqueness ignores case.
-    email: Mapped[str] = mapped_column(String(320), unique=True)
+    # Stored lowercased, so uniqueness ignores case; null once the account is deleted.
+    email: Mapped[str | None] = mapped_column(String(320), unique=True)
     password_hash: Mapped[str | None]
     email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def address(self) -> str:
+        """The email of a user whose account is not deleted, as members and signed-in users are."""
+        assert self.email is not None
+        return self.email
 
     @property
     def has_account(self) -> bool:

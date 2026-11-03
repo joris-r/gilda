@@ -26,7 +26,12 @@ from gilda.core.schemas import (
     UserRead,
     VerifyRequest,
 )
-from gilda.core.services import AccountService, AssociationService, is_superuser
+from gilda.core.services import (
+    AccountService,
+    AssociationService,
+    MembershipEndHook,
+    is_superuser,
+)
 from gilda.core.sessions import set_session_with_new_id
 from gilda.mailer import Language, preferred_language
 
@@ -39,14 +44,14 @@ def email_language(request: Request[Any, Any, Any]) -> Language:
 
 
 def user_read(user: User) -> UserRead:
-    return UserRead(id=user.id, display_name=user.display_name, email=user.email)
+    return UserRead(id=user.id, display_name=user.display_name, email=user.address)
 
 
 def session_read(user: User) -> SessionRead:
     return SessionRead(
         id=user.id,
         display_name=user.display_name,
-        email=user.email,
+        email=user.address,
         superuser=is_superuser(user),
     )
 
@@ -67,7 +72,7 @@ async def provide_current_user(
     session = request.session or {}
     accounts = AccountService(db_session)
     user_id = session.get(SESSION_USER_KEY)
-    user = await accounts.get(UUID(user_id)) if user_id else None
+    user = await accounts.get_active(UUID(user_id)) if user_id else None
     link_id = session.get(SESSION_LINK_KEY)
     if link_id and not await accounts.link_exists(UUID(link_id)):
         user = None
@@ -88,6 +93,17 @@ class AccountController(Controller):
             data.display_name, data.email, data.password, email_language(request)
         )
         return user_read(user)
+
+    @delete("/accounts/me", dependencies={"current_user": Provide(provide_current_user)})
+    async def delete_account(
+        self,
+        request: Request[Any, Any, Any],
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        membership_end_hooks: NamedDependency[list[MembershipEndHook]],
+    ) -> None:
+        await AccountService(db_session).delete_account(current_user, membership_end_hooks)
+        request.clear_session()
 
     @post("/accounts/verify", status_code=200)
     async def verify_email(
@@ -216,6 +232,19 @@ class AssociationController(Controller):
     ) -> MemberRead:
         return await AssociationService(db_session).change_role(
             current_user, association_id, user_id, data.role
+        )
+
+    @delete("/{association_id:uuid}/members/{user_id:uuid}")
+    async def remove_member(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        membership_end_hooks: NamedDependency[list[MembershipEndHook]],
+        association_id: FromPath[UUID],
+        user_id: FromPath[UUID],
+    ) -> None:
+        await AssociationService(db_session).remove_member(
+            current_user, association_id, user_id, membership_end_hooks
         )
 
     @post("/{association_id:uuid}/members/{user_id:uuid}/access-link", status_code=200)

@@ -588,3 +588,28 @@ class PlanningService:
 
 def _dates(first: date, last: date) -> list[date]:
     return [first + timedelta(days=n) for n in range((last - first).days + 1)]
+
+
+async def end_membership(db_session: AsyncSession, association: Association, user_id: UUID) -> None:
+    """R28: the user leaves the association's planning."""
+    today = datetime.now(ZoneInfo(association.timezone)).date()
+    registrations = RegistrationRepository(session=db_session)
+    upcoming = await registrations.list(
+        Registration.date >= today,
+        Registration.status != "cancelled",
+        association_id=association.id,
+        user_id=user_id,
+    )
+    for registration in upcoming:
+        registration.status = "cancelled"
+        await registrations.update(registration)
+    slots = await SlotRepository(session=db_session).list(association_id=association.id)
+    await PreferenceRepository(session=db_session).delete_where(
+        Preference.slot_id.in_([s.id for s in slots]), user_id=user_id
+    )
+    await AbsenceRepository(session=db_session).delete_where(
+        association_id=association.id, user_id=user_id
+    )
+    await NoteRepository(session=db_session).delete_where(
+        association_id=association.id, user_id=user_id
+    )

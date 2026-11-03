@@ -97,7 +97,11 @@
     "signInLink": "Sign-in link",
     "revoke": "Revoke",
     "send": "Send",
-    "confirmSendLink": "Send {name}'s sign-in link by email?"
+    "confirmSendLink": "Send {name}'s sign-in link by email?",
+    "removeMember": "Remove from the association",
+    "confirmRemove": "Remove {name} from the association? Their upcoming registrations are cancelled.",
+    "remove": "Remove",
+    "removed": "{name} is removed."
   },
   "weekdays": {
     "monday": "Monday",
@@ -201,5 +205,9 @@
   "dialog": {
     "close": "Close",
     "cancel": "Cancel"
+  },
+  "account": {
+    "delete": "Delete my account",
+    "confirmDelete": "Delete your account? You leave all your associations and your upcoming registrations are cancelled. This cannot be undone."
   }
 }

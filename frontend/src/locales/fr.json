@@ -97,7 +97,11 @@
     "signInLink": "Lien de connexion",
     "revoke": "Révoquer",
     "send": "Envoyer",
-    "confirmSendLink": "Envoyer le lien de connexion de {name} par e-mail ?"
+    "confirmSendLink": "Envoyer le lien de connexion de {name} par e-mail ?",
+    "removeMember": "Retirer de l'association",
+    "confirmRemove": "Retirer {name} de l'association ? Ses inscriptions à venir sont annulées.",
+    "remove": "Retirer",
+    "removed": "{name} est retiré·e."
   },
   "weekdays": {
     "monday": "Lundi",
@@ -201,5 +205,9 @@
   "dialog": {
     "close": "Fermer",
     "cancel": "Annuler"
+  },
+  "account": {
+    "delete": "Supprimer mon compte",
+    "confirmDelete": "Supprimer votre compte ? Vous quittez toutes vos associations et vos inscriptions à venir sont annulées. C'est irréversible."
   }
 }

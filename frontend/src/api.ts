@@ -104,6 +104,10 @@ export function signInWithLink(token: string) {
   return request<User>('POST', '/api/session/access-link', { token })
 }
 
+export function deleteAccount() {
+  return request<void>('DELETE', '/api/accounts/me')
+}
+
 export function revokeAccessLink() {
   return request<void>('DELETE', '/api/access-link')
 }
@@ -130,6 +134,10 @@ export function changeRole(id: string, userId: string, role: Role) {
 
 export function sendMemberLink(id: string, userId: string) {
   return request<Member>('POST', `/api/associations/${id}/members/${userId}/access-link`)
+}
+
+export function removeMember(id: string, userId: string) {
+  return request<void>('DELETE', `/api/associations/${id}/members/${userId}`)
 }
 
 export function revokeMemberLink(id: string, userId: string) {

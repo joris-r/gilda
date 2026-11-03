@@ -2,7 +2,8 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
-import { getSession, revokeAccessLink, signOut } from './api'
+import { deleteAccount, getSession, revokeAccessLink, signOut } from './api'
+import ConfirmDialog from './components/ConfirmDialog.vue'
 import LanguageSelector from './components/LanguageSelector.vue'
 import { provideLocation } from './location'
 import { provideSession } from './session'
@@ -15,6 +16,7 @@ const { user } = provideSession()
 const location = provideLocation()
 const menuOpen = ref(false)
 const confirmingRevoke = ref(false)
+const confirmingDelete = ref(false)
 const notice = ref('')
 
 onMounted(async () => {
@@ -49,6 +51,19 @@ async function revokeLink() {
   } else {
     notice.value = t('accessLink.revoked')
   }
+}
+
+function askDelete() {
+  closeMenu()
+  confirmingDelete.value = true
+}
+
+async function deleteMyAccount() {
+  confirmingDelete.value = false
+  await deleteAccount()
+  user.value = null
+  location.value = {}
+  await router.push('/')
 }
 
 async function leave() {
@@ -104,12 +119,20 @@ async function leave() {
           <button v-else type="button" class="link" @click="confirmingRevoke = true">
             {{ t('accessLink.revoke') }}
           </button>
+          <button type="button" class="link" @click="askDelete">{{ t('account.delete') }}</button>
           <button type="button" class="link" @click="leave">{{ t('signOut') }}</button>
         </div>
       </div>
       <LanguageSelector v-else />
     </div>
   </header>
+  <ConfirmDialog
+    v-if="confirmingDelete"
+    :question="t('account.confirmDelete')"
+    :action="t('account.delete')"
+    @confirm="deleteMyAccount"
+    @cancel="confirmingDelete = false"
+  />
   <main v-if="user !== undefined">
     <p v-if="notice" class="ok">{{ notice }}</p>
     <SignInView v-if="user === null && !route.meta.public" />
