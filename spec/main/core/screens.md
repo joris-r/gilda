@@ -191,6 +191,8 @@ As a manager:
   Emma                                       VOLUNTEER   ✎
   emma@example.org
   Show all 7 members
+
+  Delete the association
 ```
 
 - Members are listed managers first, then by display name.
@@ -232,8 +234,23 @@ As a manager:
   Removing the last manager shows "An association keeps at least one
   manager." and changes nothing. A manager who removes themself is
   led to My associations.
-- A volunteer sees the members and their roles, without "Add a member"
-  and without the edit icons.
+- "Delete the association" opens the confirmation:
+
+```
+┌───────────────────────────────────────────────────┐
+│ Delete Jardin partagé des Lilas? Its schedule and │
+│ its members' registrations are erased. This       │
+│ cannot be undone.                                 │
+│ Type the association's name to confirm [        ] │
+│ [Delete]  Cancel                                  │
+└───────────────────────────────────────────────────┘
+```
+
+- [Delete] is enabled only when the field holds exactly the
+  association's name. Confirming deletes it (R34), leads to My
+  associations and shows "Jardin partagé des Lilas is deleted."
+- A volunteer sees the members and their roles, without "Add a
+  member", without the edit icons and without "Delete the association".
 - Signed out, every page but `/signup`, `/verify-email`,
   `/forgot-password`, `/reset-password`, `/sign-in-link` and `/access`
   shows Sign in.

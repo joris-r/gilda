@@ -370,6 +370,19 @@ Content-Type: application/json
 - 404 when the association does not exist or the signed-in user is not
   a member.
 
+### DELETE /api/associations/{id}
+
+Deletes the association for good. Managers only: 403 for a volunteer.
+
+- 204.
+- R34: Everything the association holds is erased: its memberships and
+  what its domains keep (for planning: its slots, closures, planning
+  period, preferences, absences, notes, share link and registrations).
+  Its members stay users, in their other associations if any, and are
+  not told.
+- 404 when the association does not exist or the signed-in user is not
+  a member.
+
 ### POST /api/associations/{id}/members
 
 Managers only: 403 for a volunteer.
