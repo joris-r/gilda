@@ -110,6 +110,8 @@ export function planningApi(options: {
   notes?: Note[]
   /** The range the schedule returns when asked for none, in place of R32's. */
   scheduleRange?: { from: string; to: string }
+  /** The token of the association's share link; none by default. */
+  shareLink?: string | null
 }) {
   const occurrences = options.occurrences ?? []
   const registrations = [...(options.registrations ?? [])]
@@ -121,6 +123,8 @@ export function planningApi(options: {
   let note = options.note ?? ''
   const scheduleRequests: { from: string | null; to: string | null }[] = []
   let next = 1
+  let shareLink = options.shareLink ?? null
+  const managersOnly: Reply = { status: 403, body: { error: 'Managers only' } }
 
   const routes: Record<string, Route> = {
     [`GET ${base}`]: {
@@ -254,6 +258,37 @@ export function planningApi(options: {
         : { status: 403, body: { error: 'Managers only' } },
   }
 
+  routes[`GET ${base}/share-link`] = () =>
+    options.role === 'manager'
+      ? { status: 200, body: shareLink === null ? null : { token: shareLink } }
+      : managersOnly
+  routes[`POST ${base}/share-link`] = () => {
+    if (options.role !== 'manager') return managersOnly
+    setShareLink(`share-new-${next++}`)
+    return { status: 201, body: { token: shareLink } }
+  }
+  routes[`DELETE ${base}/share-link`] = () => {
+    if (options.role !== 'manager') return managersOnly
+    setShareLink(null)
+    return { status: 204 }
+  }
+
+  /** Serves Shared schedule for `token` only (R33). */
+  function setShareLink(token: string | null) {
+    const unknown: Reply = { status: 404, body: { error: 'Unknown share link' } }
+    if (shareLink !== null) {
+      routes[`GET /api/shared/${shareLink}`] = unknown
+      routes[`GET /api/shared/${shareLink}/schedule`] = unknown
+    }
+    shareLink = token
+    if (token === null) return
+    routes[`GET /api/shared/${token}`] = () => ({
+      status: 200,
+      body: { name: garden.name, timezone: 'Europe/Paris', planning_period: planningPeriod },
+    })
+    routes[`GET /api/shared/${token}/schedule`] = routes[`GET ${base}/schedule`]!
+  }
+
   function addPreferenceRoutes(slot: Slot) {
     for (const m of options.members) {
       const at = `${base}/preferences/${slot.id}/${m.user_id}`
@@ -308,6 +343,7 @@ export function planningApi(options: {
     }
   }
 
+  setShareLink(shareLink)
   registrations.forEach(addPatch)
   slots.forEach((s) => addPut('slots', slots, s.id))
   slots.forEach((s) => addDelete('slots', slots, s.id))

@@ -330,4 +330,62 @@ test.describe('Scenarios', () => {
       await expect(page.getByText('This link is no longer valid.')).toBeVisible()
     })
   })
+
+  test('the schedule is shared', async ({ page, context }) => {
+    const association = `Jardin partagé ${Date.now()}`
+    const alice = uniqueEmail('Alice')
+    const thursday = dayOfWeek(4, 1)
+    let link = ''
+
+    await test.step('1. Alice adds the slot Thursday 10–13 and signs up for it', async () => {
+      await signUp(page, 'Alice', alice)
+      await createAssociation(page, association)
+      await page.getByRole('link', { name: 'Schedule settings', exact: true }).click()
+      await page.getByRole('button', { name: 'Add a slot' }).click()
+      const slotForm = page.getByRole('dialog', { name: 'Add a slot' })
+      await slotForm.getByRole('combobox', { name: /^Day/ }).selectOption({ label: 'Thursday' })
+      await slotForm.getByLabel('From').fill('10:00')
+      await slotForm.getByLabel('To').fill('13:00')
+      await slotForm.getByRole('button', { name: 'Add slot' }).click()
+      await expect(page.getByRole('listitem').filter({ hasText: 'Thursday' })).toContainText(
+        '10:00–13:00',
+      )
+      await page.locator('header').getByRole('link', { name: association }).click()
+      await occurrence(page, thursday.label, '10–13').click()
+      await page.getByRole('button', { name: 'Sign up', exact: true }).click()
+      await expect(occurrence(page, thursday.label, '10–13')).toContainText('Alice')
+    })
+
+    await test.step('2. Alice creates a share link and copies it', async () => {
+      await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+      await page.getByRole('link', { name: 'Schedule settings', exact: true }).click()
+      await page.getByRole('button', { name: 'Create a share link' }).click()
+      await page.getByRole('button', { name: 'Copy', exact: true }).click()
+      await expect(page.getByText('Link copied.')).toBeVisible()
+      link = await page.evaluate(() => navigator.clipboard.readText())
+      expect(link).toContain('/shared/')
+      await signOut(page)
+    })
+
+    await test.step('3. Signed out, the link shows her name on Thursday', async () => {
+      await page.goto(link)
+      await expect(page.locator('header')).toContainText(association)
+      await expect(occurrence(page, thursday.label, '10–13')).toContainText('Alice')
+    })
+
+    await test.step('4. Alice revokes the share link', async () => {
+      await signIn(page, alice)
+      await page.getByText(association, { exact: true }).click()
+      await page.getByRole('link', { name: 'Schedule settings', exact: true }).click()
+      await page.getByRole('button', { name: 'Revoke the share link' }).click()
+      await page.getByRole('button', { name: 'Revoke', exact: true }).click()
+      await expect(page.getByRole('button', { name: 'Copy', exact: true })).toBeHidden()
+      await signOut(page)
+    })
+
+    await test.step('5. The link is no longer valid', async () => {
+      await page.goto(link)
+      await expect(page.getByText('This link is no longer valid.')).toBeVisible()
+    })
+  })
 })

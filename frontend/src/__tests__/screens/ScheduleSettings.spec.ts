@@ -632,7 +632,10 @@ describe('Schedule settings', () => {
         body: undefined,
       })
       expect(dialogs(wrapper)).toHaveLength(0)
-      expect(pageText(wrapper)).toContain('None')
+      const text = pageText(wrapper)
+      expect(text.slice(text.indexOf('Planning period'), text.indexOf('Closures'))).toContain(
+        'None',
+      )
     })
   })
 
