@@ -17,7 +17,7 @@ import {
   titleOf,
   type Route,
 } from '../mockApi'
-import { garden, member, signedInAsAlice } from './fixtures'
+import { garden, member, repairCafe, signedInAsAlice } from './fixtures'
 
 beforeEach(() => {
   localStorage.clear()
@@ -587,7 +587,139 @@ describe('Members', () => {
     })
   })
 
+  describe('Delete the association', () => {
+    const associationPath = `/api/associations/${garden.id}`
+    const nameField = "Type the association's name to confirm"
+    const remaining = {
+      ...repairCafe,
+      role: 'volunteer',
+      upcoming: [],
+      obsolete: [],
+      planning_period: null,
+    }
+
+    function deletions(calls: { method: string; path: string }[]) {
+      return calls.filter((c) => c.method === 'DELETE' && c.path === associationPath)
+    }
+
+    it('shows below the members, for a manager', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno])
+      const wrapper = await mounting
+
+      expect(showsControl(wrapper, 'Delete the association')).toBe(true)
+      const text = pageText(wrapper)
+      expect(text.indexOf('Delete the association')).toBeGreaterThan(text.indexOf('Bruno'))
+      expect(dialogs(wrapper)).toHaveLength(0)
+    })
+
+    it('asks for confirmation, with the name to type, before calling the API', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno])
+      const wrapper = await mounting
+
+      await press(wrapper, 'Delete the association')
+
+      const open = dialog(wrapper)
+      expect(open.text().replace(/\s+/g, ' ')).toContain(
+        `Delete ${garden.name}? Its schedule and its members' registrations are erased. This cannot be undone.`,
+      )
+      expect(showsField(open, nameField)).toBe(true)
+      expect(showsControl(open, 'Delete')).toBe(true)
+      expect(showsControl(open, 'Cancel')).toBe(true)
+      expect(deletions(calls)).toHaveLength(0)
+    })
+
+    it('Delete is enabled only when the field holds exactly the name', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno])
+      const wrapper = await mounting
+
+      await press(wrapper, 'Delete the association')
+      const open = dialog(wrapper)
+      const isDisabled = () => control(open, 'Delete').attributes('disabled') !== undefined
+
+      expect(isDisabled()).toBe(true)
+      for (const wrong of ['Jardin', garden.name.toUpperCase(), `${garden.name}!`]) {
+        await fill(open, nameField, wrong)
+        expect(isDisabled()).toBe(true)
+      }
+      await fill(open, nameField, garden.name)
+      expect(isDisabled()).toBe(false)
+    })
+
+    it('submitting without the exact name does not delete', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno], {
+        [`DELETE ${associationPath}`]: { status: 204 },
+      })
+      const wrapper = await mounting
+
+      await press(wrapper, 'Delete the association')
+      const open = dialog(wrapper)
+      await fill(open, nameField, 'Jardin')
+      await press(open, 'Delete')
+
+      expect(deletions(calls)).toHaveLength(0)
+      expect(wrapper.vm.$route.path).toBe(path)
+    })
+
+    it('Delete deletes it with DELETE (R34), leads to My associations and says so', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno], {
+        [`DELETE ${associationPath}`]: { status: 204 },
+        'GET /api/associations': { status: 200, body: [remaining] },
+      })
+      const wrapper = await mounting
+
+      await press(wrapper, 'Delete the association')
+      const open = dialog(wrapper)
+      await fill(open, nameField, garden.name)
+      await press(open, 'Delete')
+
+      expect(deletions(calls)).toHaveLength(1)
+      expect(wrapper.vm.$route.path).toBe('/')
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(pageText(wrapper)).toContain(`${garden.name} is deleted.`)
+      expect(item(wrapper, repairCafe.name).exists()).toBe(true)
+    })
+
+    it('Cancel closes the dialog, changes nothing and forgets the typed name', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno])
+      const wrapper = await mounting
+
+      await press(wrapper, 'Delete the association')
+      await fill(dialog(wrapper), nameField, garden.name)
+      await press(dialog(wrapper), 'Cancel')
+
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(deletions(calls)).toHaveLength(0)
+      expect(wrapper.vm.$route.path).toBe(path)
+
+      await press(wrapper, 'Delete the association')
+      expect(control(dialog(wrapper), 'Delete').attributes('disabled')).toBeDefined()
+    })
+
+    it('when the API refuses, stays on Members and does not say it is deleted', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno], {
+        [`DELETE ${associationPath}`]: { status: 403, body: { error: 'Managers only' } },
+      })
+      const wrapper = await mounting
+
+      await press(wrapper, 'Delete the association')
+      const open = dialog(wrapper)
+      await fill(open, nameField, garden.name)
+      await press(open, 'Delete')
+
+      expect(wrapper.vm.$route.path).toBe(path)
+      expect(dialogs(wrapper)).toHaveLength(1)
+      expect(pageText(wrapper)).not.toContain('is deleted')
+    })
+  })
+
   describe('as a volunteer', () => {
+    it('shows no "Delete the association"', async () => {
+      const { mounting } = mountAs('volunteer', [zoe, bruno])
+      const wrapper = await mounting
+
+      expect(hasControl(wrapper, 'Delete the association')).toBe(false)
+    })
+
     it('shows members and roles without Add a member or the edit icons', async () => {
       const brunoWithLink = member('u-bruno', 'Bruno', 'volunteer', true, true, true)
       const { mounting } = mountAs('volunteer', [zoe, brunoWithLink, alice])
