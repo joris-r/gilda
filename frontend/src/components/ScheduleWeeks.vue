@@ -315,8 +315,17 @@ function click(item: Item, event: MouseEvent) {
   background-size: 100% calc(100% / var(--hours));
 }
 
-.day.within .track {
+.day.within {
+  border-radius: 6px;
   background-color: var(--period-soft);
+}
+
+.day.within .day-head {
+  padding: 0 4px;
+}
+
+.day.within .track {
+  background-color: transparent;
 }
 
 .axis .track {
@@ -469,10 +478,6 @@ function click(item: Item, event: MouseEvent) {
     height: calc(var(--day-lanes, 1) * var(--lane-px));
     background-image: linear-gradient(to right, var(--line) 1px, transparent 1px);
     background-size: calc(100% / var(--hours)) 100%;
-  }
-
-  .day.within .track {
-    background-color: var(--period-soft);
   }
 
   .axis .track {
