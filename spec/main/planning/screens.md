@@ -158,7 +158,10 @@ Sat 31   [Bruno ?    ]
 - When a planning period is set, a line marked with its first date sits
   just before the week that holds it; a line marked with its last
   date, just after the week that holds it. When the first line and the
-  today line fall at the same place, the today line comes first.
+  today line fall at the same place, the today line comes first. The
+  two lines and the background of the days within the period share an
+  accent colour, used by nothing else on the screen. (Look not
+  testable.)
 - Occurrences and obsolete registrations after the period's last date
   are greyed, and keep their menu. (Look not testable.)
 - An occurrence shows its registration's display name, and no times:
