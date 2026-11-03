@@ -103,7 +103,12 @@
     "removeMember": "Remove from the association",
     "confirmRemove": "Remove {name} from the association? Their upcoming registrations are cancelled.",
     "remove": "Remove",
-    "removed": "{name} is removed."
+    "removed": "{name} is removed.",
+    "deleteAssociation": "Delete the association",
+    "confirmDelete": "Delete {name}? Its schedule and its members' registrations are erased. This cannot be undone.",
+    "typeName": "Type the association's name to confirm",
+    "delete": "Delete",
+    "deleted": "{name} is deleted."
   },
   "weekdays": {
     "monday": "Monday",

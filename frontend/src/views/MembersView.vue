@@ -6,6 +6,7 @@ import {
   addMember,
   ApiError,
   changeRole,
+  deleteAssociation,
   getAssociation,
   removeMember,
   revokeMemberLink,
@@ -18,6 +19,7 @@ import AppDialog from '../components/AppDialog.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import IconButton from '../components/IconButton.vue'
 import { useLocation } from '../location'
+import { leaveNotice } from '../notice'
 import { useSession } from '../session'
 
 /** Members shown before "Show all". */
@@ -43,6 +45,9 @@ const role = ref<Role>('volunteer')
 const editing = ref<{ member: Member; role: Role; error: string }>()
 /** The action of the edit dialog waiting for confirmation. */
 const confirming = ref<'revoke' | 'send' | 'remove'>()
+
+/** The open confirmation of deleting the association, with the name typed in it and its error. */
+const deleting = ref<{ typed: string; error: string }>()
 
 const questions = {
   revoke: 'association.confirmRevokeLink',
@@ -168,6 +173,20 @@ async function add() {
         : t('error')
   }
 }
+
+async function confirmDelete() {
+  const { name } = association.value!
+  const confirmation = deleting.value!
+  if (confirmation.typed !== name) return
+  try {
+    await deleteAssociation(props.id)
+  } catch {
+    confirmation.error = t('error')
+    return
+  }
+  leaveNotice(t('association.deleted', { name }))
+  await router.push('/')
+}
 </script>
 
 <template>
@@ -203,6 +222,30 @@ async function add() {
         {{ t('association.showAll', { n: members.length }) }}
       </button>
     </p>
+    <div v-if="isManager" class="remove">
+      <button type="button" class="link danger" @click="deleting = { typed: '', error: '' }">
+        {{ t('association.deleteAssociation') }}
+      </button>
+    </div>
+
+    <AppDialog v-if="deleting" @close="deleting = undefined">
+      <form @submit.prevent="confirmDelete">
+        <p>{{ t('association.confirmDelete', { name: association.name }) }}</p>
+        <label>
+          {{ t('association.typeName') }}
+          <input v-model="deleting.typed" autocomplete="off" />
+        </label>
+        <p v-if="deleting.error" class="error">{{ deleting.error }}</p>
+        <div class="dialog-actions">
+          <button type="submit" :disabled="deleting.typed !== association.name">
+            {{ t('association.delete') }}
+          </button>
+          <button type="button" class="link" @click="deleting = undefined">
+            {{ t('dialog.cancel') }}
+          </button>
+        </div>
+      </form>
+    </AppDialog>
 
     <AppDialog v-if="adding" :title="t('association.addMember')" @close="adding = undefined">
       <form @submit.prevent="add">

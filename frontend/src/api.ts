@@ -125,6 +125,10 @@ export function getAssociation(id: string) {
   return request<Association>('GET', `/api/associations/${id}`)
 }
 
+export function deleteAssociation(id: string) {
+  return request<void>('DELETE', `/api/associations/${id}`)
+}
+
 export function addMember(id: string, display_name: string, email: string, role: Role) {
   return request<Member>('POST', `/api/associations/${id}/members`, { display_name, email, role })
 }

@@ -103,7 +103,12 @@
     "removeMember": "Retirer de l'association",
     "confirmRemove": "Retirer {name} de l'association ? Ses inscriptions à venir sont annulées.",
     "remove": "Retirer",
-    "removed": "{name} est retiré·e."
+    "removed": "{name} est retiré·e.",
+    "deleteAssociation": "Supprimer l'association",
+    "confirmDelete": "Supprimer {name} ? Son planning et les inscriptions de ses membres sont effacés. Cette action est irréversible.",
+    "typeName": "Saisissez le nom de l'association pour confirmer",
+    "delete": "Supprimer",
+    "deleted": "{name} est supprimée."
   },
   "weekdays": {
     "monday": "Lundi",

@@ -209,6 +209,15 @@ class AssociationController(Controller):
     ) -> AssociationDetail:
         return await AssociationService(db_session).detail(current_user, association_id)
 
+    @delete("/{association_id:uuid}")
+    async def delete_association(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+    ) -> None:
+        await AssociationService(db_session).delete(current_user, association_id)
+
     @post("/{association_id:uuid}/members")
     async def add_member(
         self,

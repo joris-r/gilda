@@ -320,6 +320,11 @@ class AssociationService:
             members=[member_read(m, m.user_id in with_link) for m in members],
         )
 
+    async def delete(self, manager: User, association_id: UUID) -> None:
+        await self._manager_of(manager, association_id)
+        # What the association holds goes with it, by the foreign keys' ON DELETE CASCADE.
+        await self.associations.delete(association_id)
+
     async def add_member(
         self, manager: User, association_id: UUID, display_name: str, email: str, role: Role
     ) -> MemberRead:

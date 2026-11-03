@@ -10,6 +10,7 @@ import {
 } from '../api'
 import { formatDate, formatRange, shortDay, today } from '../dates'
 import { useLocation } from '../location'
+import { takeNotice } from '../notice'
 
 // The list carries no timezone: every association is in Europe/Paris for now.
 const TIMEZONE = 'Europe/Paris'
@@ -20,6 +21,7 @@ useLocation().value = { screen: 'myAssociations.title' }
 
 const associations = ref<HomeAssociation[]>()
 const error = ref('')
+const notice = takeNotice()
 
 onMounted(async () => {
   associations.value = await listAssociations()
@@ -48,6 +50,7 @@ async function setStatus(
 
 <template>
   <template v-if="associations">
+    <p v-if="notice" class="message ok">{{ notice }}</p>
     <ul v-if="associations.length" class="list">
       <li v-for="association in associations" :key="association.id">
         <RouterLink :to="`/associations/${association.id}`">{{ association.name }}</RouterLink>
@@ -111,6 +114,10 @@ async function setStatus(
 </template>
 
 <style scoped>
+.message {
+  margin: 0 0 12px;
+}
+
 .new {
   margin: 24px 0 0;
 }
