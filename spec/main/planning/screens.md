@@ -16,6 +16,9 @@ SLOTS                                             [+ Add a slot]
   Thursday   10:00–13:00                                ✎  🗑
   Saturday   10:00–13:00                                ✎  🗑
 
+SHARE LINK                                  [+ Create a share link]
+  https://gilda.example.org/shared/Hq3v…           [Copy]  🗑
+
 Members' preferences
            Thu 10:00–13:00   Sat 10:00–13:00
   Alice    [Preferred ▾]     [—         ▾]
@@ -44,6 +47,13 @@ Members' preferences
 - R18: After a slot is added, the next Add a slot dialog of the screen
   opens with the added slot's Day, and From and To both at its end; To
   follows From again as in R17.
+- "Share link" is shown to managers only. It shows the link, or
+  "None". "Create a share link" creates it, or, when there is one,
+  first asks "Replace the share link? The current link no longer
+  shows the Schedule." with [Replace]. "Copy" copies the link and
+  shows "Link copied.". Its delete icon asks "Revoke the share link?
+  It no longer shows the Schedule." with [Revoke]. In French: "Lien de
+  partage".
 - "Members' preferences" is shown to managers only: one row per member,
   one column per slot, each cell a selector that saves at once like
   those of My availability.
@@ -196,3 +206,24 @@ Sat 31   [Bruno ?    ]
   - the user's own registration, or any for a manager: "Cancel
     registration…", which asks "Cancel this registration? [Yes,
     cancel] Keep it" before cancelling.
+
+## `/shared/{token}`: Shared schedule
+
+```
+(logo)  Jardin partagé des Lilas                       [English ▾]
+
+Week 44
+       Thu 29 Oct        Sat 31 Oct
+10h  ┌──────────────┐  ┌──────────────┐
+     │Chloé         │  │Bruno ?       │
+13h  └──────────────┘  └──────────────┘
+…
+[More weeks]
+```
+
+- Reached from a share link, signed in or not.
+- It shows the association's Schedule as a member sees it, without
+  the links to the other screens; clicking an occurrence opens no
+  menu.
+- An unknown, replaced or revoked link shows "This link is no longer
+  valid."

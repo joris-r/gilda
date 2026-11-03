@@ -1,8 +1,8 @@
 # API
 
-Every endpoint below requires a signed-in member of the association:
-401 when signed out, 404 when the association does not exist or the
-user is not a member.
+Every endpoint below, except those of Shared schedule, requires a
+signed-in member of the association: 401 when signed out, 404 when the
+association does not exist or the user is not a member.
 
 ## Slots
 
@@ -290,3 +290,45 @@ Returns the registration, as `POST` does.
   cancels a registration that is not cancelled. Anyone else: 403; any
   other change: 409.
 - 404 when the registration is not of this association.
+
+## Share link
+
+```http
+POST /api/associations/5c1e…/share-link
+```
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"token": "Hq3v…"}
+```
+
+- `POST` creates the association's ShareLink, replacing the previous
+  one (R33).
+- `GET` returns it, as `POST` does, with 200; `null` when there is
+  none.
+- `DELETE`: 204, also when there is none (R33).
+- Managers only: 403 for a volunteer.
+
+## Shared schedule
+
+Read with a share link's token, signed in or not; 404 when no
+ShareLink has this token.
+
+```http
+GET /api/shared/Hq3v…
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"name": "Jardin partagé des Lilas", "timezone": "Europe/Paris",
+ "planning_period": {"first": "2026-11-02", "last": "2026-11-25"}}
+```
+
+- `planning_period` is `null` when there is none.
+- `GET /api/shared/{token}/schedule?from=…&to=…` returns what
+  `GET /api/associations/{id}/schedule` returns for the association,
+  with the same parameters.

@@ -50,3 +50,15 @@
    yet". Alice revokes Chloé's link: "Chloé's sign-in link is
    revoked."
 5. Chloé opens the link: "This link is no longer valid."
+
+## The schedule is shared
+
+1. Alice, a manager of Jardin partagé, adds the slot Thursday 10–13
+   and signs up for next week's Thursday.
+2. In Schedule settings, she creates a share link and copies it. She
+   signs out.
+3. Signed out, she opens the link: the Schedule of Jardin partagé
+   shows her name on next week's Thursday.
+4. She signs in and revokes the share link in Schedule settings. She
+   signs out.
+5. She opens the link: "This link is no longer valid."

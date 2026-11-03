@@ -34,7 +34,9 @@ Signed out:
     name, then the screen's name;
   - New association: "My associations", leading to `/`, then "New
     association".
-- The association's name leads to its Schedule.
+- The association's name leads to its Schedule. On Shared schedule,
+  signed in or not, the header shows the association's name, leading
+  nowhere, and the language selector alone at its right.
 - A long location is shortened on a narrow screen (not testable).
 - Signed in, the user's display name opens a menu with the language
   selector, "Revoke my sign-in link", "Delete my account" and Sign

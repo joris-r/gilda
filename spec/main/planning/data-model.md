@@ -27,6 +27,13 @@
   per member
   - user: a member of the association
   - text: free text; empty by default
+- ShareLink: an association's read-only link to its Schedule, at most
+  one per association
+  - token: random, unique
+  - It does not expire.
+  - R33: Creating a share link replaces the previous one; revoking it
+    deletes it. A replaced or revoked link no longer shows the
+    Schedule.
 - Occurrence (computed, not stored): a slot on a date of its weekday,
   unless a closure of the association covers that date. It is
   identified by its association, date, start and end. Its slot is the
