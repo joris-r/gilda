@@ -98,7 +98,7 @@ Wide screen:
 Week 43
        Thu 22 Oct        Sat 24 Oct
 10h  ┌──────────────┐  ┌──────────────┐
-     │10–13 Alice   │  │10–13         │
+     │Alice         │  │              │
 13h  └──────────────┘  └──────────────┘
 
 ── Today · Wednesday 28 October 2026 ───────────────────────
@@ -106,7 +106,7 @@ Week 43
 Week 44
        Thu 29 Oct        Sat 31 Oct
 10h  ┌──────────────┐  ┌──────────────┐
-     │10–13 Chloé   │  │10–13 Bruno ? │
+     │Chloé         │  │Bruno ?       │
 13h  └──────────────┘  └──────────────┘
 
 ── Planning period · from Monday 2 November 2026 ───────────
@@ -114,7 +114,7 @@ Week 44
 Week 45
        Thu 5 Nov         Sat 7 Nov
 10h  ┌──────────────┐  ┌──────────────┐
-     │10–13 ~~Alice~~│  │   Closed     │
+     │~~Alice~~     │  │   Closed     │
 13h  └──────────────┘  │Fête du quart.│
                         └──────────────┘
 …
@@ -161,16 +161,16 @@ Sat 31   [Bruno ?    ]
   today line fall at the same place, the today line comes first.
 - Occurrences and obsolete registrations after the period's last date
   are greyed, and keep their menu. (Look not testable.)
-- An occurrence shows its times and its registration's display name:
+- An occurrence shows its registration's display name, and no times:
   green when confirmed; orange with "?" when proposed; red when it has
-  no registration (times only) or a cancelled one, whose name is
-  struck.
+  no registration (empty) or a cancelled one, whose name is struck.
   (Colours not testable.)
 - An obsolete registration is placed like an occurrence, by its date,
   start and end, marked "obsolete".
 - A day covered by a closure shows "Closed" and the closure's label.
 - Clicking an occurrence or an obsolete registration, from today on,
-  opens a menu on it:
+  opens a menu on it, titled with its day and times, e.g. "Thu 29 Oct
+  · 10–13":
   - free or cancelled: "Sign up"; for a manager, also the members'
     display names, each proposing the occurrence to that member. Each
     name is followed by the member's registration count in
