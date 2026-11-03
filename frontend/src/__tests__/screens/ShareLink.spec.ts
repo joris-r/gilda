@@ -77,7 +77,13 @@ function mount(
     planningPeriod: { first: '2026-11-02', last: '2026-11-25' },
     shareLink: options.shareLink ?? null,
   })
-  const calls = mockApi({ 'GET /api/session': options.session ?? signedInAsAlice, ...api.routes })
+  const unknown = { status: 404, body: { error: 'Unknown share link' } }
+  const calls = mockApi({
+    'GET /api/session': options.session ?? signedInAsAlice,
+    'GET /api/shared/unknown': unknown,
+    'GET /api/shared/unknown/schedule': unknown,
+    ...api.routes,
+  })
   return { calls, api, mounting: mountApp(at) }
 }
 
@@ -256,8 +262,11 @@ describe('Shared schedule', () => {
 
     await press(wrapper, 'More weeks')
 
-    expect(api.scheduleRequests.some((r) => r.to === '2026-12-27')).toBe(true)
-    expect(pageText(wrapper)).toContain('Week 52')
+    // R32 runs to Sun 6 Dec, the week after the planning period's end.
+    expect(api.scheduleRequests.some((r) => r.from === '2026-12-07' && r.to === '2027-01-03')).toBe(
+      true,
+    )
+    expect(pageText(wrapper)).toContain('Week 53')
   })
 
   it('shows the today and planning period lines', async () => {
