@@ -68,6 +68,27 @@ export interface RegistrationCount {
 const sameOccurrence = (a: Occurrence, b: Occurrence) =>
   a.date === b.date && a.start === b.start && a.end === b.end
 
+function shift(date: string, days: number) {
+  const d = new Date(`${date}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+const mondayOf = (date: string) =>
+  shift(date, -((new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7))
+
+/** The range of R32, from the current date in Paris. */
+function defaultRange(period: PlanningPeriod | null) {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date())
+  const from = shift(mondayOf(today), -7)
+  let to = shift(from, 7 * 6 - 1)
+  if (period) {
+    const end = shift(mondayOf(period.last), 13)
+    if (end > to) to = end
+  }
+  return { from, to }
+}
+
 /**
  * A small in-memory backend for the planning endpoints, so that a screen may
  * either use the replies of its requests or load the schedule again.
@@ -87,6 +108,8 @@ export function planningApi(options: {
   note?: string
   memberAbsences?: MemberAbsence[]
   notes?: Note[]
+  /** The range the schedule returns when asked for none, in place of R32's. */
+  scheduleRange?: { from: string; to: string }
 }) {
   const occurrences = options.occurrences ?? []
   const registrations = [...(options.registrations ?? [])]
@@ -105,10 +128,13 @@ export function planningApi(options: {
       body: { ...garden, timezone: 'Europe/Paris', role: options.role, members: options.members },
     },
     [`GET ${base}/schedule`]: (_body, _path, url) => {
-      const from = url.searchParams.get('from')
-      const to = url.searchParams.get('to')
-      scheduleRequests.push({ from, to })
-      const inRange = (date: string) => (!from || date >= from) && (!to || date <= to)
+      const asked = { from: url.searchParams.get('from'), to: url.searchParams.get('to') }
+      scheduleRequests.push(asked)
+      const { from, to } =
+        asked.from && asked.to
+          ? { from: asked.from, to: asked.to }
+          : (options.scheduleRange ?? defaultRange(planningPeriod))
+      const inRange = (date: string) => date >= from && date <= to
       const shown = (o: Occurrence) => {
         const all = registrations.filter((r) => sameOccurrence(r, o))
         const live = all.find((r) => r.status !== 'cancelled')
@@ -120,6 +146,8 @@ export function planningApi(options: {
       return {
         status: 200,
         body: {
+          from,
+          to,
           occurrences: occurrences
             .filter((o) => inRange(o.date))
             .map((o) => ({ ...o, registration: shown(o) })),
@@ -129,7 +157,7 @@ export function planningApi(options: {
               inRange(r.date) &&
               !occurrences.some((o) => sameOccurrence(o, r)),
           ),
-          closures: closures.filter((c) => (!to || c.first <= to) && (!from || c.last >= from)),
+          closures: closures.filter((c) => c.first <= to && c.last >= from),
         },
       }
     },

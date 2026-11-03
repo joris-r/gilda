@@ -1,7 +1,11 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from datetime import UTC, datetime
 from typing import Any
 
-from tests.planning.conftest import Planning, day_of_week
+import pytest
+import time_machine
+
+from tests.planning.conftest import WEEKDAYS, Planning, day_of_week
 
 # GET /api/associations/{id}/schedule
 
@@ -275,10 +279,106 @@ def test_obsolete_registrations_come_back_when_the_slot_does(
     assert body["occurrences"][0]["registration"]["display_name"] == "Bruno"
 
 
-def test_schedule_400_without_both_dates(client: Any, new_client: Callable[[], Any]) -> None:
+@pytest.mark.parametrize("given", ["from", "to"])
+def test_schedule_400_when_only_one_of_from_and_to_is_given(
+    client: Any, new_client: Callable[[], Any], given: str
+) -> None:
     planning = Planning(client, new_client)
 
-    response = client.get(planning.path("schedule"), params={"from": day_of_week("monday")})
+    response = client.get(planning.path("schedule"), params={given: day_of_week("monday")})
 
     assert response.status_code == 400
     assert "error" in response.json()
+
+
+def test_schedule_returns_the_range_it_was_asked_for(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    planning = Planning(client, new_client)
+    thursday, saturday = day_of_week("thursday"), day_of_week("saturday")
+
+    body = planning.schedule(client, thursday, saturday)
+
+    assert (body["from"], body["to"]) == (thursday, saturday)
+
+
+# R32: the default range
+
+# Monday 9 November 2026, 00:30 in Paris, still Sunday 8 November in UTC.
+NOW = datetime(2026, 11, 8, 23, 30, tzinfo=UTC)
+
+
+@pytest.fixture
+def every_day(client: Any, new_client: Callable[[], Any]) -> Iterator[Planning]:
+    """Alice's association, open every day from 10:00 to 13:00, on Monday 9 November in Paris."""
+    planning = Planning(client, new_client)
+    for weekday in WEEKDAYS:
+        planning.add_slot(weekday, "10:00", "13:00")
+    with time_machine.travel(NOW, tick=False):
+        yield planning
+
+
+def default_schedule(planning: Planning, as_client: Any) -> dict[str, Any]:
+    response = as_client.get(planning.path("schedule"))
+    assert response.status_code == 200, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+def set_period(planning: Planning, first: str, last: str) -> None:
+    response = planning.alice_client.put(
+        planning.path("planning-period"), json={"first": first, "last": last}
+    )
+    assert response.status_code == 200, response.text
+
+
+def test_r32_without_a_period_six_weeks_from_the_week_before_todays(
+    every_day: Planning,
+) -> None:
+    body = default_schedule(every_day, every_day.bruno_client)
+
+    assert (body["from"], body["to"]) == ("2026-11-02", "2026-12-13")
+    dates = [o["date"] for o in body["occurrences"]]
+    assert (dates[0], dates[-1], len(dates)) == ("2026-11-02", "2026-12-13", 42)
+
+
+def test_r32_lists_the_closures_that_cover_a_date_of_the_default_range(
+    every_day: Planning,
+) -> None:
+    closure = every_day.add_closure("2026-12-13", "2026-12-20", "Noël")
+    every_day.add_closure("2026-12-14", "2026-12-20")
+
+    body = default_schedule(every_day, every_day.alice_client)
+
+    assert body["closures"] == [closure]
+
+
+@pytest.mark.parametrize(
+    ("last", "to"),
+    [
+        ("2026-12-02", "2026-12-13"),
+        ("2026-12-03", "2026-12-13"),
+        ("2026-12-06", "2026-12-13"),
+        ("2026-12-07", "2026-12-20"),
+        ("2026-12-13", "2026-12-20"),
+        ("2026-12-14", "2026-12-27"),
+        ("2027-01-10", "2027-01-17"),
+    ],
+)
+def test_r32_the_range_reaches_the_end_of_the_week_after_the_periods_last_date(
+    every_day: Planning, last: str, to: str
+) -> None:
+    set_period(every_day, "2026-11-10", last)
+
+    body = default_schedule(every_day, every_day.bruno_client)
+
+    assert (body["from"], body["to"]) == ("2026-11-02", to)
+    assert body["occurrences"][-1]["date"] == to
+
+
+def test_r32_a_past_period_leaves_six_weeks(every_day: Planning) -> None:
+    set_period(every_day, "2026-10-01", "2026-10-20")
+
+    body = default_schedule(every_day, every_day.bruno_client)
+
+    assert (body["from"], body["to"]) == ("2026-11-02", "2026-12-13")

@@ -81,6 +81,7 @@ function mountSchedule(
     memberAbsences?: MemberAbsence[]
     notes?: Note[]
     members?: ReturnType<typeof member>[]
+    scheduleRange?: { from: string; to: string }
   } = {},
   at = path,
 ) {
@@ -102,6 +103,7 @@ function mountSchedule(
     registrationCounts: overrides.registrationCounts,
     memberAbsences: overrides.memberAbsences,
     notes: overrides.notes,
+    scheduleRange: overrides.scheduleRange,
   })
   const calls = mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
   return { calls, api, mounting: mountApp(at) }
@@ -160,11 +162,11 @@ describe('Schedule', () => {
     expect(text).not.toContain('Week 44')
   })
 
-  it('opens on the week before the current one and shows six weeks', async () => {
+  it('opens on the weeks of R32, in one request', async () => {
     const { api, mounting } = mountSchedule()
     const wrapper = await mounting
 
-    expect(api.scheduleRequests).toContainEqual({ from: '2026-10-19', to: '2026-11-29' })
+    expect(api.scheduleRequests).toEqual([{ from: null, to: null }])
     const text = pageText(wrapper)
     for (const week of [43, 44, 45, 46, 47, 48]) expect(text).toContain(`Week ${week}`)
     expect(text).not.toContain('Week 42')
@@ -347,33 +349,21 @@ describe('Schedule', () => {
       expect(first).toBeLessThan(text.indexOf('Week 44'))
     })
 
-    it('the schedule opens far enough to show the week after the one holding the last date', async () => {
+    it('R32: the schedule opens on all the weeks the range of the reply covers', async () => {
       const { api, mounting } = mountSchedule('volunteer', {
         planningPeriod: { first: '2026-11-04', last: '2026-11-25' },
+        scheduleRange: { from: '2026-10-19', to: '2026-12-06' },
       })
-      const text = pageText(await mounting)
+      const wrapper = await mounting
+      const text = pageText(wrapper)
 
-      expect(api.scheduleRequests).toContainEqual({ from: '2026-10-19', to: '2026-12-06' })
+      expect(api.scheduleRequests).toEqual([{ from: null, to: null }])
       for (const week of [43, 48, 49]) expect(text).toContain(`Week ${week}`)
+      expect(text).not.toContain('Week 42')
       expect(text).not.toContain('Week 50')
-    })
 
-    it('a last date on a Sunday still brings the week after', async () => {
-      const { mounting } = mountSchedule('volunteer', {
-        planningPeriod: { first: '2026-11-04', last: '2026-12-13' },
-      })
-      const text = pageText(await mounting)
-
-      expect(text).toContain('Week 51')
-      expect(text).not.toContain('Week 52')
-    })
-
-    it('six weeks stay six when they already reach the week after', async () => {
-      const { api, mounting } = mountSchedule('volunteer', { planningPeriod: period })
-      const text = pageText(await mounting)
-
-      expect(api.scheduleRequests).toContainEqual({ from: '2026-10-19', to: '2026-11-29' })
-      expect(text).not.toContain('Week 49')
+      await press(wrapper, 'More weeks')
+      expect(api.scheduleRequests).toContainEqual({ from: '2026-12-07', to: '2027-01-03' })
     })
 
     it('shows no line without a period', async () => {
