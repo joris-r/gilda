@@ -199,6 +199,7 @@ describe('Members', () => {
       expect(hasControl(item(wrapper, 'Bruno'), 'Change role')).toBe(false)
       expect(hasControl(item(wrapper, 'Bruno'), 'Send link')).toBe(false)
       expect(hasControl(item(wrapper, 'Bruno'), 'Revoke link')).toBe(false)
+      expect(hasControl(item(wrapper, 'Bruno'), 'Remove from the association')).toBe(false)
     })
 
     it('"Add a member" opens the dialog "Add a member", Role at Volunteer', async () => {
@@ -490,6 +491,102 @@ describe('Members', () => {
     })
   })
 
+  describe('Remove from the association', () => {
+    it('shows in the dialog of each member', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno])
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Bruno'), 'Edit Bruno')
+      expect(hasControl(dialog(wrapper), 'Remove from the association')).toBe(true)
+      await press(dialog(wrapper), 'Cancel')
+
+      await press(item(wrapper, 'Alice'), 'Edit Alice')
+      expect(hasControl(dialog(wrapper), 'Remove from the association')).toBe(true)
+    })
+
+    it('asks for confirmation before calling the API', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, chloe])
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Chloé'), 'Edit Chloé')
+      await press(dialog(wrapper), 'Remove from the association')
+
+      expect(pageText(dialog(wrapper))).toContain(
+        'Remove Chloé from the association? Their upcoming registrations are cancelled.',
+      )
+      expect(hasControl(dialog(wrapper), 'Remove')).toBe(true)
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+    })
+
+    it('Remove removes the member with DELETE (R28), closes both dialogs and says so', async () => {
+      let members = [alice, chloe]
+      const { calls, mounting } = mountAs('manager', [], {
+        [`GET /api/associations/${garden.id}`]: () => associationAs('manager', members),
+        [`DELETE ${membersPath}/u-chloe`]: () => {
+          members = [alice]
+          return { status: 204 }
+        },
+      })
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Chloé'), 'Edit Chloé')
+      await press(dialog(wrapper), 'Remove from the association')
+      await press(dialog(wrapper), 'Remove')
+
+      expect(calls).toContainEqual({
+        method: 'DELETE',
+        path: `${membersPath}/u-chloe`,
+        body: undefined,
+      })
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(pageText(wrapper)).toContain('Chloé is removed.')
+      expect(pageText(wrapper)).not.toContain('chloé@example.org')
+    })
+
+    it('Cancel leaves the member', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, chloe])
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Chloé'), 'Edit Chloé')
+      await press(dialog(wrapper), 'Remove from the association')
+      await press(dialog(wrapper), 'Cancel')
+
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+      expect(titleOf(dialog(wrapper))).toBe('Chloé')
+    })
+
+    it('removing the last manager says an association keeps one, and changes nothing', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno], {
+        [`DELETE ${membersPath}/u-alice`]: { status: 409, body: { error: 'Last manager' } },
+      })
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Alice'), 'Edit Alice')
+      await press(dialog(wrapper), 'Remove from the association')
+      await press(dialog(wrapper), 'Remove')
+
+      const text = [pageText(wrapper), ...dialogs(wrapper).map((d) => pageText(d))].join(' ')
+      expect(text).toContain('An association keeps at least one manager.')
+      expect(text).not.toContain('is removed')
+      expect(item(wrapper, 'Alice').exists()).toBe(true)
+    })
+
+    it('a manager who removes themself is led to My associations', async () => {
+      const { mounting } = mountAs('manager', [alice, zoe], {
+        [`DELETE ${membersPath}/u-alice`]: { status: 204 },
+        'GET /api/associations': { status: 200, body: [] },
+      })
+      const wrapper = await mounting
+
+      await press(item(wrapper, 'Alice'), 'Edit Alice')
+      await press(dialog(wrapper), 'Remove from the association')
+      await press(dialog(wrapper), 'Remove')
+
+      expect(wrapper.vm.$route.path).toBe('/')
+      expect(pageText(wrapper)).toContain('My associations')
+    })
+  })
+
   describe('as a volunteer', () => {
     it('shows members and roles without Add a member or the edit icons', async () => {
       const brunoWithLink = member('u-bruno', 'Bruno', 'volunteer', true, true, true)
@@ -502,6 +599,7 @@ describe('Members', () => {
       expect(hasControl(wrapper, 'Edit Bruno')).toBe(false)
       expect(pageText(wrapper)).not.toContain('Send link')
       expect(pageText(wrapper)).not.toContain('Revoke link')
+      expect(pageText(wrapper)).not.toContain('Remove from the association')
     })
   })
 })

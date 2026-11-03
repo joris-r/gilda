@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountApp, pageText } from '../mountApp'
 import {
+  dialog,
   field,
   fill,
   header,
@@ -128,7 +129,7 @@ describe("An email the user triggers is in the interface's language", () => {
 })
 
 describe('Header', () => {
-  it('signed in, the display name opens a menu with the language selector, "Revoke my sign-in link" and Sign out', async () => {
+  it('signed in, the display name opens a menu with the language selector, "Revoke my sign-in link", "Delete my account" and Sign out', async () => {
     const wrapper = await mountApp('/')
     const top = header(wrapper)
 
@@ -136,11 +137,13 @@ describe('Header', () => {
     expect(showsField(top, 'Language')).toBe(false)
     expect(showsControl(top, 'Sign out')).toBe(false)
     expect(showsControl(top, 'Revoke my sign-in link')).toBe(false)
+    expect(showsControl(top, 'Delete my account')).toBe(false)
 
     await openUserMenu(wrapper, 'Alice')
 
     expect(showsField(header(wrapper), 'Language')).toBe(true)
     expect(showsControl(header(wrapper), 'Revoke my sign-in link')).toBe(true)
+    expect(showsControl(header(wrapper), 'Delete my account')).toBe(true)
     expect(showsControl(header(wrapper), 'Sign out')).toBe(true)
   })
 
@@ -198,6 +201,48 @@ describe('Header', () => {
 
     expect(wrapper.vm.$route.path).toBe('/')
     expect(showsField(wrapper, 'Password')).toBe(true)
+  })
+
+  it('"Delete my account" asks for confirmation before calling the API', async () => {
+    const calls = mockApi({
+      'GET /api/session': signedInAsAlice,
+      'GET /api/associations': { status: 200, body: [] },
+    })
+    const wrapper = await mountApp('/')
+
+    await openUserMenu(wrapper, 'Alice')
+    await press(header(wrapper), 'Delete my account')
+
+    expect(pageText(wrapper)).toContain(
+      'Delete your account? You leave all your associations and your upcoming registrations are cancelled. This cannot be undone.',
+    )
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+
+    await press(wrapper, 'Cancel')
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+    expect(pageText(wrapper)).toContain('My associations')
+  })
+
+  it('confirming deletes the account with DELETE (R29) and leads to Sign in', async () => {
+    let deleted = false
+    const calls = mockApi({
+      'GET /api/session': () => (deleted ? signedOut : signedInAsAlice),
+      'GET /api/associations': () => (deleted ? signedOut : { status: 200, body: [] }),
+      'DELETE /api/accounts/me': () => {
+        deleted = true
+        return { status: 204 }
+      },
+    })
+    const wrapper = await mountApp('/')
+
+    await openUserMenu(wrapper, 'Alice')
+    await press(header(wrapper), 'Delete my account')
+    await press(dialog(wrapper), 'Delete my account')
+
+    expect(calls).toContainEqual({ method: 'DELETE', path: '/api/accounts/me', body: undefined })
+    expect(wrapper.vm.$route.path).toBe('/')
+    expect(showsField(wrapper, 'Password')).toBe(true)
+    expect(header(wrapper).text()).not.toContain('Alice')
   })
 
   it('the language selector switches between English and French', async () => {
