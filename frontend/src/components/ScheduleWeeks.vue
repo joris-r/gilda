@@ -15,6 +15,7 @@ const props = defineProps<{
   openKey: string | undefined
   userId: string | undefined
   isManager: boolean
+  readOnly?: boolean
 }>()
 const emit = defineEmits<{ toggle: [item: Item, anchor: DOMRect] }>()
 const { t, locale } = useI18n()
@@ -109,6 +110,7 @@ function state(item: Item) {
 
 function clickable(item: Item) {
   return (
+    !props.readOnly &&
     item.date >= props.day0 &&
     Object.values(actions(item, props.userId, props.isManager)).some(Boolean)
   )

@@ -69,6 +69,7 @@ watch(() => props.token, load, { immediate: true })
       :open-key="undefined"
       :user-id="undefined"
       :is-manager="false"
+      read-only
     />
     <button type="button" class="more" @click="more">{{ t('schedule.more') }}</button>
   </template>
