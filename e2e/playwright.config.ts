@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 8001
 const DATABASE_URL =
-  process.env.DATABASE_URL ?? 'postgresql+asyncpg://gilda:gilda@localhost:5432/gilda'
+  process.env.DATABASE_URL ?? 'postgresql+asyncpg://gilda:gilda@localhost:15432/gilda_test'
 
 export default defineConfig({
   testDir: './tests',

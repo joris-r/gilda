@@ -1,11 +1,12 @@
 export DATABASE_URL ?= postgresql+asyncpg://gilda:gilda@localhost:5432/gilda
+TEST_DATABASE_URL ?= postgresql+asyncpg://gilda:gilda@localhost:15432/gilda_test
 export SMTP_HOST ?= localhost
 export SMTP_PORT ?= 11025
 
 LITESTAR = uv run --directory backend litestar --app gilda.app:create_app
 
 .DEFAULT_GOAL := help
-.PHONY: help install db-up db-down migrate dev dev-backend dev-frontend build \
+.PHONY: help install services-up services-down migrate dev dev-backend dev-frontend build \
 	test test-backend test-frontend test-e2e lint format check
 
 help: ## List the targets
@@ -16,13 +17,13 @@ install: ## Install the dependencies of every part
 	cd frontend && npm install
 	cd e2e && npm install && npx playwright install chromium
 
-db-up: ## Start PostgreSQL
+services-up: ## Start PostgreSQL (development and tests) and Mailpit
 	docker compose up -d --wait
 
-db-down: ## Stop PostgreSQL
+services-down: ## Stop PostgreSQL (development and tests) and Mailpit
 	docker compose down
 
-migrate: db-up ## Apply the database migrations
+migrate: services-up ## Apply the database migrations
 	$(LITESTAR) database upgrade --no-prompt
 
 dev: migrate ## Run the backend and the frontend with reload
@@ -39,13 +40,15 @@ build: ## Type-check and build the frontend
 
 test: test-backend test-frontend test-e2e ## Run every test suite
 
-test-backend: db-up ## Run the backend tests
+test-backend: export DATABASE_URL = $(TEST_DATABASE_URL)
+test-backend: services-up ## Run the backend tests
 	cd backend && uv run pytest
 
 test-frontend: ## Run the frontend tests
 	cd frontend && npm test
 
-test-e2e: db-up ## Run the end-to-end tests
+test-e2e: export DATABASE_URL = $(TEST_DATABASE_URL)
+test-e2e: services-up ## Run the end-to-end tests
 	cd e2e && npm test
 
 lint: ## Run every quality check, changing nothing

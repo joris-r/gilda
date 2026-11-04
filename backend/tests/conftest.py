@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from argon2 import PasswordHasher
 
-DEFAULT_DATABASE_URL = "postgresql+asyncpg://gilda:gilda@localhost:5432/gilda"
+DEFAULT_DATABASE_URL = "postgresql+asyncpg://gilda:gilda@localhost:15432/gilda_test"
 
 os.environ.setdefault("DATABASE_URL", DEFAULT_DATABASE_URL)
 

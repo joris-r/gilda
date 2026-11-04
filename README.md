@@ -35,6 +35,9 @@ make format       # fix lint and formatting
 make check        # lint and test: run before every hand-over
 ```
 
+The backend and end-to-end suites use their own PostgreSQL of `compose.yaml`,
+never the development database; `TEST_DATABASE_URL` overrides it.
+
 ## Deploy
 
 One hosted site serves both the API and the built frontend, from the

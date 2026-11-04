@@ -7,6 +7,27 @@ services:
       POSTGRES_DB: gilda
     ports:
       - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck: &postgres-healthcheck
+      # Over TCP: the image's temporary startup server listens only on its socket.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "gilda"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+  # The backend and end-to-end tests' database, emptied whenever the container
+  # stops; each test run applies the migrations.
+  postgres-test:
+    image: docker.io/library/postgres:17
+    environment:
+      POSTGRES_USER: gilda
+      POSTGRES_PASSWORD: gilda
+      POSTGRES_DB: gilda_test
+    ports:
+      - "15432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck: *postgres-healthcheck
   # Catches confirmation emails in development and tests; non-default ports
   # so it doesn't clash with another project's Mailpit or Postgres.
   mailpit:
@@ -14,3 +35,6 @@ services:
     ports:
       - "11025:1025"
       - "18025:8025"
+
+volumes:
+  postgres-data:

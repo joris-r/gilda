@@ -59,8 +59,11 @@
     them, in English and French.
 - Deployment: one hosted site. Litestar serves the API under
   `/api` and the built frontend files for every other path.
-- Local development: `compose.yaml` runs PostgreSQL and Mailpit.
+- Local development: `compose.yaml` runs Mailpit and two PostgreSQL
+  servers: the development one, whose data lives in a named volume, and
+  the tests' one, whose data lives in memory.
 - Test and quality policy:
+  - Backend and end-to-end tests never touch the development database.
   - Backend: pytest, through Litestar's test client, against a real
     PostgreSQL given by `DATABASE_URL`; never SQLite or a mocked
     database.
