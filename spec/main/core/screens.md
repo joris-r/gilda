@@ -124,7 +124,7 @@ Already have an account? Sign in
 [+ New association]
 ```
 
-- "New association", below the list, leads to `/associations/new`.
+- "New association", below the list, leads to `/association/new`.
 - Each name leads to the association's Schedule.
 - With no association: "You are not a member of any association yet."
 - Sign out leads to Sign in.
@@ -159,14 +159,14 @@ Mes associations
     Aucune inscription à venir.
 ```
 
-## `/associations/new`: New association
+## `/association/new`: New association
 
 ```
 (logo)  My associations › New association                  Alice ▾
 
 New association
   Name                    [Repair Café Belleville  ]
-  Association identifier  /associations/[repair-cafe-belleville  ]
+  Association identifier  /association/[repair-cafe-belleville  ]
   [Create association]  Cancel
 ```
 
@@ -181,7 +181,7 @@ New association
 - Creating leads to the new association's Schedule; Cancel leads to My
   associations.
 
-## `/associations/{slug}/members`: Members
+## `/association/{slug}/members`: Members
 
 As a manager:
 
@@ -262,7 +262,7 @@ As a manager:
 
 ```
 ┌ Change the association identifier ──────────────────────────── ✕ ┐
-│ Association identifier /associations/[jardin-partage-des-lilas ]  │
+│ Association identifier /association/[jardin-partage-des-lilas ]   │
 │ [Save]  Cancel                                                    │
 └───────────────────────────────────────────────────────────────────┘
 ```

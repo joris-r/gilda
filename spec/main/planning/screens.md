@@ -1,4 +1,4 @@
-## `/associations/{slug}/settings`: Schedule settings
+## `/association/{slug}/settings`: Schedule settings
 
 ```
 (logo)  Jardin partagé des Lilas › Schedule settings       Alice ▾
@@ -61,7 +61,7 @@ Members' preferences
   stay in view (not testable).
 - In French: "Préférences des membres".
 
-## `/associations/{slug}/availability`: My availability
+## `/association/{slug}/availability`: My availability
 
 ```
 (logo)  Jardin partagé des Lilas › My availability        Alice ▾
@@ -97,7 +97,7 @@ NOTE FOR THE MANAGERS                                         ✎
   "Possible", "Indisponible", "Absences", "Ajouter une absence",
   "Note pour les responsables".
 
-## `/associations/{slug}`: Schedule
+## `/association/{slug}`: Schedule
 
 Wide screen:
 
