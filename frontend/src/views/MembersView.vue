@@ -229,7 +229,7 @@ async function saveSlug() {
     const { slug } = await changeAssociationSlug(id.value, change.slug)
     changingSlug.value = undefined
     // Replace: going back to the former slug would no longer find the association.
-    await router.replace(`/associations/${slug}/members`)
+    await router.replace(`/association/${slug}/members`)
     message.value = { ok: true, text: t('association.identifierChanged', { slug }) }
   } catch (e) {
     change.error = t(slugErrorKey(e))

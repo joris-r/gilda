@@ -53,7 +53,7 @@ async function setStatus(
     <p v-if="notice" class="message ok">{{ notice }}</p>
     <ul v-if="associations.length" class="list">
       <li v-for="association in associations" :key="association.id">
-        <RouterLink :to="`/associations/${association.slug}`">{{ association.name }}</RouterLink>
+        <RouterLink :to="`/association/${association.slug}`">{{ association.name }}</RouterLink>
         <span :class="['role', association.role]">{{ t(`roles.${association.role}`) }}</span>
         <div class="summary">
           <ul v-if="association.obsolete.length || association.upcoming.length" class="upcoming">
@@ -93,7 +93,7 @@ async function setStatus(
                 ),
               })
             }}
-            <RouterLink :to="`/associations/${association.slug}`">
+            <RouterLink :to="`/association/${association.slug}`">
               {{ t('myAssociations.chooseSlots') }}
             </RouterLink>
           </p>
@@ -106,7 +106,7 @@ async function setStatus(
     <p v-else class="hint">{{ t('myAssociations.none') }}</p>
     <p v-if="error" class="error">{{ error }}</p>
     <p class="new">
-      <button type="button" class="add" @click="router.push('/associations/new')">
+      <button type="button" class="add" @click="router.push('/association/new')">
         <span aria-hidden="true">+</span> {{ t('myAssociations.create') }}
       </button>
     </p>

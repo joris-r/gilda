@@ -166,11 +166,11 @@ function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
   <UnknownAssociation v-if="unknown" />
   <template v-else-if="association">
     <p class="links">
-      <RouterLink :to="`/associations/${slug}/availability`">{{
+      <RouterLink :to="`/association/${slug}/availability`">{{
         t('availability.title')
       }}</RouterLink>
-      <RouterLink :to="`/associations/${slug}/members`">{{ t('association.members') }}</RouterLink>
-      <RouterLink :to="`/associations/${slug}/settings`">{{ t('settings.title') }}</RouterLink>
+      <RouterLink :to="`/association/${slug}/members`">{{ t('association.members') }}</RouterLink>
+      <RouterLink :to="`/association/${slug}/settings`">{{ t('settings.title') }}</RouterLink>
     </p>
     <p v-if="message" class="error">{{ message }}</p>
 

@@ -84,7 +84,7 @@ async function leave() {
       <span>{{ location.title }}</span>
     </p>
     <p v-else-if="user" class="where">
-      <RouterLink v-if="location.association" :to="`/associations/${location.association.slug}`">{{
+      <RouterLink v-if="location.association" :to="`/association/${location.association.slug}`">{{
         location.association.name
       }}</RouterLink>
       <RouterLink v-if="location.parent" :to="location.parent.to">{{

@@ -33,7 +33,7 @@ async function create() {
   error.value = ''
   try {
     const association = await createAssociation(name.value, slug.value)
-    await router.push(`/associations/${association.slug}`)
+    await router.push(`/association/${association.slug}`)
   } catch (e) {
     error.value = t(slugErrorKey(e))
   }

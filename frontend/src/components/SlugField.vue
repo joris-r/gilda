@@ -9,7 +9,7 @@ const { t } = useI18n()
   <label>
     {{ t('fields.associationIdentifier') }}
     <span class="slug-field">
-      <span class="hint">/associations/</span>
+      <span class="hint">/association/</span>
       <input v-model="slug" autocomplete="off" maxlength="50" />
     </span>
   </label>
