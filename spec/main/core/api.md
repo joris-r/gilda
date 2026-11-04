@@ -299,7 +299,7 @@ what concerns them there.
 HTTP/1.1 200 OK
 Content-Type: application/json
 
-[{"id": "5c1e…", "name": "Jardin partagé des Lilas", "role": "manager",
+[{"id": "5c1e…", "name": "Jardin partagé des Lilas", "slug": "jardin-partage-des-lilas", "role": "manager",
   "upcoming": [
     {"id": "1d3a…", "user_id": "0b6f…", "display_name": "Alice", "status": "confirmed",
      "date": "2026-11-05", "start": "10:00", "end": "13:00"},
@@ -311,7 +311,7 @@ Content-Type: application/json
      "date": "2026-11-12", "start": "10:00", "end": "13:00"}
   ],
   "planning_period": {"first": "2026-11-02", "last": "2026-11-25", "registrations": 2}},
- {"id": "9a2d…", "name": "Repair Café Belleville", "role": "volunteer",
+ {"id": "9a2d…", "name": "Repair Café Belleville", "slug": "repair-cafe-belleville", "role": "volunteer",
   "upcoming": [], "obsolete": [], "planning_period": null}]
 ```
 
@@ -335,17 +335,26 @@ Content-Type: application/json
 POST /api/associations
 Content-Type: application/json
 
-{"name": "Repair Café Belleville"}
+{"name": "Repair Café Belleville", "slug": "repair-cafe-belleville"}
 ```
 
 ```http
 HTTP/1.1 201 Created
 Content-Type: application/json
 
-{"id": "9a2d…", "name": "Repair Café Belleville", "role": "manager"}
+{"id": "9a2d…", "name": "Repair Café Belleville", "slug": "repair-cafe-belleville", "role": "manager"}
 ```
 
 - The signed-in user becomes its manager.
+- 400 when the slug does not have the format of a slug.
+- 409 when the slug is taken or is `new`.
+
+### GET /api/associations/by-slug/{slug}
+
+Returns what `GET /api/associations/{id}` returns.
+
+- 404 when no association has this slug or the signed-in user is not a
+  member.
 
 ### GET /api/associations/{id}
 
@@ -356,6 +365,7 @@ Content-Type: application/json
 {
   "id": "5c1e…",
   "name": "Jardin partagé des Lilas",
+  "slug": "jardin-partage-des-lilas",
   "timezone": "Europe/Paris",
   "role": "manager",
   "members": [
@@ -372,7 +382,8 @@ Content-Type: application/json
 
 ### PATCH /api/associations/{id}
 
-Renames the association. Managers only: 403 for a volunteer.
+Changes the association's name, its slug, or both. Managers only: 403
+for a volunteer.
 
 ```http
 PATCH /api/associations/5c1e…
@@ -385,10 +396,22 @@ Content-Type: application/json
 HTTP/1.1 200 OK
 Content-Type: application/json
 
-{"id": "5c1e…", "name": "Jardin des Lilas", "role": "manager"}
+{"id": "5c1e…", "name": "Jardin des Lilas", "slug": "jardin-partage-des-lilas", "role": "manager"}
+```
+
+```http
+PATCH /api/associations/5c1e…
+Content-Type: application/json
+
+{"slug": "jardin-des-lilas"}
 ```
 
 - Its members are not told.
+- Changing the name leaves the slug unchanged.
+- R36: Once the slug has changed, the former slug no longer leads to
+  the association, and another association can take it.
+- 400 when the slug does not have the format of a slug.
+- 409 when the slug is taken by another association or is `new`.
 - 404 when the association does not exist or the signed-in user is not
   a member.
 

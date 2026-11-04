@@ -32,6 +32,12 @@
 - Association
   - id: UUID
   - name: free text, not empty
+  - slug: identifies the association in its screens' URLs
+    - 1 to 50 lowercase letters, digits and hyphens, starting and
+      ending with a letter or a digit
+    - unique among associations, and never `new`
+    - R37: An association created before slugs existed gets one derived
+      from its name as R35 says, followed by `-2`, `-3`… when taken.
   - timezone: an IANA timezone name; always `Europe/Paris`
   - The dates and times of its slots, closures, planning period and
     registrations are in this timezone.

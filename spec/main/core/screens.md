@@ -165,14 +165,23 @@ Mes associations
 (logo)  My associations › New association                  Alice ▾
 
 New association
-  Name  [                    ]
+  Name                    [Repair Café Belleville  ]
+  Association identifier  /associations/[repair-cafe-belleville  ]
   [Create association]  Cancel
 ```
 
+- The field for the slug is named "Association identifier".
+- R35: Until the user edits Association identifier, it follows Name: lowercase,
+  without accents, each run of other characters becoming one hyphen,
+  without a leading or trailing hyphen, cut to 50 characters.
+- [Create association] is enabled only when both fields are not empty.
+- A malformed slug shows "Use only lowercase letters, digits and
+  hyphens, starting and ending with a letter or a digit."; a taken one
+  shows "This association identifier is already taken."
 - Creating leads to the new association's Schedule; Cancel leads to My
   associations.
 
-## `/associations/{id}/members`: Members
+## `/associations/{slug}/members`: Members
 
 As a manager:
 
@@ -193,6 +202,7 @@ As a manager:
   Show all 7 members
 
   Rename the association
+  Change the association identifier
   Delete the association
 ```
 
@@ -248,6 +258,20 @@ As a manager:
   changes it, updates the header and shows "The association is now
   Jardin des Lilas."; the same name closes the dialog and changes
   nothing.
+- "Change the association identifier" opens the dialog:
+
+```
+┌ Change the association identifier ──────────────────────────── ✕ ┐
+│ Association identifier /associations/[jardin-partage-des-lilas ]  │
+│ [Save]  Cancel                                                    │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+- [Save] is enabled only when Association identifier is not empty. Saving another
+  slug changes it, moves the screen to the new URL and shows "The association
+  identifier is now jardin-des-lilas."; the same slug closes the dialog
+  and changes nothing. A malformed or taken slug shows the same message
+  as on New association.
 - "Delete the association" opens the confirmation:
 
 ```
@@ -264,8 +288,11 @@ As a manager:
   association's name. Confirming deletes it (R34), leads to My
   associations and shows "Jardin partagé des Lilas is deleted."
 - A volunteer sees the members and their roles, without "Add a
-  member", without the edit icons and without "Rename the association"
-  and "Delete the association".
+  member", without the edit icons and without "Rename the association",
+  "Change the association identifier" and "Delete the association".
+- A screen of an association whose slug is unknown, or of which the
+  user is not a member, shows "This association does not exist or you
+  are not a member." with a way to My associations.
 - Signed out, every page but `/signup`, `/verify-email`,
   `/forgot-password`, `/reset-password`, `/sign-in-link` and `/access`
   shows Sign in.
