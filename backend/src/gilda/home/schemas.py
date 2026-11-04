@@ -9,6 +9,7 @@ from gilda.planning.schemas import PlanningPeriodSummary, RegistrationRead
 class HomeAssociation(msgspec.Struct):
     id: UUID
     name: str
+    slug: str
     role: Role
     upcoming: list[RegistrationRead]
     obsolete: list[RegistrationRead]

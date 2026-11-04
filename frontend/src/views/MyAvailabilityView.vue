@@ -7,7 +7,6 @@ import {
   deleteAbsence,
   deletePreference,
   editAbsence,
-  getAssociation,
   getNote,
   listAbsences,
   listPreferences,
@@ -24,11 +23,14 @@ import AppDialog from '../components/AppDialog.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import IconButton from '../components/IconButton.vue'
 import PreferenceSelect from '../components/PreferenceSelect.vue'
+import UnknownAssociation from '../components/UnknownAssociation.vue'
 import { formatDate, shortDayWithYear, today, WEEKDAYS } from '../dates'
+import { useAssociationBySlug } from '../associationBySlug'
 import { useLocation } from '../location'
 import { useSession } from '../session'
 
-const props = defineProps<{ id: string }>()
+const props = defineProps<{ slug: string }>()
+const { id, unknown, read } = useAssociationBySlug(() => props.slug)
 const { t, locale } = useI18n()
 const location = useLocation()
 const { user } = useSession()
@@ -67,19 +69,23 @@ const shownAbsences = computed(() => {
 })
 
 async function load() {
-  ;[association.value, slots.value, preferences.value, absences.value, note.value] =
-    await Promise.all([
-      getAssociation(props.id),
-      listSlots(props.id),
-      listPreferences(props.id),
-      listAbsences(props.id),
-      getNote(props.id),
-    ])
-  const { id, name } = association.value!
-  location.value = { association: { id, name }, screen: 'availability.title' }
+  association.value = undefined
+  const found = await read()
+  if (!found) return
+  ;[slots.value, preferences.value, absences.value, note.value] = await Promise.all([
+    listSlots(id.value),
+    listPreferences(id.value),
+    listAbsences(id.value),
+    getNote(id.value),
+  ])
+  association.value = found
+  location.value = {
+    association: { slug: found.slug, name: found.name },
+    screen: 'availability.title',
+  }
 }
 
-watch(() => props.id, load, { immediate: true })
+watch(() => props.slug, load, { immediate: true })
 
 function dates(range: { first: string; last: string }) {
   const format = (iso: string) => formatDate(iso, locale.value, shortDayWithYear)
@@ -110,10 +116,10 @@ async function choosePreference(slot: Slot, value: PreferenceValue | null) {
   const others = preferences.value.filter((p) => !(p.slot_id === slot.id && p.user_id === userId))
   try {
     if (value === null) {
-      await deletePreference(props.id, slot.id, userId)
+      await deletePreference(id.value, slot.id, userId)
       preferences.value = others
     } else {
-      preferences.value = [...others, await setPreference(props.id, slot.id, userId, value)]
+      preferences.value = [...others, await setPreference(id.value, slot.id, userId, value)]
     }
   } catch (e) {
     message.value = failure(e)
@@ -129,10 +135,10 @@ function openAbsence(editing?: Absence) {
 async function saveAbsence(editing?: Absence) {
   try {
     if (editing) {
-      const absence = await editAbsence(props.id, editing.id, first.value, last.value)
+      const absence = await editAbsence(id.value, editing.id, first.value, last.value)
       absences.value = absences.value.map((a) => (a.id === absence.id ? absence : a))
     } else {
-      absences.value.push(await addAbsence(props.id, first.value, last.value))
+      absences.value.push(await addAbsence(id.value, first.value, last.value))
     }
     open.value = undefined
   } catch (e) {
@@ -144,7 +150,7 @@ async function removeAbsence(absence: Absence) {
   open.value = undefined
   message.value = undefined
   try {
-    await deleteAbsence(props.id, absence.id)
+    await deleteAbsence(id.value, absence.id)
     absences.value = absences.value.filter((a) => a.id !== absence.id)
   } catch (e) {
     message.value = failure(e)
@@ -158,7 +164,7 @@ function openNote() {
 
 async function saveNote() {
   try {
-    note.value = await setNote(props.id, text.value)
+    note.value = await setNote(id.value, text.value)
     open.value = undefined
   } catch (e) {
     dialogError(failure(e))
@@ -167,7 +173,8 @@ async function saveNote() {
 </script>
 
 <template>
-  <template v-if="association">
+  <UnknownAssociation v-if="unknown" />
+  <template v-else-if="association">
     <section>
       <h2>{{ t('availability.preferences') }}</h2>
       <p v-if="!slots.length" class="hint">{{ t('availability.noSlots') }}</p>

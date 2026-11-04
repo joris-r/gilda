@@ -2,7 +2,7 @@ import { inject, provide, ref, type InjectionKey, type Ref } from 'vue'
 
 /** Where the user is, shown in the header. Each screen sets it once it knows. */
 export interface Location {
-  association?: { id: string; name: string }
+  association?: { slug: string; name: string }
   /** A screen above this one that is not an association, e.g. My associations. */
   parent?: { to: string; screen: string }
   /** The i18n key of the screen's name. */

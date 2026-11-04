@@ -11,6 +11,7 @@ export interface User {
 export interface AssociationSummary {
   id: string
   name: string
+  slug: string
   role: Role
 }
 
@@ -117,16 +118,20 @@ export function listAssociations() {
   return request<HomeAssociation[]>('GET', '/api/associations')
 }
 
-export function createAssociation(name: string) {
-  return request<AssociationSummary>('POST', '/api/associations', { name })
+export function createAssociation(name: string, slug: string) {
+  return request<AssociationSummary>('POST', '/api/associations', { name, slug })
 }
 
-export function getAssociation(id: string) {
-  return request<Association>('GET', `/api/associations/${id}`)
+export function getAssociationBySlug(slug: string) {
+  return request<Association>('GET', `/api/associations/by-slug/${slug}`)
 }
 
 export function renameAssociation(id: string, name: string) {
   return request<AssociationSummary>('PATCH', `/api/associations/${id}`, { name })
+}
+
+export function changeAssociationSlug(id: string, slug: string) {
+  return request<AssociationSummary>('PATCH', `/api/associations/${id}`, { slug })
 }
 
 export function deleteAssociation(id: string) {

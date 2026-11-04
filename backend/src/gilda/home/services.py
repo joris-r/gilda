@@ -23,6 +23,7 @@ class HomeService:
                 HomeAssociation(
                     id=membership.association.id,
                     name=membership.association.name,
+                    slug=membership.association.slug,
                     role=cast(Role, membership.role),
                     upcoming=planning.upcoming,
                     obsolete=planning.obsolete,

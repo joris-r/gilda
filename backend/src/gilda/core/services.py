@@ -290,6 +290,12 @@ async def revoke_access_link(links: AccessLinkRepository, user_id: UUID) -> None
         await links.delete(link.id)
 
 
+def association_read(association: Association) -> AssociationRead:
+    return AssociationRead(
+        id=association.id, name=association.name, slug=association.slug, role="manager"
+    )
+
+
 class AssociationService:
     def __init__(self, db_session: AsyncSession) -> None:
         self.db_session = db_session
@@ -298,12 +304,19 @@ class AssociationService:
         self.memberships = MembershipRepository(session=db_session)
         self.access_links = AccessLinkRepository(session=db_session)
 
-    async def create(self, user: User, name: str) -> AssociationRead:
-        association = await self.associations.add(Association(name=name))
+    async def create(self, user: User, name: str, slug: str) -> AssociationRead:
+        await self._check_slug_is_free(slug)
+        association = await self.associations.add(Association(name=name, slug=slug))
         await self.memberships.add(
             Membership(user_id=user.id, association_id=association.id, role="manager")
         )
-        return AssociationRead(id=association.id, name=association.name, role="manager")
+        return association_read(association)
+
+    async def detail_by_slug(self, user: User, slug: str) -> AssociationDetail:
+        association = await self.associations.get_one_or_none(slug=slug)
+        if association is None:
+            raise NotFoundException("Association not found.")
+        return await self.detail(user, association.id)
 
     async def detail(self, user: User, association_id: UUID) -> AssociationDetail:
         own = await self._membership_of(user, association_id)
@@ -315,16 +328,30 @@ class AssociationService:
         return AssociationDetail(
             id=own.association.id,
             name=own.association.name,
+            slug=own.association.slug,
             timezone=own.association.timezone,
             role=cast(Role, own.role),
             members=[member_read(m, m.user_id in with_link) for m in members],
         )
 
-    async def rename(self, manager: User, association_id: UUID, name: str) -> AssociationRead:
+    async def update(
+        self, manager: User, association_id: UUID, name: str | None, slug: str | None
+    ) -> AssociationRead:
         own = await self._manager_of(manager, association_id)
-        own.association.name = name
-        association = await self.associations.update(own.association)
-        return AssociationRead(id=association.id, name=association.name, role="manager")
+        if name is None and slug is None:
+            raise ClientException("Give a name or a slug.")
+        if slug is not None and slug != own.association.slug:
+            await self._check_slug_is_free(slug)
+        if name is not None:
+            own.association.name = name
+        if slug is not None:
+            own.association.slug = slug
+        return association_read(await self.associations.update(own.association))
+
+    async def _check_slug_is_free(self, slug: str) -> None:
+        # `new` would hide the association behind the New association screen's URL.
+        if slug == "new" or await self.associations.exists(slug=slug):
+            raise ConflictException("This association identifier is already taken.")
 
     async def delete(self, manager: User, association_id: UUID) -> None:
         await self._manager_of(manager, association_id)

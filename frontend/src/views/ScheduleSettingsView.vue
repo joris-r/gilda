@@ -12,7 +12,6 @@ import {
   deleteSlot,
   editClosure,
   editSlot,
-  getAssociation,
   getPlanningPeriod,
   getShareLink,
   listClosures,
@@ -34,10 +33,13 @@ import AppDialog from '../components/AppDialog.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import IconButton from '../components/IconButton.vue'
 import PreferenceSelect from '../components/PreferenceSelect.vue'
+import UnknownAssociation from '../components/UnknownAssociation.vue'
 import { formatDate, shortDayWithYear, WEEKDAYS } from '../dates'
+import { useAssociationBySlug } from '../associationBySlug'
 import { useLocation } from '../location'
 
-const props = defineProps<{ id: string }>()
+const props = defineProps<{ slug: string }>()
+const { id, unknown, read } = useAssociationBySlug(() => props.slug)
 const { t, locale } = useI18n()
 const location = useLocation()
 
@@ -97,20 +99,21 @@ const sortedClosures = computed(() =>
 )
 
 async function load() {
-  ;[association.value, slots.value, closures.value, period.value, preferences.value] =
-    await Promise.all([
-      getAssociation(props.id),
-      listSlots(props.id),
-      listClosures(props.id),
-      getPlanningPeriod(props.id),
-      listPreferences(props.id),
-    ])
-  const { id, name } = association.value!
-  location.value = { association: { id, name }, screen: 'settings.title' }
-  shareLink.value = isManager.value ? await getShareLink(props.id) : null
+  association.value = undefined
+  const found = await read()
+  if (!found) return
+  ;[slots.value, closures.value, period.value, preferences.value] = await Promise.all([
+    listSlots(id.value),
+    listClosures(id.value),
+    getPlanningPeriod(id.value),
+    listPreferences(id.value),
+  ])
+  association.value = found
+  location.value = { association: { slug: found.slug, name: found.name }, screen: 'settings.title' }
+  shareLink.value = isManager.value ? await getShareLink(id.value) : null
 }
 
-watch(() => props.id, load, { immediate: true })
+watch(() => props.slug, load, { immediate: true })
 
 function dates(range: { first: string; last: string }) {
   const format = (iso: string) => formatDate(iso, locale.value, shortDayWithYear)
@@ -152,10 +155,10 @@ function openSlotEdit(slot: Slot) {
 async function saveSlot(editing?: Slot) {
   try {
     if (editing) {
-      const slot = await editSlot(props.id, editing.id, weekday.value, start.value, end.value)
+      const slot = await editSlot(id.value, editing.id, weekday.value, start.value, end.value)
       slots.value = slots.value.map((s) => (s.id === slot.id ? slot : s))
     } else {
-      const slot = await addSlot(props.id, weekday.value, start.value, end.value)
+      const slot = await addSlot(id.value, weekday.value, start.value, end.value)
       slots.value.push(slot)
       lastAdded.value = slot
     }
@@ -169,7 +172,7 @@ async function removeSlot(slot: Slot) {
   open.value = undefined
   message.value = undefined
   try {
-    await deleteSlot(props.id, slot.id)
+    await deleteSlot(id.value, slot.id)
     slots.value = slots.value.filter((s) => s.id !== slot.id)
   } catch (e) {
     message.value = failure(e)
@@ -185,10 +188,10 @@ async function choosePreference(slot: Slot, userId: string, value: PreferenceVal
   const others = preferences.value.filter((p) => !(p.slot_id === slot.id && p.user_id === userId))
   try {
     if (value === null) {
-      await deletePreference(props.id, slot.id, userId)
+      await deletePreference(id.value, slot.id, userId)
       preferences.value = others
     } else {
-      preferences.value = [...others, await setPreference(props.id, slot.id, userId, value)]
+      preferences.value = [...others, await setPreference(id.value, slot.id, userId, value)]
     }
   } catch (e) {
     message.value = failure(e)
@@ -213,7 +216,7 @@ async function saveClosure(editing?: Closure) {
   try {
     if (editing) {
       const closure = await editClosure(
-        props.id,
+        id.value,
         editing.id,
         first.value,
         last.value,
@@ -221,7 +224,7 @@ async function saveClosure(editing?: Closure) {
       )
       closures.value = closures.value.map((c) => (c.id === closure.id ? closure : c))
     } else {
-      closures.value.push(await addClosure(props.id, first.value, last.value, label.value || null))
+      closures.value.push(await addClosure(id.value, first.value, last.value, label.value || null))
     }
     open.value = undefined
   } catch (e) {
@@ -233,7 +236,7 @@ async function removeClosure(closure: Closure) {
   open.value = undefined
   message.value = undefined
   try {
-    await deleteClosure(props.id, closure.id)
+    await deleteClosure(id.value, closure.id)
     closures.value = closures.value.filter((c) => c.id !== closure.id)
   } catch (e) {
     message.value = failure(e)
@@ -248,7 +251,7 @@ function openPeriod() {
 
 async function savePeriod() {
   try {
-    period.value = await setPlanningPeriod(props.id, periodFirst.value, periodLast.value)
+    period.value = await setPlanningPeriod(id.value, periodFirst.value, periodLast.value)
     open.value = undefined
   } catch (e) {
     dialogError(failure(e))
@@ -259,7 +262,7 @@ async function clearPeriod() {
   open.value = undefined
   message.value = undefined
   try {
-    await clearPlanningPeriod(props.id)
+    await clearPlanningPeriod(id.value)
     period.value = null
   } catch (e) {
     message.value = failure(e)
@@ -280,7 +283,7 @@ async function makeShareLink() {
   message.value = undefined
   copied.value = false
   try {
-    shareLink.value = await createShareLink(props.id)
+    shareLink.value = await createShareLink(id.value)
   } catch (e) {
     message.value = failure(e)
   }
@@ -291,7 +294,7 @@ async function revokeLink() {
   message.value = undefined
   copied.value = false
   try {
-    await revokeShareLink(props.id)
+    await revokeShareLink(id.value)
     shareLink.value = null
   } catch (e) {
     message.value = failure(e)
@@ -320,7 +323,8 @@ function closureQuestion(closure: Closure) {
 </script>
 
 <template>
-  <template v-if="association">
+  <UnknownAssociation v-if="unknown" />
+  <template v-else-if="association">
     <h2>{{ t('settings.planningPeriod') }}</h2>
     <ul class="list">
       <li>

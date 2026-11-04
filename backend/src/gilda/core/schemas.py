@@ -8,6 +8,7 @@ from gilda.core.models import Role
 NonEmpty = Annotated[str, msgspec.Meta(min_length=1)]
 Email = Annotated[str, msgspec.Meta(pattern=r"^[^@\s]+@[^@\s]+$")]
 Password = Annotated[str, msgspec.Meta(min_length=8)]
+Slug = Annotated[str, msgspec.Meta(pattern=r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?\Z", max_length=50)]
 
 
 class AccountCreate(msgspec.Struct):
@@ -58,15 +59,18 @@ class SessionRead(UserRead):
 
 class AssociationCreate(msgspec.Struct):
     name: NonEmpty
+    slug: Slug
 
 
-class AssociationRename(msgspec.Struct):
-    name: NonEmpty
+class AssociationUpdate(msgspec.Struct):
+    name: NonEmpty | None = None
+    slug: Slug | None = None
 
 
 class AssociationRead(msgspec.Struct):
     id: UUID
     name: str
+    slug: str
     role: Role
 
 
@@ -93,6 +97,7 @@ class MemberRead(msgspec.Struct):
 class AssociationDetail(msgspec.Struct):
     id: UUID
     name: str
+    slug: str
     timezone: str
     role: Role
     members: list[MemberRead]

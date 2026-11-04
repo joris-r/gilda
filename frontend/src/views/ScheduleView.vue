@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import {
   ApiError,
-  getAssociation,
   getPlanningPeriod,
   getRegistrationCounts,
   getSchedule,
@@ -26,12 +25,15 @@ import {
 } from '../api'
 import OccurrenceMenu from '../components/OccurrenceMenu.vue'
 import ScheduleWeeks from '../components/ScheduleWeeks.vue'
+import UnknownAssociation from '../components/UnknownAssociation.vue'
 import { addDays, today } from '../dates'
+import { useAssociationBySlug } from '../associationBySlug'
 import { useLocation } from '../location'
 import { actions, appendSchedule, MORE_WEEKS, weeksBetween, type Item } from '../schedule'
 import { useSession } from '../session'
 
-const props = defineProps<{ id: string }>()
+const props = defineProps<{ slug: string }>()
+const { id, unknown, read } = useAssociationBySlug(() => props.slug)
 const { t } = useI18n()
 const { user } = useSession()
 const location = useLocation()
@@ -62,15 +64,15 @@ const members = computed(() =>
 
 /** The weeks failing to load still leave the header and an error message. */
 async function load() {
-  const [found, foundPeriod, foundSchedule] = await Promise.allSettled([
-    getAssociation(props.id),
-    getPlanningPeriod(props.id),
-    getSchedule(props.id),
+  association.value = undefined
+  const found = await read()
+  if (!found) return
+  location.value = { association: { slug: found.slug, name: found.name } }
+  day0.value = today(found.timezone)
+  const [foundPeriod, foundSchedule] = await Promise.allSettled([
+    getPlanningPeriod(id.value),
+    getSchedule(id.value),
   ])
-  if (found.status === 'rejected') throw found.reason
-  const { id, name, timezone } = found.value
-  location.value = { association: { id, name } }
-  day0.value = today(timezone)
   try {
     if (foundPeriod.status === 'rejected') throw foundPeriod.reason
     if (foundSchedule.status === 'rejected') throw foundSchedule.reason
@@ -82,8 +84,8 @@ async function load() {
   } catch {
     message.value = t('error')
   }
-  association.value = found.value
-  if (found.value.role === 'manager') await loadManagerData()
+  association.value = found
+  if (found.role === 'manager') await loadManagerData()
 }
 
 /** What the menu shows a manager of each member: preferences, counts, absences and notes. */
@@ -91,11 +93,11 @@ async function loadManagerData() {
   try {
     ;[slots.value, preferences.value, counts.value, absences.value, notes.value] =
       await Promise.all([
-        listSlots(props.id),
-        listPreferences(props.id),
-        getRegistrationCounts(props.id),
-        listMemberAbsences(props.id),
-        listNotes(props.id),
+        listSlots(id.value),
+        listPreferences(id.value),
+        getRegistrationCounts(id.value),
+        listMemberAbsences(id.value),
+        listNotes(id.value),
       ])
   } catch {
     message.value = t('error')
@@ -103,18 +105,18 @@ async function loadManagerData() {
 }
 
 async function reload() {
-  schedule.value = await getSchedule(props.id, { from: firstMonday.value, to: lastDay.value })
-  if (isManager.value) counts.value = await getRegistrationCounts(props.id)
+  schedule.value = await getSchedule(id.value, { from: firstMonday.value, to: lastDay.value })
+  if (isManager.value) counts.value = await getRegistrationCounts(id.value)
 }
 
 async function more() {
   const from = addDays(lastDay.value, 1)
-  const added = await getSchedule(props.id, { from, to: addDays(from, 7 * MORE_WEEKS - 1) })
+  const added = await getSchedule(id.value, { from, to: addDays(from, 7 * MORE_WEEKS - 1) })
   schedule.value = appendSchedule(schedule.value, added)
   weeks.value += MORE_WEEKS
 }
 
-watch(() => props.id, load, { immediate: true })
+watch(() => props.slug, load, { immediate: true })
 
 const openActions = computed(() =>
   openItem.value ? actions(openItem.value, user.value?.id, isManager.value) : undefined,
@@ -148,26 +150,27 @@ async function act(run: () => Promise<unknown>) {
 }
 
 function signUp(item: Item) {
-  return act(() => register(props.id, user.value!.id, item.date, item.start, item.end))
+  return act(() => register(id.value, user.value!.id, item.date, item.start, item.end))
 }
 
 function propose(item: Item, member: Member) {
-  return act(() => register(props.id, member.user_id, item.date, item.start, item.end))
+  return act(() => register(id.value, member.user_id, item.date, item.start, item.end))
 }
 
 function setStatus(item: Item, status: 'confirmed' | 'cancelled') {
-  return act(() => setRegistrationStatus(props.id, item.registration!.id, status))
+  return act(() => setRegistrationStatus(id.value, item.registration!.id, status))
 }
 </script>
 
 <template>
-  <template v-if="association">
+  <UnknownAssociation v-if="unknown" />
+  <template v-else-if="association">
     <p class="links">
-      <RouterLink :to="`/associations/${id}/availability`">{{
+      <RouterLink :to="`/associations/${slug}/availability`">{{
         t('availability.title')
       }}</RouterLink>
-      <RouterLink :to="`/associations/${id}/members`">{{ t('association.members') }}</RouterLink>
-      <RouterLink :to="`/associations/${id}/settings`">{{ t('settings.title') }}</RouterLink>
+      <RouterLink :to="`/associations/${slug}/members`">{{ t('association.members') }}</RouterLink>
+      <RouterLink :to="`/associations/${slug}/settings`">{{ t('settings.title') }}</RouterLink>
     </p>
     <p v-if="message" class="error">{{ message }}</p>
 

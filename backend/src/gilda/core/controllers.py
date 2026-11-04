@@ -15,7 +15,7 @@ from gilda.core.schemas import (
     AssociationCreate,
     AssociationDetail,
     AssociationRead,
-    AssociationRename,
+    AssociationUpdate,
     Credentials,
     MemberCreate,
     MemberRead,
@@ -199,7 +199,16 @@ class AssociationController(Controller):
         db_session: NamedDependency[AsyncSession],
         data: JSONBody[AssociationCreate],
     ) -> AssociationRead:
-        return await AssociationService(db_session).create(current_user, data.name)
+        return await AssociationService(db_session).create(current_user, data.name, data.slug)
+
+    @get("/by-slug/{slug:str}")
+    async def get_association_by_slug(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        slug: FromPath[str],
+    ) -> AssociationDetail:
+        return await AssociationService(db_session).detail_by_slug(current_user, slug)
 
     @get("/{association_id:uuid}")
     async def get_association(
@@ -211,14 +220,16 @@ class AssociationController(Controller):
         return await AssociationService(db_session).detail(current_user, association_id)
 
     @patch("/{association_id:uuid}")
-    async def rename_association(
+    async def update_association(
         self,
         current_user: NamedDependency[User],
         db_session: NamedDependency[AsyncSession],
         association_id: FromPath[UUID],
-        data: JSONBody[AssociationRename],
+        data: JSONBody[AssociationUpdate],
     ) -> AssociationRead:
-        return await AssociationService(db_session).rename(current_user, association_id, data.name)
+        return await AssociationService(db_session).update(
+            current_user, association_id, data.name, data.slug
+        )
 
     @delete("/{association_id:uuid}")
     async def delete_association(

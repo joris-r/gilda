@@ -5,9 +5,9 @@ import { useRouter } from 'vue-router'
 import {
   addMember,
   ApiError,
+  changeAssociationSlug,
   changeRole,
   deleteAssociation,
-  getAssociation,
   removeMember,
   renameAssociation,
   revokeMemberLink,
@@ -19,14 +19,19 @@ import {
 import AppDialog from '../components/AppDialog.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import IconButton from '../components/IconButton.vue'
+import SlugField from '../components/SlugField.vue'
+import UnknownAssociation from '../components/UnknownAssociation.vue'
+import { useAssociationBySlug } from '../associationBySlug'
 import { useLocation } from '../location'
 import { leaveNotice } from '../notice'
 import { useSession } from '../session'
+import { slugErrorKey } from '../slug'
 
 /** Members shown before "Show all". */
 const FIRST_MEMBERS = 5
 
-const props = defineProps<{ id: string }>()
+const props = defineProps<{ slug: string }>()
+const { id, unknown, read } = useAssociationBySlug(() => props.slug)
 const { t } = useI18n()
 const router = useRouter()
 const { user } = useSession()
@@ -49,6 +54,9 @@ const confirming = ref<'revoke' | 'send' | 'remove'>()
 
 /** The open Rename the association dialog, with the name typed in it and its error. */
 const renaming = ref<{ name: string; error: string }>()
+
+/** The open Change the association identifier dialog, with the slug typed in it and its error. */
+const changingSlug = ref<{ slug: string; error: string }>()
 
 /** The open confirmation of deleting the association, with the name typed in it and its error. */
 const deleting = ref<{ typed: string; error: string }>()
@@ -77,15 +85,16 @@ const shownMembers = computed(() =>
 )
 
 async function load() {
-  const found = await getAssociation(props.id)
+  const found = await read()
   association.value = found
+  if (!found) return
   location.value = {
-    association: { id: found.id, name: found.name },
+    association: { slug: found.slug, name: found.name },
     screen: 'association.members',
   }
 }
 
-watch(() => props.id, load, { immediate: true })
+watch(() => props.slug, load, { immediate: true })
 
 function openAdd() {
   displayName.value = ''
@@ -108,7 +117,7 @@ async function saveRole() {
   const edit = editing.value!
   if (edit.role === edit.member.role) return closeEdit()
   try {
-    const updated = await changeRole(props.id, edit.member.user_id, edit.role)
+    const updated = await changeRole(id.value, edit.member.user_id, edit.role)
     edit.member.role = updated.role
     if (association.value && updated.user_id === user.value?.id)
       association.value.role = updated.role
@@ -128,7 +137,7 @@ async function saveRole() {
 
 async function remove(member: Member) {
   try {
-    await removeMember(props.id, member.user_id)
+    await removeMember(id.value, member.user_id)
   } catch (e) {
     editing.value!.error =
       e instanceof ApiError && e.status === 409 ? t('association.lastManager') : t('error')
@@ -147,10 +156,10 @@ async function confirmAction() {
   if (action === 'remove') return remove(member)
   try {
     if (action === 'revoke') {
-      await revokeMemberLink(props.id, member.user_id)
+      await revokeMemberLink(id.value, member.user_id)
       member.access_link = false
     } else {
-      member.access_link = (await sendMemberLink(props.id, member.user_id)).access_link
+      member.access_link = (await sendMemberLink(id.value, member.user_id)).access_link
     }
     closeEdit()
     const done = action === 'revoke' ? 'association.linkRevoked' : 'association.linkSent'
@@ -166,7 +175,7 @@ async function confirmAction() {
 async function add() {
   const name = displayName.value
   try {
-    const member = await addMember(props.id, name, email.value, role.value)
+    const member = await addMember(id.value, name, email.value, role.value)
     await load()
     adding.value = undefined
     message.value = { ok: true, text: t('association.added', { name: member.display_name }) }
@@ -191,13 +200,39 @@ async function saveName() {
     return
   }
   try {
-    const { name } = await renameAssociation(props.id, rename.name)
+    const { name } = await renameAssociation(id.value, rename.name)
     association.value!.name = name
-    location.value = { association: { id: props.id, name }, screen: 'association.members' }
+    location.value = {
+      association: { slug: props.slug, name },
+      screen: 'association.members',
+    }
     renaming.value = undefined
     message.value = { ok: true, text: t('association.renamed', { name }) }
   } catch {
     rename.error = t('error')
+  }
+}
+
+function openChangeSlug() {
+  message.value = undefined
+  changingSlug.value = { slug: association.value!.slug, error: '' }
+}
+
+async function saveSlug() {
+  const change = changingSlug.value!
+  if (!change.slug) return
+  if (change.slug === association.value!.slug) {
+    changingSlug.value = undefined
+    return
+  }
+  try {
+    const { slug } = await changeAssociationSlug(id.value, change.slug)
+    changingSlug.value = undefined
+    // Replace: going back to the former slug would no longer find the association.
+    await router.replace(`/associations/${slug}/members`)
+    message.value = { ok: true, text: t('association.identifierChanged', { slug }) }
+  } catch (e) {
+    change.error = t(slugErrorKey(e))
   }
 }
 
@@ -206,7 +241,7 @@ async function confirmDelete() {
   const confirmation = deleting.value!
   if (confirmation.typed !== name) return
   try {
-    await deleteAssociation(props.id)
+    await deleteAssociation(id.value)
   } catch {
     confirmation.error = t('error')
     return
@@ -217,7 +252,8 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <template v-if="association">
+  <UnknownAssociation v-if="unknown" />
+  <template v-else-if="association">
     <div v-if="isManager" class="toolbar">
       <button type="button" class="add" @click="openAdd">
         <span aria-hidden="true">+</span> {{ t('association.addMember') }}
@@ -255,6 +291,11 @@ async function confirmDelete() {
           {{ t('association.renameAssociation') }}
         </button>
       </p>
+      <p class="rename">
+        <button type="button" class="link" @click="openChangeSlug">
+          {{ t('association.changeIdentifier') }}
+        </button>
+      </p>
       <button type="button" class="link danger" @click="deleting = { typed: '', error: '' }">
         {{ t('association.deleteAssociation') }}
       </button>
@@ -274,6 +315,23 @@ async function confirmDelete() {
         <div class="dialog-actions">
           <button type="submit" :disabled="!renaming.name">{{ t('association.save') }}</button>
           <button type="button" class="link" @click="renaming = undefined">
+            {{ t('dialog.cancel') }}
+          </button>
+        </div>
+      </form>
+    </AppDialog>
+
+    <AppDialog
+      v-if="changingSlug"
+      :title="t('association.changeIdentifier')"
+      @close="changingSlug = undefined"
+    >
+      <form @submit.prevent="saveSlug">
+        <SlugField v-model="changingSlug.slug" />
+        <p v-if="changingSlug.error" class="error">{{ changingSlug.error }}</p>
+        <div class="dialog-actions">
+          <button type="submit" :disabled="!changingSlug.slug">{{ t('association.save') }}</button>
+          <button type="button" class="link" @click="changingSlug = undefined">
             {{ t('dialog.cancel') }}
           </button>
         </div>

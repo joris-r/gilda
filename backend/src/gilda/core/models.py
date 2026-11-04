@@ -39,6 +39,7 @@ class Association(UUIDv7Base):
     __tablename__ = "association"
 
     name: Mapped[str]
+    slug: Mapped[str] = mapped_column(String(50), unique=True)
     timezone: Mapped[str] = mapped_column(String(64), server_default="Europe/Paris")
 
 

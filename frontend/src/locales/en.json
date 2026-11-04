@@ -6,6 +6,7 @@
     "email": "Email",
     "password": "Password",
     "name": "Name",
+    "associationIdentifier": "Association identifier",
     "role": "Role"
   },
   "roles": {
@@ -106,6 +107,11 @@
     "removed": "{name} is removed.",
     "renameAssociation": "Rename the association",
     "renamed": "The association is now {name}.",
+    "changeIdentifier": "Change the association identifier",
+    "identifierChanged": "The association identifier is now {slug}.",
+    "identifierInvalid": "Use only lowercase letters, digits and hyphens, starting and ending with a letter or a digit.",
+    "identifierTaken": "This association identifier is already taken.",
+    "unknown": "This association does not exist or you are not a member.",
     "deleteAssociation": "Delete the association",
     "confirmDelete": "Delete {name}? Its schedule and its members' registrations are erased. This cannot be undone.",
     "typeName": "Type the association's name to confirm",

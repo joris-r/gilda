@@ -6,6 +6,7 @@
     "email": "E-mail",
     "password": "Mot de passe",
     "name": "Nom",
+    "associationIdentifier": "Identifiant de l'association",
     "role": "Rôle"
   },
   "roles": {
@@ -106,6 +107,11 @@
     "removed": "{name} est retiré·e.",
     "renameAssociation": "Renommer l'association",
     "renamed": "L'association s'appelle désormais {name}.",
+    "changeIdentifier": "Modifier l'identifiant de l'association",
+    "identifierChanged": "L'identifiant de l'association est désormais {slug}.",
+    "identifierInvalid": "Utilisez uniquement des lettres minuscules, des chiffres et des tirets, en commençant et en finissant par une lettre ou un chiffre.",
+    "identifierTaken": "Cet identifiant d'association est déjà pris.",
+    "unknown": "Cette association n'existe pas ou vous n'en êtes pas membre.",
     "deleteAssociation": "Supprimer l'association",
     "confirmDelete": "Supprimer {name} ? Son planning et les inscriptions de ses membres sont effacés. Cette action est irréversible.",
     "typeName": "Saisissez le nom de l'association pour confirmer",
