@@ -370,6 +370,28 @@ Content-Type: application/json
 - 404 when the association does not exist or the signed-in user is not
   a member.
 
+### PATCH /api/associations/{id}
+
+Renames the association. Managers only: 403 for a volunteer.
+
+```http
+PATCH /api/associations/5c1e…
+Content-Type: application/json
+
+{"name": "Jardin des Lilas"}
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id": "5c1e…", "name": "Jardin des Lilas", "role": "manager"}
+```
+
+- Its members are not told.
+- 404 when the association does not exist or the signed-in user is not
+  a member.
+
 ### DELETE /api/associations/{id}
 
 Deletes the association for good. Managers only: 403 for a volunteer.

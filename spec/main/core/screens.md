@@ -192,6 +192,7 @@ As a manager:
   emma@example.org
   Show all 7 members
 
+  Rename the association
   Delete the association
 ```
 
@@ -234,6 +235,19 @@ As a manager:
   Removing the last manager shows "An association keeps at least one
   manager." and changes nothing. A manager who removes themself is
   led to My associations.
+- "Rename the association" opens the dialog:
+
+```
+┌ Rename the association ───────────────────────── ✕ ┐
+│ Name [Jardin partagé des Lilas ]                   │
+│ [Save]  Cancel                                     │
+└────────────────────────────────────────────────────┘
+```
+
+- [Save] is enabled only when Name is not empty. Saving another name
+  changes it, updates the header and shows "The association is now
+  Jardin des Lilas."; the same name closes the dialog and changes
+  nothing.
 - "Delete the association" opens the confirmation:
 
 ```
@@ -250,7 +264,8 @@ As a manager:
   association's name. Confirming deletes it (R34), leads to My
   associations and shows "Jardin partagé des Lilas is deleted."
 - A volunteer sees the members and their roles, without "Add a
-  member", without the edit icons and without "Delete the association".
+  member", without the edit icons and without "Rename the association"
+  and "Delete the association".
 - Signed out, every page but `/signup`, `/verify-email`,
   `/forgot-password`, `/reset-password`, `/sign-in-link` and `/access`
   shows Sign in.
