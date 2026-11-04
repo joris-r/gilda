@@ -82,9 +82,21 @@ describe('My associations', () => {
       const wrapper = await mountHome(drawing).mounting
 
       const text = pageText(item(wrapper, garden.name))
-      expect(text).toContain('Thu 5 Nov, 10:00–13:00')
-      expect(text).toContain('Sat 14 Nov, 10:00–13:00 ?')
+      expect(text).toContain('Thu 5 Nov, 10:00–13:00 Alice')
+      expect(text).toContain('Sat 14 Nov, 10:00–13:00 Alice ?')
       expect(text.indexOf('Thu 5 Nov')).toBeLessThan(text.indexOf('Sat 14 Nov'))
+    })
+
+    it('each registration shows its date and times, then its display name, then its action', async () => {
+      const wrapper = await mountHome(drawing).mounting
+
+      expect(pageText(line(wrapper, 'Thu 5 Nov'))).toBe('Thu 5 Nov, 10:00–13:00 Alice')
+      expect(pageText(line(wrapper, 'Sat 14 Nov'))).toMatch(
+        /^Sat 14 Nov, 10:00–13:00 Alice \?\s*Confirm$/,
+      )
+      expect(pageText(line(wrapper, 'Thu 12 Nov'))).toMatch(
+        /^Thu 12 Nov, 10:00–13:00 Alice: this slot no longer takes place\.\s*OK$/,
+      )
     })
 
     it('a confirmed registration is not marked "?" and has no "Confirm"', async () => {
@@ -145,7 +157,7 @@ describe('My associations', () => {
 
       const text = pageText(item(wrapper, garden.name))
       expect(pageText(line(wrapper, 'Thu 12 Nov'))).toContain(
-        'Thu 12 Nov, 10:00–13:00: this slot no longer takes place.',
+        'Thu 12 Nov, 10:00–13:00 Alice: this slot no longer takes place.',
       )
       expect(hasControl(line(wrapper, 'Thu 12 Nov'), 'OK')).toBe(true)
       expect(text.indexOf('Thu 12 Nov')).toBeLessThan(text.indexOf('Thu 5 Nov'))
@@ -202,7 +214,7 @@ describe('My associations', () => {
       })
       const text = pageText(item(wrapper, garden.name))
       expect(text).not.toContain('Thu 12 Nov')
-      expect(text).toContain('Thu 5 Nov, 10:00–13:00')
+      expect(text).toContain('Thu 5 Nov, 10:00–13:00 Alice')
     })
   })
 
@@ -266,7 +278,7 @@ describe('My associations', () => {
       ]).mounting
 
       const text = pageText(item(wrapper, garden.name))
-      expect(text).toContain('Mon 30 Nov, 10:00–13:00 ?')
+      expect(text).toContain('Mon 30 Nov, 10:00–13:00 Alice ?')
       expect(text).toContain('No registration yet for the planning period, 2–25 Nov.')
     })
 
@@ -309,10 +321,10 @@ describe('My associations', () => {
     const wrapper = await mountHome(drawing).mounting
 
     const gardenText = pageText(item(wrapper, garden.name))
-    expect(gardenText).toContain("jeu. 12 nov., 10:00–13:00 : ce créneau n'a plus lieu.")
+    expect(gardenText).toContain("jeu. 12 nov., 10:00–13:00 Alice : ce créneau n'a plus lieu.")
     expect(control(line(wrapper, 'jeu. 12 nov.'), 'OK').exists()).toBe(true)
-    expect(gardenText).toContain('jeu. 5 nov., 10:00–13:00')
-    expect(gardenText).toContain('sam. 14 nov., 10:00–13:00 ?')
+    expect(gardenText).toContain('jeu. 5 nov., 10:00–13:00 Alice')
+    expect(gardenText).toContain('sam. 14 nov., 10:00–13:00 Alice ?')
     expect(control(line(wrapper, 'sam. 14 nov.'), 'Confirmer').exists()).toBe(true)
     const repairText = pageText(item(wrapper, repairCafe.name))
     expect(repairText).toContain('Aucune inscription pour la période de planning, 2–25 nov.')
