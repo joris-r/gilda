@@ -4,8 +4,16 @@ export const alice = { id: 'u-alice', display_name: 'Alice', email: 'alice@examp
 
 export const signedInAsAlice: Reply = { status: 200, body: alice }
 
-export const garden = { id: 'a-garden', name: 'Jardin partagé des Lilas' }
-export const repairCafe = { id: 'a-repair', name: 'Repair Café Belleville' }
+export const garden = {
+  id: 'a-garden',
+  slug: 'jardin-partage-des-lilas',
+  name: 'Jardin partagé des Lilas',
+}
+export const repairCafe = {
+  id: 'a-repair',
+  slug: 'repair-cafe-belleville',
+  name: 'Repair Café Belleville',
+}
 
 export function member(
   userId: string,

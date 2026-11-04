@@ -15,7 +15,7 @@ import {
 import { garden, member, signedInAsAlice } from './fixtures'
 import { day, open, planningApi, slotItem, type Occurrence } from './planningFake'
 
-const settingsPath = `/associations/${garden.id}/settings`
+const settingsPath = `/associations/${garden.slug}/settings`
 const base = `/api/associations/${garden.id}`
 
 function isoDate(d: Date) {

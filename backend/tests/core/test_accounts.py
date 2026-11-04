@@ -140,6 +140,7 @@ def test_r2_sign_up_takes_over_a_user_without_password(
         {
             "id": association["id"],
             "name": association["name"],
+            "slug": association["slug"],
             "role": "volunteer",
             "upcoming": [],
             "obsolete": [],

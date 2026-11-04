@@ -75,10 +75,12 @@ def test_get_api_associations_example(planning: Planning) -> None:
     response = planning.bruno_client.get("/api/associations")
 
     assert response.status_code == 200
+    slug = planning.bruno_client.get(f"/api/associations/{planning.id}").json()["slug"]
     assert sorted(response.json(), key=lambda a: a["name"]) == [
         {
             "id": planning.id,
             "name": "Jardin partagé des Lilas",
+            "slug": slug,
             "role": "volunteer",
             "upcoming": [mine, to_confirm],
             "obsolete": [gone],
@@ -87,6 +89,7 @@ def test_get_api_associations_example(planning: Planning) -> None:
         {
             "id": other["id"],
             "name": "Repair Café Belleville",
+            "slug": other["slug"],
             "role": "manager",
             "upcoming": [],
             "obsolete": [],

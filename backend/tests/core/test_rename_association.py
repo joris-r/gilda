@@ -46,7 +46,12 @@ def test_patch_api_association_renames_it(client: Any) -> None:
     response = client.patch(f"/api/associations/{association['id']}", json={"name": NEW_NAME})
 
     assert response.status_code == 200
-    assert response.json() == {"id": association["id"], "name": NEW_NAME, "role": "manager"}
+    assert response.json() == {
+        "id": association["id"],
+        "name": NEW_NAME,
+        "slug": association["slug"],
+        "role": "manager",
+    }
     assert client.get(f"/api/associations/{association['id']}").json()["name"] == NEW_NAME
     assert [a["name"] for a in client.get("/api/associations").json()] == [NEW_NAME]
 

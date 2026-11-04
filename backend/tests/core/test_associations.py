@@ -9,6 +9,7 @@ from tests.core.conftest import (
     create_association,
     sign_up,
     unique_email,
+    unique_slug,
 )
 
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
@@ -34,7 +35,7 @@ def manager_and_volunteer(
     ("method", "path", "body"),
     [
         ("GET", "/api/associations", None),
-        ("POST", "/api/associations", {"name": "Repair Café"}),
+        ("POST", "/api/associations", {"name": "Repair Café", "slug": "repair-cafe"}),
         ("GET", f"/api/associations/{UNKNOWN_ID}", None),
         (
             "POST",
@@ -62,19 +63,28 @@ def test_associations_401_when_signed_out(
 def test_post_api_associations_makes_the_signed_in_user_its_manager(client: Any) -> None:
     sign_up(client, "Alice")
 
-    response = client.post("/api/associations", json={"name": "Repair Café Belleville"})
+    slug = unique_slug()
+    response = client.post(
+        "/api/associations", json={"name": "Repair Café Belleville", "slug": slug}
+    )
 
     assert response.status_code == 201
     body = response.json()
-    assert body == {"id": body["id"], "name": "Repair Café Belleville", "role": "manager"}
+    assert body == {
+        "id": body["id"],
+        "name": "Repair Café Belleville",
+        "slug": slug,
+        "role": "manager",
+    }
     uuid.UUID(body["id"])
 
 
-@pytest.mark.parametrize("body", [{}, {"name": ""}])
+@pytest.mark.parametrize("name", [{}, {"name": ""}])
 def test_post_api_associations_400_when_the_name_is_missing_or_empty(
-    client: Any, body: dict[str, str]
+    client: Any, name: dict[str, str]
 ) -> None:
     sign_up(client, "Alice")
+    body = {**name, "slug": unique_slug()}
 
     response = client.post("/api/associations", json=body)
 
@@ -98,6 +108,7 @@ def test_get_api_associations_lists_the_users_associations_with_their_role(
         {
             "id": association["id"],
             "name": association["name"],
+            "slug": association["slug"],
             "role": "volunteer",
             "upcoming": [],
             "obsolete": [],
@@ -106,6 +117,7 @@ def test_get_api_associations_lists_the_users_associations_with_their_role(
         {
             "id": own["id"],
             "name": "Repair Café Belleville",
+            "slug": own["slug"],
             "role": "manager",
             "upcoming": [],
             "obsolete": [],

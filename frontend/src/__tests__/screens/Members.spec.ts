@@ -1,4 +1,4 @@
-import type { DOMWrapper, VueWrapper } from '@vue/test-utils'
+import { flushPromises, type DOMWrapper, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountApp, pageText } from '../mountApp'
 import {
@@ -27,7 +27,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-const path = `/associations/${garden.id}/members`
+const path = `/associations/${garden.slug}/members`
 const membersPath = `/api/associations/${garden.id}/members`
 
 function associationAs(role: 'manager' | 'volunteer', members: ReturnType<typeof member>[]) {
@@ -41,7 +41,7 @@ function mountAs(
 ) {
   const calls = mockApi({
     'GET /api/session': signedInAsAlice,
-    [`GET /api/associations/${garden.id}`]: associationAs(role, members),
+    [`GET /api/associations/by-slug/${garden.slug}`]: associationAs(role, members),
     ...routes,
   })
   return { calls, mounting: mountApp(path) }
@@ -81,7 +81,7 @@ describe('Members', () => {
     const wrapper = await mounting
 
     expect(control(header(wrapper), garden.name).attributes('href')).toBe(
-      `/associations/${garden.id}`,
+      `/associations/${garden.slug}`,
     )
   })
 
@@ -219,7 +219,7 @@ describe('Members', () => {
     it('adds a member with POST, closes the dialog and says so', async () => {
       let members = [alice]
       const { calls, mounting } = mountAs('manager', [], {
-        [`GET /api/associations/${garden.id}`]: () => associationAs('manager', members),
+        [`GET /api/associations/by-slug/${garden.slug}`]: () => associationAs('manager', members),
         [`POST ${membersPath}`]: () => {
           members = [alice, chloe]
           return { status: 201, body: chloe }
@@ -380,7 +380,7 @@ describe('Members', () => {
     it('Revoke revokes it with DELETE, closes both dialogs and says so', async () => {
       let members = [alice, brunoWithLink]
       const { calls, mounting } = mountAs('manager', [], {
-        [`GET /api/associations/${garden.id}`]: () => associationAs('manager', members),
+        [`GET /api/associations/by-slug/${garden.slug}`]: () => associationAs('manager', members),
         [`DELETE ${membersPath}/u-bruno/access-link`]: () => {
           members = [alice, bruno]
           return { status: 204 }
@@ -448,7 +448,7 @@ describe('Members', () => {
     it('Send sends the link with POST, closes both dialogs and says so (R26)', async () => {
       let members = [alice, chloe]
       const { calls, mounting } = mountAs('manager', [], {
-        [`GET /api/associations/${garden.id}`]: () => associationAs('manager', members),
+        [`GET /api/associations/by-slug/${garden.slug}`]: () => associationAs('manager', members),
         [`POST ${membersPath}/u-chloe/access-link`]: () => {
           members = [alice, chloeWithLink]
           return { status: 200, body: chloeWithLink }
@@ -521,7 +521,7 @@ describe('Members', () => {
     it('Remove removes the member with DELETE (R28), closes both dialogs and says so', async () => {
       let members = [alice, chloe]
       const { calls, mounting } = mountAs('manager', [], {
-        [`GET /api/associations/${garden.id}`]: () => associationAs('manager', members),
+        [`GET /api/associations/by-slug/${garden.slug}`]: () => associationAs('manager', members),
         [`DELETE ${membersPath}/u-chloe`]: () => {
           members = [alice]
           return { status: 204 }
@@ -599,13 +599,13 @@ describe('Members', () => {
     function renamingRoutes(): Record<string, Route> {
       let name = garden.name
       return {
-        [`GET ${associationPath}`]: () => ({
+        [`GET /api/associations/by-slug/${garden.slug}`]: () => ({
           status: 200,
           body: { ...garden, name, role: 'manager', members: [alice, bruno] },
         }),
         [`PATCH ${associationPath}`]: (body) => {
           name = (body as { name: string }).name
-          return { status: 200, body: { id: garden.id, name, role: 'manager' } }
+          return { status: 200, body: { id: garden.id, slug: garden.slug, name, role: 'manager' } }
         },
       }
     }
@@ -680,7 +680,7 @@ describe('Members', () => {
       expect(renames(calls).map((c) => c.body)).toEqual([{ name: newName }])
       expect(dialogs(wrapper)).toHaveLength(0)
       expect(control(header(wrapper), newName).attributes('href')).toBe(
-        `/associations/${garden.id}`,
+        `/associations/${garden.slug}`,
       )
       expect(header(wrapper).text()).not.toContain(garden.name)
       expect(pageText(wrapper)).toContain(`The association is now ${newName}.`)
@@ -759,6 +759,173 @@ describe('Members', () => {
       expect(dialogs(wrapper)).toHaveLength(1)
       expect(header(wrapper).text()).toContain(garden.name)
       expect(pageText(wrapper)).not.toContain('The association is now')
+    })
+  })
+
+  describe('Change the association identifier', () => {
+    const associationPath = `/api/associations/${garden.id}`
+    const newSlug = 'jardin-des-lilas'
+    const newPath = `/associations/${newSlug}/members`
+
+    function changes(calls: { method: string; path: string }[]) {
+      return calls.filter((c) => c.method === 'PATCH' && c.path === associationPath)
+    }
+
+    /** A backend that keeps the new slug: the former one no longer answers (R36). */
+    function slugRoutes(): Record<string, Route> {
+      let slug = garden.slug
+      const read =
+        (at: string): Route =>
+        () =>
+          slug === at
+            ? { status: 200, body: { ...garden, slug, role: 'manager', members: [alice, bruno] } }
+            : { status: 404, body: { error: 'Not found' } }
+      return {
+        [`GET /api/associations/by-slug/${garden.slug}`]: read(garden.slug),
+        [`GET /api/associations/by-slug/${newSlug}`]: read(newSlug),
+        [`PATCH ${associationPath}`]: (body) => {
+          slug = (body as { slug: string }).slug
+          return { status: 200, body: { id: garden.id, name: garden.name, slug, role: 'manager' } }
+        },
+      }
+    }
+
+    function slugInput(open: DOMWrapper<Element>) {
+      return field(open, 'Association identifier').element as HTMLInputElement
+    }
+
+    it('shows between "Rename the association" and "Delete the association", for a manager', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno])
+      const wrapper = await mounting
+
+      expect(showsControl(wrapper, 'Change the association identifier')).toBe(true)
+      const text = pageText(wrapper)
+      expect(text.indexOf('Change the association identifier')).toBeGreaterThan(
+        text.indexOf('Rename the association'),
+      )
+      expect(text.indexOf('Change the association identifier')).toBeLessThan(
+        text.indexOf('Delete the association'),
+      )
+    })
+
+    it('a volunteer does not see it', async () => {
+      const { mounting } = mountAs('volunteer', [alice, bruno])
+      const wrapper = await mounting
+
+      expect(showsControl(wrapper, 'Change the association identifier')).toBe(false)
+    })
+
+    it('opens the dialog with the current slug and its prefix, before calling the API', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno])
+      const wrapper = await mounting
+
+      await press(wrapper, 'Change the association identifier')
+
+      const open = dialog(wrapper)
+      expect(titleOf(open)).toBe('Change the association identifier')
+      expect(slugInput(open).value).toBe(garden.slug)
+      expect(open.text()).toContain('/associations/')
+      expect(showsControl(open, 'Save')).toBe(true)
+      expect(showsControl(open, 'Cancel')).toBe(true)
+      expect(changes(calls)).toHaveLength(0)
+    })
+
+    it('Save is enabled only when Association identifier is not empty', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno])
+      const wrapper = await mounting
+
+      await press(wrapper, 'Change the association identifier')
+      const open = dialog(wrapper)
+      const isDisabled = () => control(open, 'Save').attributes('disabled') !== undefined
+
+      expect(isDisabled()).toBe(false)
+      await fill(open, 'Association identifier', '')
+      expect(isDisabled()).toBe(true)
+      await fill(open, 'Association identifier', newSlug)
+      expect(isDisabled()).toBe(false)
+    })
+
+    it('Save with another slug changes it, moves to the new URL and says so', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno], slugRoutes())
+      const wrapper = await mounting
+
+      await press(wrapper, 'Change the association identifier')
+      const open = dialog(wrapper)
+      await fill(open, 'Association identifier', newSlug)
+      await press(open, 'Save')
+      await flushPromises()
+
+      expect(changes(calls).map((c) => c.body)).toEqual([{ slug: newSlug }])
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(wrapper.vm.$route.path).toBe(newPath)
+      expect(pageText(wrapper)).toContain(`The association identifier is now ${newSlug}.`)
+      expect(pageText(wrapper)).toContain('Bruno')
+      expect(pageText(wrapper)).not.toContain('This association does not exist')
+    })
+
+    it("the header's name then leads to the Schedule at the new slug", async () => {
+      const { mounting } = mountAs('manager', [alice, bruno], slugRoutes())
+      const wrapper = await mounting
+
+      await press(wrapper, 'Change the association identifier')
+      const open = dialog(wrapper)
+      await fill(open, 'Association identifier', newSlug)
+      await press(open, 'Save')
+      await flushPromises()
+
+      expect(control(header(wrapper), garden.name).attributes('href')).toBe(
+        `/associations/${newSlug}`,
+      )
+    })
+
+    it('Save with the same slug closes the dialog and changes nothing', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno], slugRoutes())
+      const wrapper = await mounting
+
+      await press(wrapper, 'Change the association identifier')
+      await press(dialog(wrapper), 'Save')
+
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(changes(calls)).toHaveLength(0)
+      expect(wrapper.vm.$route.path).toBe(path)
+      expect(pageText(wrapper)).not.toContain('The association identifier is now')
+    })
+
+    it('Cancel closes the dialog, changing nothing', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno], slugRoutes())
+      const wrapper = await mounting
+
+      await press(wrapper, 'Change the association identifier')
+      const open = dialog(wrapper)
+      await fill(open, 'Association identifier', newSlug)
+      await press(open, 'Cancel')
+
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(changes(calls)).toHaveLength(0)
+      expect(wrapper.vm.$route.path).toBe(path)
+    })
+
+    it.each([
+      [
+        400,
+        'a malformed slug',
+        'Use only lowercase letters, digits and hyphens, starting and ending with a letter or a digit.',
+      ],
+      [409, 'a taken slug', 'This association identifier is already taken.'],
+    ])('a %i, for %s, says so and keeps the dialog open', async (status, _case, message) => {
+      const { mounting } = mountAs('manager', [alice, bruno], {
+        [`PATCH ${associationPath}`]: { status, body: { error: 'refused' } },
+      })
+      const wrapper = await mounting
+
+      await press(wrapper, 'Change the association identifier')
+      const open = dialog(wrapper)
+      await fill(open, 'Association identifier', 'Not A Slug')
+      await press(open, 'Save')
+
+      expect(dialogs(wrapper)).toHaveLength(1)
+      expect(dialog(wrapper).text()).toContain(message)
+      expect(wrapper.vm.$route.path).toBe(path)
     })
   })
 

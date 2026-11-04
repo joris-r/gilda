@@ -4,7 +4,7 @@ import { control, hasControl, item, mockApi, press } from '../mockApi'
 import { garden, member, repairCafe, signedInAsAlice } from './fixtures'
 import { planningApi, type Registration } from './planningFake'
 
-const atelier = { id: 'a-atelier', name: 'Atelier vélo' }
+const atelier = { id: 'a-atelier', slug: 'atelier-velo', name: 'Atelier vélo' }
 
 function registration(
   id: string,
@@ -288,7 +288,7 @@ describe('My associations', () => {
 
       await press(wrapper, 'Choose your slots')
 
-      expect(wrapper.vm.$route.path).toBe(`/associations/${garden.id}`)
+      expect(wrapper.vm.$route.path).toBe(`/associations/${garden.slug}`)
     })
 
     it.each([

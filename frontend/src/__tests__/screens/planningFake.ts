@@ -127,7 +127,7 @@ export function planningApi(options: {
   const managersOnly: Reply = { status: 403, body: { error: 'Managers only' } }
 
   const routes: Record<string, Route> = {
-    [`GET ${base}`]: {
+    [`GET /api/associations/by-slug/${garden.slug}`]: {
       status: 200,
       body: { ...garden, timezone: 'Europe/Paris', role: options.role, members: options.members },
     },

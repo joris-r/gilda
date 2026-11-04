@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountApp, pageText } from '../mountApp'
 import {
   control,
+  field,
   fill,
   hasControl,
   header,
@@ -80,7 +81,7 @@ describe('My associations', () => {
 
     await press(wrapper, garden.name)
 
-    expect(wrapper.vm.$route.path).toBe(`/associations/${garden.id}`)
+    expect(wrapper.vm.$route.path).toBe(`/associations/${garden.slug}`)
     expect(hasControl(wrapper, 'Schedule settings')).toBe(true)
   })
 
@@ -143,13 +144,120 @@ describe('New association', () => {
     expect(control(header(wrapper), 'My associations').attributes('href')).toBe('/')
   })
 
-  it('shows Name and Create association', async () => {
+  it('shows Name, Association identifier with its prefix, and Create association', async () => {
     mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
     const wrapper = await mountApp('/associations/new')
 
     expect(pageText(wrapper)).toContain('New association')
     expect(showsField(wrapper, 'Name')).toBe(true)
+    expect(showsField(wrapper, 'Association identifier')).toBe(true)
+    expect(pageText(wrapper)).toContain('/associations/')
     expect(hasControl(wrapper, 'Create association')).toBe(true)
+  })
+
+  function identifier(wrapper: Parameters<typeof field>[0]) {
+    return (field(wrapper, 'Association identifier').element as HTMLInputElement).value
+  }
+
+  describe('R35', () => {
+    it.each([
+      ['Repair Café Belleville', 'repair-cafe-belleville'],
+      ["L'Atelier  d'à côté !", 'l-atelier-d-a-cote'],
+      ['  Élan 2 -- Vélos  ', 'elan-2-velos'],
+      ['a'.repeat(60), 'a'.repeat(50)],
+      [`${'a'.repeat(49)} b`, 'a'.repeat(49)],
+      ['!!!', ''],
+    ])('Name %j gives %j', async (name, slug) => {
+      mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
+      const wrapper = await mountApp('/associations/new')
+
+      await fill(wrapper, 'Name', name)
+
+      expect(identifier(wrapper)).toBe(slug)
+    })
+
+    it('Association identifier follows Name as it changes', async () => {
+      mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
+      const wrapper = await mountApp('/associations/new')
+
+      await fill(wrapper, 'Name', 'Repair')
+      await fill(wrapper, 'Name', 'Repair Café')
+
+      expect(identifier(wrapper)).toBe('repair-cafe')
+    })
+
+    it('Association identifier no longer follows Name once the user edits it', async () => {
+      mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
+      const wrapper = await mountApp('/associations/new')
+
+      await fill(wrapper, 'Name', 'Repair')
+      await fill(wrapper, 'Association identifier', 'mon-atelier')
+      await fill(wrapper, 'Name', 'Repair Café')
+
+      expect(identifier(wrapper)).toBe('mon-atelier')
+    })
+  })
+
+  it('Create association is enabled only when both fields are not empty', async () => {
+    mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
+    const wrapper = await mountApp('/associations/new')
+    const isDisabled = () =>
+      control(wrapper, 'Create association').attributes('disabled') !== undefined
+
+    expect(isDisabled()).toBe(true)
+    await fill(wrapper, 'Name', repairCafe.name)
+    expect(isDisabled()).toBe(false)
+    await fill(wrapper, 'Association identifier', '')
+    expect(isDisabled()).toBe(true)
+    await fill(wrapper, 'Association identifier', 'mon-atelier')
+    await fill(wrapper, 'Name', '')
+    expect(isDisabled()).toBe(true)
+  })
+
+  it('sends the identifier the user edited and opens the Schedule at it', async () => {
+    const edited = { ...repairCafe, slug: 'mon-atelier' }
+    const calls = mockApi({
+      'GET /api/session': signedInAsAlice,
+      'POST /api/associations': { status: 201, body: { ...edited, role: 'manager' } },
+      'GET /api/associations/by-slug/mon-atelier': {
+        status: 200,
+        body: { ...edited, role: 'manager', members: [member('u-alice', 'Alice', 'manager')] },
+      },
+    })
+    const wrapper = await mountApp('/associations/new')
+
+    await fill(wrapper, 'Name', repairCafe.name)
+    await fill(wrapper, 'Association identifier', 'mon-atelier')
+    await press(wrapper, 'Create association')
+
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: '/api/associations',
+      body: { name: repairCafe.name, slug: 'mon-atelier' },
+    })
+    expect(wrapper.vm.$route.path).toBe('/associations/mon-atelier')
+  })
+
+  it.each([
+    [
+      400,
+      'a malformed slug',
+      'Use only lowercase letters, digits and hyphens, starting and ending with a letter or a digit.',
+    ],
+    [409, 'a taken slug', 'This association identifier is already taken.'],
+  ])('a %i, for %s, says so and stays on the form', async (status, _case, message) => {
+    mockApi({
+      'GET /api/session': signedInAsAlice,
+      'POST /api/associations': { status, body: { error: 'refused' } },
+    })
+    const wrapper = await mountApp('/associations/new')
+
+    await fill(wrapper, 'Name', repairCafe.name)
+    await press(wrapper, 'Create association')
+
+    expect(pageText(wrapper)).toContain(message)
+    expect(wrapper.vm.$route.path).toBe('/associations/new')
+    expect(identifier(wrapper)).toBe(repairCafe.slug)
   })
 
   it('creates an association with POST /api/associations and opens its Schedule', async () => {
@@ -157,7 +265,7 @@ describe('New association', () => {
       'GET /api/session': signedInAsAlice,
       'GET /api/associations': { status: 200, body: [] },
       'POST /api/associations': { status: 201, body: { ...repairCafe, role: 'manager' } },
-      [`GET /api/associations/${repairCafe.id}`]: {
+      [`GET /api/associations/by-slug/${repairCafe.slug}`]: {
         status: 200,
         body: { ...repairCafe, role: 'manager', members: [member('u-alice', 'Alice', 'manager')] },
       },
@@ -171,9 +279,9 @@ describe('New association', () => {
     expect(calls).toContainEqual({
       method: 'POST',
       path: '/api/associations',
-      body: { name: repairCafe.name },
+      body: { name: repairCafe.name, slug: repairCafe.slug },
     })
-    expect(wrapper.vm.$route.path).toBe(`/associations/${repairCafe.id}`)
+    expect(wrapper.vm.$route.path).toBe(`/associations/${repairCafe.slug}`)
     expect(header(wrapper).text()).toContain(repairCafe.name)
   })
 

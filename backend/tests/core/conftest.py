@@ -102,8 +102,15 @@ def sign_up(client: Any, display_name: str, email: str | None = None) -> dict[st
     return user
 
 
-def create_association(client: Any, name: str = "Jardin partagé des Lilas") -> dict[str, Any]:
-    response = client.post("/api/associations", json={"name": name})
+def unique_slug() -> str:
+    """Slugs are unique across associations, so each test uses fresh ones."""
+    return f"a-{uuid.uuid4().hex[:12]}"
+
+
+def create_association(
+    client: Any, name: str = "Jardin partagé des Lilas", slug: str | None = None
+) -> dict[str, Any]:
+    response = client.post("/api/associations", json={"name": name, "slug": slug or unique_slug()})
     assert response.status_code == 201, response.text
     association: dict[str, Any] = response.json()
     return association
