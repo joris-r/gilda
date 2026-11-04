@@ -60,6 +60,10 @@ class AssociationCreate(msgspec.Struct):
     name: NonEmpty
 
 
+class AssociationRename(msgspec.Struct):
+    name: NonEmpty
+
+
 class AssociationRead(msgspec.Struct):
     id: UUID
     name: str

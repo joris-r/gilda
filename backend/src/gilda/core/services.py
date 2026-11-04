@@ -320,6 +320,12 @@ class AssociationService:
             members=[member_read(m, m.user_id in with_link) for m in members],
         )
 
+    async def rename(self, manager: User, association_id: UUID, name: str) -> AssociationRead:
+        own = await self._manager_of(manager, association_id)
+        own.association.name = name
+        association = await self.associations.update(own.association)
+        return AssociationRead(id=association.id, name=association.name, role="manager")
+
     async def delete(self, manager: User, association_id: UUID) -> None:
         await self._manager_of(manager, association_id)
         # What the association holds goes with it, by the foreign keys' ON DELETE CASCADE.

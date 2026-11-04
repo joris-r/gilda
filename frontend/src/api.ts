@@ -125,6 +125,10 @@ export function getAssociation(id: string) {
   return request<Association>('GET', `/api/associations/${id}`)
 }
 
+export function renameAssociation(id: string, name: string) {
+  return request<AssociationSummary>('PATCH', `/api/associations/${id}`, { name })
+}
+
 export function deleteAssociation(id: string) {
   return request<void>('DELETE', `/api/associations/${id}`)
 }

@@ -10,6 +10,9 @@ Run tests and quality checks only through the Makefile targets
 (`make test-backend`, `make lint`…): they set the environment and start
 the containers.
 
+Save the full output of every test or quality run to a file, then filter
+that file; never pipe a run through a filter.
+
 When a change alters what an element shows, the Tests phase also looks
 for test lookups that match that text over the whole page (e.g.
 `control(wrapper, 'Alice')`), not only for the tests citing the rule.

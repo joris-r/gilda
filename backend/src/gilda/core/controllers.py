@@ -15,6 +15,7 @@ from gilda.core.schemas import (
     AssociationCreate,
     AssociationDetail,
     AssociationRead,
+    AssociationRename,
     Credentials,
     MemberCreate,
     MemberRead,
@@ -208,6 +209,16 @@ class AssociationController(Controller):
         association_id: FromPath[UUID],
     ) -> AssociationDetail:
         return await AssociationService(db_session).detail(current_user, association_id)
+
+    @patch("/{association_id:uuid}")
+    async def rename_association(
+        self,
+        current_user: NamedDependency[User],
+        db_session: NamedDependency[AsyncSession],
+        association_id: FromPath[UUID],
+        data: JSONBody[AssociationRename],
+    ) -> AssociationRead:
+        return await AssociationService(db_session).rename(current_user, association_id, data.name)
 
     @delete("/{association_id:uuid}")
     async def delete_association(

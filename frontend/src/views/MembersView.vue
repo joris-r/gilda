@@ -9,6 +9,7 @@ import {
   deleteAssociation,
   getAssociation,
   removeMember,
+  renameAssociation,
   revokeMemberLink,
   sendMemberLink,
   type Association,
@@ -45,6 +46,9 @@ const role = ref<Role>('volunteer')
 const editing = ref<{ member: Member; role: Role; error: string }>()
 /** The action of the edit dialog waiting for confirmation. */
 const confirming = ref<'revoke' | 'send' | 'remove'>()
+
+/** The open Rename the association dialog, with the name typed in it and its error. */
+const renaming = ref<{ name: string; error: string }>()
 
 /** The open confirmation of deleting the association, with the name typed in it and its error. */
 const deleting = ref<{ typed: string; error: string }>()
@@ -174,6 +178,29 @@ async function add() {
   }
 }
 
+function openRename() {
+  message.value = undefined
+  renaming.value = { name: association.value!.name, error: '' }
+}
+
+async function saveName() {
+  const rename = renaming.value!
+  if (!rename.name) return
+  if (rename.name === association.value!.name) {
+    renaming.value = undefined
+    return
+  }
+  try {
+    const { name } = await renameAssociation(props.id, rename.name)
+    association.value!.name = name
+    location.value = { association: { id: props.id, name }, screen: 'association.members' }
+    renaming.value = undefined
+    message.value = { ok: true, text: t('association.renamed', { name }) }
+  } catch {
+    rename.error = t('error')
+  }
+}
+
 async function confirmDelete() {
   const { name } = association.value!
   const confirmation = deleting.value!
@@ -223,10 +250,35 @@ async function confirmDelete() {
       </button>
     </p>
     <div v-if="isManager" class="remove">
+      <p class="rename">
+        <button type="button" class="link" @click="openRename">
+          {{ t('association.renameAssociation') }}
+        </button>
+      </p>
       <button type="button" class="link danger" @click="deleting = { typed: '', error: '' }">
         {{ t('association.deleteAssociation') }}
       </button>
     </div>
+
+    <AppDialog
+      v-if="renaming"
+      :title="t('association.renameAssociation')"
+      @close="renaming = undefined"
+    >
+      <form @submit.prevent="saveName">
+        <label>
+          {{ t('fields.name') }}
+          <input v-model="renaming.name" autocomplete="off" />
+        </label>
+        <p v-if="renaming.error" class="error">{{ renaming.error }}</p>
+        <div class="dialog-actions">
+          <button type="submit" :disabled="!renaming.name">{{ t('association.save') }}</button>
+          <button type="button" class="link" @click="renaming = undefined">
+            {{ t('dialog.cancel') }}
+          </button>
+        </div>
+      </form>
+    </AppDialog>
 
     <AppDialog v-if="deleting" @close="deleting = undefined">
       <form @submit.prevent="confirmDelete">
@@ -332,6 +384,10 @@ async function confirmDelete() {
 
 .remove {
   margin-top: 24px;
+}
+
+.rename {
+  margin: 0 0 12px;
 }
 
 .danger {
