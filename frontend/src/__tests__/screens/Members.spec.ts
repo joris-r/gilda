@@ -587,6 +587,181 @@ describe('Members', () => {
     })
   })
 
+  describe('Rename the association', () => {
+    const associationPath = `/api/associations/${garden.id}`
+    const newName = 'Jardin des Lilas'
+
+    function renames(calls: { method: string; path: string }[]) {
+      return calls.filter((c) => c.method === 'PATCH' && c.path === associationPath)
+    }
+
+    /** A backend that keeps the new name, however the screen gets it back. */
+    function renamingRoutes(): Record<string, Route> {
+      let name = garden.name
+      return {
+        [`GET ${associationPath}`]: () => ({
+          status: 200,
+          body: { ...garden, name, role: 'manager', members: [alice, bruno] },
+        }),
+        [`PATCH ${associationPath}`]: (body) => {
+          name = (body as { name: string }).name
+          return { status: 200, body: { id: garden.id, name, role: 'manager' } }
+        },
+      }
+    }
+
+    function nameInput(open: DOMWrapper<Element>) {
+      return field(open, 'Name').element as HTMLInputElement
+    }
+
+    it('shows below the members and above "Delete the association", for a manager', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno])
+      const wrapper = await mounting
+
+      expect(showsControl(wrapper, 'Rename the association')).toBe(true)
+      const text = pageText(wrapper)
+      expect(text.indexOf('Rename the association')).toBeGreaterThan(text.indexOf('Bruno'))
+      expect(text.indexOf('Rename the association')).toBeLessThan(
+        text.indexOf('Delete the association'),
+      )
+      expect(dialogs(wrapper)).toHaveLength(0)
+    })
+
+    it('opens the dialog with the current name, before calling the API', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno])
+      const wrapper = await mounting
+
+      await press(wrapper, 'Rename the association')
+
+      const open = dialog(wrapper)
+      expect(titleOf(open)).toBe('Rename the association')
+      expect(nameInput(open).value).toBe(garden.name)
+      expect(showsControl(open, 'Save')).toBe(true)
+      expect(showsControl(open, 'Cancel')).toBe(true)
+      expect(renames(calls)).toHaveLength(0)
+    })
+
+    it('Save is enabled only when Name is not empty', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno])
+      const wrapper = await mounting
+
+      await press(wrapper, 'Rename the association')
+      const open = dialog(wrapper)
+      const isDisabled = () => control(open, 'Save').attributes('disabled') !== undefined
+
+      expect(isDisabled()).toBe(false)
+      await fill(open, 'Name', '')
+      expect(isDisabled()).toBe(true)
+      await fill(open, 'Name', newName)
+      expect(isDisabled()).toBe(false)
+    })
+
+    it('submitting an empty Name does not rename', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
+      const wrapper = await mounting
+
+      await press(wrapper, 'Rename the association')
+      const open = dialog(wrapper)
+      await fill(open, 'Name', '')
+      await press(open, 'Save')
+
+      expect(renames(calls)).toHaveLength(0)
+    })
+
+    it('Save with another name changes it, updates the header and says so', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
+      const wrapper = await mounting
+
+      await press(wrapper, 'Rename the association')
+      const open = dialog(wrapper)
+      await fill(open, 'Name', newName)
+      await press(open, 'Save')
+
+      expect(renames(calls).map((c) => c.body)).toEqual([{ name: newName }])
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(control(header(wrapper), newName).attributes('href')).toBe(
+        `/associations/${garden.id}`,
+      )
+      expect(header(wrapper).text()).not.toContain(garden.name)
+      expect(pageText(wrapper)).toContain(`The association is now ${newName}.`)
+      expect(wrapper.vm.$route.path).toBe(path)
+    })
+
+    it('Save with the same name closes the dialog and changes nothing', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
+      const wrapper = await mounting
+
+      await press(wrapper, 'Rename the association')
+      await press(dialog(wrapper), 'Save')
+
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(renames(calls)).toHaveLength(0)
+      expect(pageText(wrapper)).not.toContain('The association is now')
+    })
+
+    it('Cancel closes the dialog, changes nothing and forgets the typed name', async () => {
+      const { calls, mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
+      const wrapper = await mounting
+
+      await press(wrapper, 'Rename the association')
+      await fill(dialog(wrapper), 'Name', newName)
+      await press(dialog(wrapper), 'Cancel')
+
+      expect(dialogs(wrapper)).toHaveLength(0)
+      expect(renames(calls)).toHaveLength(0)
+      expect(header(wrapper).text()).toContain(garden.name)
+
+      await press(wrapper, 'Rename the association')
+      expect(nameInput(dialog(wrapper)).value).toBe(garden.name)
+    })
+
+    it('reopening after a rename shows the new name', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
+      const wrapper = await mounting
+
+      await press(wrapper, 'Rename the association')
+      await fill(dialog(wrapper), 'Name', newName)
+      await press(dialog(wrapper), 'Save')
+
+      await press(wrapper, 'Rename the association')
+      expect(nameInput(dialog(wrapper)).value).toBe(newName)
+    })
+
+    it('after a rename, "Delete the association" asks for the new name', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
+      const wrapper = await mounting
+
+      await press(wrapper, 'Rename the association')
+      await fill(dialog(wrapper), 'Name', newName)
+      await press(dialog(wrapper), 'Save')
+
+      await press(wrapper, 'Delete the association')
+      const open = dialog(wrapper)
+      const confirmField = "Type the association's name to confirm"
+      expect(open.text()).toContain(`Delete ${newName}?`)
+      await fill(open, confirmField, garden.name)
+      expect(control(open, 'Delete').attributes('disabled')).toBeDefined()
+      await fill(open, confirmField, newName)
+      expect(control(open, 'Delete').attributes('disabled')).toBeUndefined()
+    })
+
+    it('when the API refuses, keeps the dialog and the old name', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno], {
+        [`PATCH ${associationPath}`]: { status: 403, body: { error: 'Managers only' } },
+      })
+      const wrapper = await mounting
+
+      await press(wrapper, 'Rename the association')
+      const open = dialog(wrapper)
+      await fill(open, 'Name', newName)
+      await press(open, 'Save')
+
+      expect(dialogs(wrapper)).toHaveLength(1)
+      expect(header(wrapper).text()).toContain(garden.name)
+      expect(pageText(wrapper)).not.toContain('The association is now')
+    })
+  })
+
   describe('Delete the association', () => {
     const associationPath = `/api/associations/${garden.id}`
     const nameField = "Type the association's name to confirm"
@@ -718,6 +893,13 @@ describe('Members', () => {
       const wrapper = await mounting
 
       expect(hasControl(wrapper, 'Delete the association')).toBe(false)
+    })
+
+    it('shows no "Rename the association"', async () => {
+      const { mounting } = mountAs('volunteer', [zoe, bruno])
+      const wrapper = await mounting
+
+      expect(hasControl(wrapper, 'Rename the association')).toBe(false)
     })
 
     it('shows members and roles without Add a member or the edit icons', async () => {
