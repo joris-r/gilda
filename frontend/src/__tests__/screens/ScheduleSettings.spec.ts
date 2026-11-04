@@ -27,7 +27,7 @@ import {
   type PlanningPeriod,
 } from './planningFake'
 
-const path = `/associations/${garden.slug}/settings`
+const path = `/association/${garden.slug}/settings`
 const base = `/api/associations/${garden.id}`
 
 function mountSettings(
@@ -123,10 +123,10 @@ describe('Schedule settings', () => {
     expect(text).not.toContain('←')
   })
 
-  it('no longer opens at /associations/{slug}/opening', async () => {
+  it('no longer opens at /association/{slug}/opening', async () => {
     const api = planningApi({ me: 'u-alice', role: 'manager', members: [] })
     mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
-    const wrapper = await mountApp(`/associations/${garden.slug}/opening`)
+    const wrapper = await mountApp(`/association/${garden.slug}/opening`)
 
     expect(hasControl(wrapper, 'Add a slot')).toBe(false)
   })

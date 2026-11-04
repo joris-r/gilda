@@ -27,7 +27,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-const path = `/associations/${garden.slug}/members`
+const path = `/association/${garden.slug}/members`
 const membersPath = `/api/associations/${garden.id}/members`
 
 function associationAs(role: 'manager' | 'volunteer', members: ReturnType<typeof member>[]) {
@@ -81,7 +81,7 @@ describe('Members', () => {
     const wrapper = await mounting
 
     expect(control(header(wrapper), garden.name).attributes('href')).toBe(
-      `/associations/${garden.slug}`,
+      `/association/${garden.slug}`,
     )
   })
 
@@ -680,7 +680,7 @@ describe('Members', () => {
       expect(renames(calls).map((c) => c.body)).toEqual([{ name: newName }])
       expect(dialogs(wrapper)).toHaveLength(0)
       expect(control(header(wrapper), newName).attributes('href')).toBe(
-        `/associations/${garden.slug}`,
+        `/association/${garden.slug}`,
       )
       expect(header(wrapper).text()).not.toContain(garden.name)
       expect(pageText(wrapper)).toContain(`The association is now ${newName}.`)
@@ -765,7 +765,7 @@ describe('Members', () => {
   describe('Change the association identifier', () => {
     const associationPath = `/api/associations/${garden.id}`
     const newSlug = 'jardin-des-lilas'
-    const newPath = `/associations/${newSlug}/members`
+    const newPath = `/association/${newSlug}/members`
 
     function changes(calls: { method: string; path: string }[]) {
       return calls.filter((c) => c.method === 'PATCH' && c.path === associationPath)
@@ -824,7 +824,7 @@ describe('Members', () => {
       const open = dialog(wrapper)
       expect(titleOf(open)).toBe('Change the association identifier')
       expect(slugInput(open).value).toBe(garden.slug)
-      expect(open.text()).toContain('/associations/')
+      expect(open.text()).toContain('/association/')
       expect(showsControl(open, 'Save')).toBe(true)
       expect(showsControl(open, 'Cancel')).toBe(true)
       expect(changes(calls)).toHaveLength(0)
@@ -874,7 +874,7 @@ describe('Members', () => {
       await flushPromises()
 
       expect(control(header(wrapper), garden.name).attributes('href')).toBe(
-        `/associations/${newSlug}`,
+        `/association/${newSlug}`,
       )
     })
 

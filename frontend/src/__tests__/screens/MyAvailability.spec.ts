@@ -19,7 +19,7 @@ import {
 import { garden, member, signedInAsAlice } from './fixtures'
 import { planningApi, preferenceOf, type Absence, type Preference, type Slot } from './planningFake'
 
-const path = `/associations/${garden.slug}/availability`
+const path = `/association/${garden.slug}/availability`
 const base = `/api/associations/${garden.id}`
 
 const thuAndSat: Slot[] = [

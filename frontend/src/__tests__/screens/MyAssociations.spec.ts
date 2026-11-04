@@ -81,11 +81,11 @@ describe('My associations', () => {
 
     await press(wrapper, garden.name)
 
-    expect(wrapper.vm.$route.path).toBe(`/associations/${garden.slug}`)
+    expect(wrapper.vm.$route.path).toBe(`/association/${garden.slug}`)
     expect(hasControl(wrapper, 'Schedule settings')).toBe(true)
   })
 
-  it('"New association", below the list, leads to /associations/new', async () => {
+  it('"New association", below the list, leads to /association/new', async () => {
     mockApi({
       'GET /api/session': signedInAsAlice,
       'GET /api/associations': myAssociations,
@@ -100,7 +100,7 @@ describe('My associations', () => {
 
     await press(wrapper, 'New association')
 
-    expect(wrapper.vm.$route.path).toBe('/associations/new')
+    expect(wrapper.vm.$route.path).toBe('/association/new')
   })
 
   it('shows no form and no "Create an association"', async () => {
@@ -137,7 +137,7 @@ describe('My associations', () => {
 describe('New association', () => {
   it('the header shows My associations, leading to /, then New association', async () => {
     mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
-    const wrapper = await mountApp('/associations/new')
+    const wrapper = await mountApp('/association/new')
 
     const text = header(wrapper).text()
     expect(text.indexOf('New association')).toBeGreaterThan(text.indexOf('My associations'))
@@ -146,12 +146,12 @@ describe('New association', () => {
 
   it('shows Name, Association identifier with its prefix, and Create association', async () => {
     mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
-    const wrapper = await mountApp('/associations/new')
+    const wrapper = await mountApp('/association/new')
 
     expect(pageText(wrapper)).toContain('New association')
     expect(showsField(wrapper, 'Name')).toBe(true)
     expect(showsField(wrapper, 'Association identifier')).toBe(true)
-    expect(pageText(wrapper)).toContain('/associations/')
+    expect(pageText(wrapper)).toContain('/association/')
     expect(hasControl(wrapper, 'Create association')).toBe(true)
   })
 
@@ -169,7 +169,7 @@ describe('New association', () => {
       ['!!!', ''],
     ])('Name %j gives %j', async (name, slug) => {
       mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
-      const wrapper = await mountApp('/associations/new')
+      const wrapper = await mountApp('/association/new')
 
       await fill(wrapper, 'Name', name)
 
@@ -178,7 +178,7 @@ describe('New association', () => {
 
     it('Association identifier follows Name as it changes', async () => {
       mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
-      const wrapper = await mountApp('/associations/new')
+      const wrapper = await mountApp('/association/new')
 
       await fill(wrapper, 'Name', 'Repair')
       await fill(wrapper, 'Name', 'Repair Café')
@@ -188,7 +188,7 @@ describe('New association', () => {
 
     it('Association identifier no longer follows Name once the user edits it', async () => {
       mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
-      const wrapper = await mountApp('/associations/new')
+      const wrapper = await mountApp('/association/new')
 
       await fill(wrapper, 'Name', 'Repair')
       await fill(wrapper, 'Association identifier', 'mon-atelier')
@@ -200,7 +200,7 @@ describe('New association', () => {
 
   it('Create association is enabled only when both fields are not empty', async () => {
     mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
-    const wrapper = await mountApp('/associations/new')
+    const wrapper = await mountApp('/association/new')
     const isDisabled = () =>
       control(wrapper, 'Create association').attributes('disabled') !== undefined
 
@@ -224,7 +224,7 @@ describe('New association', () => {
         body: { ...edited, role: 'manager', members: [member('u-alice', 'Alice', 'manager')] },
       },
     })
-    const wrapper = await mountApp('/associations/new')
+    const wrapper = await mountApp('/association/new')
 
     await fill(wrapper, 'Name', repairCafe.name)
     await fill(wrapper, 'Association identifier', 'mon-atelier')
@@ -235,7 +235,7 @@ describe('New association', () => {
       path: '/api/associations',
       body: { name: repairCafe.name, slug: 'mon-atelier' },
     })
-    expect(wrapper.vm.$route.path).toBe('/associations/mon-atelier')
+    expect(wrapper.vm.$route.path).toBe('/association/mon-atelier')
   })
 
   it.each([
@@ -250,13 +250,13 @@ describe('New association', () => {
       'GET /api/session': signedInAsAlice,
       'POST /api/associations': { status, body: { error: 'refused' } },
     })
-    const wrapper = await mountApp('/associations/new')
+    const wrapper = await mountApp('/association/new')
 
     await fill(wrapper, 'Name', repairCafe.name)
     await press(wrapper, 'Create association')
 
     expect(pageText(wrapper)).toContain(message)
-    expect(wrapper.vm.$route.path).toBe('/associations/new')
+    expect(wrapper.vm.$route.path).toBe('/association/new')
     expect(identifier(wrapper)).toBe(repairCafe.slug)
   })
 
@@ -281,7 +281,7 @@ describe('New association', () => {
       path: '/api/associations',
       body: { name: repairCafe.name, slug: repairCafe.slug },
     })
-    expect(wrapper.vm.$route.path).toBe(`/associations/${repairCafe.slug}`)
+    expect(wrapper.vm.$route.path).toBe(`/association/${repairCafe.slug}`)
     expect(header(wrapper).text()).toContain(repairCafe.name)
   })
 
@@ -290,7 +290,7 @@ describe('New association', () => {
       'GET /api/session': signedInAsAlice,
       'GET /api/associations': myAssociations,
     })
-    const wrapper = await mountApp('/associations/new')
+    const wrapper = await mountApp('/association/new')
 
     await fill(wrapper, 'Name', repairCafe.name)
     await press(wrapper, 'Cancel')
@@ -301,7 +301,7 @@ describe('New association', () => {
 
   it('signed out, shows Sign in', async () => {
     mockApi({ 'GET /api/session': signedOut })
-    const wrapper = await mountApp('/associations/new')
+    const wrapper = await mountApp('/association/new')
 
     expect(pageText(wrapper)).toContain('No account yet?')
   })

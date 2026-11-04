@@ -288,7 +288,7 @@ describe('My associations', () => {
 
       await press(wrapper, 'Choose your slots')
 
-      expect(wrapper.vm.$route.path).toBe(`/associations/${garden.slug}`)
+      expect(wrapper.vm.$route.path).toBe(`/association/${garden.slug}`)
     })
 
     it.each([

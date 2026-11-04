@@ -17,10 +17,10 @@ const unknown = 'plus-par-ici'
 
 describe('A screen of an association whose slug is unknown', () => {
   describe.each([
-    ['Schedule', `/associations/${unknown}`],
-    ['Members', `/associations/${unknown}/members`],
-    ['Schedule settings', `/associations/${unknown}/settings`],
-    ['My availability', `/associations/${unknown}/availability`],
+    ['Schedule', `/association/${unknown}`],
+    ['Members', `/association/${unknown}/members`],
+    ['Schedule settings', `/association/${unknown}/settings`],
+    ['My availability', `/association/${unknown}/availability`],
   ])('%s', (_screen, path) => {
     function mountUnknown() {
       mockApi({
@@ -62,7 +62,7 @@ describe('A screen of an association whose slug is unknown', () => {
         body: { ...garden, role: 'volunteer', members: [] },
       },
     })
-    const wrapper = await mountApp(`/associations/${garden.slug}/members`)
+    const wrapper = await mountApp(`/association/${garden.slug}/members`)
 
     expect(pageText(wrapper)).not.toContain(MESSAGE)
   })

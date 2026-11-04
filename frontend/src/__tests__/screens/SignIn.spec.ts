@@ -96,7 +96,7 @@ describe('Sign in', () => {
   it('is shown on an association page when signed out', async () => {
     mockApi({ 'GET /api/session': signedOut })
 
-    const wrapper = await mountApp('/associations/a-garden')
+    const wrapper = await mountApp('/association/a-garden')
 
     expect(field(wrapper, 'Password').exists()).toBe(true)
     expect(pageText(wrapper)).toContain('No account yet?')

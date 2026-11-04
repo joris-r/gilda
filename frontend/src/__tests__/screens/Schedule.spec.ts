@@ -25,7 +25,7 @@ import {
 const alice = member('u-alice', 'Alice', 'volunteer')
 const bruno = member('u-bruno', 'Bruno', 'volunteer')
 const chloe = member('u-chloe', 'Chloé', 'volunteer')
-const path = `/associations/${garden.slug}`
+const path = `/association/${garden.slug}`
 const registrationsPath = `/api/associations/${garden.id}/registrations`
 
 function isoDate(d: Date) {
@@ -155,7 +155,14 @@ describe('Schedule', () => {
     expect(text).not.toContain('26 Oct – 1 Nov')
   })
 
-  it('no longer opens at /associations/{slug}/schedule', async () => {
+  it('no longer opens at /associations/{slug}', async () => {
+    const { mounting } = mountSchedule('volunteer', {}, `/associations/${garden.slug}`)
+    const text = pageText(await mounting)
+
+    expect(text).not.toContain('Week 44')
+  })
+
+  it('no longer opens at /association/{slug}/schedule', async () => {
     const { mounting } = mountSchedule('volunteer', {}, `${path}/schedule`)
     const text = pageText(await mounting)
 
