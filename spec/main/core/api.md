@@ -4,7 +4,7 @@
 
 ### POST /api/accounts
 
-Creates an account. The email must be confirmed (see
+Creates a user with a password. The email must be confirmed (see
 `POST /api/accounts/verify`) before it can sign in.
 
 ```http
@@ -21,9 +21,9 @@ Content-Type: application/json
 {"id": "0b6f…", "display_name": "Alice", "email": "alice@example.org"}
 ```
 
-- R2: When a user without a password already has this email, the
-  account is created on that user: it gets the password and the given
-  display name, and keeps its memberships.
+- R2: When a user without a password already has this email, that user
+  gets the password and the given display name, and keeps their
+  memberships.
 - R9: On success, an EmailVerificationToken is created and a
   confirmation email sent to it, with a link to `/verify-email?token=…`.
 - R20: The confirmation email is in French when the request's
@@ -203,7 +203,7 @@ Set-Cookie: session=…
 - `superuser` is true when the user's email equals
   `SUPERUSER_EMAIL`, ignoring case; always false when that variable
   is unset.
-- 401 when the email is unknown, has no account, the email is not
+- 401 when the email is unknown, has no password, the email is not
   confirmed, or the password is wrong; the response does not say
   which.
 - R16: On success, the `session` cookie set holds a new value, and the

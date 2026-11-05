@@ -83,15 +83,18 @@ member.
 
 ### Entity: Registration
 
-A member on an occurrence.
+The state of a member's commitment on an occurrence.
 
 - Fields
   - id: UUID
   - association
   - user: a member of the association when the registration was created
-  - date, start, end: those of the occurrence; there is no link to the
-    slot
-  - status: `proposed`, `confirmed` or `cancelled`
+  - date, start, end: those of the occurrence
+  - status
+    - `proposed`: asked of the member, not yet confirmed
+    - `confirmed`: the member is committed
+    - `cancelled`: the commitment is withdrawn; the occurrence is free
+      again
 - Rules
   - R4: An occurrence holds at most one registration that is not
     cancelled.

@@ -18,7 +18,11 @@
 - Backend tests: report to Advanced Alchemy that its Litestar lifespan disposes only the first config's engine per process, then drop the workaround in the new_client fixture.
 - Accessibility: audit the screens with a screen reader and axe (e.g. in the e2e tests); the Schedule's occurrence labels, for one, cannot say that a registration is cancelled.
 - Sessions: ask Litestar for a way to renew the session ID (e.g. on `set_session`), then drop the `SessionBackend` subclass.
+- Spec: separate invariants (data model) from post-conditions (API), with no sentence mixing both, starting with R8, R23, R28 and R33.
+- Traceability: try named markers on data model rules, with a generated spec-to-tests index, to judge it for Dev43.
 
 ## Future
 
-- Cleanup: a procedure to purge old planning data (e.g. past absences, registrations and closures), which today is kept forever; also associations left without members once their last member deletes their account.
+- Cleanup: a procedure to purge old planning data (e.g. past absences, registrations and closures), which today is kept forever.
+- Cleanup: an association left with no member stays forever, unreachable, with its slug and share link; decide its fate (automatic deletion, or a superuser action).
+- Security: access links never expire; consider an expiration, with a `created_at` filled from their UUIDv7 id.

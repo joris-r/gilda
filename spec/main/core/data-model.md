@@ -4,15 +4,16 @@
 
 ### Entity: User
 
-A person known to the system.
+A person known to the system. Their account is what the system holds
+about them.
 
 - Fields
   - id: UUID
   - display_name: free text, not empty; may be a pseudonym
   - email: unique, compared ignoring case; null once the account is
     deleted
-  - password: optional; a user with a password has an account, a user
-    without one is only a member of associations
+  - password: optional; what the user signs in with, along with their
+    email
   - email_verified_at: timestamp, null until the email is confirmed (by
     its confirmation link, a password reset or an access link)
   - deleted_at: timestamp, null until the user deletes their account
@@ -83,4 +84,4 @@ A user in an association, at most one per pair.
   - association
   - role: `manager` or `volunteer`
 - Rules
-  - R1: An association always has at least one manager.
+  - R1: An association with at least one member has at least one manager.

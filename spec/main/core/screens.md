@@ -90,8 +90,8 @@ Already have an account? Sign in
 - On success, shows "Check alice@example.org for a confirmation
   link." instead of signing in. A "Resend the email" action below it
   shows "Email sent." when clicked.
-- When the email already has an account: "An account already exists
-  for this email. Sign in instead."
+- When a user with this email has a password: "An account already
+  exists for this email. Sign in instead."
 - When the email was not invited (R19): "This email has not been
   invited. Ask a manager of your association to add you as a member."
 - When the confirmation email cannot be sent: "We couldn't send the
