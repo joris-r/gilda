@@ -54,10 +54,8 @@ class TestOtherPaths:
     @pytest.mark.parametrize(
         "path",
         [
-            "/forgot-password",
             "/sign-in-link",
             "/access?token=x",
-            "/reset-password?token=x",
             "/associations/new",
             "/association/jardin/members",
         ],

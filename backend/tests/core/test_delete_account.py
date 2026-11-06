@@ -6,6 +6,7 @@ from typing import Any
 from tests.core.conftest import (
     PASSWORD,
     add_member,
+    ask_for_reset,
     confirm_email,
     create_account,
     create_association,
@@ -13,6 +14,8 @@ from tests.core.conftest import (
     latest_email,
     latest_reset_token,
     latest_verification_token,
+    reset_password,
+    shown,
     sign_up,
     unique_email,
 )
@@ -94,15 +97,13 @@ def test_r29_a_pending_password_reset_no_longer_works(
 ) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
-    assert client.post("/api/accounts/password-reset", json={"email": email}).status_code == 204
+    ask_for_reset(client, email)
     token = latest_reset_token(email)
 
     delete_account(client)
 
-    response = new_client().post(
-        "/api/accounts/password-reset/confirm", json={"token": token, "password": "battery staple"}
-    )
-    assert response.status_code == 404
+    response = reset_password(new_client(), token, "battery staple")
+    assert "This link is no longer valid." in shown(response)
 
 
 def test_r29_no_email_is_sent_to_the_erased_email_anymore(
@@ -115,7 +116,7 @@ def test_r29_no_email_is_sent_to_the_erased_email_anymore(
 
     other = new_client()
     assert other.post("/api/access-link", json={"email": email}).status_code == 204
-    assert other.post("/api/accounts/password-reset", json={"email": email}).status_code == 204
+    assert ask_for_reset(other, email).status_code == 200
 
     time.sleep(0.5)
     assert email_count(email) == before

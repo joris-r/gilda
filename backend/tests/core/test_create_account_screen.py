@@ -1,4 +1,3 @@
-import html
 import re
 import uuid
 from collections.abc import Callable
@@ -9,13 +8,16 @@ import pytest
 from tests.core.conftest import (
     PASSWORD,
     add_member,
+    break_the_mailer,
     confirm_email,
     create_account,
     create_association,
     email_count,
+    heading,
     latest_email,
     latest_verification_token,
     run_sql,
+    shown,
     sign_up,
     unique_email,
 )
@@ -40,27 +42,8 @@ def check_your_email(email: str) -> str:
     return f"Check {email} for a confirmation link."
 
 
-def shown(response: Any) -> str:
-    """The text of an action's response, as the browser shows it."""
-    assert response.status_code == 200, response.text
-    assert response.headers["content-type"].startswith("text/event-stream")
-    return html.unescape(response.text)
-
-
-def heading(response: Any) -> str:
-    match = re.search(r"<h1[^>]*>\s*(.*?)\s*</h1>", response.text, re.DOTALL)
-    assert match, f"no heading in {response.text}"
-    return match.group(1)
-
-
 def resend(client: Any, email: str, **kwargs: Any) -> Any:
     return client.post("/signup/resend", json={"email": email}, **kwargs)
-
-
-def break_the_mailer(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Points the mailer at a port where nothing listens, so sending fails."""
-    monkeypatch.setenv("SMTP_HOST", "localhost")
-    monkeypatch.setenv("SMTP_PORT", "1")
 
 
 def assert_written_in(sent: dict[str, str], language: dict[str, str]) -> None:

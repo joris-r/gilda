@@ -1,4 +1,5 @@
 import asyncio
+import html
 import os
 import re
 import time
@@ -101,6 +102,35 @@ def create_account(
 def confirm_email(client: Any, token: str) -> Any:
     """Runs the action of Confirm email, as the page does."""
     return client.post("/verify-email", json={"token": token})
+
+
+def ask_for_reset(client: Any, email: str, **kwargs: Any) -> Any:
+    """Submits Forgot password, as the screen does."""
+    return client.post("/forgot-password", json={"email": email}, **kwargs)
+
+
+def reset_password(client: Any, token: str, password: str) -> Any:
+    """Submits Reset password, as the screen does."""
+    return client.post("/reset-password", json={"token": token, "password": password})
+
+
+def shown(response: Any) -> str:
+    """The text of an action's response, as the browser shows it."""
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"].startswith("text/event-stream")
+    return html.unescape(response.text)
+
+
+def heading(response: Any) -> str:
+    match = re.search(r"<h1[^>]*>\s*(.*?)\s*</h1>", response.text, re.DOTALL)
+    assert match, f"no heading in {response.text}"
+    return match.group(1)
+
+
+def break_the_mailer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Points the mailer at a port where nothing listens, so sending fails."""
+    monkeypatch.setenv("SMTP_HOST", "localhost")
+    monkeypatch.setenv("SMTP_PORT", "1")
 
 
 def sign_up(client: Any, display_name: str, email: str | None = None) -> dict[str, Any]:
