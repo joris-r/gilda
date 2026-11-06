@@ -6,8 +6,8 @@ The screens of this specification are being rebuilt one at a time.
 Until then:
 
 - Served:
-  - Sign in, Create an account and Confirm email, with their signed-out
-    header.
+  - Sign in, Forgot password, Reset password, Create an account and
+    Confirm email, with their signed-out header.
   - A temporary `/`, signed in, in place of My associations:
 
     ```

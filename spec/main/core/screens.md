@@ -55,7 +55,30 @@ Back to Sign in
 ```
 
 - On submit, shows "If alice@example.org has an account, a reset link
-  has been sent to it." instead of the form.
+  has been sent to it." instead of the form, whether or not such a user
+  exists, and when the email cannot be sent.
+- R21: When a user with this email has a password, a
+  PasswordResetToken is created and an email sent to it, with a link
+  to `/reset-password?token=…`, in the language R20 sets:
+
+  ```
+  Subject: Reset your password
+
+  Choose a new password by opening this link, valid for one hour:
+
+  https://…/reset-password?token=…
+  ```
+
+  ```
+  Subject: Réinitialisez votre mot de passe
+
+  Choisissez un nouveau mot de passe en ouvrant ce lien, valable une heure :
+
+  https://…/reset-password?token=…
+  ```
+- No email is sent to a user without a password, nor to an unknown
+  email.
+- A missing or invalid email shows the generic error message.
 
 ## `/reset-password`: Reset password
 
@@ -68,10 +91,16 @@ Choose a new password
 ```
 
 - Reached from the reset link's `token` query parameter.
-- On success, leads to My associations, signed in.
+- R22: On success, replaces the token's user's password, sets their
+  email_verified_at if still null, deletes the token, signs the user
+  in, as Sign in does (R16), and leads to My associations. The user's
+  other sessions stay signed in.
 - An unknown, expired, or already-used token shows "This link is no
   longer valid." with a way to `/forgot-password` to request a new
-  one.
+  one, in place of the form when the page opens, and on submit.
+- Opening the link leaves the token usable.
+- A password with fewer than 8 characters shows the generic error
+  message; the token stays usable.
 
 ## `/signup`: Create an account
 
