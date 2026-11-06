@@ -201,12 +201,19 @@ class AccountService:
         try:
             send_password_reset_email(user.address, token.token, language)
         except EmailNotSentError:
-            # Still 204: an error here would reveal that the email has an account.
+            # Same screen: an error here would reveal that the email has an account.
             _logger.exception("Sending the password reset email failed")
 
-    async def reset_password(self, token: str, password: str) -> User:
+    async def _usable_reset_token(self, token: str) -> PasswordResetToken | None:
         record = await self.reset_tokens.get_one_or_none(token=token)
-        if record is None or record.expires_at < datetime.now(UTC):
+        return None if record is None or record.expires_at < datetime.now(UTC) else record
+
+    async def reset_token_is_usable(self, token: str) -> bool:
+        return await self._usable_reset_token(token) is not None
+
+    async def reset_password(self, token: str, password: str) -> User:
+        record = await self._usable_reset_token(token)
+        if record is None:
             raise NotFoundException("This reset link is unknown or expired.")
         user = await self.get(record.user_id)
         assert user is not None  # the foreign key guarantees it

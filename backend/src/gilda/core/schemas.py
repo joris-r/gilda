@@ -26,8 +26,7 @@ class PasswordResetRequest(msgspec.Struct):
     email: Email
 
 
-class PasswordResetConfirm(msgspec.Struct):
-    token: str
+class NewPassword(msgspec.Struct):
     password: Password
 
 

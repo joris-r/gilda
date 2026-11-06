@@ -19,8 +19,6 @@ from gilda.core.schemas import (
     MemberCreate,
     MemberRead,
     MemberUpdate,
-    PasswordResetConfirm,
-    PasswordResetRequest,
     SessionRead,
 )
 from gilda.core.services import (
@@ -88,27 +86,6 @@ class AccountController(Controller):
     ) -> None:
         await AccountService(db_session).delete_account(current_user, membership_end_hooks)
         request.clear_session()
-
-    @post("/accounts/password-reset", status_code=204)
-    async def request_password_reset(
-        self,
-        request: Request[Any, Any, Any],
-        db_session: NamedDependency[AsyncSession],
-        data: JSONBody[PasswordResetRequest],
-    ) -> None:
-        await AccountService(db_session).request_password_reset(
-            data.email, interface_language(request)
-        )
-
-    @post("/accounts/password-reset/confirm", status_code=200)
-    async def reset_password(
-        self,
-        request: Request[Any, Any, Any],
-        db_session: NamedDependency[AsyncSession],
-        data: JSONBody[PasswordResetConfirm],
-    ) -> SessionRead:
-        user = await AccountService(db_session).reset_password(data.token, data.password)
-        return sign_in_as(request, user)
 
     @post("/session", status_code=200)
     async def sign_in(

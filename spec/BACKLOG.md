@@ -9,7 +9,6 @@
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Forgot password and Reset password.
 - Forms: the shared dialog and confirmation (Escape, close button, Cancel), first used by "Delete my account" in a signed-in header menu with the language selector and Sign out; restores "A forgotten password", whose test signs out through that menu.
 - Header: the location, and "Revoke my sign-in link" in the menu.
 - Sign-in link and Access link.
@@ -31,6 +30,21 @@ Rebuild, in this order; each item moves its rules out of the `api.md` pages, por
 - Finish: delete what remains of the JSON API and the `api.md` pages, the temporary pieces and "Rebuild in progress".
 
 
+## Datastar rewrite feedback
+
+### Possible spec updates
+
+Choices the spec left open, settled by `forgot-password`:
+
+- Reset password: a short password with a bad link shows the generic error first, as the password is checked before the token.
+- Reset password: a missing token on submit shows the invalid link.
+- Forgot password: "Back to Sign in" stays under the message once the form is submitted.
+
+### Possible features or bugs
+
+- Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
+
+
 ## Quality
 
 - Spec: `GET /api/associations` and My associations sit in the core pages though R12–R14 are planning's; move them to a home page once other modules add their part.
@@ -45,11 +59,16 @@ Rebuild, in this order; each item moves its rules out of the `api.md` pages, por
 - Accessibility: audit the screens with a screen reader and axe (e.g. in the e2e tests); the Schedule's occurrence labels, for one, cannot say that a registration is cancelled.
 - Sessions: ask Litestar for a way to renew the session ID (e.g. on `set_session`), then drop the `SessionBackend` subclass.
 - Spec: separate invariants (data model) from post-conditions (API), with no sentence mixing both, starting with R8, R23, R28 and R33.
-- Create an account: a failed resend keeps the previous confirmation link working.
+- Create an account and Forgot password: a failed send keeps the previous link working.
 - Traceability: try named markers on data model rules, with a generated spec-to-tests index, to judge it for Dev43.
+
+## Security
+
+- Access links never expire; consider an expiration, with a `created_at` filled from their UUIDv7 id.
+- R22 keeps the user's other sessions signed in, so someone who stole a session stays connected after a password reset; revisit it.
+- Forgot password shows the same message for everyone, but its response time can reveal an account, as only a user with a password gets an email during the request; send it in the background.
 
 ## Future
 
 - Cleanup: a procedure to purge old planning data (e.g. past absences, registrations and closures), which today is kept forever.
 - Cleanup: an association left with no member stays forever, unreachable, with its slug and share link; decide its fate (automatic deletion, or a superuser action).
-- Security: access links never expire; consider an expiration, with a `created_at` filled from their UUIDv7 id.

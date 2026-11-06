@@ -23,3 +23,10 @@ When a test copies an expectation from another spec, the Tests phase
 checks that the fixtures it relies on match (e.g. a planning period
 that changes the default range, or a client that holds a `language`
 cookie).
+
+During the Datastar rewrite, the final review of each item of
+`spec/BACKLOG.md`'s "Datastar experiment" list proposes entries for
+that file, added once the human approves: in "Datastar rewrite
+feedback", under "Possible spec updates" the choices the spec left open
+and the code settled, and under "Possible features or bugs" the gaps
+found; in "Security", the security points found.
