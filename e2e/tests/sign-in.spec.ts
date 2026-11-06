@@ -31,7 +31,7 @@ test.describe('Sign in', () => {
     await expect(page.getByLabel('Email', { exact: true })).toHaveValue(email)
   })
 
-  test('success leads to the temporary /, and Sign out to Sign in', async ({ page, request }) => {
+  test('success leads to My associations, and Sign out to Sign in', async ({ page, request }) => {
     const email = await createAccount(request, 'Alice')
     await page.goto('/')
 

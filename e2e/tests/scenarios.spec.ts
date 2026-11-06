@@ -67,7 +67,7 @@ async function openSchedule(page: Page, association: string) {
 }
 
 async function createAssociation(page: Page, association: string) {
-  await page.getByRole('button', { name: 'New association' }).click()
+  await page.getByRole('link', { name: 'New association' }).click()
   await page.getByLabel('Name', { exact: true }).fill(association)
   await page.getByRole('button', { name: 'Create association' }).click()
   await expect(page.locator('header').getByText(association)).toBeVisible()

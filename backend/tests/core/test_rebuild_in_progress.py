@@ -14,7 +14,7 @@ def part(page: str, tag: str) -> str:
     return match.group(0)
 
 
-class TestTemporarySlash:
+class TestMyAssociationsHeader:
     def test_signed_in_shows_my_associations_the_user_and_sign_out(self, client: Any) -> None:
         sign_up(client, "Alice")
 
