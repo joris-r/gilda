@@ -7,7 +7,32 @@
 
 ## Datastar experiment
 
-- Rebuild the remaining screens one increment at a time; each moves its rules out of `api.md`, ports its tests and deletes its endpoints.
+Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
+
+- Create an account and Confirm email, with Resend the email; backend tests then create accounts without `POST /api/accounts`.
+- Forgot password and Reset password.
+- Forms: the shared dialog and confirmation (Escape, close button, Cancel), first used by "Delete my account" in a signed-in header menu with the language selector and Sign out; restores "A forgotten password", whose test signs out through that menu.
+- Header: the location, and "Revoke my sign-in link" in the menu.
+- Sign-in link and Access link.
+- My associations: the list with names and roles, replacing the temporary `/`, and New association.
+- Members: the list, "Show all", "not joined yet" and Add a member.
+- Members: the edit dialog, role changes and Remove from the association; restores "A volunteer becomes manager".
+- Members: Revoke link and Send link; restores "A volunteer signs in by link".
+- Members: Rename the association, Change the association identifier and Delete the association.
+- Schedule settings: Slots, with R17 and R18.
+- Schedule settings: Closures and Planning period.
+- My availability: My preferences.
+- My availability: Absences and Note for the managers.
+- Schedule settings: Members' preferences.
+- Schedule: the weeks read-only, "More weeks", the today and period lines, closures.
+- Schedule: the volunteer's menu (Sign up, Confirm, Cancel registration).
+- Schedule: the manager's menu (propose, cancel, preferences and counts, absence and note icons); restores "The schedule is filled".
+- Schedule settings: Share link, and Shared schedule; restores "The schedule is shared".
+- My associations: the registrations summary (R12, R13, R14, Confirm, OK, Choose your slots).
+- Finish: delete what remains of the JSON API and the `api.md` pages, the temporary pieces and "Rebuild in progress".
+
+Fixes from the first increment:
+
 - Sign in: show the generic error message when an action fails, as Vue did.
 - Interface: an HTML 404 page, for screens not served (today a browser shows raw JSON).
 - Deployment: try the SSE responses on the host, in case a proxy buffers them.
