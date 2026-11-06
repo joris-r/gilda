@@ -9,6 +9,7 @@ import pytest
 from tests.core.conftest import (
     PASSWORD,
     add_member,
+    create_account,
     create_association,
     email_count,
     latest_email,
@@ -114,6 +115,18 @@ def test_r24_access_link_email_is_in_french_when_the_request_prefers_french(
     assert re.search(r"/access\?token=[\w-]+", sent["Text"])
 
 
+def test_r20_r24_the_language_cookie_wins_over_the_browser(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    _, _, chloe_email = manager_with_member(client)
+    browser = new_client()
+    browser.cookies.set("language", "fr")
+
+    ask_for_link(browser, chloe_email, "en")
+
+    assert latest_email(chloe_email)["Subject"] == FRENCH["Subject"]
+
+
 def test_r24_access_link_email_is_in_english_otherwise(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -217,9 +230,7 @@ def test_access_link_lets_a_user_with_an_unconfirmed_email_sign_in_with_their_pa
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Bruno")
-    client.post(
-        "/api/accounts", json={"display_name": "Bruno", "email": email, "password": PASSWORD}
-    )
+    create_account(client, "Bruno", email)
     ask_for_link(client, email)
 
     open_link(client, latest_access_token(email))
@@ -475,6 +486,15 @@ def test_r26_the_email_follows_the_managers_language(client: Any) -> None:
     sent = latest_email(chloe_email)
     assert sent["Subject"] == FRENCH["Subject"]
     assert normalized(sent["Text"]).startswith(normalized(FRENCH["Text"]))
+
+
+def test_r20_r26_the_managers_language_cookie_wins_over_their_browser(client: Any) -> None:
+    association, chloe, chloe_email = manager_with_member(client)
+    client.cookies.set("language", "fr")
+
+    send_link(client, association["id"], chloe["user_id"], "en")
+
+    assert latest_email(chloe_email)["Subject"] == FRENCH["Subject"]
 
 
 def test_r26_r25_sending_again_sends_the_same_link(

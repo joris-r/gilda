@@ -1,5 +1,3 @@
-import asyncio
-import os
 import re
 import time
 import uuid
@@ -8,16 +6,16 @@ from datetime import timedelta
 from typing import Any
 
 import pytest
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from tests.core.conftest import (
     PASSWORD,
     add_member,
+    create_account,
     create_association,
     email_count,
     latest_email,
     latest_reset_token,
+    run_sql,
     sign_up,
     unique_email,
 )
@@ -48,20 +46,6 @@ def reset(client: Any, token: str, password: str = NEW_PASSWORD) -> Any:
 def can_sign_in(new_client: Callable[[], Any], email: str, password: str) -> bool:
     response = new_client().post("/api/session", json={"email": email, "password": password})
     return bool(response.status_code == 200)
-
-
-def run_sql(sql: str, token: str) -> Any:
-    """Runs `sql` on the reset token `token`, and returns its first value, if any."""
-
-    async def run() -> Any:
-        engine = create_async_engine(os.environ["DATABASE_URL"])
-        async with engine.begin() as connection:
-            result = await connection.execute(text(sql), {"token": token})
-            value = result.scalar() if result.returns_rows else None
-        await engine.dispose()
-        return value
-
-    return asyncio.run(run())
 
 
 def expires_in(token: str) -> timedelta:
@@ -117,6 +101,19 @@ def test_r21_reset_email_is_in_french_when_the_request_prefers_french(
     assert re.search(r"/reset-password\?token=[\w-]+", sent["Text"])
 
 
+def test_r20_r21_the_language_cookie_wins_over_the_browser(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+    browser = new_client()
+    browser.cookies.set("language", "fr")
+
+    ask_for_reset(browser, email, "en")
+
+    assert latest_email(email)["Subject"] == FRENCH["Subject"]
+
+
 def test_r21_reset_email_is_in_english_otherwise(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -139,9 +136,7 @@ def test_r21_ignores_the_case_of_the_email(client: Any, new_client: Callable[[],
 
 def test_r21_sends_a_reset_link_to_a_user_whose_email_is_not_confirmed(client: Any) -> None:
     email = unique_email("Bruno")
-    client.post(
-        "/api/accounts", json={"display_name": "Bruno", "email": email, "password": PASSWORD}
-    )
+    create_account(client, "Bruno", email)
 
     response = ask_for_reset(client, email)
 
@@ -273,9 +268,7 @@ def test_r22_confirms_an_unconfirmed_email(client: Any, new_client: Callable[[],
     bruno_email = unique_email("Bruno")
     member = add_member(client, association["id"], "Bruno", bruno_email).json()
     bruno = new_client()
-    bruno.post(
-        "/api/accounts", json={"display_name": "Bruno", "email": bruno_email, "password": PASSWORD}
-    )
+    create_account(bruno, "Bruno", bruno_email)
     ask_for_reset(bruno, bruno_email)
 
     response = reset(bruno, latest_reset_token(bruno_email))

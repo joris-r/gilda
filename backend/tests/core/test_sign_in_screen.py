@@ -4,7 +4,13 @@ from typing import Any
 
 import pytest
 
-from tests.core.conftest import PASSWORD, latest_verification_token, sign_up, unique_email
+from tests.core.conftest import (
+    PASSWORD,
+    create_account,
+    latest_verification_token,
+    sign_up,
+    unique_email,
+)
 
 WRONG_EN = "Wrong email or password."
 WRONG_FR = "E-mail ou mot de passe incorrect."
@@ -78,11 +84,7 @@ class TestSignIn:
 
     def test_unconfirmed_email_shows_the_same_message(self, client: Any) -> None:
         email = unique_email("Alice")
-        created = client.post(
-            "/api/accounts",
-            json={"display_name": "Alice", "email": email, "password": PASSWORD},
-        )
-        assert created.status_code == 201
+        assert email in create_account(client, "Alice", email).text
         latest_verification_token(email)
 
         response = sign_in(client, email)

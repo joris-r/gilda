@@ -6,6 +6,8 @@ from typing import Any
 from tests.core.conftest import (
     PASSWORD,
     add_member,
+    confirm_email,
+    create_account,
     create_association,
     email_count,
     latest_email,
@@ -127,18 +129,13 @@ def test_r29_the_email_can_be_used_by_a_new_account(
     delete_account(client)
 
     again = new_client()
-    response = again.post(
-        "/api/accounts",
-        json={"display_name": "Alice B.", "email": email, "password": PASSWORD},
-    )
+    create_account(again, "Alice B.", email)
 
-    assert response.status_code == 201
-    assert response.json()["id"] != old["id"]
-    token = latest_verification_token(email)
-    assert again.post("/api/accounts/verify", json={"token": token}).status_code == 200
+    assert confirm_email(again, latest_verification_token(email)).status_code == 200
     signed_in = again.post("/api/session", json={"email": email, "password": PASSWORD})
     assert signed_in.status_code == 200
     assert signed_in.json()["display_name"] == "Alice B."
+    assert signed_in.json()["id"] != old["id"]
 
 
 def test_r29_the_email_can_be_added_as_a_new_member(

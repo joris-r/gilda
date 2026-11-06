@@ -1,3 +1,5 @@
+import html
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -52,18 +54,68 @@ class TestOtherPaths:
     @pytest.mark.parametrize(
         "path",
         [
-            "/signup",
             "/forgot-password",
             "/sign-in-link",
             "/access?token=x",
             "/reset-password?token=x",
-            "/verify-email?token=x",
             "/associations/new",
             "/association/jardin/members",
         ],
     )
-    def test_any_other_path_answers_404(self, client: Any, path: str) -> None:
-        assert client.get(path).status_code == 404
+    def test_any_other_path_answers_the_not_found_page(self, client: Any, path: str) -> None:
+        response = client.get(path)
+
+        assert response.status_code == 404
+        assert "Page not found" in response.text
+
+
+class TestNotFound:
+    @pytest.mark.parametrize("path", ["/nothing-here", "/static/nothing-here.css", "/a/b/c"])
+    def test_answers_an_html_page(self, client: Any, path: str) -> None:
+        response = client.get(path)
+
+        assert response.status_code == 404
+        assert response.headers["content-type"].startswith("text/html")
+        assert re.search(r"<h1[^>]*>\s*Page not found\s*</h1>", response.text)
+
+    @pytest.mark.parametrize("path", ["/sign-in", "/sign-out", "/language", "/signup/resend"])
+    def test_a_path_only_actions_use_answers_it_too(self, client: Any, path: str) -> None:
+        response = client.get(path)
+
+        assert response.status_code == 404
+        assert "Page not found" in response.text
+
+    def test_leads_to_the_home_page(self, client: Any) -> None:
+        page = client.get("/nothing-here").text
+
+        assert re.search(r'<a[^>]*href="/"[^>]*>\s*Back to the home page\s*</a>', page)
+
+    def test_has_the_signed_out_header(self, client: Any) -> None:
+        page = client.get("/nothing-here").text
+
+        assert "English" in page
+        assert "Français" in page
+
+    def test_signed_in_shows_the_same_and_stays_signed_in(self, client: Any) -> None:
+        sign_up(client, "Alice")
+
+        response = client.get("/nothing-here")
+
+        assert response.status_code == 404
+        assert "Page not found" in response.text
+        assert "Sign out" not in response.text
+        assert client.get("/api/session").status_code == 200
+
+    def test_follows_the_language(self, client: Any) -> None:
+        client.cookies.set("language", "fr")
+
+        assert "Page introuvable" in client.get("/nothing-here").text
+
+    def test_follows_the_browser_language(self, client: Any) -> None:
+        page = client.get("/nothing-here", headers={"Accept-Language": "fr"}).text
+
+        assert "Page introuvable" in page
+        assert "Retour à la page d'accueil" in html.unescape(page)
 
 
 class TestJsonApi:

@@ -1,3 +1,4 @@
+import asyncio
 import os
 import re
 import time
@@ -9,7 +10,8 @@ from typing import Any
 import httpx
 import pytest
 from litestar.testing import TestClient
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from gilda.app import create_app
 
@@ -85,21 +87,49 @@ def client(new_client: Callable[[], Any]) -> Any:
     return new_client()
 
 
+def create_account(
+    client: Any, display_name: str, email: str, password: str = PASSWORD, **kwargs: Any
+) -> Any:
+    """Submits Create an account, as the screen does."""
+    return client.post(
+        "/signup",
+        json={"displayName": display_name, "email": email, "password": password},
+        **kwargs,
+    )
+
+
+def confirm_email(client: Any, token: str) -> Any:
+    """Runs the action of Confirm email, as the page does."""
+    return client.post("/verify-email", json={"token": token})
+
+
 def sign_up(client: Any, display_name: str, email: str | None = None) -> dict[str, Any]:
     """Signs up, confirms the email via Mailpit, and signs in."""
     email = email or unique_email(display_name)
-    response = client.post(
-        "/api/accounts",
-        json={"display_name": display_name, "email": email, "password": PASSWORD},
-    )
-    assert response.status_code == 201, response.text
-    user: dict[str, Any] = response.json()
+    response = create_account(client, display_name, email)
+    assert response.status_code == 200, response.text
+    assert email in response.text, response.text
 
-    token = latest_verification_token(email)
-    assert client.post("/api/accounts/verify", json={"token": token}).status_code == 200
+    assert confirm_email(client, latest_verification_token(email)).status_code == 200
     sign_in = client.post("/api/session", json={"email": email, "password": PASSWORD})
     assert sign_in.status_code == 200
+    user: dict[str, Any] = sign_in.json()
+    del user["superuser"]
     return user
+
+
+def run_sql(sql: str, token: str) -> Any:
+    """Runs `sql` with this `token` as its parameter, and returns its first value, if any."""
+
+    async def run() -> Any:
+        engine = create_async_engine(os.environ["DATABASE_URL"])
+        async with engine.begin() as connection:
+            result = await connection.execute(text(sql), {"token": token})
+            value = result.scalar() if result.returns_rows else None
+        await engine.dispose()
+        return value
+
+    return asyncio.run(run())
 
 
 def unique_slug() -> str:
