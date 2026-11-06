@@ -22,7 +22,8 @@ from tests.core.conftest import (
 
 
 def delete_account(client: Any) -> Any:
-    return client.delete("/api/accounts/me")
+    """Confirms "Delete my account", as the dialog does."""
+    return client.post("/delete-account")
 
 
 def access_token(client: Any, email: str) -> str:
@@ -37,22 +38,30 @@ def roles(client: Any, association_id: str) -> dict[str, str]:
     return {m["display_name"]: m["role"] for m in members}
 
 
-# DELETE /api/accounts/me
+# Delete my account
 
 
-def test_delete_api_accounts_me_204(client: Any) -> None:
+def test_delete_my_account_leads_to_sign_in(client: Any) -> None:
     sign_up(client, "Alice")
 
     response = delete_account(client)
 
-    assert response.status_code == 204
+    assert "window.location" in shown(response)
+    assert 'type="password"' in client.get("/").text
 
 
-def test_delete_api_accounts_me_401_when_signed_out(client: Any) -> None:
+def test_delete_my_account_when_already_signed_out_leads_to_sign_in(client: Any) -> None:
     response = delete_account(client)
 
-    assert response.status_code == 401
-    assert "error" in response.json()
+    assert "window.location" in shown(response)
+    assert 'type="password"' in client.get("/").text
+
+
+def test_delete_my_account_replaces_the_json_endpoint(client: Any) -> None:
+    sign_up(client, "Alice")
+
+    assert client.delete("/api/accounts/me").status_code == 404
+    assert client.get("/api/session").status_code == 200
 
 
 def test_r29_signs_out_every_session_of_the_user(
@@ -184,7 +193,7 @@ def test_r30_the_remaining_members_become_managers_when_the_only_manager_leaves(
     add_member(client, association["id"], "Bruno", bruno_email)
     add_member(client, association["id"], "Chloé", unique_email("Chloe"))
 
-    assert delete_account(client).status_code == 204
+    assert delete_account(client).status_code == 200
 
     assert roles(bruno, association["id"]) == {"Bruno": "manager", "Chloé": "manager"}
     assert bruno.get(f"/api/associations/{association['id']}").json()["role"] == "manager"
@@ -210,4 +219,4 @@ def test_r30_the_only_member_of_an_association_can_delete_their_account(client: 
     sign_up(client, "Alice")
     create_association(client)
 
-    assert delete_account(client).status_code == 204
+    assert delete_account(client).status_code == 200

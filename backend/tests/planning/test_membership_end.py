@@ -37,7 +37,7 @@ def remove(planning: Planning, user: dict[str, Any]) -> None:
 
 
 def delete_account(client: Any) -> None:
-    assert client.delete("/api/accounts/me").status_code == 204
+    assert client.post("/delete-account").status_code == 200
 
 
 def end_by_removal(planning: Planning) -> None:

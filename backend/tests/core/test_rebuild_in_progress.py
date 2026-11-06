@@ -19,6 +19,18 @@ class TestTemporarySlash:
         assert "Sign out" in page
         assert 'type="password"' not in page
 
+    def test_the_menu_has_the_language_selector_delete_my_account_and_sign_out(
+        self, client: Any
+    ) -> None:
+        sign_up(client, "Alice")
+
+        page = client.get("/").text
+
+        assert "Français" in page
+        assert "Delete my account" in page
+        assert "Sign out" in page
+        assert "Revoke my sign-in link" not in page
+
     def test_follows_the_language(self, client: Any) -> None:
         sign_up(client, "Alice")
         client.cookies.set("language", "fr")
@@ -27,6 +39,7 @@ class TestTemporarySlash:
 
         assert "Mes associations" in page
         assert "Se déconnecter" in page
+        assert "Supprimer mon compte" in page
 
     def test_escapes_the_display_name(self, client: Any) -> None:
         sign_up(client, "<b>Alice</b>", unique_email("Alice"))
@@ -76,7 +89,9 @@ class TestNotFound:
         assert response.headers["content-type"].startswith("text/html")
         assert re.search(r"<h1[^>]*>\s*Page not found\s*</h1>", response.text)
 
-    @pytest.mark.parametrize("path", ["/sign-in", "/sign-out", "/language", "/signup/resend"])
+    @pytest.mark.parametrize(
+        "path", ["/sign-in", "/sign-out", "/delete-account", "/language", "/signup/resend"]
+    )
     def test_a_path_only_actions_use_answers_it_too(self, client: Any, path: str) -> None:
         response = client.get(path)
 

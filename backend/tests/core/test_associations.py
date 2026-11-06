@@ -44,7 +44,6 @@ def manager_and_volunteer(
         ),
         ("PATCH", f"/api/associations/{UNKNOWN_ID}/members/{UNKNOWN_ID}", {"role": "manager"}),
         ("DELETE", f"/api/associations/{UNKNOWN_ID}/members/{UNKNOWN_ID}", None),
-        ("DELETE", "/api/accounts/me", None),
         ("DELETE", f"/api/associations/{UNKNOWN_ID}/members/{UNKNOWN_ID}/access-link", None),
     ],
 )

@@ -216,7 +216,7 @@ test.describe('Scenarios', () => {
     })
   })
 
-  test.fixme('a forgotten password', async ({ page }) => {
+  test('a forgotten password', async ({ page }) => {
     const alice = uniqueEmail('Alice')
     const newPassword = 'battery staple'
     await signUp(page, 'Alice', alice)

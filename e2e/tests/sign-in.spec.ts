@@ -40,6 +40,7 @@ test.describe('Sign in', () => {
     await expect(page.getByText('My associations')).toBeVisible()
     await expect(page.getByText('Alice')).toBeVisible()
 
+    await page.locator('header').getByRole('button', { name: 'Alice' }).click()
     await page.getByRole('button', { name: 'Sign out' }).click()
 
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()

@@ -77,6 +77,7 @@ test.describe('Reset password', () => {
     await expect(page.getByText('My associations')).toBeVisible()
     await expect(page).toHaveURL(/\/$/)
 
+    await page.locator('header').getByRole('button', { name: 'Alice' }).click()
     await page.getByRole('button', { name: 'Sign out' }).click()
     await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
