@@ -33,12 +33,39 @@ Back to Sign in
 ```
 
 - On submit, shows "If alice@example.org is known here, a sign-in link
-  has been sent to it." instead of the form.
+  has been sent to it." instead of the form, whether or not such a user
+  exists, and when the email cannot be sent.
+- R24: When a user with this email exists, with or without a password,
+  an email is sent to it with their AccessLink, created if they have
+  none, as a link to `/access?token=…`, in the language R20 sets:
+
+  ```
+  Subject: Your sign-in link
+
+  Sign in by opening this link. Keep this email: the link stays valid
+  until you revoke it.
+
+  https://…/access?token=…
+  ```
+
+  ```
+  Subject: Votre lien de connexion
+
+  Connectez-vous en ouvrant ce lien. Conservez cet e-mail : le lien
+  reste valable jusqu'à ce que vous le révoquiez.
+
+  https://…/access?token=…
+  ```
+- R25: A user who already has an AccessLink is sent the same link.
+- No email is sent to an unknown email.
+- A missing or invalid email shows the generic error message.
 
 ## `/access`: Access link
 
 - Reached from the access link's `token` query parameter.
-- On success, leads to My associations, signed in.
+- On success, sets the user's email_verified_at if still null, signs
+  them in, as Sign in does (R16), and leads to My associations. The
+  link stays usable.
 - An unknown token or a revoked link shows "This link is no longer
   valid." with a way to `/sign-in-link` to request a new one.
 

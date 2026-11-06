@@ -6,8 +6,9 @@ The screens of this specification are being rebuilt one at a time.
 Until then:
 
 - Served:
-  - Sign in, Forgot password, Reset password, Create an account and
-    Confirm email, with their signed-out header.
+  - Sign in, Sign-in link, Access link, Forgot password, Reset
+    password, Create an account and Confirm email, with their
+    signed-out header.
   - A temporary `/`, signed in, in place of My associations:
 
     ```
@@ -15,8 +16,7 @@ Until then:
     ```
 
     Sign out leads to Sign in.
-- Any other path outside `/api` answers the Not found page, including
-  the links of Sign in to screens not served yet.
+- Any other path outside `/api` answers the Not found page.
 - The JSON API stays available, as `core/api.md` and `planning/api.md`
   specify it.
 
