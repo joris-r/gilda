@@ -94,11 +94,6 @@ Set-Cookie: session=…
   as `POST /api/session` does (R16). The link stays usable.
 - 404 when the token is unknown or its link revoked.
 
-### DELETE /api/access-link
-
-Revokes the signed-in user's AccessLink (R23): 204, also when they
-have none; 401 when signed out.
-
 ### GET /api/session
 
 Returns the signed-in user, as `POST /api/session` does; 401 when

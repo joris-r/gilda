@@ -11,13 +11,10 @@ Until then:
   - A temporary `/`, signed in, in place of My associations:
 
     ```
-    (logo)                                     Alice ▾
-
-    My associations
+    (logo)  My associations                    Alice ▾
     ```
 
-    The header's menu has the language selector, "Delete my account"
-    and Sign out. Sign out leads to Sign in.
+    Sign out leads to Sign in.
 - Any other path outside `/api` answers the Not found page, including
   the links of Sign in to screens not served yet.
 - The JSON API stays available, as `core/api.md` and `planning/api.md`
