@@ -137,8 +137,9 @@ Signed out:
 - On success, the dialog closes and the screen shows the result and its
   message, if any. On failure, the dialog stays open, with its message.
 - A confirmation opens in a dialog with its question, its action button
-  and Cancel. Cancel and Escape close it, changing nothing. Confirming
-  one asked from a form's dialog also closes that form.
+  and Cancel. Cancel and Escape close it, changing nothing, even after
+  a failed try. Confirming one asked from a form's dialog also closes
+  that form.
 - On a narrow screen, a dialog spans the screen's width at its bottom
   (not testable).
 - Only managers see the buttons and icons that create, edit or delete.

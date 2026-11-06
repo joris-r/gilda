@@ -105,6 +105,24 @@ test.describe('Forms: a confirmation', () => {
     await expectStillSignedIn(page)
   })
 
+  test('Cancel after a failed try changes nothing, later either', async ({ page, request }) => {
+    await signedIn(page, request)
+    let failed = false
+    await page.route('**/delete-account', (route) => {
+      if (failed) return route.continue()
+      failed = true
+      return route.abort()
+    })
+
+    const dialog = await askToDelete(page)
+    await dialog.getByRole('button', { name: 'Delete my account' }).click()
+    await expect(dialog.getByText(GENERIC)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+
+    await page.waitForTimeout(2000) // A retry of Datastar would come after one second.
+    await expectStillSignedIn(page)
+  })
+
   test('it opens again after being closed', async ({ page, request }) => {
     await signedIn(page, request)
 
