@@ -22,14 +22,13 @@ async function signInWithPassword(page: Page, email: string) {
 
 /** Asks for the sign-in link of `email`, and returns its token. */
 async function askForLink(request: APIRequestContext, email: string) {
-  await request.post('/api/access-link', { data: { email } })
+  await request.post('/sign-in-link', { data: { email } })
   return latestToken(email)
 }
 
-/** Opens the session of `page` with the link: its screen is not served yet. */
+/** Opens the session of `page` with the link. */
 async function signInWithLink(page: Page, token: string) {
-  await page.request.post('/api/session/access-link', { data: { token } })
-  await page.goto('/')
+  await page.goto(`/access?token=${token}`)
   await expect(page.locator('header').getByText('My associations')).toBeVisible()
 }
 
@@ -43,8 +42,8 @@ async function askToRevoke(page: Page) {
 }
 
 async function linkStillWorks(request: APIRequestContext, token: string) {
-  const response = await request.post('/api/session/access-link', { data: { token } })
-  return response.status() === 200
+  const response = await request.post('/access', { data: { token } })
+  return (await response.text()).includes('window.location')
 }
 
 test.describe('Header', () => {

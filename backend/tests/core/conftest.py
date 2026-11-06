@@ -57,6 +57,14 @@ def latest_reset_token(email: str, timeout: float = 5.0) -> str:
     return match.group(1)
 
 
+def latest_access_token(email: str, timeout: float = 5.0) -> str:
+    """Reads the access link Mailpit caught for `email`, and returns its token."""
+    text = latest_email(email, timeout)["Text"]
+    match = re.search(r"/access\?token=([\w-]+)", text)
+    assert match, f"no access link in the email sent to {email}"
+    return match.group(1)
+
+
 def email_count(email: str) -> int:
     """How many emails Mailpit caught for `email`."""
     response = httpx.get(f"{MAILPIT_URL}/api/v1/search", params={"query": f"to:{email}"})
@@ -112,6 +120,16 @@ def ask_for_reset(client: Any, email: str, **kwargs: Any) -> Any:
 def reset_password(client: Any, token: str, password: str) -> Any:
     """Submits Reset password, as the screen does."""
     return client.post("/reset-password", json={"token": token, "password": password})
+
+
+def ask_for_link(client: Any, email: str, **kwargs: Any) -> Any:
+    """Submits Sign-in link, as the screen does."""
+    return client.post("/sign-in-link", json={"email": email}, **kwargs)
+
+
+def open_link(client: Any, token: str) -> Any:
+    """Runs the action of Access link, as the page does."""
+    return client.post("/access", json={"token": token})
 
 
 def shown(response: Any) -> str:

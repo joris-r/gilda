@@ -1,3 +1,4 @@
+import html
 import re
 import time
 import uuid
@@ -9,15 +10,22 @@ import pytest
 from tests.core.conftest import (
     PASSWORD,
     add_member,
+    ask_for_link,
+    break_the_mailer,
     create_account,
     create_association,
     email_count,
+    heading,
+    latest_access_token,
     latest_email,
+    open_link,
     shown,
     sign_up,
     unique_email,
 )
 
+GENERIC = "Something went wrong. Try again."
+LINK_INVALID = "This link is no longer valid."
 ENGLISH = {
     "Subject": "Your sign-in link",
     "Text": "Sign in by opening this link. Keep this email: the link stays valid\n"
@@ -30,21 +38,19 @@ FRENCH = {
 }
 
 
-def ask_for_link(client: Any, email: str, accept_language: str | None = None) -> Any:
-    headers = {} if accept_language is None else {"Accept-Language": accept_language}
-    return client.post("/api/access-link", json={"email": email}, headers=headers)
+def link_sent(email: str) -> str:
+    return f"If {email} is known here, a sign-in link has been sent to it."
 
 
-def latest_access_token(email: str) -> str:
-    """Reads the access link Mailpit caught for `email`, and returns its token."""
-    text = latest_email(email)["Text"]
-    match = re.search(r"/access\?token=([\w-]+)", text)
-    assert match, f"no access link in the email sent to {email}"
-    return match.group(1)
+def signs_in(client: Any, token: str) -> bool:
+    """Runs the action of Access link, and tells whether it leads on, signed in."""
+    return "window.location" in shown(open_link(client, token))
 
 
-def open_link(client: Any, token: str) -> Any:
-    return client.post("/api/session/access-link", json={"token": token})
+def assert_invalid_link(text: str) -> None:
+    assert LINK_INVALID in text
+    assert re.search(r'<a[^>]*href="/sign-in-link"', text)
+    assert "window.location" not in text
 
 
 def revoke_my_link(client: Any) -> Any:
@@ -78,77 +84,151 @@ def assert_no_email_sent(email: str) -> None:
     assert email_count(email) == 0
 
 
-# POST /api/access-link
+class TestSignInLinkForm:
+    def test_shows_the_form(self, client: Any) -> None:
+        response = client.get("/sign-in-link")
+
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+        assert heading(response) == "Sign in with an email link"
+        assert "Email" in response.text
+        assert "Send me a link" in response.text
+
+    def test_links_back_to_sign_in(self, client: Any) -> None:
+        page = client.get("/sign-in-link").text
+
+        assert re.search(r'<a[^>]*href="/"[^>]*>\s*Back to Sign in\s*</a>', page)
+
+    def test_follows_the_language(self, client: Any) -> None:
+        client.cookies.set("language", "fr")
+
+        assert heading(client.get("/sign-in-link")) == "Se connecter par un lien envoyé par e-mail"
+
+    def test_has_the_signed_out_language_selector(self, client: Any) -> None:
+        response = client.get("/sign-in-link")
+
+        assert response.status_code == 200
+        assert "English" in response.text
+        assert "Français" in response.text
 
 
-def test_r24_sends_the_access_link_to_a_user_with_a_password(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    email = unique_email("Alice")
-    sign_up(client, "Alice", email)
+class TestSignInLinkSubmit:
+    def test_shows_the_message_for_a_known_email(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        _, _, chloe_email = manager_with_member(client)
 
-    response = ask_for_link(new_client(), email)
+        assert link_sent(chloe_email) in shown(ask_for_link(new_client(), chloe_email))
 
-    assert response.status_code == 204
-    sent = latest_email(email)
-    assert sent["Subject"] == ENGLISH["Subject"]
-    assert normalized(sent["Text"]).startswith(normalized(ENGLISH["Text"]))
-    assert re.search(r"/access\?token=[\w-]+", sent["Text"])
+    def test_shows_the_same_for_an_unknown_email(self, client: Any) -> None:
+        email = unique_email("Nobody")
 
+        assert link_sent(email) in shown(ask_for_link(client, email))
 
-def test_r24_sends_the_access_link_to_a_member_without_a_password(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    _, _, chloe_email = manager_with_member(client)
+    def test_shows_the_same_when_the_email_cannot_be_sent(
+        self, client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _, _, chloe_email = manager_with_member(client)
+        break_the_mailer(monkeypatch)
 
-    response = ask_for_link(new_client(), chloe_email)
+        assert link_sent(chloe_email) in shown(ask_for_link(new_client(), chloe_email))
 
-    assert response.status_code == 204
-    latest_access_token(chloe_email)  # raises if no access link was sent
+    def test_the_message_follows_the_language(self, client: Any) -> None:
+        client.cookies.set("language", "fr")
+        email = unique_email("Nobody")
 
+        text = shown(ask_for_link(client, email))
 
-@pytest.mark.parametrize("accept_language", ["fr", "fr-FR,fr;q=0.9,en;q=0.8"])
-def test_r24_access_link_email_is_in_french_when_the_request_prefers_french(
-    client: Any, new_client: Callable[[], Any], accept_language: str
-) -> None:
-    _, _, chloe_email = manager_with_member(client)
+        assert f"Si {email} est connu ici, un lien de connexion lui a été envoyé." in text
 
-    ask_for_link(new_client(), chloe_email, accept_language)
+    def test_the_message_leaves_a_way_back_to_sign_in(self, client: Any) -> None:
+        text = shown(ask_for_link(client, unique_email("Nobody")))
 
-    sent = latest_email(chloe_email)
-    assert sent["Subject"] == FRENCH["Subject"]
-    assert normalized(sent["Text"]).startswith(normalized(FRENCH["Text"]))
-    assert re.search(r"/access\?token=[\w-]+", sent["Text"])
+        assert re.search(r'<a[^>]*href="/"[^>]*>\s*Back to Sign in\s*</a>', text)
 
+    @pytest.mark.parametrize("signals", [{}, {"email": ""}, {"email": "not-an-email"}])
+    def test_a_missing_or_invalid_email_shows_the_generic_error_message(
+        self, client: Any, signals: dict[str, str]
+    ) -> None:
+        assert GENERIC in shown(client.post("/sign-in-link", json=signals))
 
-def test_r20_r24_the_language_cookie_wins_over_the_browser(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    _, _, chloe_email = manager_with_member(client)
-    browser = new_client()
-    browser.cookies.set("language", "fr")
+    def test_a_body_that_is_not_json_shows_the_generic_error_message(self, client: Any) -> None:
+        response = client.post(
+            "/sign-in-link", content=b"{not json", headers={"content-type": "application/json"}
+        )
 
-    ask_for_link(browser, chloe_email, "en")
-
-    assert latest_email(chloe_email)["Subject"] == FRENCH["Subject"]
+        assert GENERIC in shown(response)
 
 
-def test_r24_access_link_email_is_in_english_otherwise(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    _, _, chloe_email = manager_with_member(client)
+class TestR24:
+    def test_sends_the_access_link_to_a_user_with_a_password(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        email = unique_email("Alice")
+        sign_up(client, "Alice", email)
 
-    ask_for_link(new_client(), chloe_email, "de")
+        ask_for_link(new_client(), email)
 
-    assert latest_email(chloe_email)["Subject"] == ENGLISH["Subject"]
+        sent = latest_email(email)
+        assert sent["Subject"] == ENGLISH["Subject"]
+        assert normalized(sent["Text"]).startswith(normalized(ENGLISH["Text"]))
+        assert re.search(r"/access\?token=[\w-]+", sent["Text"])
 
+    def test_sends_the_access_link_to_a_member_without_a_password(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        _, _, chloe_email = manager_with_member(client)
 
-def test_r24_ignores_the_case_of_the_email(client: Any, new_client: Callable[[], Any]) -> None:
-    _, _, chloe_email = manager_with_member(client)
+        ask_for_link(new_client(), chloe_email)
 
-    ask_for_link(new_client(), chloe_email.upper())
+        latest_access_token(chloe_email)  # raises if no access link was sent
 
-    latest_access_token(chloe_email)
+    @pytest.mark.parametrize("accept_language", ["fr", "fr-FR,fr;q=0.9,en;q=0.8"])
+    def test_in_french_when_the_browser_prefers_french(
+        self, client: Any, new_client: Callable[[], Any], accept_language: str
+    ) -> None:
+        _, _, chloe_email = manager_with_member(client)
+
+        ask_for_link(new_client(), chloe_email, headers={"Accept-Language": accept_language})
+
+        sent = latest_email(chloe_email)
+        assert sent["Subject"] == FRENCH["Subject"]
+        assert normalized(sent["Text"]).startswith(normalized(FRENCH["Text"]))
+        assert re.search(r"/access\?token=[\w-]+", sent["Text"])
+
+    def test_r20_the_language_cookie_wins_over_the_browser(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        _, _, chloe_email = manager_with_member(client)
+        browser = new_client()
+        browser.cookies.set("language", "fr")
+
+        ask_for_link(browser, chloe_email, headers={"Accept-Language": "en"})
+
+        assert latest_email(chloe_email)["Subject"] == FRENCH["Subject"]
+
+    def test_in_english_otherwise(self, client: Any, new_client: Callable[[], Any]) -> None:
+        _, _, chloe_email = manager_with_member(client)
+
+        ask_for_link(new_client(), chloe_email, headers={"Accept-Language": "de"})
+
+        assert latest_email(chloe_email)["Subject"] == ENGLISH["Subject"]
+
+    def test_ignores_the_case_of_the_email(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        _, _, chloe_email = manager_with_member(client)
+
+        ask_for_link(new_client(), chloe_email.upper())
+
+        latest_access_token(chloe_email)
+
+    def test_sends_nothing_to_an_unknown_email(self, client: Any) -> None:
+        email = unique_email("Nobody")
+
+        ask_for_link(client, email)
+
+        assert_no_email_sent(email)
 
 
 def test_r25_a_new_request_sends_the_same_link(client: Any, new_client: Callable[[], Any]) -> None:
@@ -162,138 +242,159 @@ def test_r25_a_new_request_sends_the_same_link(client: Any, new_client: Callable
 
     assert email_count(chloe_email) == 2
     assert latest_access_token(chloe_email) == first_token
-    assert open_link(new_client(), first_token).status_code == 200
+    assert signs_in(new_client(), first_token)
 
 
-def test_access_link_sends_nothing_to_an_unknown_email(client: Any) -> None:
-    email = unique_email("Nobody")
+class TestAccessLink:
+    def test_the_link_answers_a_page(self, client: Any) -> None:
+        response = client.get("/access?token=anything")
 
-    response = ask_for_link(client, email)
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
 
-    assert response.status_code == 204
-    assert_no_email_sent(email)
+    def test_fetching_the_link_signs_no_one_in(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        _, _, chloe_email = manager_with_member(client)
+        browser = new_client()
+        ask_for_link(browser, chloe_email)
+        token = latest_access_token(chloe_email)
 
+        browser.get(f"/access?token={token}")
 
-@pytest.mark.parametrize("body", [{}, {"email": ""}, {"email": "not-an-email"}])
-def test_access_link_400_when_the_email_is_missing_empty_or_invalid(
-    client: Any, body: dict[str, str]
-) -> None:
-    response = client.post("/api/access-link", json=body)
+        assert browser.get("/api/session").status_code == 401
+        assert signs_in(browser, token)
 
-    assert response.status_code == 400
-    assert "error" in response.json()
+    def test_the_page_carries_the_token_safely(self, client: Any) -> None:
+        response = client.get("/access", params={"token": "'\"><script>alert(1)</script>"})
 
+        assert response.status_code == 200
+        assert "<script>alert(1)</script>" not in html.unescape(response.text)
 
-# POST /api/session/access-link
+    def test_signs_a_member_without_a_password_in_and_leads_to_my_associations(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        _, chloe, chloe_email = manager_with_member(client)
+        browser = new_client()
+        ask_for_link(browser, chloe_email)
 
+        response = open_link(browser, latest_access_token(chloe_email))
 
-def test_access_link_signs_a_member_without_a_password_in(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    _, chloe, chloe_email = manager_with_member(client)
-    browser = new_client()
-    ask_for_link(browser, chloe_email)
+        assert "window.location" in shown(response)
+        assert "session" in response.headers.get("set-cookie", "")
+        assert browser.get("/api/session").json() == {
+            "id": chloe["user_id"],
+            "display_name": "Chloé",
+            "email": chloe_email,
+            "superuser": False,
+        }
+        assert heading(browser.get("/")) == "My associations"
 
-    response = open_link(browser, latest_access_token(chloe_email))
+    def test_signs_a_user_with_a_password_in(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        email = unique_email("Alice")
+        user = sign_up(client, "Alice", email)
+        browser = new_client()
+        ask_for_link(browser, email)
 
-    expected = {
-        "id": chloe["user_id"],
-        "display_name": "Chloé",
-        "email": chloe_email,
-        "superuser": False,
-    }
-    assert response.status_code == 200
-    assert response.json() == expected
-    assert "session" in response.headers.get("set-cookie", "")
-    assert browser.get("/api/session").json() == expected
+        open_link(browser, latest_access_token(email))
 
+        assert browser.get("/api/session").json() == {**user, "superuser": False}
 
-def test_access_link_signs_a_user_with_a_password_in(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    email = unique_email("Alice")
-    user = sign_up(client, "Alice", email)
-    browser = new_client()
-    ask_for_link(browser, email)
+    def test_signs_in_as_the_links_user_from_another_users_session(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        _, chloe, chloe_email = manager_with_member(client)
+        ask_for_link(new_client(), chloe_email)
 
-    response = open_link(browser, latest_access_token(email))
+        assert signs_in(client, latest_access_token(chloe_email))
 
-    assert response.json() == {**user, "superuser": False}
-    assert browser.get("/api/session").json() == {**user, "superuser": False}
+        assert client.get("/api/session").json()["id"] == chloe["user_id"]
 
+    def test_confirms_the_email(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, chloe, chloe_email = manager_with_member(client)
+        browser = new_client()
+        ask_for_link(browser, chloe_email)
 
-def test_access_link_confirms_the_email(client: Any, new_client: Callable[[], Any]) -> None:
-    association, chloe, chloe_email = manager_with_member(client)
-    browser = new_client()
-    ask_for_link(browser, chloe_email)
+        open_link(browser, latest_access_token(chloe_email))
 
-    open_link(browser, latest_access_token(chloe_email))
+        assert member(client, association["id"], chloe["user_id"])["email_verified"] is True
 
-    assert member(client, association["id"], chloe["user_id"])["email_verified"] is True
+    def test_lets_a_user_with_an_unconfirmed_email_sign_in_with_their_password(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        email = unique_email("Bruno")
+        create_account(client, "Bruno", email)
+        ask_for_link(client, email)
 
+        open_link(client, latest_access_token(email))
 
-def test_access_link_lets_a_user_with_an_unconfirmed_email_sign_in_with_their_password(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    email = unique_email("Bruno")
-    create_account(client, "Bruno", email)
-    ask_for_link(client, email)
+        response = new_client().post("/api/session", json={"email": email, "password": PASSWORD})
+        assert response.status_code == 200
 
-    open_link(client, latest_access_token(email))
+    def test_stays_usable(self, client: Any, new_client: Callable[[], Any]) -> None:
+        _, chloe, chloe_email = manager_with_member(client)
+        ask_for_link(new_client(), chloe_email)
+        token = latest_access_token(chloe_email)
+        first = new_client()
+        open_link(first, token)
+        first.post("/sign-out")
 
-    response = new_client().post("/api/session", json={"email": email, "password": PASSWORD})
-    assert response.status_code == 200
+        second = new_client()
 
+        assert signs_in(second, token)
+        assert second.get("/api/session").json()["id"] == chloe["user_id"]
 
-def test_access_link_stays_usable(client: Any, new_client: Callable[[], Any]) -> None:
-    _, chloe, chloe_email = manager_with_member(client)
-    ask_for_link(new_client(), chloe_email)
-    token = latest_access_token(chloe_email)
-    first = new_client()
-    open_link(first, token)
-    first.delete("/api/session")
+    def test_r16_replaces_a_session_id_planted_in_the_browser(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        _, _, chloe_email = manager_with_member(client)
+        planted = uuid.uuid4().hex
+        victim = new_client()
+        victim.cookies.set("session", planted)
+        attacker = new_client()
+        attacker.cookies.set("session", planted)
+        ask_for_link(victim, chloe_email)
 
-    second = new_client()
-    response = open_link(second, token)
+        response = open_link(victim, latest_access_token(chloe_email))
 
-    assert response.status_code == 200
-    assert second.get("/api/session").json()["id"] == chloe["user_id"]
-
-
-def test_r16_access_link_replaces_a_session_id_planted_in_the_browser(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    _, _, chloe_email = manager_with_member(client)
-    planted = uuid.uuid4().hex
-    victim = new_client()
-    victim.cookies.set("session", planted)
-    attacker = new_client()
-    attacker.cookies.set("session", planted)
-    ask_for_link(victim, chloe_email)
-
-    response = open_link(victim, latest_access_token(chloe_email))
-
-    assert response.status_code == 200
-    assert response.cookies.get("session") not in (None, planted)
-    assert attacker.get("/api/session").status_code == 401
-
-
-def test_session_access_link_404_when_the_token_is_unknown(client: Any) -> None:
-    response = open_link(client, "unknown-token")
-
-    assert response.status_code == 404
-    assert "error" in response.json()
-    assert client.get("/api/session").status_code == 401
+        assert "window.location" in shown(response)
+        assert response.cookies.get("session") not in (None, planted)
+        assert attacker.get("/api/session").status_code == 401
 
 
-@pytest.mark.parametrize("body", [{}, {"token": ""}])
-def test_session_access_link_400_when_the_token_is_missing_or_empty(
-    client: Any, body: dict[str, str]
-) -> None:
-    response = client.post("/api/session/access-link", json=body)
+class TestAccessLinkInvalid:
+    def test_unknown_token(self, client: Any) -> None:
+        assert_invalid_link(shown(open_link(client, "unknown-token")))
+        assert client.get("/api/session").status_code == 401
 
-    assert response.status_code == 400
-    assert "error" in response.json()
+    @pytest.mark.parametrize("signals", [{}, {"token": ""}])
+    def test_no_token(self, client: Any, signals: dict[str, str]) -> None:
+        assert_invalid_link(shown(client.post("/access", json=signals)))
+
+    def test_revoked_link(self, client: Any, new_client: Callable[[], Any]) -> None:
+        email = unique_email("Alice")
+        sign_up(client, "Alice", email)
+        ask_for_link(client, email)
+        token = latest_access_token(email)
+        revoke_my_link(client)
+
+        browser = new_client()
+
+        assert_invalid_link(shown(open_link(browser, token)))
+        assert browser.get("/api/session").status_code == 401
+
+    def test_follows_the_language(self, client: Any) -> None:
+        client.cookies.set("language", "fr")
+
+        assert "Ce lien n'est plus valide." in shown(open_link(client, "unknown-token"))
+
+
+class TestEndpointsRemoved:
+    @pytest.mark.parametrize("path", ["/api/access-link", "/api/session/access-link"])
+    def test_answers_404(self, client: Any, path: str) -> None:
+        assert client.post(path, json={}).status_code == 404
 
 
 # Revoke my sign-in link
@@ -310,7 +411,7 @@ def test_r23_revoking_the_link_makes_it_unusable(
 
     revoke_my_link(chloe)
 
-    assert open_link(new_client(), token).status_code == 404
+    assert not signs_in(new_client(), token)
 
 
 def test_r23_revoking_the_link_signs_out_the_sessions_it_opened(
@@ -360,7 +461,7 @@ def test_r25_after_revoking_a_new_request_sends_a_new_link(
 
     new_token = latest_access_token(email)
     assert new_token != old_token
-    assert open_link(new_client(), new_token).status_code == 200
+    assert signs_in(new_client(), new_token)
 
 
 def test_revoke_my_sign_in_link_shows_it_is_revoked(client: Any) -> None:
@@ -415,8 +516,8 @@ def test_revoke_my_sign_in_link_replaces_the_json_endpoint(client: Any) -> None:
     ask_for_link(client, email)
     token = latest_access_token(email)
 
-    assert client.delete("/api/access-link").status_code == 405
-    assert open_link(client, token).status_code == 200
+    assert client.delete("/api/access-link").status_code == 404
+    assert signs_in(client, token)
 
 
 # DELETE /api/associations/{id}/members/{user_id}/access-link
@@ -446,7 +547,7 @@ def test_r23_a_manager_revokes_a_members_link(client: Any, new_client: Callable[
 
     assert response.status_code == 204
     assert phone.get("/api/session").status_code == 401
-    assert open_link(new_client(), token).status_code == 404
+    assert not signs_in(new_client(), token)
     assert member(client, association["id"], chloe["user_id"])["access_link"] is False
 
 
@@ -475,7 +576,7 @@ def test_manager_revoke_403_for_a_volunteer(client: Any, new_client: Callable[[]
 
     assert response.status_code == 403
     assert "error" in response.json()
-    assert open_link(new_client(), token).status_code == 200
+    assert signs_in(new_client(), token)
 
 
 def test_manager_revoke_404_when_the_user_is_not_a_member(
@@ -493,7 +594,7 @@ def test_manager_revoke_404_when_the_user_is_not_a_member(
 
     assert response.status_code == 404
     assert "error" in response.json()
-    assert open_link(new_client(), token).status_code == 200
+    assert signs_in(new_client(), token)
 
 
 # POST /api/associations/{id}/members/{user_id}/access-link
@@ -521,7 +622,7 @@ def test_r26_a_manager_sends_a_member_their_access_link(
     assert sent["Subject"] == ENGLISH["Subject"]
     assert normalized(sent["Text"]).startswith(normalized(ENGLISH["Text"]))
     browser = new_client()
-    assert open_link(browser, latest_access_token(chloe_email)).status_code == 200
+    assert signs_in(browser, latest_access_token(chloe_email))
     assert browser.get("/api/session").json()["id"] == chloe["user_id"]
 
 

@@ -1,4 +1,3 @@
-import re
 import time
 from collections.abc import Callable
 from typing import Any
@@ -6,14 +5,16 @@ from typing import Any
 from tests.core.conftest import (
     PASSWORD,
     add_member,
+    ask_for_link,
     ask_for_reset,
     confirm_email,
     create_account,
     create_association,
     email_count,
-    latest_email,
+    latest_access_token,
     latest_reset_token,
     latest_verification_token,
+    open_link,
     reset_password,
     shown,
     sign_up,
@@ -24,13 +25,6 @@ from tests.core.conftest import (
 def delete_account(client: Any) -> Any:
     """Confirms "Delete my account", as the dialog does."""
     return client.post("/delete-account")
-
-
-def access_token(client: Any, email: str) -> str:
-    assert client.post("/api/access-link", json={"email": email}).status_code == 204
-    match = re.search(r"/access\?token=([\w-]+)", latest_email(email)["Text"])
-    assert match
-    return match.group(1)
 
 
 def roles(client: Any, association_id: str) -> dict[str, str]:
@@ -93,12 +87,12 @@ def test_r29_the_password_no_longer_signs_in(client: Any, new_client: Callable[[
 def test_r29_the_access_link_no_longer_signs_in(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
-    token = access_token(client, email)
+    assert ask_for_link(client, email).status_code == 200
+    token = latest_access_token(email)
 
     delete_account(client)
 
-    response = new_client().post("/api/session/access-link", json={"token": token})
-    assert response.status_code == 404
+    assert "This link is no longer valid." in shown(open_link(new_client(), token))
 
 
 def test_r29_a_pending_password_reset_no_longer_works(
@@ -124,7 +118,7 @@ def test_r29_no_email_is_sent_to_the_erased_email_anymore(
     before = email_count(email)
 
     other = new_client()
-    assert other.post("/api/access-link", json={"email": email}).status_code == 204
+    assert ask_for_link(other, email).status_code == 200
     assert ask_for_reset(other, email).status_code == 200
 
     time.sleep(0.5)
