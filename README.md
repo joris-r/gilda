@@ -25,6 +25,16 @@ make dev          # PostgreSQL, migrations, then the backend with reload
 The site runs on port 8000.
 `DATABASE_URL` defaults to the local PostgreSQL of `compose.yaml`.
 
+## Development environment
+
+`make dev` runs the site and starts the services of `compose.yaml`:
+
+- The site: http://localhost:8000
+- Mailpit, which catches every email sent in development and tests:
+  http://localhost:18025 (SMTP on port 11025)
+- PostgreSQL: `localhost:5432` for development, `localhost:15432` for
+  the tests (user and password `gilda`)
+
 ## Test
 
 ```sh
