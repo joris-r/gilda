@@ -72,7 +72,7 @@ def send_access_link_email(to_email: str, token: str, language: Language) -> Non
 
 
 def _send_link(to_email: str, page: str, token: str, texts: tuple[str, str]) -> None:
-    link = f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/{page}?token={token}"
+    link = f"{os.environ.get('FRONTEND_URL', 'http://localhost:8000')}/{page}?token={token}"
     subject, text = texts
     message = EmailMessage()
     message["Subject"] = subject
