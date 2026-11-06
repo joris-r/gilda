@@ -61,7 +61,9 @@
     "revoke": "Revoke my sign-in link",
     "confirmRevoke": "Revoke your sign-in link? Sessions opened with it are signed out.",
     "confirm": "Confirm",
-    "revoked": "Your sign-in link is revoked."
+    "revoked": "Your sign-in link is revoked.",
+    "invalid": "This link is no longer valid.",
+    "requestNew": "Request a new link"
   },
   "resetPassword": {
     "title": "Choose a new password",

@@ -19,6 +19,9 @@ for test lookups that match that text over the whole page (e.g.
 `"Alice" in response.text`, or `page.getByText('Alice')`), not only for
 the tests citing the rule.
 
+A test of a newly served page asserts its status, as the Not found page
+shares its header.
+
 When a test copies an expectation from another spec, the Tests phase
 checks that the fixtures it relies on match (e.g. a planning period
 that changes the default range, or a client that holds a `language`

@@ -9,8 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from gilda.core.models import AccessLink, User
 from gilda.core.schemas import (
-    AccessLinkRequest,
-    AccessLinkSignIn,
     AssociationCreate,
     AssociationDetail,
     AssociationRead,
@@ -85,25 +83,6 @@ class AccountController(Controller):
     ) -> SessionRead:
         user = await AccountService(db_session).authenticate(data.email, data.password)
         return sign_in_as(request, user)
-
-    @post("/access-link", status_code=204)
-    async def send_access_link(
-        self,
-        request: Request[Any, Any, Any],
-        db_session: NamedDependency[AsyncSession],
-        data: JSONBody[AccessLinkRequest],
-    ) -> None:
-        await AccountService(db_session).send_access_link(data.email, interface_language(request))
-
-    @post("/session/access-link", status_code=200)
-    async def sign_in_with_link(
-        self,
-        request: Request[Any, Any, Any],
-        db_session: NamedDependency[AsyncSession],
-        data: JSONBody[AccessLinkSignIn],
-    ) -> SessionRead:
-        user, link = await AccountService(db_session).sign_in_with_link(data.token)
-        return sign_in_as(request, user, link)
 
     @get("/session", dependencies={"current_user": Provide(provide_current_user)})
     async def get_session(self, current_user: NamedDependency[User]) -> SessionRead:

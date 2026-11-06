@@ -232,7 +232,7 @@ class AccountService:
         try:
             await send_access_link(self.access_links, user, language)
         except EmailNotSentError:
-            # Still 204: an error here would reveal that the email is known.
+            # The screen shows the same: an error here would reveal that the email is known.
             _logger.exception("Sending the access link email failed")
 
     async def sign_in_with_link(self, token: str) -> tuple[User, AccessLink]:

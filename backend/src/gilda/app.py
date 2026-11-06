@@ -15,6 +15,8 @@ from gilda import core, web
 from gilda.core.controllers import AccountController, AssociationController
 from gilda.core.models import UserSession
 from gilda.core.pages import (
+    access,
+    access_page,
     delete_account,
     forgot_password,
     forgot_password_page,
@@ -24,6 +26,8 @@ from gilda.core.pages import (
     reset_password_page,
     revoke_access_link,
     sign_in,
+    sign_in_link,
+    sign_in_link_page,
     sign_out,
     sign_up,
     sign_up_page,
@@ -77,6 +81,10 @@ def create_app() -> Litestar:
             sign_out,
             revoke_access_link,
             delete_account,
+            sign_in_link_page,
+            sign_in_link,
+            access_page,
+            access,
             forgot_password_page,
             forgot_password,
             reset_password_page,

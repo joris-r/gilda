@@ -61,7 +61,9 @@
     "revoke": "Révoquer mon lien de connexion",
     "confirmRevoke": "Révoquer votre lien de connexion ? Les sessions ouvertes avec lui seront déconnectées.",
     "confirm": "Confirmer",
-    "revoked": "Votre lien de connexion est révoqué."
+    "revoked": "Votre lien de connexion est révoqué.",
+    "invalid": "Ce lien n'est plus valide.",
+    "requestNew": "Demander un nouveau lien"
   },
   "resetPassword": {
     "title": "Choisissez un nouveau mot de passe",

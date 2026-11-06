@@ -34,10 +34,6 @@ class AccessLinkRequest(msgspec.Struct):
     email: Email
 
 
-class AccessLinkSignIn(msgspec.Struct):
-    token: NonEmpty
-
-
 class UserRead(msgspec.Struct):
     id: UUID
     display_name: str

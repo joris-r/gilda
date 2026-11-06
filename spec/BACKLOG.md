@@ -9,7 +9,6 @@
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Sign-in link and Access link.
 - My associations: the list with names and roles, replacing the temporary `/`, and New association, with the form dialog (title, close button).
 - Members: the list, "Show all", "not joined yet" and Add a member.
 - Members: the edit dialog, role changes and Remove from the association; restores "A volunteer becomes manager".
@@ -48,6 +47,13 @@ Choices the spec left open, settled by `header`:
 - Revoke my sign-in link: a request that is already signed out leads to Sign in.
 - Revoke my sign-in link: the message stays until the page reloads.
 
+Choices the spec left open, settled by `sign-in-link`:
+
+- Sign-in link: "Back to Sign in" stays under the message once the form is submitted.
+- Access link: a missing token shows the invalid link.
+- Access link: opening a link in another user's session signs in as the link's user.
+- Access link: the page runs the sign-in once it loads, so fetching the link alone signs no one in.
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -55,6 +61,8 @@ Choices the spec left open, settled by `header`:
 - Actions outside a confirmation (Sign out, Create an account, Forgot password…) still retry after a network error, so they could run twice.
 - Confirmation: the generic error probably still shows after Cancel and reopening, until the next try.
 - Revoke my sign-in link: the menu offers it to a user who has no link, and then says "revoked"; consider showing it only when they have one.
+- Access link and Confirm email: the page stays blank while the action runs, and after a server failure only the generic error shows, with no way forward.
+- Sign-in link: when the email can't be sent, the link is still created, so the member later shows "Revoke link" for a link nobody received.
 - End-to-end: run the suite on Firefox too; the menu and dialog rely on `popover`, `commandfor` and CSS anchor positioning.
 
 
@@ -82,6 +90,9 @@ Choices the spec left open, settled by `header`:
 - R22 keeps the user's other sessions signed in, so someone who stole a session stays connected after a password reset; revisit it.
 - Forgot password shows the same message for everyone, but its response time can reveal an account, as only a user with a password gets an email during the request; send it in the background.
 - Delete my account asks for no password, so an unattended or stolen session can erase the account.
+- Sign-in link's response time can reveal an account, as the email is sent during the request.
+- Sign-in link and Forgot password have no rate limit, so anyone can flood a known address with emails.
+- Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account.
 - `POST /delete-account` and `POST /revoke-access-link` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future

@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block main %}
+<div id="sign-in-link">
+  <h1>{{ t("signInLink.title") }}</h1>
+  <form class="panel" data-on:submit="@post('/sign-in-link', {filterSignals: {exclude: /^language$/}})">
+    <label>
+      {{ t("fields.email") }}
+      <input data-bind:email type="email" autocomplete="email" required>
+    </label>
+    {% include "form_error.html" %}
+    <button type="submit">{{ t("signInLink.submit") }}</button>
+  </form>
+  <p class="hint"><a href="/">{{ t("signInLink.back") }}</a></p>
+</div>
+{% endblock %}

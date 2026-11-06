@@ -10,7 +10,12 @@ from litestar.response import Template
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from gilda.core.controllers import SESSION_LINK_KEY, find_current_user, sign_in_as
-from gilda.core.schemas import AccountCreate, NewPassword, PasswordResetRequest
+from gilda.core.schemas import (
+    AccessLinkRequest,
+    AccountCreate,
+    NewPassword,
+    PasswordResetRequest,
+)
 from gilda.core.services import AccountService, MembershipEndHook
 from gilda.web.rendering import (
     fragment,
@@ -192,6 +197,49 @@ async def forgot_password(
             fragment(request, "forgot_password_sent.html", email=asked.email)
         )
     )
+
+
+@get("/sign-in-link")
+async def sign_in_link_page(request: Request[Any, Any, Any]) -> Template:
+    return page(request, "sign_in_link.html", message="")
+
+
+@post("/sign-in-link", status_code=200)
+async def sign_in_link(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession]
+) -> DatastarResponse:
+    try:
+        asked = msgspec.convert(await read_signals_dict(request), AccessLinkRequest)
+    except msgspec.ValidationError:
+        return _form_error(request, "error")
+    await AccountService(db_session).send_access_link(asked.email, interface_language(request))
+    return DatastarResponse(
+        ServerSentEventGenerator.patch_elements(
+            fragment(request, "sign_in_link_sent.html", email=asked.email)
+        )
+    )
+
+
+@get("/access")
+async def access_page(request: Request[Any, Any, Any], token: FromQuery[str] = "") -> Template:
+    return page(request, "access.html", token=token)
+
+
+@post("/access", status_code=200)
+async def access(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession]
+) -> DatastarResponse:
+    signals = await read_signals_dict(request)
+    try:
+        user, link = await AccountService(db_session).sign_in_with_link(
+            str(signals.get("token", ""))
+        )
+    except NotFoundException:
+        return DatastarResponse(
+            ServerSentEventGenerator.patch_elements(fragment(request, "access_invalid.html"))
+        )
+    sign_in_as(request, user, link)
+    return DatastarResponse(ServerSentEventGenerator.redirect("/"))
 
 
 @get("/reset-password")
