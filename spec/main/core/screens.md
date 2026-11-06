@@ -271,8 +271,8 @@ New association
 - A malformed slug shows "Use only lowercase letters, digits and
   hyphens, starting and ending with a letter or a digit."; a taken one
   shows "This association identifier is already taken."
-- Creating leads to the new association's Schedule; Cancel leads to My
-  associations.
+- Creating makes the user its manager and leads to the new association's
+  Schedule; Cancel leads to My associations.
 
 ## `/association/{slug}/members`: Members
 

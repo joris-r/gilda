@@ -13,8 +13,8 @@
     - `repositories.py`: the Advanced Alchemy repositories.
     - `schemas.py`: the request and response types.
     - `services.py`: the logic between controllers and repositories.
-  - `home/`: serves `GET /api/associations`, gathering what each
-    domain shows of an association on My associations.
+  - `home/`: serves My associations and `GET /api/associations`,
+    gathering what each domain shows of an association there.
   - `db.py`: the database configuration.
   - `web/`: what the screens share: the page layout, the translations,
     the language selection and the static files.

@@ -98,7 +98,6 @@ Content-Type: application/json
 {"id": "9a2d…", "name": "Repair Café Belleville", "slug": "repair-cafe-belleville", "role": "manager"}
 ```
 
-- The signed-in user becomes its manager.
 - 400 when the slug does not have the format of a slug.
 - 409 when the slug is taken or is `new`.
 

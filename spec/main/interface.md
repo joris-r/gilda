@@ -9,14 +9,20 @@ Until then:
   - Sign in, Sign-in link, Access link, Forgot password, Reset
     password, Create an account and Confirm email, with their
     signed-out header.
-  - A temporary `/`, signed in, in place of My associations:
+  - New association.
+  - My associations, each association showing only its name and role:
 
     ```
-    (logo)  My associations                    Alice ▾
-    ```
+    (logo)  My associations                                    Alice ▾
 
-    Sign out leads to Sign in.
-- Any other path outside `/api` answers the Not found page.
+      Jardin partagé des Lilas                 MANAGER
+      Repair Café Belleville                 VOLUNTEER
+
+    [+ New association]
+    ```
+- Any other path outside `/api` answers the Not found page, including
+  the Schedule that an association's name and Create association lead
+  to.
 - The JSON API stays available, as `core/api.md` and `planning/api.md`
   specify it.
 
