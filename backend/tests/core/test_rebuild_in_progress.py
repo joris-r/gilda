@@ -5,7 +5,13 @@ from typing import Any
 
 import pytest
 
-from tests.core.conftest import sign_up, unique_email
+from tests.core.conftest import heading, sign_up, unique_email
+
+
+def part(page: str, tag: str) -> str:
+    match = re.search(rf"<{tag}[ >].*</{tag}>", page, re.DOTALL)
+    assert match, f"no {tag} in {page}"
+    return match.group(0)
 
 
 class TestTemporarySlash:
@@ -14,12 +20,20 @@ class TestTemporarySlash:
 
         page = client.get("/").text
 
-        assert "My associations" in page
+        assert heading(client.get("/")) == "My associations"
         assert "Alice" in page
         assert "Sign out" in page
         assert 'type="password"' not in page
 
-    def test_the_menu_has_the_language_selector_delete_my_account_and_sign_out(
+    def test_header_location_shows_my_associations_in_place_of_a_title(self, client: Any) -> None:
+        sign_up(client, "Alice")
+
+        page = client.get("/").text
+
+        assert "My associations" in part(page, "header")
+        assert "My associations" not in part(page, "main")
+
+    def test_the_menu_has_the_language_selector_revoke_delete_my_account_and_sign_out(
         self, client: Any
     ) -> None:
         sign_up(client, "Alice")
@@ -27,9 +41,17 @@ class TestTemporarySlash:
         page = client.get("/").text
 
         assert "Français" in page
+        assert "Revoke my sign-in link" in page
         assert "Delete my account" in page
         assert "Sign out" in page
-        assert "Revoke my sign-in link" not in page
+
+    def test_revoke_my_sign_in_link_asks_for_confirmation(self, client: Any) -> None:
+        sign_up(client, "Alice")
+
+        page = html.unescape(client.get("/").text)
+
+        assert "Revoke your sign-in link? Sessions opened with it are signed out." in page
+        assert re.search(r"<button[^>]*>\s*Confirm\s*</button>", page)
 
     def test_follows_the_language(self, client: Any) -> None:
         sign_up(client, "Alice")
@@ -37,8 +59,9 @@ class TestTemporarySlash:
 
         page = client.get("/").text
 
-        assert "Mes associations" in page
+        assert "Mes associations" in part(page, "header")
         assert "Se déconnecter" in page
+        assert "Révoquer mon lien de connexion" in page
         assert "Supprimer mon compte" in page
 
     def test_escapes_the_display_name(self, client: Any) -> None:
@@ -90,7 +113,15 @@ class TestNotFound:
         assert re.search(r"<h1[^>]*>\s*Page not found\s*</h1>", response.text)
 
     @pytest.mark.parametrize(
-        "path", ["/sign-in", "/sign-out", "/delete-account", "/language", "/signup/resend"]
+        "path",
+        [
+            "/sign-in",
+            "/sign-out",
+            "/delete-account",
+            "/revoke-access-link",
+            "/language",
+            "/signup/resend",
+        ],
     )
     def test_a_path_only_actions_use_answers_it_too(self, client: Any, path: str) -> None:
         response = client.get(path)

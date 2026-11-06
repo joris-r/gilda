@@ -13,6 +13,7 @@ from tests.core.conftest import (
     create_association,
     email_count,
     latest_email,
+    shown,
     sign_up,
     unique_email,
 )
@@ -44,6 +45,11 @@ def latest_access_token(email: str) -> str:
 
 def open_link(client: Any, token: str) -> Any:
     return client.post("/api/session/access-link", json={"token": token})
+
+
+def revoke_my_link(client: Any) -> Any:
+    """Confirms "Revoke my sign-in link", as the dialog does."""
+    return client.post("/revoke-access-link")
 
 
 def normalized(text: str) -> str:
@@ -290,7 +296,7 @@ def test_session_access_link_400_when_the_token_is_missing_or_empty(
     assert "error" in response.json()
 
 
-# DELETE /api/access-link
+# Revoke my sign-in link
 
 
 def test_r23_revoking_the_link_makes_it_unusable(
@@ -302,9 +308,8 @@ def test_r23_revoking_the_link_makes_it_unusable(
     token = latest_access_token(chloe_email)
     open_link(chloe, token)
 
-    response = chloe.delete("/api/access-link")
+    revoke_my_link(chloe)
 
-    assert response.status_code == 204
     assert open_link(new_client(), token).status_code == 404
 
 
@@ -319,7 +324,7 @@ def test_r23_revoking_the_link_signs_out_the_sessions_it_opened(
     laptop = new_client()
     open_link(laptop, token)
 
-    laptop.delete("/api/access-link")
+    revoke_my_link(laptop)
 
     assert phone.get("/api/session").status_code == 401
     assert laptop.get("/api/session").status_code == 401
@@ -335,9 +340,8 @@ def test_r23_revoking_the_link_keeps_password_sessions_signed_in(
     phone = new_client()
     open_link(phone, token)
 
-    response = client.delete("/api/access-link")
+    revoke_my_link(client)
 
-    assert response.status_code == 204
     assert client.get("/api/session").json() == {**user, "superuser": False}
     assert phone.get("/api/session").status_code == 401
 
@@ -349,7 +353,7 @@ def test_r25_after_revoking_a_new_request_sends_a_new_link(
     sign_up(client, "Alice", email)
     ask_for_link(client, email)
     old_token = latest_access_token(email)
-    client.delete("/api/access-link")
+    revoke_my_link(client)
     time.sleep(0.01)  # Mailpit orders by Created, at millisecond precision.
 
     ask_for_link(client, email)
@@ -359,17 +363,60 @@ def test_r25_after_revoking_a_new_request_sends_a_new_link(
     assert open_link(new_client(), new_token).status_code == 200
 
 
-def test_delete_api_access_link_204_without_a_link(client: Any) -> None:
+def test_revoke_my_sign_in_link_shows_it_is_revoked(client: Any) -> None:
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+    ask_for_link(client, email)
+
+    page = shown(revoke_my_link(client))
+
+    assert "Your sign-in link is revoked." in page
+    assert "window.location" not in page
+
+
+def test_revoke_my_sign_in_link_follows_the_language(client: Any) -> None:
+    sign_up(client, "Alice")
+    client.cookies.set("language", "fr")
+
+    assert "Votre lien de connexion est révoqué." in shown(revoke_my_link(client))
+
+
+def test_revoke_my_sign_in_link_shows_the_same_without_a_link(client: Any) -> None:
     sign_up(client, "Alice")
 
-    assert client.delete("/api/access-link").status_code == 204
+    assert "Your sign-in link is revoked." in shown(revoke_my_link(client))
 
 
-def test_delete_api_access_link_401_when_signed_out(client: Any) -> None:
-    response = client.delete("/api/access-link")
+def test_revoke_my_sign_in_link_leads_to_sign_in_from_a_session_opened_with_it(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    _, _, chloe_email = manager_with_member(client)
+    chloe = new_client()
+    ask_for_link(chloe, chloe_email)
+    open_link(chloe, latest_access_token(chloe_email))
 
-    assert response.status_code == 401
-    assert "error" in response.json()
+    page = shown(revoke_my_link(chloe))
+
+    assert "window.location" in page
+    assert "Your sign-in link is revoked." not in page
+    assert 'type="password"' in chloe.get("/").text
+
+
+def test_revoke_my_sign_in_link_when_already_signed_out_leads_to_sign_in(client: Any) -> None:
+    page = shown(revoke_my_link(client))
+
+    assert "window.location" in page
+    assert "Your sign-in link is revoked." not in page
+
+
+def test_revoke_my_sign_in_link_replaces_the_json_endpoint(client: Any) -> None:
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+    ask_for_link(client, email)
+    token = latest_access_token(email)
+
+    assert client.delete("/api/access-link").status_code == 405
+    assert open_link(client, token).status_code == 200
 
 
 # DELETE /api/associations/{id}/members/{user_id}/access-link

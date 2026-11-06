@@ -44,6 +44,7 @@ test.describe('Header', () => {
     await menuButton(page).click()
 
     await expect(page.getByLabel('Language')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Revoke my sign-in link' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Delete my account' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
   })
