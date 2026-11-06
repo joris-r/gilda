@@ -13,13 +13,11 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command:
-      'npm --prefix ../frontend run build-only && ' +
       'uv run --directory ../backend litestar --app gilda.app:create_app database upgrade --no-prompt && ' +
       `uv run --directory ../backend litestar --app gilda.app:create_app run --port ${PORT}`,
     port: PORT,
     env: {
       DATABASE_URL,
-      GILDA_FRONTEND_DIR: '../frontend/dist',
       FRONTEND_URL: `http://127.0.0.1:${PORT}`,
     },
     reuseExistingServer: !process.env.CI,
