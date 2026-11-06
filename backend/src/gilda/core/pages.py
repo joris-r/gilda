@@ -9,7 +9,7 @@ from litestar.params import FromQuery
 from litestar.response import Template
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gilda.core.controllers import find_current_user, sign_in_as
+from gilda.core.controllers import SESSION_LINK_KEY, find_current_user, sign_in_as
 from gilda.core.schemas import AccountCreate, NewPassword, PasswordResetRequest
 from gilda.core.services import AccountService, MembershipEndHook
 from gilda.web.rendering import (
@@ -74,6 +74,29 @@ async def delete_account(
         await AccountService(db_session).delete_account(user, membership_end_hooks)
     request.clear_session()
     return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+
+
+@post("/revoke-access-link", status_code=200)
+async def revoke_access_link(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession]
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is not None:
+        await AccountService(db_session).revoke_link(user.id)
+    if user is None or SESSION_LINK_KEY in request.session:
+        request.clear_session()
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    message = translate(interface_language(request), "accessLink.revoked")
+    return DatastarResponse(
+        [
+            ServerSentEventGenerator.patch_elements(
+                fragment(request, "notice.html", message=message)
+            ),
+            ServerSentEventGenerator.execute_script(
+                "document.getElementById('revoke-access-link').close()"
+            ),
+        ]
+    )
 
 
 def _form_error(request: Request[Any, Any, Any], key: str) -> DatastarResponse:

@@ -60,6 +60,7 @@
   "accessLink": {
     "revoke": "Revoke my sign-in link",
     "confirmRevoke": "Revoke your sign-in link? Sessions opened with it are signed out.",
+    "confirm": "Confirm",
     "revoked": "Your sign-in link is revoked."
   },
   "resetPassword": {

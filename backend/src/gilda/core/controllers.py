@@ -105,12 +105,6 @@ class AccountController(Controller):
         user, link = await AccountService(db_session).sign_in_with_link(data.token)
         return sign_in_as(request, user, link)
 
-    @delete("/access-link", dependencies={"current_user": Provide(provide_current_user)})
-    async def revoke_access_link(
-        self, current_user: NamedDependency[User], db_session: NamedDependency[AsyncSession]
-    ) -> None:
-        await AccountService(db_session).revoke_link(current_user.id)
-
     @get("/session", dependencies={"current_user": Provide(provide_current_user)})
     async def get_session(self, current_user: NamedDependency[User]) -> SessionRead:
         return session_read(current_user)

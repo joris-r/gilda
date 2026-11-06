@@ -16,12 +16,14 @@
     >
       <header class="top">
         <a href="/" class="brand" aria-label="Gilda"><img class="logo" src="/static/favicon.svg" alt=""></a>
+        {% block location %}{% endblock %}
         <div class="top-actions">
           {% block header_actions %}{% include "language_selector.html" %}{% endblock %}
         </div>
       </header>
       <main>
         {% block main %}{% endblock %}
+        <p id="notice" role="status" hidden></p>
         <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
       </main>
     </div>

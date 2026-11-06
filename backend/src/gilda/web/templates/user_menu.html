@@ -2,7 +2,9 @@
 <button type="button" class="user-button" popovertarget="user-menu">{{ user.display_name }} ▾</button>
 <div id="user-menu" class="user-menu" popover>
   {% include "language_selector.html" %}
+  <button type="button" class="link" commandfor="revoke-access-link" command="show-modal">{{ t("accessLink.revoke") }}</button>
   <button type="button" class="link" commandfor="delete-account" command="show-modal">{{ t("account.delete") }}</button>
   <button type="button" class="link" data-on:click="@post('/sign-out')">{{ t("signOut") }}</button>
 </div>
+{{ confirmation("revoke-access-link", t("accessLink.confirmRevoke"), t("accessLink.confirm"), "/revoke-access-link") }}
 {{ confirmation("delete-account", t("account.confirmDelete"), t("account.delete"), "/delete-account") }}

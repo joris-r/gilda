@@ -60,6 +60,7 @@
   "accessLink": {
     "revoke": "Révoquer mon lien de connexion",
     "confirmRevoke": "Révoquer votre lien de connexion ? Les sessions ouvertes avec lui seront déconnectées.",
+    "confirm": "Confirmer",
     "revoked": "Votre lien de connexion est révoqué."
   },
   "resetPassword": {
