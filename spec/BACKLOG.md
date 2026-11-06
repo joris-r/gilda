@@ -9,7 +9,6 @@
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Create an account and Confirm email, with Resend the email; backend tests then create accounts without `POST /api/accounts`.
 - Forgot password and Reset password.
 - Forms: the shared dialog and confirmation (Escape, close button, Cancel), first used by "Delete my account" in a signed-in header menu with the language selector and Sign out; restores "A forgotten password", whose test signs out through that menu.
 - Header: the location, and "Revoke my sign-in link" in the menu.
@@ -31,11 +30,6 @@ Rebuild, in this order; each item moves its rules out of the `api.md` pages, por
 - My associations: the registrations summary (R12, R13, R14, Confirm, OK, Choose your slots).
 - Finish: delete what remains of the JSON API and the `api.md` pages, the temporary pieces and "Rebuild in progress".
 
-Fixes from the first increment:
-
-- Sign in: show the generic error message when an action fails, as Vue did.
-- Interface: an HTML 404 page, for screens not served (today a browser shows raw JSON).
-
 
 ## Quality
 
@@ -51,6 +45,7 @@ Fixes from the first increment:
 - Accessibility: audit the screens with a screen reader and axe (e.g. in the e2e tests); the Schedule's occurrence labels, for one, cannot say that a registration is cancelled.
 - Sessions: ask Litestar for a way to renew the session ID (e.g. on `set_session`), then drop the `SessionBackend` subclass.
 - Spec: separate invariants (data model) from post-conditions (API), with no sentence mixing both, starting with R8, R23, R28 and R33.
+- Create an account: a failed resend keeps the previous confirmation link working.
 - Traceability: try named markers on data model rules, with a generated spec-to-tests index, to judge it for Dev43.
 
 ## Future

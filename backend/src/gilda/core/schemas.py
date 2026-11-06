@@ -11,7 +11,7 @@ Password = Annotated[str, msgspec.Meta(min_length=8)]
 Slug = Annotated[str, msgspec.Meta(pattern=r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?\Z", max_length=50)]
 
 
-class AccountCreate(msgspec.Struct):
+class AccountCreate(msgspec.Struct, rename="camel"):
     display_name: NonEmpty
     email: Email
     password: Password
@@ -20,14 +20,6 @@ class AccountCreate(msgspec.Struct):
 class Credentials(msgspec.Struct):
     email: str
     password: str
-
-
-class VerifyRequest(msgspec.Struct):
-    token: str
-
-
-class ResendRequest(msgspec.Struct):
-    email: Email
 
 
 class PasswordResetRequest(msgspec.Struct):

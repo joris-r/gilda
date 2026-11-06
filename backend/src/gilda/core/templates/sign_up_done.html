@@ -1,0 +1,6 @@
+<div id="sign-up">
+  <h1>{{ t("signUp.title") }}</h1>
+  <p>{{ t("signUp.checkEmail", email=email) }}</p>
+  <button type="button" class="link" data-on:click="@post('/signup/resend', {filterSignals: {include: /^email$/}})">{{ t("signUp.resend") }}</button>
+  <p id="sign-up-resent" hidden></p>
+</div>

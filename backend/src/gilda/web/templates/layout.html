@@ -9,7 +9,11 @@
     <title>Gilda</title>
   </head>
   <body>
-    <div id="app">
+    <div
+      id="app"
+      data-signals="{_failed: false}"
+      data-on:datastar-fetch="$_failed = evt.detail.type === 'started' ? false : ['error', 'retrying', 'retries-failed'].includes(evt.detail.type) || $_failed"
+    >
       <header class="top">
         <a href="/" class="brand" aria-label="Gilda"><img class="logo" src="/static/favicon.svg" alt=""></a>
         <div class="top-actions">
@@ -18,6 +22,7 @@
       </header>
       <main>
         {% block main %}{% endblock %}
+        <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
       </main>
     </div>
   </body>

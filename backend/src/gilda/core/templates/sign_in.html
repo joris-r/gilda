@@ -10,7 +10,7 @@
     {{ t("fields.password") }}
     <input data-bind:password type="password" autocomplete="current-password" required>
   </label>
-  {% include "sign_in_error.html" %}
+  {% include "form_error.html" %}
   <button type="submit">{{ t("signIn.submit") }}</button>
   <a href="/forgot-password">{{ t("signIn.forgot") }}</a>
   <a href="/sign-in-link">{{ t("signIn.emailLink") }}</a>

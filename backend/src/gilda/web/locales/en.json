@@ -38,6 +38,10 @@
     "resend": "Resend the email",
     "resent": "Email sent."
   },
+  "notFound": {
+    "title": "Page not found",
+    "back": "Back to the home page"
+  },
   "verifyEmail": {
     "invalid": "This link is no longer valid."
   },

@@ -1,0 +1,4 @@
+{% extends "layout.html" %}
+{% block main %}
+<div id="verify-email" data-init='@post("/verify-email", {payload: {token: {{ token|tojson }}}})'></div>
+{% endblock %}

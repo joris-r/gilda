@@ -11,7 +11,6 @@ from gilda.core.models import AccessLink, User
 from gilda.core.schemas import (
     AccessLinkRequest,
     AccessLinkSignIn,
-    AccountCreate,
     AssociationCreate,
     AssociationDetail,
     AssociationRead,
@@ -22,10 +21,7 @@ from gilda.core.schemas import (
     MemberUpdate,
     PasswordResetConfirm,
     PasswordResetRequest,
-    ResendRequest,
     SessionRead,
-    UserRead,
-    VerifyRequest,
 )
 from gilda.core.services import (
     AccountService,
@@ -34,18 +30,10 @@ from gilda.core.services import (
     is_superuser,
 )
 from gilda.core.sessions import set_session_with_new_id
-from gilda.mailer import Language, preferred_language
+from gilda.web.rendering import interface_language
 
 SESSION_USER_KEY = "user_id"
 SESSION_LINK_KEY = "access_link_id"
-
-
-def email_language(request: Request[Any, Any, Any]) -> Language:
-    return preferred_language(request.headers.get("accept-language"))
-
-
-def user_read(user: User) -> UserRead:
-    return UserRead(id=user.id, display_name=user.display_name, email=user.address)
 
 
 def session_read(user: User) -> SessionRead:
@@ -90,18 +78,6 @@ async def provide_current_user(
 
 
 class AccountController(Controller):
-    @post("/accounts")
-    async def create_account(
-        self,
-        request: Request[Any, Any, Any],
-        db_session: NamedDependency[AsyncSession],
-        data: JSONBody[AccountCreate],
-    ) -> UserRead:
-        user = await AccountService(db_session).create_account(
-            data.display_name, data.email, data.password, email_language(request)
-        )
-        return user_read(user)
-
     @delete("/accounts/me", dependencies={"current_user": Provide(provide_current_user)})
     async def delete_account(
         self,
@@ -113,25 +89,6 @@ class AccountController(Controller):
         await AccountService(db_session).delete_account(current_user, membership_end_hooks)
         request.clear_session()
 
-    @post("/accounts/verify", status_code=200)
-    async def verify_email(
-        self,
-        request: Request[Any, Any, Any],
-        db_session: NamedDependency[AsyncSession],
-        data: JSONBody[VerifyRequest],
-    ) -> SessionRead:
-        user = await AccountService(db_session).confirm(data.token)
-        return sign_in_as(request, user)
-
-    @post("/accounts/verify/resend", status_code=204)
-    async def resend_verification(
-        self,
-        request: Request[Any, Any, Any],
-        db_session: NamedDependency[AsyncSession],
-        data: JSONBody[ResendRequest],
-    ) -> None:
-        await AccountService(db_session).resend_confirmation(data.email, email_language(request))
-
     @post("/accounts/password-reset", status_code=204)
     async def request_password_reset(
         self,
@@ -139,7 +96,9 @@ class AccountController(Controller):
         db_session: NamedDependency[AsyncSession],
         data: JSONBody[PasswordResetRequest],
     ) -> None:
-        await AccountService(db_session).request_password_reset(data.email, email_language(request))
+        await AccountService(db_session).request_password_reset(
+            data.email, interface_language(request)
+        )
 
     @post("/accounts/password-reset/confirm", status_code=200)
     async def reset_password(
@@ -168,7 +127,7 @@ class AccountController(Controller):
         db_session: NamedDependency[AsyncSession],
         data: JSONBody[AccessLinkRequest],
     ) -> None:
-        await AccountService(db_session).send_access_link(data.email, email_language(request))
+        await AccountService(db_session).send_access_link(data.email, interface_language(request))
 
     @post("/session/access-link", status_code=200)
     async def sign_in_with_link(
@@ -295,7 +254,7 @@ class AssociationController(Controller):
         user_id: FromPath[UUID],
     ) -> MemberRead:
         return await AssociationService(db_session).send_member_link(
-            current_user, association_id, user_id, email_language(request)
+            current_user, association_id, user_id, interface_language(request)
         )
 
     @delete("/{association_id:uuid}/members/{user_id:uuid}/access-link")

@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block main %}
+<div id="sign-up">
+  <h1>{{ t("signUp.title") }}</h1>
+  <form class="panel" data-on:submit="@post('/signup', {filterSignals: {exclude: /^language$/}})">
+    <label>
+      {{ t("fields.displayName") }}
+      <input data-bind:display-name autocomplete="nickname" required>
+    </label>
+    <label>
+      {{ t("fields.email") }}
+      <input data-bind:email type="email" autocomplete="email" required>
+    </label>
+    <label>
+      {{ t("fields.password") }}
+      <input data-bind:password type="password" autocomplete="new-password" minlength="8" required>
+    </label>
+    {% include "form_error.html" %}
+    <button type="submit">{{ t("signUp.submit") }}</button>
+  </form>
+  <p class="hint">
+    {{ t("signUp.haveAccount") }}
+    <a href="/">{{ t("signUp.signIn") }}</a>
+  </p>
+</div>
+{% endblock %}
