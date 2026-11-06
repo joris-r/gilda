@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="{{ language }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/style.css">
+    <script type="module" src="/static/datastar.js"></script>
+    <title>Gilda</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="top">
+        <a href="/" class="brand" aria-label="Gilda"><img class="logo" src="/static/favicon.svg" alt=""></a>
+        <div class="top-actions">
+          {% block header_actions %}{% include "language_selector.html" %}{% endblock %}
+        </div>
+      </header>
+      <main>
+        {% block main %}{% endblock %}
+      </main>
+    </div>
+  </body>
+</html>

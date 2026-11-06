@@ -9,6 +9,7 @@ dependencies = [
     "asyncpg",
     "argon2-cffi>=25.1.0",
     "uuid-utils>=1.2.0",
+    "datastar-py>=1.0.3",
 ]
 
 [dependency-groups]

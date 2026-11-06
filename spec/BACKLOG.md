@@ -5,6 +5,14 @@
 - *nothing to report*
 
 
+## Datastar experiment
+
+- Rebuild the remaining screens one increment at a time; each moves its rules out of `api.md`, ports its tests and deletes its endpoints.
+- Sign in: show the generic error message when an action fails, as Vue did.
+- Interface: an HTML 404 page, for screens not served (today a browser shows raw JSON).
+- Deployment: try the SSE responses on the host, in case a proxy buffers them.
+
+
 ## Quality
 
 - Spec: `GET /api/associations` and My associations sit in the core pages though R12–R14 are planning's; move them to a home page once other modules add their part.

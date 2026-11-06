@@ -67,16 +67,23 @@ def sign_in_as(
     return session_read(user)
 
 
-async def provide_current_user(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession]
-) -> User:
+async def find_current_user(
+    request: Request[Any, Any, Any], db_session: AsyncSession
+) -> User | None:
     session = request.session or {}
     accounts = AccountService(db_session)
     user_id = session.get(SESSION_USER_KEY)
     user = await accounts.get_active(UUID(user_id)) if user_id else None
     link_id = session.get(SESSION_LINK_KEY)
     if link_id and not await accounts.link_exists(UUID(link_id)):
-        user = None
+        return None
+    return user
+
+
+async def provide_current_user(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession]
+) -> User:
+    user = await find_current_user(request, db_session)
     if user is None:
         raise NotAuthorizedException("Not signed in.")
     return user

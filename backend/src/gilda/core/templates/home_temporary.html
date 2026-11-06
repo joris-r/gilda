@@ -1,0 +1,6 @@
+{% extends "layout.html" %}
+{% block header_actions %}{{ user.display_name }}{% endblock %}
+{% block main %}
+<h1>{{ t("myAssociations.title") }}</h1>
+<button type="button" data-on:click="@post('/sign-out')">{{ t("signOut") }}</button>
+{% endblock %}

@@ -1,0 +1,10 @@
+<label>
+  {{ t("language") }}
+  <select
+    data-bind:language
+    data-on:change="@post('/language', {filterSignals: {include: /^language$/}})"
+  >
+    <option value="en"{% if language == "en" %} selected{% endif %}>English</option>
+    <option value="fr"{% if language == "fr" %} selected{% endif %}>Français</option>
+  </select>
+</label>

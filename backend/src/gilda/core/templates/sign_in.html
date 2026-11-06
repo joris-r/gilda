@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block main %}
+<h1>{{ t("signIn.title") }}</h1>
+<form class="panel" data-on:submit="@post('/sign-in', {filterSignals: {exclude: /^language$/}})">
+  <label>
+    {{ t("fields.email") }}
+    <input data-bind:email type="email" autocomplete="email" required>
+  </label>
+  <label>
+    {{ t("fields.password") }}
+    <input data-bind:password type="password" autocomplete="current-password" required>
+  </label>
+  {% include "sign_in_error.html" %}
+  <button type="submit">{{ t("signIn.submit") }}</button>
+  <a href="/forgot-password">{{ t("signIn.forgot") }}</a>
+  <a href="/sign-in-link">{{ t("signIn.emailLink") }}</a>
+</form>
+<p class="hint">
+  {{ t("signIn.noAccount") }}
+  <a href="/signup">{{ t("signIn.createAccount") }}</a>
+</p>
+{% endblock %}

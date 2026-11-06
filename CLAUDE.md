@@ -16,9 +16,10 @@ file: its non-text bytes can make a plain `grep` find nothing.
 
 When a change alters what an element shows, the Tests phase also looks
 for test lookups that match that text over the whole page (e.g.
-`control(wrapper, 'Alice')`), not only for the tests citing the rule.
+`"Alice" in response.text`, or `page.getByText('Alice')`), not only for
+the tests citing the rule.
 
 When a test copies an expectation from another spec, the Tests phase
 checks that the fixtures it relies on match (e.g. a planning period
-that changes the default range, or a mock that answers 500 for an
-unmocked route instead of the API's 404).
+that changes the default range, or a client that holds a `language`
+cookie).
