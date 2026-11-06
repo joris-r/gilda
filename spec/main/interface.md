@@ -11,14 +11,13 @@ Until then:
   - A temporary `/`, signed in, in place of My associations:
 
     ```
-    (logo)                                     Alice
+    (logo)                                     Alice ▾
 
     My associations
-
-    [Sign out]
     ```
 
-    Sign out leads to Sign in.
+    The header's menu has the language selector, "Delete my account"
+    and Sign out. Sign out leads to Sign in.
 - Any other path outside `/api` answers the Not found page, including
   the links of Sign in to screens not served yet.
 - The JSON API stays available, as `core/api.md` and `planning/api.md`
@@ -95,7 +94,14 @@ Signed out:
 - "Delete my account" asks "Delete your account? You leave all your
   associations and your upcoming registrations are cancelled. This
   cannot be undone. [Delete my account] Cancel"; confirming deletes it
-  (R29) and leads to Sign in.
+  and leads to Sign in.
+  - R29: Sets deleted_at, sets email and password to null, deletes the
+    user's tokens and AccessLink, signs out all their sessions, and
+    ends each of their memberships (R28). Their email can then be used
+    by a new user, through Create an account or
+    `POST /api/associations/{id}/members`.
+  - R30: In an association where the user was the only manager, every
+    remaining member becomes a manager.
 - The language selector switches between English and French; the
   choice is kept in the browser across visits and wins over the
   browser's preference.
@@ -131,8 +137,8 @@ Signed out:
 - On success, the dialog closes and the screen shows the result and its
   message, if any. On failure, the dialog stays open, with its message.
 - A confirmation opens in a dialog with its question, its action button
-  and Cancel. Confirming one asked from a form's dialog also closes that
-  form.
+  and Cancel. Cancel and Escape close it, changing nothing. Confirming
+  one asked from a form's dialog also closes that form.
 - On a narrow screen, a dialog spans the screen's width at its bottom
   (not testable).
 - Only managers see the buttons and icons that create, edit or delete.

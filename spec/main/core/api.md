@@ -2,27 +2,6 @@
 
 ## Accounts
 
-### DELETE /api/accounts/me
-
-Deletes the signed-in user's account.
-
-```http
-DELETE /api/accounts/me
-```
-
-```http
-HTTP/1.1 204 No Content
-```
-
-- R29: Sets deleted_at, sets email and password to null, deletes the
-  user's tokens and AccessLink, signs out all their sessions, and ends
-  each of their memberships (R28). Their email can then be used by a
-  new user, through Create an account or
-  `POST /api/associations/{id}/members`.
-- R30: In an association where the user was the only manager, every
-  remaining member becomes a manager.
-- 401 when signed out.
-
 ### POST /api/session
 
 Signs in.
