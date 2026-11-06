@@ -9,9 +9,8 @@ The interface is in English and French.
 
 ## Stack
 
-- `backend/`: JSON API in Python (Litestar, Advanced Alchemy,
-  PostgreSQL).
-- `frontend/`: web interface in Vue 3 and TypeScript.
+- `backend/`: JSON API and web interface in Python (Litestar, Advanced
+  Alchemy, PostgreSQL, Jinja, Datastar).
 - `e2e/`: end-to-end tests with Playwright.
 
 ## Run
@@ -20,16 +19,16 @@ Everything goes through `make`; `make help` lists the targets.
 
 ```sh
 make install      # dependencies of every part
-make dev          # PostgreSQL, migrations, then backend and frontend with reload
+make dev          # PostgreSQL, migrations, then the backend with reload
 ```
 
-The frontend dev server proxies `/api` to the backend on port 8000.
+The site runs on port 8000.
 `DATABASE_URL` defaults to the local PostgreSQL of `compose.yaml`.
 
 ## Test
 
 ```sh
-make test         # backend, frontend and end-to-end suites
+make test         # backend and end-to-end suites
 make lint         # quality checks, changing nothing
 make format       # fix lint and formatting
 make check        # lint and test: run before every hand-over
@@ -40,7 +39,7 @@ never the development database; `TEST_DATABASE_URL` overrides it.
 
 ## Deploy
 
-One hosted site serves both the API and the built frontend, from the
+One hosted site serves both the API and the web interface, from the
 same Litestar app. Site, PostgreSQL database and SMTP relay are
 configured directly at the hosting provider.
 
@@ -49,8 +48,6 @@ One-time site setup needs:
 - A Python app, ASGI entry point `gilda.app:create_app`.
 - A PostgreSQL database, and `DATABASE_URL` set to
   `postgresql+asyncpg://<user>:<password>@<host>:<port>/<database>`.
-- `GILDA_FRONTEND_DIR` set to the absolute path of `frontend/dist`
-  (built below).
 - `FRONTEND_URL` set to the site's public URL, including the scheme
   (e.g. `https://your-site.example`; used in confirmation emails).
 - `SMTP_FROM` set to the sender address for confirmation emails.
@@ -65,7 +62,6 @@ To deploy, over SSH on the site:
 cd gilda
 git pull
 cd backend && uv sync --no-dev && cd ..
-cd frontend && npm install && npm run build && cd ..
 cd backend && uv run litestar --app gilda.app:create_app database upgrade --no-prompt
 ```
 

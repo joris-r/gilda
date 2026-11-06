@@ -1,5 +1,30 @@
 # Interface
 
+## Rebuild in progress
+
+The screens of this specification are being rebuilt one at a time.
+Until then:
+
+- Served:
+  - Sign in, with its signed-out header.
+  - A temporary `/`, signed in, in place of My associations:
+
+    ```
+    (logo)                                     Alice
+
+    My associations
+
+    [Sign out]
+    ```
+
+    Sign out leads to Sign in.
+- Any other path outside `/api` answers 404, including the links of
+  Sign in to screens not served yet.
+- The JSON API stays available, as `core/api.md` and `planning/api.md`
+  specify it.
+
+## Language
+
 - The interface opens in French when the browser prefers French, in
   English otherwise.
 - An email the user triggers (e.g. the confirmation email) is in the
