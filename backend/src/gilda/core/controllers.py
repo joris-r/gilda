@@ -76,17 +76,6 @@ async def provide_current_user(
 
 
 class AccountController(Controller):
-    @delete("/accounts/me", dependencies={"current_user": Provide(provide_current_user)})
-    async def delete_account(
-        self,
-        request: Request[Any, Any, Any],
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        membership_end_hooks: NamedDependency[list[MembershipEndHook]],
-    ) -> None:
-        await AccountService(db_session).delete_account(current_user, membership_end_hooks)
-        request.clear_session()
-
     @post("/session", status_code=200)
     async def sign_in(
         self,

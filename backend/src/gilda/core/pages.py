@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from gilda.core.controllers import find_current_user, sign_in_as
 from gilda.core.schemas import AccountCreate, NewPassword, PasswordResetRequest
-from gilda.core.services import AccountService
+from gilda.core.services import AccountService, MembershipEndHook
 from gilda.web.rendering import (
     fragment,
     interface_language,
@@ -59,6 +59,19 @@ async def sign_in(
 
 @post("/sign-out", status_code=200)
 async def sign_out(request: Request[Any, Any, Any]) -> DatastarResponse:
+    request.clear_session()
+    return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+
+
+@post("/delete-account", status_code=200)
+async def delete_account(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    membership_end_hooks: NamedDependency[list[MembershipEndHook]],
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is not None:
+        await AccountService(db_session).delete_account(user, membership_end_hooks)
     request.clear_session()
     return DatastarResponse(ServerSentEventGenerator.redirect("/"))
 

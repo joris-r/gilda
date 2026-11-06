@@ -15,6 +15,7 @@ from gilda import core, web
 from gilda.core.controllers import AccountController, AssociationController
 from gilda.core.models import UserSession
 from gilda.core.pages import (
+    delete_account,
     forgot_password,
     forgot_password_page,
     home,
@@ -64,9 +65,6 @@ def create_app() -> Litestar:
             SharedScheduleController,
         ],
         exception_handlers=api_exception_handlers(),
-        dependencies={
-            "membership_end_hooks": Provide(membership_end_hooks, sync_to_thread=False),
-        },
     )
     static = create_static_files_router(path="/static", directories=[_directory_of(web) / "static"])
     return Litestar(
@@ -76,6 +74,7 @@ def create_app() -> Litestar:
             home,
             sign_in,
             sign_out,
+            delete_account,
             forgot_password_page,
             forgot_password,
             reset_password_page,
@@ -87,6 +86,9 @@ def create_app() -> Litestar:
             verify_email,
             choose_language,
         ],
+        dependencies={
+            "membership_end_hooks": Provide(membership_end_hooks, sync_to_thread=False),
+        },
         exception_handlers={NotFoundException: not_found, MethodNotAllowedException: not_found},
         plugins=[create_database_plugin(database)],
         middleware=[DefineMiddleware(SessionMiddleware, backend=sessions)],

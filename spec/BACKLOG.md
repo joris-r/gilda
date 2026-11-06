@@ -9,10 +9,9 @@
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Forms: the shared dialog and confirmation (Escape, close button, Cancel), first used by "Delete my account" in a signed-in header menu with the language selector and Sign out; restores "A forgotten password", whose test signs out through that menu.
 - Header: the location, and "Revoke my sign-in link" in the menu.
 - Sign-in link and Access link.
-- My associations: the list with names and roles, replacing the temporary `/`, and New association.
+- My associations: the list with names and roles, replacing the temporary `/`, and New association, with the form dialog (title, close button).
 - Members: the list, "Show all", "not joined yet" and Add a member.
 - Members: the edit dialog, role changes and Remove from the association; restores "A volunteer becomes manager".
 - Members: Revoke link and Send link; restores "A volunteer signs in by link".
@@ -40,9 +39,17 @@ Choices the spec left open, settled by `forgot-password`:
 - Reset password: a missing token on submit shows the invalid link.
 - Forgot password: "Back to Sign in" stays under the message once the form is submitted.
 
+Choices the spec left open, settled by `delete-account`:
+
+- Delete my account: a request that is already signed out leads to Sign in.
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
+- Datastar: after a network error, `@post` retries even once its dialog is cancelled, so a failed "Delete my account" could still go through after Cancel; `retry: 'never'` covers only HTTP errors, and only `retryMaxCount: 0` stops it, as the confirmation macro does.
+- Actions outside a confirmation (Sign out, Create an account, Forgot password…) still retry after a network error, so they could run twice.
+- Confirmation: the generic error probably still shows after Cancel and reopening, until the next try.
+- End-to-end: run the suite on Firefox too; the menu and dialog rely on `popover`, `commandfor` and CSS anchor positioning.
 
 
 ## Quality
@@ -67,6 +74,8 @@ Choices the spec left open, settled by `forgot-password`:
 - Access links never expire; consider an expiration, with a `created_at` filled from their UUIDv7 id.
 - R22 keeps the user's other sessions signed in, so someone who stole a session stays connected after a password reset; revisit it.
 - Forgot password shows the same message for everyone, but its response time can reveal an account, as only a user with a password gets an email during the request; send it in the background.
+- Delete my account asks for no password, so an unattended or stolen session can erase the account.
+- `POST /delete-account` has no CSRF token and relies on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
 

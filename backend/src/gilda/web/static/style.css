@@ -106,11 +106,8 @@ a {
   font-size: 14px;
 }
 
-.user {
-  position: relative;
-}
-
 .user-button {
+  anchor-name: --user-button;
   padding: 4px 0;
   font-weight: 400;
   white-space: nowrap;
@@ -119,11 +116,11 @@ a {
 }
 
 .user-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 20;
-  display: grid;
+  position-anchor: --user-button;
+  inset: auto;
+  top: calc(anchor(bottom) + 6px);
+  right: anchor(right);
+  margin: 0;
   gap: 12px;
   min-width: 180px;
   padding: 14px;
@@ -131,6 +128,12 @@ a {
   border: 1px solid var(--line);
   border-radius: 10px;
   box-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.user-menu:popover-open {
+  display: grid;
 }
 
 .toolbar {
@@ -352,28 +355,30 @@ button.add {
   gap: 2px;
 }
 
-.scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  padding: 24px 16px;
+.dialog::backdrop {
   background: rgb(38 35 32 / 0.45);
 }
 
 .dialog {
   box-sizing: border-box;
-  display: grid;
-  gap: 12px;
-  width: 100%;
+  width: calc(100% - 32px);
   max-width: 460px;
-  max-height: 100%;
   overflow: auto;
   padding: 16px 20px 20px;
+  border: 0;
   background: var(--surface);
+  color: var(--fg);
   border-radius: 12px;
   box-shadow: 0 20px 60px rgb(0 0 0 / 0.3);
+}
+
+.dialog[open] {
+  display: grid;
+  gap: 12px;
+}
+
+.dialog p {
+  margin: 0;
 }
 
 .dialog-head {
@@ -430,20 +435,17 @@ button.add {
 
 /* On a narrow screen, a dialog spans the width at the bottom. */
 @media (max-width: 520px) {
-  .scrim {
-    place-items: end stretch;
-    padding: 0;
-  }
-
   .dialog {
+    width: 100%;
     max-width: none;
+    margin: auto 0 0;
     border-radius: 16px 16px 0 0;
     padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   }
 }
 
 @media (prefers-color-scheme: dark) {
-  .scrim {
+  .dialog::backdrop {
     background: rgb(0 0 0 / 0.6);
   }
 }

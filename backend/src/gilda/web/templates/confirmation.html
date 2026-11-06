@@ -1,0 +1,11 @@
+{# No retry: a request that failed must not go through later, once the dialog is cancelled. #}
+{% macro confirmation(id, question, action_label, url) %}
+<dialog id="{{ id }}" class="dialog" aria-labelledby="{{ id }}-question">
+  <p id="{{ id }}-question">{{ question }}</p>
+  <div class="dialog-actions">
+    <button type="button" data-on:click="@post('{{ url }}', {retryMaxCount: 0})">{{ action_label }}</button>
+    <button type="button" class="link" commandfor="{{ id }}" command="close">{{ t("dialog.cancel") }}</button>
+  </div>
+  <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+</dialog>
+{% endmacro %}
