@@ -35,7 +35,6 @@ Fixes from the first increment:
 
 - Sign in: show the generic error message when an action fails, as Vue did.
 - Interface: an HTML 404 page, for screens not served (today a browser shows raw JSON).
-- Deployment: try the SSE responses on the host, in case a proxy buffers them.
 
 
 ## Quality

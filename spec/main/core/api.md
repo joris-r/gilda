@@ -2,99 +2,6 @@
 
 ## Accounts
 
-### POST /api/accounts
-
-Creates a user with a password. The email must be confirmed (see
-`POST /api/accounts/verify`) before it can sign in.
-
-```http
-POST /api/accounts
-Content-Type: application/json
-
-{"display_name": "Alice", "email": "alice@example.org", "password": "correct horse"}
-```
-
-```http
-HTTP/1.1 201 Created
-Content-Type: application/json
-
-{"id": "0b6f…", "display_name": "Alice", "email": "alice@example.org"}
-```
-
-- R2: When a user without a password already has this email, that user
-  gets the password and the given display name, and keeps their
-  memberships.
-- R9: On success, an EmailVerificationToken is created and a
-  confirmation email sent to it, with a link to `/verify-email?token=…`.
-- R20: The confirmation email is in French when the request's
-  `Accept-Language` header prefers French over English, in English
-  otherwise:
-
-  ```
-  Subject: Confirm your email
-
-  Confirm your email by opening this link:
-
-  https://…/verify-email?token=…
-  ```
-
-  ```
-  Subject: Confirmez votre adresse e-mail
-
-  Confirmez votre adresse e-mail en ouvrant ce lien :
-
-  https://…/verify-email?token=…
-  ```
-- 409 when a user with a password already has this email.
-- R19: When `INVITATION_ONLY` is `true`, 403 unless a user without a
-  password already has this email, or it is the superuser's (see
-  `POST /api/session`); nothing is saved.
-- 400 when the password has fewer than 8 characters.
-- R10: 503 when the confirmation email cannot be sent; nothing is
-  saved.
-
-### POST /api/accounts/verify
-
-Confirms an email from its link's token.
-
-```http
-POST /api/accounts/verify
-Content-Type: application/json
-
-{"token": "…"}
-```
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-Set-Cookie: session=…
-
-{"id": "0b6f…", "display_name": "Alice", "email": "alice@example.org", "superuser": false}
-```
-
-- Sets email_verified_at on the token's user, deletes the token, and
-  signs the user in, as `POST /api/session` does (R16).
-- 404 when the token is unknown, expired, or already used.
-
-### POST /api/accounts/verify/resend
-
-```http
-POST /api/accounts/verify/resend
-Content-Type: application/json
-
-{"email": "alice@example.org"}
-```
-
-```http
-HTTP/1.1 204 No Content
-```
-
-- When a user with this email exists and email_verified_at is still
-  null, sends a new confirmation email (replacing any pending token),
-  in the language given by R20.
-- Always 204, whether or not such a user exists, so the response
-  cannot be used to probe for an email.
-
 ### POST /api/accounts/password-reset
 
 Asks for a password reset link.
@@ -131,7 +38,8 @@ HTTP/1.1 204 No Content
   ```
 - No email is sent to a user without a password, nor to an unknown
   email.
-- Always 204, as `POST /api/accounts/verify/resend`.
+- Always 204, whether or not such a user exists, so the response
+  cannot be used to probe for an email.
 
 ### POST /api/accounts/password-reset/confirm
 
@@ -175,7 +83,7 @@ HTTP/1.1 204 No Content
 - R29: Sets deleted_at, sets email and password to null, deletes the
   user's tokens and AccessLink, signs out all their sessions, and ends
   each of their memberships (R28). Their email can then be used by a
-  new user, through `POST /api/accounts` or
+  new user, through Create an account or
   `POST /api/associations/{id}/members`.
 - R30: In an association where the user was the only manager, every
   remaining member becomes a manager.
@@ -247,7 +155,8 @@ HTTP/1.1 204 No Content
   ```
 - R25: A user who already has an AccessLink is sent the same link.
 - No email is sent to an unknown email.
-- Always 204, as `POST /api/accounts/verify/resend`.
+- Always 204, whether or not such a user exists, so the response
+  cannot be used to probe for an email.
 
 ### POST /api/session/access-link
 

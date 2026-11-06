@@ -6,7 +6,8 @@ The screens of this specification are being rebuilt one at a time.
 Until then:
 
 - Served:
-  - Sign in, with its signed-out header.
+  - Sign in, Create an account and Confirm email, with their signed-out
+    header.
   - A temporary `/`, signed in, in place of My associations:
 
     ```
@@ -18,10 +19,30 @@ Until then:
     ```
 
     Sign out leads to Sign in.
-- Any other path outside `/api` answers 404, including the links of
-  Sign in to screens not served yet.
+- Any other path outside `/api` answers the Not found page, including
+  the links of Sign in to screens not served yet.
 - The JSON API stays available, as `core/api.md` and `planning/api.md`
   specify it.
+
+## Not found
+
+A path outside `/api` that leads nowhere answers 404, signed in or not:
+
+```
+(logo)                                     [English ▾]
+
+Page not found
+
+Back to the home page
+```
+
+- "Back to the home page" leads to `/`.
+
+## Generic error message
+
+An action that fails with no message of its own, on the server or on
+the way to it, shows "Something went wrong. Try again." on its screen.
+What was typed stays.
 
 ## Language
 

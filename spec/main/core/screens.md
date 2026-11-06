@@ -87,22 +87,55 @@ Create an account
 Already have an account? Sign in
 ```
 
-- On success, shows "Check alice@example.org for a confirmation
-  link." instead of signing in. A "Resend the email" action below it
-  shows "Email sent." when clicked.
+- On success, creates the user with this password and shows "Check
+  alice@example.org for a confirmation link." instead of the form,
+  signed out.
+- R2: When a user without a password already has this email, that user
+  gets the password and the given display name, and keeps their
+  memberships.
+- R9: On success, an EmailVerificationToken is created and a
+  confirmation email sent to it, with a link to `/verify-email?token=…`.
+- R20: The confirmation email is in the interface's language:
+
+  ```
+  Subject: Confirm your email
+
+  Confirm your email by opening this link:
+
+  https://…/verify-email?token=…
+  ```
+
+  ```
+  Subject: Confirmez votre adresse e-mail
+
+  Confirmez votre adresse e-mail en ouvrant ce lien :
+
+  https://…/verify-email?token=…
+  ```
 - When a user with this email has a password: "An account already
   exists for this email. Sign in instead."
-- When the email was not invited (R19): "This email has not been
-  invited. Ask a manager of your association to add you as a member."
-- When the confirmation email cannot be sent: "We couldn't send the
-  confirmation email. Try again later."
+- R19: When `INVITATION_ONLY` is `true`, unless a user without a
+  password already has this email, or it is the superuser's (see
+  `POST /api/session`): "This email has not been invited. Ask a manager
+  of your association to add you as a member."; nothing is saved.
+- R10: When the confirmation email cannot be sent: "We couldn't send
+  the confirmation email. Try again later."; nothing is saved.
+- A password has at least 8 characters. A shorter one, or a missing or
+  invalid field, shows the generic error message; nothing is saved.
+- "Resend the email", below the confirmation message, shows "Email
+  sent." It sends a new confirmation email (R8, R20) when this email's
+  user is still unconfirmed. The screen shows the same whether or not
+  it does, and when that email cannot be sent.
 
 ## `/verify-email`: Confirm email
 
 - Reached from the confirmation link's `token` query parameter.
-- On success, leads to My associations, signed in.
+- On success, sets email_verified_at on the token's user, deletes the
+  token, signs the user in, as Sign in does (R16), and leads to My
+  associations.
 - An unknown, expired, or already-used token shows "This link is no
   longer valid." with a way back to `/signup` to request a new one.
+- Fetching the link without running the page leaves the token usable.
 
 ## `/`, signed in: My associations
 
@@ -297,7 +330,7 @@ As a manager:
 - A screen of an association whose slug is unknown, or of which the
   user is not a member, shows "This association does not exist or you
   are not a member." with a way to My associations.
-- Signed out, every page but `/signup`, `/verify-email`,
+- Signed out, every screen but `/signup`, `/verify-email`,
   `/forgot-password`, `/reset-password`, `/sign-in-link` and `/access`
   shows Sign in.
 
