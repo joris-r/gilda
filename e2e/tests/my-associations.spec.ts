@@ -1,21 +1,23 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
+import {
+  addClosure,
+  addMember,
+  addSlot,
+  createAccount,
+  createAssociation,
+  propose,
+  setPeriod,
+  signUpFor,
+  signedIn,
+  uniqueEmail,
+  uniqueSlug,
+  userIdOf,
+} from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const MALFORMED =
   'Use only lowercase letters, digits and hyphens, starting and ending with a letter or a digit.'
 const TAKEN = 'This association identifier is already taken.'
-
-async function signIn(page: Page, request: APIRequestContext) {
-  const email = uniqueEmail('Alice')
-  await request.post('/signup', { data: { displayName: 'Alice', email, password: PASSWORD } })
-  await request.post('/verify-email', { data: { token: await latestToken(email) } })
-  await page.goto('/')
-  await page.getByLabel('Email', { exact: true }).fill(email)
-  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.locator('header').getByText('My associations')).toBeVisible()
-}
 
 function nameField(page: Page) {
   return page.getByLabel('Name', { exact: true })
@@ -29,14 +31,10 @@ function createButton(page: Page) {
   return page.getByRole('button', { name: 'Create association' })
 }
 
-function uniqueSlug() {
-  return `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-/** Next week's Thursday, as the API writes it and as My associations shows it. */
+/** Next week's Thursday, as the actions take it and as My associations shows it. */
 function nextThursday() {
   const day = new Date()
   day.setHours(12, 0, 0, 0)
@@ -47,35 +45,21 @@ function nextThursday() {
 
 /** Alice, signed in on `page`, manages Jardin partagé, open on Thursdays from 10:00 to 13:00. */
 async function withAssociation(page: Page, request: APIRequestContext) {
-  await signIn(page, request)
-  const slug = uniqueSlug()
-  const created = await page.request.post('/api/associations', { data: { name: 'Jardin partagé', slug } })
-  expect(created.status()).toBe(201)
-  const { id } = (await created.json()) as { id: string }
-  const slot = await page.request.post(`/api/associations/${id}/slots`, {
-    data: { weekday: 'thursday', start: '10:00', end: '13:00' },
-  })
-  expect(slot.status()).toBe(201)
-  const session = await page.request.get('/api/session')
-  const { id: userId } = (await session.json()) as { id: string }
-  return { id, slug, userId }
+  await signedIn(page, request)
+  const slug = await createAssociation(page.request)
+  await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
+  return slug
 }
 
 /** Bruno, a manager of the association signed in on `request`, proposes next week's Thursday to
  * Alice. */
 async function proposedToAlice(page: Page, request: APIRequestContext) {
-  const { id, userId } = await withAssociation(page, request)
+  const slug = await withAssociation(page, request)
+  const alice = await userIdOf(page.request, slug, 'Alice')
   const bruno = uniqueEmail('Bruno')
-  const added = await page.request.post(`/api/associations/${id}/members`, {
-    data: { display_name: 'Bruno', email: bruno, role: 'manager' },
-  })
-  expect(added.status()).toBe(201)
-  await request.post('/signup', { data: { displayName: 'Bruno', email: bruno, password: PASSWORD } })
-  await request.post('/verify-email', { data: { token: await latestToken(bruno) } })
-  const proposed = await request.post(`/api/associations/${id}/registrations`, {
-    data: { user_id: userId, date: nextThursday().iso, start: '10:00', end: '13:00' },
-  })
-  expect(proposed.status()).toBe(201)
+  await addMember(page.request, slug, 'Bruno', bruno, 'manager')
+  await createAccount(request, 'Bruno', bruno)
+  await propose(request, slug, alice, nextThursday().iso, '10:00', '13:00')
   await page.goto('/')
 }
 
@@ -85,7 +69,7 @@ function jardin(page: Page) {
 
 test.describe('My associations', () => {
   test('New association leads to its screen, and Cancel back', async ({ page, request }) => {
-    await signIn(page, request)
+    await signedIn(page, request)
 
     await page.getByRole('link', { name: 'New association' }).click()
     await expect(page).toHaveURL(/\/association\/new$/)
@@ -100,7 +84,7 @@ test.describe('My associations', () => {
     page,
     request,
   }) => {
-    await signIn(page, request)
+    await signedIn(page, request)
     await page.goto('/association/new')
 
     await page.locator('header').getByRole('link', { name: 'My associations' }).click()
@@ -109,7 +93,7 @@ test.describe('My associations', () => {
   })
 
   test("a name leads to the association's Schedule", async ({ page, request }) => {
-    await signIn(page, request)
+    await signedIn(page, request)
     const slug = uniqueSlug()
     await page.goto('/association/new')
     await nameField(page).fill('Jardin partagé')
@@ -141,16 +125,10 @@ test.describe('Registrations summary', () => {
   })
 
   test('OK cancels the obsolete registration, which no longer shows', async ({ page, request }) => {
-    const { id, userId } = await withAssociation(page, request)
+    const slug = await withAssociation(page, request)
     const thursday = nextThursday().iso
-    const registered = await page.request.post(`/api/associations/${id}/registrations`, {
-      data: { user_id: userId, date: thursday, start: '10:00', end: '13:00' },
-    })
-    expect(registered.status()).toBe(201)
-    const closure = await page.request.post(`/api/associations/${id}/closures`, {
-      data: { first: thursday, last: thursday },
-    })
-    expect(closure.status()).toBe(201)
+    await signUpFor(page.request, slug, thursday, '10:00', '13:00')
+    await addClosure(page.request, slug, thursday, thursday)
     await page.goto('/')
     await expect(jardin(page)).toContainText('this slot no longer takes place.')
 
@@ -162,11 +140,8 @@ test.describe('Registrations summary', () => {
   })
 
   test("R14: Choose your slots leads to the association's Schedule", async ({ page, request }) => {
-    const { id, slug } = await withAssociation(page, request)
-    const period = await page.request.put(`/api/associations/${id}/planning-period`, {
-      data: { first: nextThursday().iso, last: nextThursday().iso },
-    })
-    expect(period.status()).toBe(200)
+    const slug = await withAssociation(page, request)
+    await setPeriod(page.request, slug, nextThursday().iso, nextThursday().iso)
     await page.goto('/')
 
     await jardin(page).getByRole('link', { name: 'Choose your slots' }).click()
@@ -190,7 +165,7 @@ test.describe('Registrations summary', () => {
 
 test.describe('New association', () => {
   test.beforeEach(async ({ page, request }) => {
-    await signIn(page, request)
+    await signedIn(page, request)
     await page.goto('/association/new')
   })
 

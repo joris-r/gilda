@@ -9,12 +9,15 @@ from tests.core.conftest import (  # noqa: F401  (fixtures used by the planning 
     client,
     create_association,
     new_client,
+    run_sql,
+    run_sql_rows,
     shown,
     sign_up,
     unique_email,
 )
 
 GENERIC = "Something went wrong. Try again."
+TAKEN = "Someone took this slot in the meantime."
 
 WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
@@ -82,6 +85,43 @@ def settings_lines(as_client: Any, slug: str, heading: str) -> list[str]:
     return lines_of(section_of(settings_page(as_client, slug), heading))
 
 
+def added_id(table: str, association_id: str, action: Callable[[], Any]) -> str:
+    """Runs `action`, which adds one row to `table` in the association, and returns its id,
+    read from the database: the screens show no ids."""
+    sql = f"SELECT id FROM {table} WHERE association_id = :association"
+    before = {row[0] for row in run_sql_rows(sql, association=association_id)}
+    action()
+    added = {row[0] for row in run_sql_rows(sql, association=association_id)} - before
+    assert len(added) == 1, added
+    return str(added.pop())
+
+
+def add_slot(
+    as_client: Any, association: dict[str, Any], weekday: str, start: str, end: str
+) -> dict[str, Any]:
+    """Adds a slot with "Add a slot" on Schedule settings."""
+
+    def add() -> None:
+        text = shown(add_slot_on_screen(as_client, association["slug"], weekday, start, end))
+        assert GENERIC not in text, text
+
+    slot_id = added_id("slot", association["id"], add)
+    return {"id": slot_id, "weekday": weekday, "start": start, "end": end}
+
+
+def add_closure(
+    as_client: Any, association: dict[str, Any], first: str, last: str, label: str | None = None
+) -> dict[str, Any]:
+    """Adds a closure with "Add a closure" on Schedule settings."""
+
+    def add() -> None:
+        text = shown(add_closure_on_screen(as_client, association["slug"], first, last, label))
+        assert GENERIC not in text, text
+
+    closure_id = added_id("closure", association["id"], add)
+    return {"id": closure_id, "first": first, "last": last, "label": label}
+
+
 class Planning:
     """Alice manages an association; Bruno and Chloé volunteer in it, each on their own client."""
 
@@ -99,18 +139,12 @@ class Planning:
         volunteer_client = open_client()
         email = unique_email(name.replace("é", "e"))
         user = sign_up(volunteer_client, name, email)
-        assert add_member(self.alice_client, self.id, name, email).status_code == 201
+        add_member(self.alice_client, self.slug, name, email)
         return volunteer_client, user
 
-    def path(self, rest: str) -> str:
-        return f"/api/associations/{self.id}/{rest}"
-
     def add_slot(self, weekday: str, start: str, end: str) -> dict[str, Any]:
-        response = self.alice_client.post(
-            self.path("slots"), json={"weekday": weekday, "start": start, "end": end}
-        )
-        assert response.status_code == 201, response.text
-        slot: dict[str, Any] = response.json()
+        """Alice adds a slot with "Add a slot" on Schedule settings."""
+        slot = add_slot(self.alice_client, self.association, weekday, start, end)
         self.slots.append(slot)
         return slot
 
@@ -125,12 +159,8 @@ class Planning:
         assert GENERIC not in text, text
 
     def add_closure(self, first: str, last: str, label: str | None = None) -> dict[str, Any]:
-        response = self.alice_client.post(
-            self.path("closures"), json={"first": first, "last": last, "label": label}
-        )
-        assert response.status_code == 201, response.text
-        closure: dict[str, Any] = response.json()
-        return closure
+        """Alice adds a closure with "Add a closure" on Schedule settings."""
+        return add_closure(self.alice_client, self.association, first, last, label)
 
     def edit_closure(
         self, closure: dict[str, Any], first: str, last: str, label: str | None = None
@@ -139,19 +169,26 @@ class Planning:
         response = edit_closure(self.alice_client, self.slug, closure["id"], first, last, label)
         assert GENERIC not in shown(response)
 
-    def register(self, as_client: Any, user: dict[str, Any], day: str, start: str, end: str) -> Any:
-        return as_client.post(
-            self.path("registrations"),
-            json={"user_id": user["id"], "date": day, "start": start, "end": end},
-        )
+    def set_period(self, first: str, last: str) -> None:
+        """Alice saves the dialog "Planning period" on Schedule settings."""
+        text = shown(set_period(self.alice_client, self.slug, first, last))
+        assert GENERIC not in text, text
 
     def registered(
         self, as_client: Any, user: dict[str, Any], day: str, start: str, end: str
     ) -> dict[str, Any]:
-        response = self.register(as_client, user, day, start, end)
-        assert response.status_code == 201, response.text
-        registration: dict[str, Any] = response.json()
-        return registration
+        """Registers `user` on the occurrence by their display name in its menu on the Schedule,
+        signed in on `as_client`: confirmed for the user signed in there, proposed by a manager
+        otherwise (R5)."""
+        weeks = {"from": day, "to": day}
+
+        def register() -> None:
+            text = shown(propose(as_client, self.slug, user["id"], day, start, end, weeks))
+            assert GENERIC not in text, text
+            assert TAKEN not in text, text
+
+        registration_id = added_id("registration", self.id, register)
+        return {"id": registration_id, "user_id": user["id"], "date": day, "start": start}
 
     def cancel(self, as_client: Any, registration: dict[str, Any]) -> None:
         """Confirms "Cancel registration…" in the menu of `registration` on the Schedule."""
@@ -296,17 +333,28 @@ def availability_lines(as_client: Any, slug: str, heading: str) -> list[str]:
 
 
 def add_absence(as_client: Any, planning: Planning, first: str, last: str) -> dict[str, Any]:
-    """Adds an absence of the user's own through the API."""
-    response = as_client.post(planning.path("absences"), json={"first": first, "last": last})
-    assert response.status_code == 201, response.text
-    absence: dict[str, Any] = response.json()
-    return absence
+    """Adds an absence of the user's own with "Add an absence" on My availability."""
+    return add_absence_of(as_client, planning.association, first, last)
+
+
+def add_absence_of(
+    as_client: Any, association: dict[str, Any], first: str, last: str
+) -> dict[str, Any]:
+    """Adds an absence of the user's own in `association` with "Add an absence" on My
+    availability."""
+
+    def add() -> None:
+        text = shown(add_absence_on_screen(as_client, association["slug"], first, last))
+        assert GENERIC not in text, text
+
+    absence_id = added_id("absence", association["id"], add)
+    return {"id": absence_id, "first": first, "last": last}
 
 
 def write_note(as_client: Any, planning: Planning, text: str) -> None:
-    """Sets the user's own note through the API."""
-    response = as_client.put(planning.path("note"), json={"text": text})
-    assert response.status_code == 200, response.text
+    """Saves the user's own note with "Note for the managers" on My availability."""
+    shown_text = shown(save_note(as_client, planning.slug, text))
+    assert GENERIC not in shown_text, shown_text
 
 
 def add_absence_on_screen(as_client: Any, slug: str, first: str, last: str) -> Any:

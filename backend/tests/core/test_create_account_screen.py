@@ -16,11 +16,15 @@ from tests.core.conftest import (
     heading,
     latest_email,
     latest_verification_token,
+    member_line,
     my_associations_listed,
     run_sql,
     shown,
+    sign_in,
     sign_up,
+    signed_in_as,
     unique_email,
+    user_id_of,
 )
 
 EXISTS = "An account already exists for this email. Sign in instead."
@@ -31,6 +35,7 @@ NOT_SENT = "We couldn't send the confirmation email. Try again later."
 GENERIC = "Something went wrong. Try again."
 EMAIL_SENT = "Email sent."
 LINK_INVALID = "This link is no longer valid."
+NOT_JOINED = "not joined yet"
 
 ENGLISH = {"Subject": "Confirm your email", "Text": "Confirm your email by opening this link:"}
 FRENCH = {
@@ -90,7 +95,7 @@ class TestCreateAnAccountSuccess:
         response = create_account(client, "Alice", email)
 
         assert check_your_email(email) in shown(response)
-        assert client.get("/api/session").status_code == 401
+        assert signed_in_as(client) is None
         assert heading(client.get("/")) == "Sign in"
 
     def test_offers_resend_the_email(self, client: Any) -> None:
@@ -194,25 +199,21 @@ class TestR2:
         sign_up(client, "Alice")
         association = create_association(client)
         chloe_email = unique_email("Chloe")
-        member = add_member(client, association["id"], "Chloé", chloe_email).json()
+        member = add_member(client, association["slug"], "Chloé", chloe_email)
         chloe = new_client()
 
         response = create_account(chloe, "Chloé L.", chloe_email)
 
         assert check_your_email(chloe_email) in shown(response)
         confirm_email(chloe, latest_verification_token(chloe_email))
-        signed_in = chloe.post("/api/session", json={"email": chloe_email, "password": PASSWORD})
-        assert signed_in.status_code == 200
-        assert signed_in.json()["id"] == member["user_id"]
-        assert signed_in.json()["display_name"] == "Chloé L."
+        assert "window.location" in shown(sign_in(chloe, chloe_email))
+        assert user_id_of(chloe_email) == member["user_id"]
+        assert signed_in_as(chloe) == "Chloé L."
         associations = my_associations_listed(chloe)
         assert [a.name for a in associations] == [association["name"]]
         assert "volunteer" in associations[0].text.lower()
-        members = client.get(f"/api/associations/{association['id']}").json()["members"]
-        chloe_member = next(m for m in members if m["user_id"] == member["user_id"])
-        assert chloe_member["has_account"] is True
-        assert chloe_member["email_verified"] is True
-        assert chloe_member["display_name"] == "Chloé L."
+        line = member_line(client, association["slug"], chloe_email)
+        assert line.startswith(f"Chloé L. {chloe_email} ")
 
 
 class TestExistingAccount:
@@ -240,9 +241,9 @@ class TestExistingAccount:
 
         create_account(new_client(), "Other", email, "another password")
 
-        signed_in = new_client().post("/api/session", json={"email": email, "password": PASSWORD})
-        assert signed_in.status_code == 200
-        assert signed_in.json()["display_name"] == "Alice"
+        browser = new_client()
+        assert "window.location" in shown(sign_in(browser, email))
+        assert signed_in_as(browser) == "Alice"
 
 
 class TestR19:
@@ -258,9 +259,9 @@ class TestR19:
 
         assert NOT_INVITED in shown(response)
         # Nothing saved: adding the email afterwards creates a new user, named by the manager.
-        member = add_member(client, association["id"], "Marie", email).json()
-        assert member["display_name"] == "Marie"
-        assert member["has_account"] is False
+        add_member(client, association["slug"], "Marie", email)
+        line = member_line(client, association["slug"], email)
+        assert line.startswith(f"Marie {NOT_JOINED} {email} ")
 
     def test_creates_the_account_of_an_added_member(
         self, client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
@@ -268,7 +269,7 @@ class TestR19:
         sign_up(client, "Alice")
         association = create_association(client)
         chloe_email = unique_email("Chloe")
-        add_member(client, association["id"], "Chloé", chloe_email)
+        add_member(client, association["slug"], "Chloé", chloe_email)
         monkeypatch.setenv("INVITATION_ONLY", "true")
 
         response = create_account(new_client(), "Chloé", chloe_email.upper())
@@ -285,6 +286,39 @@ class TestR19:
         response = create_account(new_client(), "Root", email)
 
         assert check_your_email(email) in shown(response)
+
+    def test_the_superusers_email_is_compared_ignoring_case(
+        self, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        email = unique_email("Root")
+        monkeypatch.setenv("INVITATION_ONLY", "true")
+        monkeypatch.setenv("SUPERUSER_EMAIL", email.upper())
+
+        response = create_account(new_client(), "Root", email)
+
+        assert check_your_email(email) in shown(response)
+
+    def test_another_email_than_the_superusers_shows_the_message(
+        self, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        email = unique_email("Mallory")
+        monkeypatch.setenv("INVITATION_ONLY", "true")
+        monkeypatch.setenv("SUPERUSER_EMAIL", unique_email("Root"))
+
+        response = create_account(new_client(), "Mallory", email)
+
+        assert NOT_INVITED in shown(response)
+
+    def test_with_no_superuser_shows_the_message(
+        self, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        email = unique_email("Mallory")
+        monkeypatch.setenv("INVITATION_ONLY", "true")
+        monkeypatch.delenv("SUPERUSER_EMAIL", raising=False)
+
+        response = create_account(new_client(), "Mallory", email)
+
+        assert NOT_INVITED in shown(response)
 
     def test_an_email_with_an_account_still_shows_that_message(
         self, client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
@@ -331,17 +365,15 @@ class TestR10:
         sign_up(client, "Alice")
         association = create_association(client)
         chloe_email = unique_email("Chloe")
-        member = add_member(client, association["id"], "Chloé", chloe_email).json()
+        add_member(client, association["slug"], "Chloé", chloe_email)
         chloe = new_client()
         break_the_mailer(monkeypatch)
 
         response = create_account(chloe, "Chloé L.", chloe_email)
 
         assert NOT_SENT in shown(response)
-        members = client.get(f"/api/associations/{association['id']}").json()["members"]
-        chloe_member = next(m for m in members if m["user_id"] == member["user_id"])
-        assert chloe_member["has_account"] is False
-        assert chloe_member["display_name"] == "Chloé"
+        line = member_line(client, association["slug"], chloe_email)
+        assert line.startswith(f"Chloé {NOT_JOINED} {chloe_email} ")
 
 
 class TestInvalidFields:
@@ -461,10 +493,9 @@ class TestConfirmEmail:
         response = confirm_email(client, latest_verification_token(email))
 
         assert LINK_INVALID not in shown(response)
-        assert client.get("/api/session").json()["email"] == email
+        assert signed_in_as(client) == "Alice"
         assert heading(client.get("/")) == "My associations"
-        signed_in = new_client().post("/api/session", json={"email": email, "password": PASSWORD})
-        assert signed_in.status_code == 200
+        assert "window.location" in shown(sign_in(new_client(), email))
 
     def test_r16_replaces_a_session_id_planted_in_the_browser(
         self, client: Any, new_client: Callable[[], Any]
@@ -480,7 +511,7 @@ class TestConfirmEmail:
         response = confirm_email(client, token)
 
         assert response.cookies.get("session") not in (None, planted)
-        assert attacker.get("/api/session").status_code == 401
+        assert signed_in_as(attacker) is None
 
     def test_fetching_the_link_leaves_the_token_usable(self, client: Any) -> None:
         email = unique_email("Alice")
@@ -489,9 +520,9 @@ class TestConfirmEmail:
 
         client.get(f"/verify-email?token={token}")
 
-        assert client.get("/api/session").status_code == 401
+        assert signed_in_as(client) is None
         assert LINK_INVALID not in shown(confirm_email(client, token))
-        assert client.get("/api/session").status_code == 200
+        assert signed_in_as(client) is not None
 
     def test_the_page_carries_the_token_to_its_action_safely(self, client: Any) -> None:
         response = client.get("/verify-email", params={"token": '"><script>alert(1)</script>'})
@@ -508,7 +539,7 @@ class TestConfirmEmailInvalidLink:
 
     def test_unknown_token(self, client: Any) -> None:
         self.assert_shows_the_message(confirm_email(client, "unknown-token"))
-        assert client.get("/api/session").status_code == 401
+        assert signed_in_as(client) is None
 
     def test_no_token(self, client: Any) -> None:
         self.assert_shows_the_message(client.post("/verify-email", json={}))
@@ -532,7 +563,7 @@ class TestConfirmEmailInvalidLink:
         )
 
         self.assert_shows_the_message(confirm_email(client, token))
-        assert client.get("/api/session").status_code == 401
+        assert signed_in_as(client) is None
 
     def test_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
@@ -540,11 +571,3 @@ class TestConfirmEmailInvalidLink:
         text = shown(confirm_email(client, "unknown-token"))
 
         assert "Ce lien n'est plus valide." in text
-
-
-class TestEndpointsRemoved:
-    @pytest.mark.parametrize(
-        "path", ["/api/accounts", "/api/accounts/verify", "/api/accounts/verify/resend"]
-    )
-    def test_answers_404(self, client: Any, path: str) -> None:
-        assert client.post(path, json={}).status_code == 404

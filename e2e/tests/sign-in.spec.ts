@@ -1,18 +1,5 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
-
-/** Creates a confirmed account through the actions of the screens, and returns its email. */
-async function createAccount(request: APIRequestContext, displayName: string) {
-  const email = uniqueEmail(displayName)
-  const created = await request.post('/signup', {
-    data: { displayName, email, password: PASSWORD },
-  })
-  expect(created.status()).toBe(200)
-  const token = await latestToken(email)
-  const verified = await request.post('/verify-email', { data: { token } })
-  expect(verified.status()).toBe(200)
-  return email
-}
+import { expect, test, type Page } from '@playwright/test'
+import { PASSWORD, createAccount, uniqueEmail } from './helpers'
 
 async function submitSignIn(page: Page, email: string, password: string) {
   await page.getByLabel('Email', { exact: true }).fill(email)

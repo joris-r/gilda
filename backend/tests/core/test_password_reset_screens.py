@@ -19,10 +19,13 @@ from tests.core.conftest import (
     heading,
     latest_email,
     latest_reset_token,
+    member_line,
     reset_password,
     run_sql,
     shown,
+    sign_in,
     sign_up,
+    signed_in_as,
     unique_email,
 )
 
@@ -49,8 +52,8 @@ def reset(client: Any, token: str, password: str = NEW_PASSWORD) -> Any:
 
 
 def can_sign_in(new_client: Callable[[], Any], email: str, password: str) -> bool:
-    response = new_client().post("/api/session", json={"email": email, "password": password})
-    return bool(response.status_code == 200)
+    """Submits Sign in on a new client, and tells whether it leads on, signed in."""
+    return "window.location" in shown(sign_in(new_client(), email, password))
 
 
 def expires_in(token: str) -> timedelta:
@@ -136,7 +139,7 @@ class TestForgotPasswordSubmit:
         sign_up(client, "Alice")
         association = create_association(client)
         chloe_email = unique_email("Chloe")
-        add_member(client, association["id"], "Chloé", chloe_email)
+        add_member(client, association["slug"], "Chloé", chloe_email)
 
         response = ask_for_reset(new_client(), chloe_email)
 
@@ -244,7 +247,7 @@ class TestR21:
         sign_up(client, "Alice")
         association = create_association(client)
         chloe_email = unique_email("Chloe")
-        add_member(client, association["id"], "Chloé", chloe_email)
+        add_member(client, association["slug"], "Chloé", chloe_email)
 
         ask_for_reset(new_client(), chloe_email)
 
@@ -323,9 +326,9 @@ class TestResetPasswordForm:
 
         browser.get(f"/reset-password?token={token}")
 
-        assert browser.get("/api/session").status_code == 401
+        assert signed_in_as(browser) is None
         assert LINK_INVALID not in shown(reset(browser, token))
-        assert browser.get("/api/session").status_code == 200
+        assert signed_in_as(browser) is not None
 
     def test_the_page_carries_the_token_safely(self, client: Any) -> None:
         response = client.get("/reset-password", params={"token": '"><script>alert(1)</script>'})
@@ -383,7 +386,7 @@ class TestResetPasswordInvalidLinkWhenOpening:
 class TestResetPasswordInvalidLinkOnSubmit:
     def test_unknown_token(self, client: Any) -> None:
         assert_invalid_link(shown(reset(client, "unknown-token")))
-        assert client.get("/api/session").status_code == 401
+        assert signed_in_as(client) is None
 
     def test_no_token(self, client: Any) -> None:
         response = client.post("/reset-password", json={"password": NEW_PASSWORD})
@@ -400,7 +403,7 @@ class TestResetPasswordInvalidLinkOnSubmit:
         expire(token)
 
         assert_invalid_link(shown(reset(browser, token)))
-        assert browser.get("/api/session").status_code == 401
+        assert signed_in_as(browser) is None
         assert can_sign_in(new_client, email, PASSWORD)
 
     def test_already_used_token(self, client: Any, new_client: Callable[[], Any]) -> None:
@@ -437,27 +440,27 @@ class TestR22:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         email = unique_email("Alice")
-        user = sign_up(client, "Alice", email)
+        sign_up(client, "Alice", email)
         browser = new_client()
         ask_for_reset(browser, email)
 
         response = reset(browser, latest_reset_token(email))
 
         assert "session" in response.headers.get("set-cookie", "")
-        assert browser.get("/api/session").json() == {**user, "superuser": False}
+        assert signed_in_as(browser) == "Alice"
         assert heading(browser.get("/")) == "My associations"
 
     def test_keeps_the_other_sessions_signed_in(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         email = unique_email("Alice")
-        user = sign_up(client, "Alice", email)
+        sign_up(client, "Alice", email)
         browser = new_client()
         ask_for_reset(browser, email)
 
         reset(browser, latest_reset_token(email))
 
-        assert client.get("/api/session").json() == {**user, "superuser": False}
+        assert signed_in_as(client) == "Alice"
 
     def test_confirms_an_unconfirmed_email(
         self, client: Any, new_client: Callable[[], Any]
@@ -465,7 +468,7 @@ class TestR22:
         sign_up(client, "Alice")
         association = create_association(client)
         bruno_email = unique_email("Bruno")
-        member = add_member(client, association["id"], "Bruno", bruno_email).json()
+        add_member(client, association["slug"], "Bruno", bruno_email)
         bruno = new_client()
         create_account(bruno, "Bruno", bruno_email)
         ask_for_reset(bruno, bruno_email)
@@ -473,9 +476,8 @@ class TestR22:
         reset(bruno, latest_reset_token(bruno_email))
 
         assert can_sign_in(new_client, bruno_email, NEW_PASSWORD)
-        members = client.get(f"/api/associations/{association['id']}").json()["members"]
-        bruno_member = next(m for m in members if m["user_id"] == member["user_id"])
-        assert bruno_member["email_verified"] is True
+        line = member_line(client, association["slug"], bruno_email)
+        assert line.startswith(f"Bruno {bruno_email} ")
 
     def test_r16_replaces_a_session_id_planted_in_the_browser(
         self, client: Any, new_client: Callable[[], Any]
@@ -492,7 +494,7 @@ class TestR22:
         response = reset(victim, latest_reset_token(email))
 
         assert response.cookies.get("session") not in (None, planted)
-        assert attacker.get("/api/session").status_code == 401
+        assert signed_in_as(attacker) is None
 
 
 class TestResetPasswordInvalidPassword:
@@ -508,7 +510,7 @@ class TestResetPasswordInvalidPassword:
         response = reset(browser, token, "1234567")
 
         assert GENERIC in shown(response)
-        assert browser.get("/api/session").status_code == 401
+        assert signed_in_as(browser) is None
         assert can_sign_in(new_client, email, PASSWORD)
         assert LINK_INVALID not in shown(reset(browser, token, "12345678"))
         assert can_sign_in(new_client, email, "12345678")
@@ -533,11 +535,3 @@ class TestResetPasswordInvalidPassword:
         )
 
         assert GENERIC in shown(response)
-
-
-class TestEndpointsRemoved:
-    @pytest.mark.parametrize(
-        "path", ["/api/accounts/password-reset", "/api/accounts/password-reset/confirm"]
-    )
-    def test_answers_404(self, client: Any, path: str) -> None:
-        assert client.post(path, json={}).status_code == 404

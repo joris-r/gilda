@@ -1,22 +1,9 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
+import { expect, test, type Page } from '@playwright/test'
+import { PASSWORD, signedIn } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const QUESTION =
   'Delete your account? You leave all your associations and your upcoming registrations are cancelled. This cannot be undone.'
-
-/** Creates a confirmed account, signs in on `page`, and returns its email. */
-async function signedIn(page: Page, request: APIRequestContext) {
-  const email = uniqueEmail('Alice')
-  await request.post('/signup', { data: { displayName: 'Alice', email, password: PASSWORD } })
-  await request.post('/verify-email', { data: { token: await latestToken(email) } })
-  await page.goto('/')
-  await page.getByLabel('Email', { exact: true }).fill(email)
-  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByText('My associations')).toBeVisible()
-  return email
-}
 
 function menuButton(page: Page) {
   return page.locator('header').getByRole('button', { name: 'Alice' })

@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
+import { addMember, createAssociation, latestToken, signedIn, uniqueEmail } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const LAST_MANAGER = 'An association keeps at least one manager.'
@@ -17,27 +17,12 @@ async function openMembers(
   request: APIRequestContext,
   others: [string, string][] = [],
 ) {
-  const alice = uniqueEmail('Alice')
-  await request.post('/signup', { data: { displayName: 'Alice', email: alice, password: PASSWORD } })
-  await request.post('/verify-email', { data: { token: await latestToken(alice) } })
-  await page.goto('/')
-  await page.getByLabel('Email', { exact: true }).fill(alice)
-  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.locator('header').getByText('My associations')).toBeVisible()
-  const slug = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-  const created = await page.request.post('/api/associations', {
-    data: { name: 'Jardin partagé', slug },
-  })
-  expect(created.status()).toBe(201)
-  const { id } = (await created.json()) as { id: string }
+  await signedIn(page, request)
+  const slug = await createAssociation(page.request)
   const chloe = uniqueEmail('Chloe')
   for (const [displayName, role] of [['Chloé', 'volunteer'], ...others]) {
     const email = displayName === 'Chloé' ? chloe : uniqueEmail('Other')
-    const added = await page.request.post(`/api/associations/${id}/members`, {
-      data: { display_name: displayName, email, role },
-    })
-    expect(added.status()).toBe(201)
+    await addMember(page.request, slug, displayName, email, role)
   }
   await page.goto(`/association/${slug}/members`)
   await expect(page.locator('header').getByText('Members')).toBeVisible()

@@ -14,7 +14,9 @@ from tests.planning.conftest import (
     MONTHS,
     Planning,
     add_absence,
+    add_absence_of,
     add_absence_on_screen,
+    add_slot,
     availability_lines,
     availability_page,
     availability_section,
@@ -178,10 +180,7 @@ class TestMyPreferences:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
         other = create_association(client, "Repair Café Belleville")
-        client.post(
-            f"/api/associations/{other['id']}/slots",
-            json={"weekday": "saturday", "start": "14:00", "end": "18:00"},
-        )
+        add_slot(client, other, "saturday", "14:00", "18:00")
 
         assert preferences_shown(client, planning.slug) == [("Thursday 10:00–13:00", "—")]
 
@@ -412,11 +411,7 @@ class TestChoosingAPreference:
     ) -> None:
         planning = Planning(client, new_client)
         other = create_association(client, "Repair Café Belleville")
-        response = client.post(
-            f"/api/associations/{other['id']}/slots",
-            json={"weekday": "saturday", "start": "14:00", "end": "18:00"},
-        )
-        slot = response.json()
+        slot = add_slot(client, other, "saturday", "14:00", "18:00")
 
         text = shown(set_my_preference(client, planning.slug, slot["id"], "preferred"))
 
@@ -502,12 +497,7 @@ def section_html(as_client: Any, slug: str, heading: str) -> str:
 def other_associations_absence(alice_client: Any) -> tuple[dict[str, Any], dict[str, Any]]:
     """Another association of Alice's, with her absence of NOV in it."""
     other = create_association(alice_client, "Repair Café Belleville", unique_slug())
-    response = alice_client.post(
-        f"/api/associations/{other['id']}/absences",
-        json={"first": "2037-11-09", "last": "2037-11-15"},
-    )
-    assert response.status_code == 201, response.text
-    return other, response.json()
+    return other, add_absence_of(alice_client, other, "2037-11-09", "2037-11-15")
 
 
 class TestAbsences:

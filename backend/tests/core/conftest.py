@@ -152,6 +152,11 @@ def break_the_mailer(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SMTP_PORT", "1")
 
 
+def sign_in(client: Any, email: str, password: str = PASSWORD, **kwargs: Any) -> Any:
+    """Submits Sign in, as the screen does."""
+    return client.post("/sign-in", json={"email": email, "password": password}, **kwargs)
+
+
 def sign_up(client: Any, display_name: str, email: str | None = None) -> dict[str, Any]:
     """Signs up, confirms the email via Mailpit, and signs in."""
     email = email or unique_email(display_name)
@@ -160,25 +165,53 @@ def sign_up(client: Any, display_name: str, email: str | None = None) -> dict[st
     assert email in response.text, response.text
 
     assert confirm_email(client, latest_verification_token(email)).status_code == 200
-    sign_in = client.post("/api/session", json={"email": email, "password": PASSWORD})
-    assert sign_in.status_code == 200
-    user: dict[str, Any] = sign_in.json()
-    del user["superuser"]
-    return user
+    assert "window.location" in shown(sign_in(client, email))
+    return {"id": user_id_of(email), "display_name": display_name, "email": email}
 
 
-def run_sql(sql: str, token: str) -> Any:
-    """Runs `sql` with this `token` as its parameter, and returns its first value, if any."""
+def run_sql(sql: str, token: str = "", **params: Any) -> Any:
+    """Runs `sql` with `token` and `params` as its parameters, and returns its first value, if
+    any."""
+    rows = run_sql_rows(sql, token=token, **params)
+    return rows[0][0] if rows and rows[0] else None
 
-    async def run() -> Any:
-        engine = create_async_engine(os.environ["DATABASE_URL"])
-        async with engine.begin() as connection:
-            result = await connection.execute(text(sql), {"token": token})
-            value = result.scalar() if result.returns_rows else None
-        await engine.dispose()
-        return value
 
-    return asyncio.run(run())
+_database: dict[str, Any] = {}
+
+
+def run_sql_rows(sql: str, **params: Any) -> list[tuple[Any, ...]]:
+    """Runs `sql` with `params` as its parameters, and returns its rows, if any. The tests of a
+    process share one event loop and one connection for it."""
+    if not _database:
+        _database["loop"] = asyncio.new_event_loop()
+        _database["engine"] = create_async_engine(os.environ["DATABASE_URL"], pool_size=1)
+
+    async def run() -> list[tuple[Any, ...]]:
+        async with _database["engine"].begin() as connection:
+            result = await connection.execute(text(sql), params)
+            return [tuple(row) for row in result] if result.returns_rows else []
+
+    rows: list[tuple[Any, ...]] = _database["loop"].run_until_complete(run())
+    return rows
+
+
+def user_id_of(email: str) -> str:
+    """The id of the user who has `email`, read from the database: no screen shows it."""
+    user_id = run_sql("SELECT id FROM user_account WHERE lower(email) = lower(:email)", email=email)
+    assert user_id, f"no user has {email}"
+    return str(user_id)
+
+
+def signed_in_as(client: Any) -> str | None:
+    """The display name the header of `/` shows the user signed in on `client`, or None when `/`
+    shows Sign in."""
+    response = client.get("/")
+    assert response.status_code == 200
+    match = re.search(r'class="user-button"[^>]*>(.*?) ▾</button>', response.text, re.DOTALL)
+    if match is None:
+        assert heading(response) == "Sign in", response.text
+        return None
+    return html.unescape(match.group(1).strip())
 
 
 def unique_slug() -> str:
@@ -189,19 +222,55 @@ def unique_slug() -> str:
 def create_association(
     client: Any, name: str = "Jardin partagé des Lilas", slug: str | None = None
 ) -> dict[str, Any]:
-    response = client.post("/api/associations", json={"name": name, "slug": slug or unique_slug()})
-    assert response.status_code == 201, response.text
-    association: dict[str, Any] = response.json()
-    return association
+    """Creates an association on New association; its id is read from the database."""
+    slug = slug or unique_slug()
+    text = shown(client.post("/association/new", json={"name": name, "slug": slug}))
+    assert f"/association/{slug}" in text, text
+    association_id = run_sql("SELECT id FROM association WHERE slug = :slug", slug=slug)
+    return {"id": str(association_id), "name": name, "slug": slug}
 
 
 def add_member(
-    client: Any, association_id: str, display_name: str, email: str, role: str = "volunteer"
-) -> Any:
-    return client.post(
-        f"/api/associations/{association_id}/members",
-        json={"display_name": display_name, "email": email, "role": role},
+    client: Any, slug: str, display_name: str, email: str, role: str = "volunteer"
+) -> dict[str, Any]:
+    """Adds a member with "Add a member" on Members; their user id is read from the database."""
+    text = shown(
+        client.post(
+            f"/association/{slug}/members",
+            json={"displayName": display_name, "email": email, "role": role},
+        )
     )
+    assert " added." in text, text
+    return {"user_id": user_id_of(email), "email": email}
+
+
+def member_line(client: Any, slug: str, email: str) -> str:
+    """What the line of the member with `email` shows on Members, its spaces collapsed, e.g.
+    "Chloé not joined yet chloe@example.org Volunteer"."""
+    response = client.get(f"/association/{slug}/members")
+    assert response.status_code == 200
+    main = re.search(r"<main[ >].*</main>", response.text, re.DOTALL)
+    assert main, response.text
+    items = re.findall(r"<li[ >].*?</li>", main.group(0), re.DOTALL)
+    texts = [" ".join(html.unescape(re.sub(r"<[^>]+>", " ", item)).split()) for item in items]
+    found = [text for text in texts if f" {email} " in f" {text} "]
+    assert len(found) == 1, f"{email} in {texts}"
+    return found[0]
+
+
+def members_roles(client: Any, slug: str) -> dict[str, str]:
+    """The role of each member that Members lists, by display name, e.g. {"Alice": "manager"}."""
+    response = client.get(f"/association/{slug}/members")
+    assert response.status_code == 200
+    main = re.search(r"<main[ >].*</main>", response.text, re.DOTALL)
+    assert main, response.text
+    roles = {}
+    for item in re.findall(r"<li[ >].*?</li>", main.group(0), re.DOTALL):
+        name = re.search(r"<div>\s*(.*?)\s*<(?:span|div) class=", item, re.DOTALL)
+        role = re.search(r'<span class="role (\w+)">', item)
+        assert name and role, item
+        roles[html.unescape(name.group(1))] = role.group(1)
+    return roles
 
 
 def change_role(client: Any, slug: str, user_id: str, role: str) -> Any:

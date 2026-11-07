@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from tests.core.conftest import remove_member, shown
 from tests.planning.conftest import (
     Planning,
+    add_absence,
     add_member,
     availability_lines,
     availability_section,
@@ -17,6 +18,7 @@ from tests.planning.conftest import (
     day_shown,
     preferences_stored,
     set_my_preference,
+    write_note,
 )
 
 THURSDAY = ("10:00", "13:00")
@@ -24,7 +26,7 @@ THURSDAY = ("10:00", "13:00")
 
 def move_two_weeks_back(registration: dict[str, Any]) -> str:
     """Moves a registration two weeks back, to the same weekday of the week before the current
-    one, which the API cannot do."""
+    one, which no screen can do."""
 
     async def run() -> str:
         engine = create_async_engine(os.environ["DATABASE_URL"])
@@ -94,9 +96,8 @@ def registration_on(planning: Planning, day: str) -> str:
 
 def rejoin(planning: Planning) -> None:
     """Adds Bruno back after his removal; he is the same user (R3)."""
-    response = add_member(planning.alice_client, planning.id, "Bruno", planning.bruno["email"])
-    assert response.status_code == 201
-    assert response.json()["user_id"] == planning.bruno["id"]
+    added = add_member(planning.alice_client, planning.slug, "Bruno", planning.bruno["email"])
+    assert added["user_id"] == planning.bruno["id"]
 
 
 @ENDINGS
@@ -127,8 +128,7 @@ def test_r28_the_freed_occurrence_can_be_registered_again(
 
     remove(planning, planning.bruno)
 
-    response = planning.register(planning.chloe_client, planning.chloe, day, *THURSDAY)
-    assert response.status_code == 201
+    planning.registered(planning.chloe_client, planning.chloe, day, *THURSDAY)
 
 
 @ENDINGS
@@ -156,8 +156,7 @@ def test_r28_registrations_of_other_members_and_associations_stay(
     planning.registered(planning.chloe_client, planning.chloe, chloe_day, *THURSDAY)
     other = Planning(new_client(), new_client)
     other.add_slot("thursday", *THURSDAY)
-    joined = add_member(other.alice_client, other.id, "Bruno", planning.bruno["email"])
-    assert joined.status_code == 201
+    add_member(other.alice_client, other.slug, "Bruno", planning.bruno["email"])
     other.registered(other.alice_client, planning.bruno, chloe_day, *THURSDAY)
 
     remove(planning, planning.bruno)
@@ -179,9 +178,8 @@ def test_r28_preferences_absences_and_note_are_deleted(
     slot = planning.add_slot("thursday", *THURSDAY)
     bruno = planning.bruno_client
     chosen(planning, bruno, slot, "preferred")
-    absence = {"first": "2037-11-09", "last": "2037-11-15"}
-    assert bruno.post(planning.path("absences"), json=absence).status_code == 201
-    assert bruno.put(planning.path("note"), json={"text": "Pairs, please."}).status_code == 200
+    add_absence(bruno, planning, "2037-11-09", "2037-11-15")
+    write_note(bruno, planning, "Pairs, please.")
 
     remove(planning, planning.bruno)
 
@@ -201,9 +199,8 @@ def test_r28_account_deletion_deletes_preferences_absences_and_note(
     slot = planning.add_slot("thursday", *THURSDAY)
     bruno = planning.bruno_client
     chosen(planning, bruno, slot, "preferred")
-    absence = {"first": "2026-11-09", "last": "2026-11-15"}
-    assert bruno.post(planning.path("absences"), json=absence).status_code == 201
-    assert bruno.put(planning.path("note"), json={"text": "Pairs, please."}).status_code == 200
+    add_absence(bruno, planning, "2026-11-09", "2026-11-15")
+    write_note(bruno, planning, "Pairs, please.")
     assert preferences_held(planning.bruno) == 1
 
     delete_account(bruno)

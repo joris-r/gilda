@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
+import { PASSWORD, createAccount, latestToken, uniqueEmail } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const LINK_INVALID = 'This link is no longer valid.'
@@ -7,9 +7,8 @@ const NEW_PASSWORD = 'battery staple'
 
 /** Creates a confirmed account for `email`, asks for a reset link, and returns its token. */
 async function askForResetLink(request: APIRequestContext, email: string) {
-  await request.post('/signup', { data: { displayName: 'Alice', email, password: PASSWORD } })
+  await createAccount(request, 'Alice', email)
   const confirmation = await latestToken(email)
-  await request.post('/verify-email', { data: { token: confirmation } })
   await request.post('/forgot-password', { data: { email } })
   await expect.poll(() => latestToken(email)).not.toBe(confirmation)
   return latestToken(email)

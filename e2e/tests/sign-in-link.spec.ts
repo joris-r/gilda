@@ -1,14 +1,13 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
+import { createAccount, latestToken, uniqueEmail } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const LINK_INVALID = 'This link is no longer valid.'
 
 /** Creates a confirmed account for `email`, asks for its sign-in link, and returns its token. */
 async function askForLink(request: APIRequestContext, email: string) {
-  await request.post('/signup', { data: { displayName: 'Alice', email, password: PASSWORD } })
+  await createAccount(request, 'Alice', email)
   const confirmation = await latestToken(email)
-  await request.post('/verify-email', { data: { token: confirmation } })
   await request.post('/sign-in-link', { data: { email } })
   await expect.poll(() => latestToken(email)).not.toBe(confirmation)
   return latestToken(email)

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
+import { PASSWORD, latestToken, signIn, uniqueEmail } from './helpers'
 
 async function signUp(page: Page, displayName: string, email: string) {
   await page.goto('/')
@@ -12,14 +12,6 @@ async function signUp(page: Page, displayName: string, email: string) {
 
   const token = await latestToken(email)
   await page.goto(`/verify-email?token=${token}`)
-  await expect(page.getByText('My associations')).toBeVisible()
-}
-
-async function signIn(page: Page, email: string, password = PASSWORD) {
-  await page.goto('/')
-  await page.getByLabel('Email', { exact: true }).fill(email)
-  await page.getByLabel('Password', { exact: true }).fill(password)
-  await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByText('My associations')).toBeVisible()
 }
 

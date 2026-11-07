@@ -1,13 +1,9 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
+import { addClosure, addMember, addSlot as createSlot, createAssociation, setPeriod, signedIn } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const EXISTS = 'This slot already exists.'
 const DELETE_THURSDAY = 'Delete the slot Thursday 10:00–13:00?'
-
-function uniqueSlug() {
-  return `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
 
 type Setup = { closures?: [string, string, string?][]; period?: [string, string]; members?: string[] }
 
@@ -18,37 +14,12 @@ async function openSettings(
   slots: [string, string, string][] = [],
   setup: Setup = {},
 ) {
-  const alice = uniqueEmail('Alice')
-  await request.post('/signup', { data: { displayName: 'Alice', email: alice, password: PASSWORD } })
-  await request.post('/verify-email', { data: { token: await latestToken(alice) } })
-  await page.goto('/')
-  await page.getByLabel('Email', { exact: true }).fill(alice)
-  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.locator('header').getByText('My associations')).toBeVisible()
-  const slug = uniqueSlug()
-  const created = await page.request.post('/api/associations', { data: { name: 'Jardin partagé', slug } })
-  expect(created.status()).toBe(201)
-  const { id } = (await created.json()) as { id: string }
-  for (const [weekday, start, end] of slots) {
-    const slot = await page.request.post(`/api/associations/${id}/slots`, { data: { weekday, start, end } })
-    expect(slot.status()).toBe(201)
-  }
-  for (const [first, last, label] of setup.closures ?? []) {
-    const closure = await page.request.post(`/api/associations/${id}/closures`, { data: { first, last, label } })
-    expect(closure.status()).toBe(201)
-  }
-  if (setup.period) {
-    const [first, last] = setup.period
-    const period = await page.request.put(`/api/associations/${id}/planning-period`, { data: { first, last } })
-    expect(period.status()).toBe(200)
-  }
-  for (const displayName of setup.members ?? []) {
-    const member = await page.request.post(`/api/associations/${id}/members`, {
-      data: { display_name: displayName, email: uniqueEmail('Member'), role: 'volunteer' },
-    })
-    expect(member.status()).toBe(201)
-  }
+  await signedIn(page, request)
+  const slug = await createAssociation(page.request)
+  for (const [weekday, start, end] of slots) await createSlot(page.request, slug, weekday, start, end)
+  for (const [first, last, label] of setup.closures ?? []) await addClosure(page.request, slug, first, last, label)
+  if (setup.period) await setPeriod(page.request, slug, ...setup.period)
+  for (const displayName of setup.members ?? []) await addMember(page.request, slug, displayName)
   await page.goto(`/association/${slug}/settings`)
   await expect(page.locator('header').getByText('Schedule settings')).toBeVisible()
   return slug

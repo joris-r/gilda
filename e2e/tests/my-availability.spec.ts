@@ -1,11 +1,7 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
+import { addAbsence, addSlot, createAssociation, saveNote, signedIn } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
-
-function uniqueSlug() {
-  return `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
 
 type Setup = { absences?: [string, string][]; note?: string }
 
@@ -16,30 +12,11 @@ async function openAvailability(
   slots: [string, string, string][],
   setup: Setup = {},
 ) {
-  const alice = uniqueEmail('Alice')
-  await request.post('/signup', { data: { displayName: 'Alice', email: alice, password: PASSWORD } })
-  await request.post('/verify-email', { data: { token: await latestToken(alice) } })
-  await page.goto('/')
-  await page.getByLabel('Email', { exact: true }).fill(alice)
-  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.locator('header').getByText('My associations')).toBeVisible()
-  const slug = uniqueSlug()
-  const created = await page.request.post('/api/associations', { data: { name: 'Jardin partagé', slug } })
-  expect(created.status()).toBe(201)
-  const { id } = (await created.json()) as { id: string }
-  for (const [weekday, start, end] of slots) {
-    const slot = await page.request.post(`/api/associations/${id}/slots`, { data: { weekday, start, end } })
-    expect(slot.status()).toBe(201)
-  }
-  for (const [first, last] of setup.absences ?? []) {
-    const absence = await page.request.post(`/api/associations/${id}/absences`, { data: { first, last } })
-    expect(absence.status()).toBe(201)
-  }
-  if (setup.note !== undefined) {
-    const note = await page.request.put(`/api/associations/${id}/note`, { data: { text: setup.note } })
-    expect(note.status()).toBe(200)
-  }
+  await signedIn(page, request)
+  const slug = await createAssociation(page.request)
+  for (const [weekday, start, end] of slots) await addSlot(page.request, slug, weekday, start, end)
+  for (const [first, last] of setup.absences ?? []) await addAbsence(page.request, slug, first, last)
+  if (setup.note !== undefined) await saveNote(page.request, slug, setup.note)
   await page.goto(`/association/${slug}/availability`)
   await expect(page.locator('header').getByText('My availability')).toBeVisible()
   return slug

@@ -12,11 +12,14 @@ from tests.planning.conftest import (
     GENERIC,
     WEEKDAYS,
     Planning,
+    add_slot,
     create_association,
     shown,
     sign_up,
+    sign_up_for,
     unique_email,
 )
+from tests.planning.conftest import set_period as set_period_on_screen
 
 NAME = "Jardin partagé des Lilas"
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
@@ -69,11 +72,9 @@ def planning(clock: time_machine.Traveller, client: Any, new_client: Callable[[]
     return planning
 
 
-def set_period(planning: Planning, first: int, last: int, as_client: Any = None) -> None:
-    response = (as_client or planning.alice_client).put(
-        planning.path("planning-period"), json={"first": day(first), "last": day(last)}
-    )
-    assert response.status_code == 200, response.text
+def set_period(planning: Planning, first: int, last: int) -> None:
+    """Alice sets the planning period from `first` to `last` days after today."""
+    planning.set_period(day(first), day(last))
 
 
 def entry(as_client: Any, name: str = NAME) -> Listed:
@@ -140,11 +141,8 @@ class TestMyAssociations:
         confirmed(planning, 8)
         planning.add_closure(day(8), day(8))
         repair = create_association(planning.bruno_client, "Repair Café Belleville")
-        response = planning.bruno_client.put(
-            f"/api/associations/{repair['id']}/planning-period",
-            json={"first": day(-2), "last": day(21)},
-        )
-        assert response.status_code == 200, response.text
+        text = shown(set_period_on_screen(planning.bruno_client, repair["slug"], day(-2), day(21)))
+        assert GENERIC not in text, text
         create_association(planning.bruno_client, "Atelier vélo")
 
         jardin = entry(planning.bruno_client)
@@ -169,11 +167,8 @@ class TestMyAssociations:
         confirmed(planning, 8)
         planning.add_closure(day(8), day(8))
         repair = create_association(planning.bruno_client, "Repair Café Belleville")
-        response = planning.bruno_client.put(
-            f"/api/associations/{repair['id']}/planning-period",
-            json={"first": day(-2), "last": day(21)},
-        )
-        assert response.status_code == 200, response.text
+        text = shown(set_period_on_screen(planning.bruno_client, repair["slug"], day(-2), day(21)))
+        assert GENERIC not in text, text
         create_association(planning.bruno_client, "Atelier vélo")
         planning.bruno_client.cookies.set("language", "fr")
 
@@ -203,23 +198,12 @@ class TestMyAssociations:
     def test_escapes_the_display_name(self, client: Any, new_client: Callable[[], Any]) -> None:
         sign_up(client, "<b>Alice</b>", unique_email("Alice"))
         association = create_association(client)
-        planning_path = f"/api/associations/{association['id']}"
         weekday = WEEKDAYS[date.today().weekday()]
-        slot = client.post(
-            f"{planning_path}/slots", json={"weekday": weekday, "start": "10:00", "end": "13:00"}
-        )
-        assert slot.status_code == 201, slot.text
-        user = client.get("/api/session").json()
-        response = client.post(
-            f"{planning_path}/registrations",
-            json={
-                "user_id": user["id"],
-                "date": (date.today() + timedelta(days=7)).isoformat(),
-                "start": "10:00",
-                "end": "13:00",
-            },
-        )
-        assert response.status_code == 201, response.text
+        add_slot(client, association, weekday, "10:00", "13:00")
+        in_a_week = (date.today() + timedelta(days=7)).isoformat()
+        weeks = {"from": in_a_week, "to": in_a_week}
+        text = shown(sign_up_for(client, association["slug"], in_a_week, "10:00", "13:00", weeks))
+        assert GENERIC not in text, text
 
         page = client.get("/").text
 

@@ -8,6 +8,7 @@ import pytest
 from tests.core.conftest import (
     add_member,
     create_association,
+    delete_association,
     listed,
     names_listed,
     shown,
@@ -70,13 +71,13 @@ class TestMyAssociations:
     def test_shows_each_association_with_the_users_role(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
-        sign_up(client, "Alice")
+        alice = sign_up(client, "Alice")
         create_association(client, NAME)
         bruno = new_client()
         bruno_email = unique_email("Bruno")
         sign_up(bruno, "Bruno", bruno_email)
         theirs = create_association(bruno, "Repair Café Belleville")
-        assert add_member(bruno, theirs["id"], "Alice", _email_of(client)).status_code == 201
+        add_member(bruno, theirs["slug"], "Alice", alice["email"])
 
         page = my_associations(client)
 
@@ -84,12 +85,12 @@ class TestMyAssociations:
         assert "volunteer" in line_of(page, "Repair Café Belleville").lower()
 
     def test_roles_follow_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
-        sign_up(client, "Alice")
+        alice = sign_up(client, "Alice")
         create_association(client, NAME)
         bruno = new_client()
         sign_up(bruno, "Bruno", unique_email("Bruno"))
         theirs = create_association(bruno, "Repair Café Belleville")
-        assert add_member(bruno, theirs["id"], "Alice", _email_of(client)).status_code == 201
+        add_member(bruno, theirs["slug"], "Alice", alice["email"])
         client.cookies.set("language", "fr")
 
         page = my_associations(client)
@@ -227,7 +228,8 @@ class TestCreating:
         assert f"/association/{slug}" in text
 
     @pytest.mark.parametrize(
-        "slug", ["Jardin", "jardin lilas", "jardin_lilas", "-jardin", "jardin-", "a" * 51]
+        "slug",
+        ["Jardin", "jardin lilas", "jardin_lilas", "-jardin", "jardin-", "jardín", "a" * 51],
     )
     def test_a_malformed_slug_shows_its_message(self, client: Any, slug: str) -> None:
         sign_up(client, "Alice")
@@ -237,6 +239,36 @@ class TestCreating:
         assert MALFORMED_EN in text
         assert "window.location" not in text
         assert names_listed(client) == []
+
+    @pytest.mark.parametrize("slug", ["a", "7", "2-jardins", "jardin-des-lilas"])
+    def test_a_well_formed_slug_is_not_refused_as_malformed(self, client: Any, slug: str) -> None:
+        sign_up(client, "Alice")
+
+        text = shown(create_on_screen(client, NAME, slug))
+
+        # These fixed slugs may be held already, by another test or an earlier run.
+        assert MALFORMED_EN not in text
+        assert f"/association/{slug}" in text or TAKEN_EN in text
+
+    def test_accepts_a_slug_of_50_characters(self, client: Any) -> None:
+        sign_up(client, "Alice")
+        slug = unique_slug().ljust(50, "x")
+
+        text = shown(create_on_screen(client, NAME, slug))
+
+        assert f"/association/{slug}" in text
+        assert names_listed(client) == [NAME]
+
+    def test_accepts_the_slug_of_a_deleted_association(self, client: Any) -> None:
+        sign_up(client, "Alice")
+        slug = unique_slug()
+        create_association(client, NAME, slug)
+        assert "window.location" in shown(delete_association(client, slug))
+
+        text = shown(create_on_screen(client, "Repair Café", slug))
+
+        assert f"/association/{slug}" in text
+        assert names_listed(client) == ["Repair Café"]
 
     def test_a_taken_slug_shows_its_message(
         self, client: Any, new_client: Callable[[], Any]
@@ -305,8 +337,3 @@ class TestCreating:
         other = new_client()
         sign_up(other, "Zoé", unique_email("Zoe"))
         assert create_association(other, NAME, slug)["slug"] == slug
-
-
-def _email_of(client: Any) -> str:
-    email: str = client.get("/api/session").json()["email"]
-    return email

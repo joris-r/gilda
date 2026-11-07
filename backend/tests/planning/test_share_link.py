@@ -555,33 +555,3 @@ class TestSharedMoreWeeks:
 
         assert "Bruno" not in response.text
         assert "Week" not in response.text
-
-
-# The JSON API
-
-
-class TestShareLinkEndpointsRemoved:
-    @pytest.mark.parametrize("method", ["GET", "POST", "DELETE"])
-    def test_api_share_link_leaves(
-        self, client: Any, new_client: Callable[[], Any], method: str
-    ) -> None:
-        planning = Planning(client, new_client)
-        token = shared_token(planning)
-
-        response = client.request(method, planning.path("share-link"))
-
-        assert response.status_code in (404, 405)
-        assert "token" not in response.text
-        assert share_link_shown(client, planning.slug) == token
-
-    @pytest.mark.parametrize("rest", ["", "/schedule"])
-    def test_api_shared_leaves(self, client: Any, new_client: Callable[[], Any], rest: str) -> None:
-        planning = Planning(client, new_client)
-        planning.add_slot("thursday", "10:00", "13:00")
-        token = shared_token(planning)
-
-        response = new_client().get(f"/api/shared/{token}{rest}")
-
-        assert response.status_code in (404, 405)
-        assert NAME not in response.text
-        assert "occurrences" not in response.text

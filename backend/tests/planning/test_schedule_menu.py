@@ -12,7 +12,9 @@ from tests.planning.conftest import (
     WEEKDAYS,
     Planning,
     add_absence,
+    add_absence_of,
     add_member,
+    add_slot,
     cancel_registration,
     confirm_registration,
     create_association,
@@ -25,6 +27,7 @@ from tests.planning.conftest import (
     open_menu,
     opened_weeks,
     propose,
+    save_note,
     schedule_entries,
     schedule_shown,
     set_member_preference,
@@ -364,7 +367,7 @@ class TestManagersMenu:
         other = create_association(client, "Repair Café Belleville")
         zoe_email = unique_email("Zoe")
         sign_up(new_client(), "Zoé", zoe_email)
-        assert add_member(client, other["id"], "Zoé", zoe_email).status_code == 201
+        add_member(client, other["slug"], "Zoé", zoe_email)
 
         assert texts_offered(client, planning.slug, thursday) == ["Alice", "Bruno", "Chloé"]
 
@@ -461,8 +464,7 @@ class TestRegistrationCount:
         with_period(planning)
         other = Planning(new_client(), new_client)
         other.add_slot("thursday", "10:00", "13:00")
-        joined = add_member(other.alice_client, other.id, "Bruno", planning.bruno["email"])
-        assert joined.status_code == 201
+        add_member(other.alice_client, other.slug, "Bruno", planning.bruno["email"])
         other.registered(
             other.alice_client, planning.bruno, day_of_week("thursday", 1), "10:00", "13:00"
         )
@@ -598,11 +600,7 @@ class TestAbsenceIcon:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
         other = create_association(client, "Repair Café Belleville")
-        response = client.post(
-            f"/api/associations/{other['id']}/absences",
-            json={"first": "2037-11-09", "last": "2037-11-15"},
-        )
-        assert response.status_code == 201
+        add_absence_of(client, other, "2037-11-09", "2037-11-15")
 
         assert icons_of(client, planning.slug, "2037-11-12", "Alice") == []
 
@@ -652,8 +650,7 @@ class TestNoteIcon:
     ) -> None:
         planning, thursday = free_thursday(client, new_client)
         other = create_association(client, "Repair Café Belleville")
-        response = client.put(f"/api/associations/{other['id']}/note", json={"text": NOTE})
-        assert response.status_code == 200
+        assert GENERIC not in shown(save_note(client, other["slug"], NOTE))
 
         assert icons_of(client, planning.slug, thursday, "Alice") == []
 
@@ -849,10 +846,7 @@ class TestSignUp:
     ) -> None:
         planning = Planning(client, new_client)
         other = create_association(client, "Repair Café Belleville")
-        client.post(
-            f"/api/associations/{other['id']}/slots",
-            json={"weekday": "thursday", "start": "10:00", "end": "13:00"},
-        )
+        add_slot(client, other, "thursday", "10:00", "13:00")
 
         text = shown(sign_up_for(client, planning.slug, day_of_week("thursday"), "10:00", "13:00"))
 
@@ -1264,18 +1258,4 @@ class TestCancelRegistration:
 
         cancel_registration(other_user(new_client), planning.slug, registration["id"])
 
-        assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"
-
-
-class TestPatchRegistrationRemoved:
-    def test_patch_api_registration_answers_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning, thursday, registration = proposed_to_bruno(client, new_client)
-
-        response = client.patch(
-            planning.path(f"registrations/{registration['id']}"), json={"status": "cancelled"}
-        )
-
-        assert response.status_code in (404, 405)
         assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"

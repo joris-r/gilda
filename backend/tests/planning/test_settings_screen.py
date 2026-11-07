@@ -10,8 +10,10 @@ from tests.core.conftest import delete_association, unique_slug
 from tests.planning.conftest import (
     GENERIC,
     Planning,
+    add_closure,
     add_closure_on_screen,
     add_member,
+    add_slot,
     add_slot_on_screen,
     availability_page,
     clear_period,
@@ -99,10 +101,7 @@ class TestScheduleSettings:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
         other = create_association(client, "Repair Café Belleville")
-        client.post(
-            f"/api/associations/{other['id']}/slots",
-            json={"weekday": "saturday", "start": "14:00", "end": "18:00"},
-        )
+        add_slot(client, other, "saturday", "14:00", "18:00")
 
         assert slots_shown(client, planning.slug) == ["Thursday 10:00–13:00"]
 
@@ -336,11 +335,11 @@ class TestAddingASlot:
         planning = Planning(client, new_client)
         shown(add_slot_on_screen(client, planning.slug, "thursday", "10:00", "13:00"))
 
-        response = planning.register(
+        registration = planning.registered(
             planning.bruno_client, planning.bruno, day_of_week("thursday"), "10:00", "13:00"
         )
 
-        assert response.status_code == 201, response.text
+        assert registration["id"]
 
     def test_a_slot_the_association_already_has_says_so_and_adds_nothing(
         self, client: Any, new_client: Callable[[], Any]
@@ -358,10 +357,7 @@ class TestAddingASlot:
     ) -> None:
         planning = Planning(client, new_client)
         other = create_association(client, "Repair Café Belleville")
-        client.post(
-            f"/api/associations/{other['id']}/slots",
-            json={"weekday": "thursday", "start": "10:00", "end": "13:00"},
-        )
+        add_slot(client, other, "thursday", "10:00", "13:00")
 
         text = shown(add_slot_on_screen(client, planning.slug, "thursday", "10:00", "13:00"))
 
@@ -515,10 +511,7 @@ class TestEditingASlot:
     ) -> None:
         planning = Planning(client, new_client)
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        theirs = client.post(
-            f"/api/associations/{other['id']}/slots",
-            json={"weekday": "saturday", "start": "14:00", "end": "18:00"},
-        ).json()
+        theirs = add_slot(client, other, "saturday", "14:00", "18:00")
 
         text = shown(edit_slot(client, planning.slug, theirs["id"], "friday", "10:00", "13:00"))
 
@@ -595,10 +588,7 @@ class TestDeletingASlot:
     ) -> None:
         planning = Planning(client, new_client)
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        theirs = client.post(
-            f"/api/associations/{other['id']}/slots",
-            json={"weekday": "saturday", "start": "14:00", "end": "18:00"},
-        ).json()
+        theirs = add_slot(client, other, "saturday", "14:00", "18:00")
 
         delete_slot(client, planning.slug, theirs["id"])
 
@@ -632,34 +622,6 @@ class TestDeletingASlot:
         assert slots_shown(client, planning.slug) == ["Thursday 10:00–13:00"]
 
 
-class TestSlotEndpointsRemoved:
-    @pytest.mark.parametrize(
-        ("method", "body"),
-        [
-            ("PUT", {"weekday": "friday", "start": "10:00", "end": "13:00"}),
-            ("DELETE", None),
-        ],
-    )
-    def test_put_and_delete_api_slot_change_nothing(
-        self, client: Any, new_client: Callable[[], Any], method: str, body: dict[str, str] | None
-    ) -> None:
-        planning = Planning(client, new_client)
-        slot = planning.add_slot("thursday", "10:00", "13:00")
-
-        response = client.request(method, planning.path(f"slots/{slot['id']}"), json=body)
-
-        assert response.status_code in (404, 405)
-        assert slots_shown(client, planning.slug) == ["Thursday 10:00–13:00"]
-
-    def test_get_api_slots_lists_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
-        planning = Planning(client, new_client)
-        planning.add_slot("thursday", "10:00", "13:00")
-
-        response = client.get(planning.path("slots"))
-
-        assert response.status_code in (404, 405)
-
-
 def period_shown(client: Any, slug: str) -> str:
     """The text of the Planning period section, its title included."""
     return settings_section(client, slug, "Planning period")
@@ -670,10 +632,7 @@ def closures_shown(client: Any, slug: str) -> list[str]:
 
 
 def with_period(planning: Planning, first: str = "2026-11-02", last: str = "2026-11-25") -> None:
-    response = planning.alice_client.put(
-        planning.path("planning-period"), json={"first": first, "last": last}
-    )
-    assert response.status_code == 200, response.text
+    planning.set_period(first, last)
 
 
 def section_html(client: Any, slug: str, heading: str) -> str:
@@ -709,7 +668,7 @@ class TestPlanningPeriod:
     ) -> None:
         planning = Planning(client, new_client)
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        client.put(f"/api/associations/{other['id']}/planning-period", json=PERIOD)
+        shown(set_period(client, other["slug"], PERIOD["first"], PERIOD["last"]))
 
         assert "None" in period_shown(client, planning.slug)
 
@@ -923,20 +882,6 @@ class TestClearingThePlanningPeriod:
         assert PERIOD_SHOWN in period_shown(client, planning.slug)
 
 
-class TestPlanningPeriodEndpointsRemoved:
-    @pytest.mark.parametrize("method", ["GET", "DELETE"])
-    def test_get_and_delete_api_planning_period_leave(
-        self, client: Any, new_client: Callable[[], Any], method: str
-    ) -> None:
-        planning = Planning(client, new_client)
-        with_period(planning)
-
-        response = client.request(method, planning.path("planning-period"))
-
-        assert response.status_code in (404, 405)
-        assert PERIOD_SHOWN in period_shown(client, planning.slug)
-
-
 class TestClosures:
     def test_lists_them_by_first_date_with_their_dates_and_label(
         self, client: Any, new_client: Callable[[], Any]
@@ -967,10 +912,7 @@ class TestClosures:
         planning = Planning(client, new_client)
         planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        client.post(
-            f"/api/associations/{other['id']}/closures",
-            json={"first": "2026-12-24", "last": "2027-01-01", "label": "Fêtes de fin d'année"},
-        )
+        add_closure(client, other, "2026-12-24", "2027-01-01", "Fêtes de fin d'année")
 
         assert closures_shown(client, planning.slug) == [FETE]
 
@@ -1266,10 +1208,7 @@ class TestEditingAClosure:
     ) -> None:
         planning = Planning(client, new_client)
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        theirs = client.post(
-            f"/api/associations/{other['id']}/closures",
-            json={"first": "2026-11-14", "last": "2026-11-14", "label": "Fête du quartier"},
-        ).json()
+        theirs = add_closure(client, other, "2026-11-14", "2026-11-14", "Fête du quartier")
 
         text = shown(edit_closure(client, planning.slug, theirs["id"], "2026-12-24", "2026-12-25"))
 
@@ -1352,10 +1291,7 @@ class TestDeletingAClosure:
     ) -> None:
         planning = Planning(client, new_client)
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        theirs = client.post(
-            f"/api/associations/{other['id']}/closures",
-            json={"first": "2026-11-14", "last": "2026-11-14", "label": "Fête du quartier"},
-        ).json()
+        theirs = add_closure(client, other, "2026-11-14", "2026-11-14", "Fête du quartier")
 
         delete_closure(client, planning.slug, theirs["id"])
 
@@ -1387,33 +1323,6 @@ class TestDeletingAClosure:
 
         assert "window.location" in text
         assert closures_shown(client, planning.slug) == [FETE]
-
-
-class TestClosureEndpointsRemoved:
-    @pytest.mark.parametrize(
-        ("method", "body"),
-        [("PUT", {"first": "2026-12-24", "last": "2026-12-25", "label": None}), ("DELETE", None)],
-    )
-    def test_put_and_delete_api_closure_change_nothing(
-        self, client: Any, new_client: Callable[[], Any], method: str, body: dict[str, Any] | None
-    ) -> None:
-        planning = Planning(client, new_client)
-        closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
-
-        response = client.request(method, planning.path(f"closures/{closure['id']}"), json=body)
-
-        assert response.status_code in (404, 405)
-        assert closures_shown(client, planning.slug) == [FETE]
-
-    def test_get_api_closures_lists_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
-
-        response = client.get(planning.path("closures"))
-
-        assert response.status_code in (404, 405)
 
 
 THU = "Thu 10:00–13:00"
@@ -1493,10 +1402,8 @@ class TestMembersPreferences:
     ) -> None:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
-        added = add_member(client, planning.id, "Zoé", unique_email("Zoe"), "manager")
-        assert added.status_code == 201
-        added = add_member(client, planning.id, "anna", unique_email("Anna"))
-        assert added.status_code == 201
+        add_member(client, planning.slug, "Zoé", unique_email("Zoe"), "manager")
+        add_member(client, planning.slug, "anna", unique_email("Anna"))
 
         rows = preferences_grid(client, planning.slug)[1]
 
@@ -1531,11 +1438,8 @@ class TestMembersPreferences:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        client.post(
-            f"/api/associations/{other['id']}/slots",
-            json={"weekday": "saturday", "start": "14:00", "end": "18:00"},
-        )
-        assert add_member(client, other["id"], "Zoé", unique_email("Zoe")).status_code == 201
+        add_slot(client, other, "saturday", "14:00", "18:00")
+        add_member(client, other["slug"], "Zoé", unique_email("Zoe"))
 
         assert preferences_grid(client, planning.slug) == (
             [THU],
@@ -1682,11 +1586,7 @@ class TestChoosingAMembersPreference:
     ) -> None:
         planning = Planning(client, new_client)
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        response = client.post(
-            f"/api/associations/{other['id']}/slots",
-            json={"weekday": "saturday", "start": "14:00", "end": "18:00"},
-        )
-        slot = response.json()
+        slot = add_slot(client, other, "saturday", "14:00", "18:00")
 
         for member in (planning.alice, planning.bruno):
             response = set_member_preference(
@@ -1786,32 +1686,3 @@ class TestPreferenceAndSlot:
         planning.add_slot("thursday", "10:00", "13:00")
 
         assert stored(planning) == set()
-
-
-class TestPreferenceEndpointsRemoved:
-    @pytest.mark.parametrize(
-        ("method", "body"), [("PUT", {"value": "preferred"}), ("DELETE", None)]
-    )
-    def test_put_and_delete_api_preference_change_nothing(
-        self, client: Any, new_client: Callable[[], Any], method: str, body: dict[str, Any] | None
-    ) -> None:
-        planning = Planning(client, new_client)
-        slot = planning.add_slot("thursday", "10:00", "13:00")
-        chosen_mine(planning, planning.bruno_client, slot, "possible")
-
-        path = planning.path(f"preferences/{slot['id']}/{planning.bruno['id']}")
-        response = client.request(method, path, json=body)
-
-        assert response.status_code in (404, 405)
-        assert stored(planning) == {("Bruno", THU, "possible")}
-
-    def test_get_api_preferences_lists_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        slot = planning.add_slot("thursday", "10:00", "13:00")
-        chosen_mine(planning, planning.bruno_client, slot, "possible")
-
-        response = client.get(planning.path("preferences"))
-
-        assert response.status_code in (404, 405)

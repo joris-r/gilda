@@ -1,13 +1,21 @@
 import html
 import re
-import uuid
 from collections.abc import Callable
-from datetime import date, timedelta
 from typing import Any
 
 import pytest
 
-from tests.core.conftest import heading, sign_up, unique_email
+from tests.core.conftest import (
+    create_association,
+    heading,
+    names_listed,
+    sign_up,
+    signed_in_as,
+    unique_email,
+    unique_slug,
+)
+
+UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 
 
 def part(page: str, tag: str) -> str:
@@ -16,7 +24,7 @@ def part(page: str, tag: str) -> str:
     return match.group(0)
 
 
-class TestMyAssociationsHeader:
+class TestHeader:
     def test_signed_in_shows_my_associations_the_user_and_sign_out(self, client: Any) -> None:
         sign_up(client, "Alice")
 
@@ -88,90 +96,17 @@ class TestMyAssociationsHeader:
         assert 'type="password"' in stale.get("/").text
 
 
-class TestOtherPaths:
+class TestNotFound:
     @pytest.mark.parametrize(
         "path",
         [
+            "/nothing-here",
+            "/static/nothing-here.css",
+            "/a/b/c",
             "/associations/new",
             "/association/jardin/schedule",
         ],
     )
-    def test_any_other_path_answers_the_not_found_page(self, client: Any, path: str) -> None:
-        response = client.get(path)
-
-        assert response.status_code == 404
-        assert "Page not found" in response.text
-
-
-class TestScheduleSettings:
-    def test_shows_its_sections(self, client: Any) -> None:
-        sign_up(client, "Alice")
-        slug = f"a-{uuid.uuid4().hex[:12]}"
-        created = client.post("/api/associations", json={"name": "Jardin", "slug": slug})
-        assert created.status_code == 201
-
-        response = client.get(f"/association/{slug}/settings")
-
-        assert response.status_code == 200
-        main = html.unescape(part(response.text, "main"))
-        for present in [
-            "Planning period",
-            "Closures",
-            "Add a closure",
-            "Slots",
-            "Add a slot",
-            "Share link",
-            "Create a share link",
-            "Members' preferences",
-        ]:
-            assert present in main
-
-
-class TestMyAvailability:
-    def test_shows_its_my_preferences_absences_and_note_sections(self, client: Any) -> None:
-        sign_up(client, "Alice")
-        slug = f"a-{uuid.uuid4().hex[:12]}"
-        created = client.post("/api/associations", json={"name": "Jardin", "slug": slug})
-        assert created.status_code == 201
-
-        response = client.get(f"/association/{slug}/availability")
-
-        assert response.status_code == 200
-        main = html.unescape(part(response.text, "main"))
-        for present in ["My preferences", "Absences", "Add an absence", "Note for the managers"]:
-            assert present in main
-
-
-class TestSchedule:
-    def test_shows_its_weeks_and_menus_with_the_managers_part(self, client: Any) -> None:
-        sign_up(client, "Alice")
-        slug = f"a-{uuid.uuid4().hex[:12]}"
-        created = client.post("/api/associations", json={"name": "Jardin", "slug": slug})
-        assert created.status_code == 201
-        slot = {"weekday": "thursday", "start": "10:00", "end": "13:00"}
-        added = client.post(f"/api/associations/{created.json()['id']}/slots", json=slot)
-        assert added.status_code == 201
-
-        response = client.get(f"/association/{slug}")
-
-        assert response.status_code == 200
-        page = html.unescape(response.text)
-        for present in ["Week", "More weeks", "My availability", "Members", "Schedule settings"]:
-            assert present in page
-        today = date.today()
-        thursday = today + timedelta(days=(3 - today.weekday()) % 7 + 7)
-        menu = client.post(
-            f"/association/{slug}/menu",
-            json={"date": thursday.isoformat(), "start": "10:00", "end": "13:00"},
-        )
-        assert menu.status_code == 200
-        text = html.unescape(menu.text)
-        assert "Sign up" in text
-        assert re.search(r"<li[ >].*?\bAlice\b.*?</li>", text, re.DOTALL)
-
-
-class TestNotFound:
-    @pytest.mark.parametrize("path", ["/nothing-here", "/static/nothing-here.css", "/a/b/c"])
     def test_answers_an_html_page(self, client: Any, path: str) -> None:
         response = client.get(path)
 
@@ -233,7 +168,7 @@ class TestNotFound:
         assert response.status_code == 404
         assert "Page not found" in response.text
         assert "Sign out" not in response.text
-        assert client.get("/api/session").status_code == 200
+        assert signed_in_as(client) == "Alice"
 
     def test_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
@@ -246,25 +181,87 @@ class TestNotFound:
         assert "Page introuvable" in page
         assert "Retour à la page d'accueil" in html.unescape(page)
 
-
-class TestJsonApi:
-    def test_stays_available(self, client: Any) -> None:
-        user = sign_up(client, "Alice")
-
-        response = client.get("/api/session")
-
-        assert response.status_code == 200
-        assert response.json()["display_name"] == user["display_name"]
-
-    def test_get_api_associations_answers_nothing(self, client: Any) -> None:
+    @pytest.mark.parametrize(
+        ("method", "path"),
+        [
+            ("POST", "/api/session"),
+            ("GET", "/api/session"),
+            ("DELETE", "/api/session"),
+            ("POST", "/api/session/access-link"),
+            ("DELETE", "/api/access-link"),
+            ("POST", "/api/accounts"),
+            ("DELETE", "/api/accounts/me"),
+            ("POST", "/api/accounts/verify"),
+            ("POST", "/api/accounts/verify/resend"),
+            ("POST", "/api/accounts/password-reset"),
+            ("POST", "/api/accounts/password-reset/confirm"),
+            ("GET", "/api/associations"),
+            ("POST", "/api/associations"),
+            ("GET", "/api/associations/by-slug/jardin"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}"),
+            ("PATCH", f"/api/associations/{UNKNOWN_ID}"),
+            ("DELETE", f"/api/associations/{UNKNOWN_ID}"),
+            ("POST", f"/api/associations/{UNKNOWN_ID}/members"),
+            ("POST", f"/api/associations/{UNKNOWN_ID}/members/{UNKNOWN_ID}/access-link"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}/slots"),
+            ("POST", f"/api/associations/{UNKNOWN_ID}/slots"),
+            ("PUT", f"/api/associations/{UNKNOWN_ID}/slots/{UNKNOWN_ID}"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}/closures"),
+            ("POST", f"/api/associations/{UNKNOWN_ID}/closures"),
+            ("DELETE", f"/api/associations/{UNKNOWN_ID}/closures/{UNKNOWN_ID}"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}/planning-period"),
+            ("PUT", f"/api/associations/{UNKNOWN_ID}/planning-period"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}/preferences"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}/absences"),
+            ("POST", f"/api/associations/{UNKNOWN_ID}/absences"),
+            ("PUT", f"/api/associations/{UNKNOWN_ID}/absences/{UNKNOWN_ID}"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}/note"),
+            ("PUT", f"/api/associations/{UNKNOWN_ID}/note"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}/member-absences"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}/notes"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}/registration-counts"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}/schedule"),
+            ("POST", f"/api/associations/{UNKNOWN_ID}/registrations"),
+            ("PATCH", f"/api/associations/{UNKNOWN_ID}/registrations/{UNKNOWN_ID}"),
+            ("GET", f"/api/associations/{UNKNOWN_ID}/share-link"),
+            ("GET", "/api/shared/Hq3v"),
+            ("GET", "/api/shared/Hq3v/schedule"),
+            ("GET", "/api/nothing-here"),
+        ],
+    )
+    def test_the_former_json_api_paths_answer_it_signed_in(
+        self, client: Any, method: str, path: str
+    ) -> None:
         sign_up(client, "Alice")
 
-        response = client.get("/api/associations")
-
-        assert response.status_code in (404, 405)
-
-    def test_unknown_api_path_answers_json_404(self, client: Any) -> None:
-        response = client.get("/api/nothing-here")
+        response = client.request(method, path, json={})
 
         assert response.status_code == 404
-        assert response.headers["content-type"].startswith("application/json")
+        assert response.headers["content-type"].startswith("text/html")
+        assert re.search(r"<h1[^>]*>\s*Page not found\s*</h1>", response.text)
+
+    def test_a_former_json_api_creation_creates_nothing(self, client: Any) -> None:
+        sign_up(client, "Alice")
+        slug = unique_slug()
+
+        response = client.post("/api/associations", json={"name": "Jardin", "slug": slug})
+
+        assert response.status_code == 404
+        assert names_listed(client) == []
+
+    def test_a_former_json_api_write_changes_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        sign_up(client, "Alice")
+        association = create_association(client)
+        bruno = new_client()
+        bruno_email = unique_email("Bruno")
+        sign_up(bruno, "Bruno", bruno_email)
+
+        response = client.post(
+            f"/api/associations/{association['id']}/members",
+            json={"display_name": "Bruno", "email": bruno_email, "role": "volunteer"},
+        )
+
+        assert response.status_code == 404
+        assert names_listed(bruno) == []

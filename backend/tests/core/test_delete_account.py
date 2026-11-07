@@ -3,7 +3,6 @@ from collections.abc import Callable
 from typing import Any
 
 from tests.core.conftest import (
-    PASSWORD,
     add_member,
     ask_for_link,
     ask_for_reset,
@@ -14,22 +13,22 @@ from tests.core.conftest import (
     latest_access_token,
     latest_reset_token,
     latest_verification_token,
+    member_line,
+    members_roles,
     open_link,
     reset_password,
     shown,
+    sign_in,
     sign_up,
+    signed_in_as,
     unique_email,
+    user_id_of,
 )
 
 
 def delete_account(client: Any) -> Any:
     """Confirms "Delete my account", as the dialog does."""
     return client.post("/delete-account")
-
-
-def roles(client: Any, association_id: str) -> dict[str, str]:
-    members = client.get(f"/api/associations/{association_id}").json()["members"]
-    return {m["display_name"]: m["role"] for m in members}
 
 
 # Delete my account
@@ -51,27 +50,18 @@ def test_delete_my_account_when_already_signed_out_leads_to_sign_in(client: Any)
     assert 'type="password"' in client.get("/").text
 
 
-def test_delete_my_account_replaces_the_json_endpoint(client: Any) -> None:
-    sign_up(client, "Alice")
-
-    assert client.delete("/api/accounts/me").status_code == 404
-    assert client.get("/api/session").status_code == 200
-
-
 def test_r29_signs_out_every_session_of_the_user(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
     other = new_client()
-    assert (
-        other.post("/api/session", json={"email": email, "password": PASSWORD}).status_code == 200
-    )
+    assert "window.location" in shown(sign_in(other, email))
 
     delete_account(client)
 
-    assert client.get("/api/session").status_code == 401
-    assert other.get("/api/session").status_code == 401
+    assert signed_in_as(client) is None
+    assert signed_in_as(other) is None
 
 
 def test_r29_the_password_no_longer_signs_in(client: Any, new_client: Callable[[], Any]) -> None:
@@ -80,8 +70,9 @@ def test_r29_the_password_no_longer_signs_in(client: Any, new_client: Callable[[
 
     delete_account(client)
 
-    response = new_client().post("/api/session", json={"email": email, "password": PASSWORD})
-    assert response.status_code == 401
+    browser = new_client()
+    assert "Wrong email or password." in shown(sign_in(browser, email))
+    assert signed_in_as(browser) is None
 
 
 def test_r29_the_access_link_no_longer_signs_in(client: Any, new_client: Callable[[], Any]) -> None:
@@ -136,10 +127,9 @@ def test_r29_the_email_can_be_used_by_a_new_account(
     create_account(again, "Alice B.", email)
 
     assert confirm_email(again, latest_verification_token(email)).status_code == 200
-    signed_in = again.post("/api/session", json={"email": email, "password": PASSWORD})
-    assert signed_in.status_code == 200
-    assert signed_in.json()["display_name"] == "Alice B."
-    assert signed_in.json()["id"] != old["id"]
+    assert "window.location" in shown(sign_in(again, email))
+    assert signed_in_as(again) == "Alice B."
+    assert user_id_of(email) != old["id"]
 
 
 def test_r29_the_email_can_be_added_as_a_new_member(
@@ -152,12 +142,12 @@ def test_r29_the_email_can_be_added_as_a_new_member(
     sign_up(client, "Alice")
     association = create_association(client)
 
-    response = add_member(client, association["id"], "Bruno B.", email)
+    added = add_member(client, association["slug"], "Bruno B.", email)
 
-    assert response.status_code == 201
-    assert response.json()["user_id"] != old["id"]
-    assert response.json()["display_name"] == "Bruno B."
-    assert response.json()["has_account"] is False
+    assert added["user_id"] != old["id"]
+    assert member_line(client, association["slug"], email).startswith(
+        f"Bruno B. not joined yet {email} "
+    )
 
 
 def test_r29_ends_every_membership(client: Any, new_client: Callable[[], Any]) -> None:
@@ -167,13 +157,13 @@ def test_r29_ends_every_membership(client: Any, new_client: Callable[[], Any]) -
     bruno = new_client()
     email = unique_email("Bruno")
     sign_up(bruno, "Bruno", email)
-    add_member(client, first["id"], "Bruno", email)
-    add_member(client, second["id"], "Bruno", email, "manager")
+    add_member(client, first["slug"], "Bruno", email)
+    add_member(client, second["slug"], "Bruno", email, "manager")
 
     delete_account(bruno)
 
-    assert roles(client, first["id"]) == {"Alice": "manager"}
-    assert roles(client, second["id"]) == {"Alice": "manager"}
+    assert members_roles(client, first["slug"]) == {"Alice": "manager"}
+    assert members_roles(client, second["slug"]) == {"Alice": "manager"}
 
 
 def test_r30_the_remaining_members_become_managers_when_the_only_manager_leaves(
@@ -184,13 +174,13 @@ def test_r30_the_remaining_members_become_managers_when_the_only_manager_leaves(
     bruno = new_client()
     bruno_email = unique_email("Bruno")
     sign_up(bruno, "Bruno", bruno_email)
-    add_member(client, association["id"], "Bruno", bruno_email)
-    add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+    add_member(client, association["slug"], "Bruno", bruno_email)
+    add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
 
     assert delete_account(client).status_code == 200
 
-    assert roles(bruno, association["id"]) == {"Bruno": "manager", "Chloé": "manager"}
-    assert bruno.get(f"/api/associations/{association['id']}").json()["role"] == "manager"
+    assert members_roles(bruno, association["slug"]) == {"Bruno": "manager", "Chloé": "manager"}
+    assert "Add a member" in bruno.get(f"/association/{association['slug']}/members").text
 
 
 def test_r30_roles_are_kept_when_another_manager_remains(
@@ -201,12 +191,12 @@ def test_r30_roles_are_kept_when_another_manager_remains(
     zoe = new_client()
     zoe_email = unique_email("Zoe")
     sign_up(zoe, "Zoé", zoe_email)
-    add_member(client, association["id"], "Zoé", zoe_email, "manager")
-    add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+    add_member(client, association["slug"], "Zoé", zoe_email, "manager")
+    add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
 
     delete_account(client)
 
-    assert roles(zoe, association["id"]) == {"Zoé": "manager", "Chloé": "volunteer"}
+    assert members_roles(zoe, association["slug"]) == {"Zoé": "manager", "Chloé": "volunteer"}
 
 
 def test_r30_the_only_member_of_an_association_can_delete_their_account(client: Any) -> None:

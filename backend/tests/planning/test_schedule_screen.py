@@ -16,7 +16,6 @@ from tests.planning.conftest import (
     Planning,
     add_closure_on_screen,
     add_member,
-    create_association,
     day_in,
     day_label,
     day_of_week,
@@ -636,7 +635,7 @@ class TestOccurrences:
         volunteer = new_client()
         email = unique_email("Zoe")
         user = sign_up(volunteer, "<b>Zoé</b>", email)
-        assert add_member(client, planning.id, "<b>Zoé</b>", email).status_code == 201
+        add_member(client, planning.slug, "<b>Zoé</b>", email)
         planning.registered(volunteer, user, day_of_week("thursday"), "10:00", "13:00")
 
         page = schedule_page(client, planning.slug)
@@ -973,24 +972,3 @@ class TestMoreWeeks:
 
         assert "window.location" in text
         assert "Week" not in text
-
-
-class TestScheduleEndpointRemoved:
-    def test_get_api_schedule_answers_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        planning.add_slot("thursday", "10:00", "13:00")
-
-        for params in [{}, {"from": day_of_week("monday"), "to": day_of_week("sunday")}]:
-            response = client.get(planning.path("schedule"), params=params)
-            assert response.status_code in (404, 405)
-            assert "occurrences" not in response.text
-
-    def test_the_unknown_id_answers_nothing_either(self, client: Any) -> None:
-        sign_up(client, "Alice")
-        create_association(client)
-
-        response = client.get(f"/api/associations/{UNKNOWN_ID}/schedule")
-
-        assert response.status_code in (404, 405)

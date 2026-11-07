@@ -20,14 +20,18 @@ from tests.core.conftest import (
     latest_access_token,
     latest_email,
     latest_verification_token,
+    members_roles,
     names_listed,
     open_link,
     remove_member,
     rename_association,
     revoke_member_link,
+    run_sql,
+    run_sql_rows,
     send_member_link,
     shown,
     sign_up,
+    signed_in_as,
     unique_email,
     unique_slug,
 )
@@ -89,15 +93,24 @@ def add_on_screen(
 
 
 def member_count(client: Any, association: dict[str, Any]) -> int:
-    members = client.get(f"/api/associations/{association['id']}").json()["members"]
-    return len(members)
+    """The number of members that Members lists."""
+    return len(members_roles(client, association["slug"]))
+
+
+def _of_member(column: str, association: dict[str, Any], display_name: str) -> str:
+    found = run_sql_rows(
+        f"SELECT u.{column} FROM user_account u JOIN membership m ON m.user_id = u.id"
+        " WHERE m.association_id = :association AND u.display_name = :name",
+        association=association["id"],
+        name=display_name,
+    )
+    assert len(found) == 1, found
+    return str(found[0][0])
 
 
 def user_id(client: Any, association: dict[str, Any], display_name: str) -> str:
-    """The user ID of the member `display_name`, as the API lists it."""
-    members = client.get(f"/api/associations/{association['id']}").json()["members"]
-    found: str = next(m["user_id"] for m in members if m["display_name"] == display_name)
-    return found
+    """The user ID of the member `display_name`, read from the database: no screen shows it."""
+    return _of_member("id", association, display_name)
 
 
 def role_of(client: Any, association: dict[str, Any], display_name: str) -> str:
@@ -120,7 +133,7 @@ def with_link(client: Any, new_client: Callable[[], Any]) -> tuple[dict[str, Any
     """Alice manages an association where Chloé, added by her, asked for her access link."""
     association = managed(client)
     email = unique_email("Chloe")
-    add_member(client, association["id"], "Chloé", email)
+    add_member(client, association["slug"], "Chloé", email)
     ask_for_link(new_client(), email)
     return association, user_id(client, association, "Chloé"), latest_access_token(email)
 
@@ -129,7 +142,7 @@ def with_member(client: Any) -> tuple[dict[str, Any], str, str]:
     """Alice manages an association where she added Chloé, who has no access link."""
     association = managed(client)
     email = unique_email("Chloe")
-    add_member(client, association["id"], "Chloé", email)
+    add_member(client, association["slug"], "Chloé", email)
     return association, user_id(client, association, "Chloé"), email
 
 
@@ -145,7 +158,7 @@ def with_volunteer(client: Any, new_client: Callable[[], Any]) -> tuple[dict[str
     bruno = new_client()
     email = unique_email("Bruno")
     sign_up(bruno, "Bruno", email)
-    assert add_member(client, association["id"], "Bruno", email).status_code == 201
+    add_member(client, association["slug"], "Bruno", email)
     return association, bruno
 
 
@@ -153,7 +166,7 @@ class TestMembers:
     def test_shows_each_member_with_email_and_role(self, client: Any) -> None:
         association = managed(client)
         chloe = unique_email("Chloe")
-        add_member(client, association["id"], "Chloé", chloe)
+        add_member(client, association["slug"], "Chloé", chloe)
 
         page = members_page(client, association["slug"])
 
@@ -164,9 +177,9 @@ class TestMembers:
 
     def test_lists_managers_first_then_by_display_name(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
-        add_member(client, association["id"], "Zoé", unique_email("Zoe"), "manager")
-        add_member(client, association["id"], "Bruno", unique_email("Bruno"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Zoé", unique_email("Zoe"), "manager")
+        add_member(client, association["slug"], "Bruno", unique_email("Bruno"))
 
         page = members_page(client, association["slug"])
 
@@ -180,11 +193,11 @@ class TestMembers:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         other = new_client()
         sign_up(other, "Zoé", unique_email("Zoe"))
         theirs = create_association(other, "Repair Café")
-        add_member(other, theirs["id"], "David", unique_email("David"))
+        add_member(other, theirs["slug"], "David", unique_email("David"))
 
         page = members_page(client, association["slug"])
 
@@ -194,7 +207,7 @@ class TestMembers:
 
     def test_escapes_the_display_name(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "<b>Chloé</b>", unique_email("Chloe"))
+        add_member(client, association["slug"], "<b>Chloé</b>", unique_email("Chloe"))
 
         page = members_page(client, association["slug"])
 
@@ -203,7 +216,7 @@ class TestMembers:
 
     def test_follows_the_language(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         client.cookies.set("language", "fr")
 
         page = members_page(client, association["slug"])
@@ -264,7 +277,7 @@ class TestMembersHeader:
 class TestNotJoinedYet:
     def test_shows_on_a_member_added_who_has_no_account(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
 
         page = members_page(client, association["slug"])
 
@@ -276,7 +289,7 @@ class TestNotJoinedYet:
     ) -> None:
         association = managed(client)
         email = unique_email("Bruno")
-        add_member(client, association["id"], "Bruno", email)
+        add_member(client, association["slug"], "Bruno", email)
         assert create_account(new_client(), "Bruno", email).status_code == 200
 
         assert NOT_JOINED in line_of(members_page(client, association["slug"]), "Bruno")
@@ -286,7 +299,7 @@ class TestNotJoinedYet:
     ) -> None:
         association = managed(client)
         email = unique_email("Bruno")
-        add_member(client, association["id"], "Bruno", email)
+        add_member(client, association["slug"], "Bruno", email)
         bruno = new_client()
         create_account(bruno, "Bruno", email)
         confirm_email(bruno, latest_verification_token(email))
@@ -298,7 +311,7 @@ class TestNotJoinedYet:
     ) -> None:
         association = managed(client)
         email = unique_email("Chloe")
-        add_member(client, association["id"], "Chloé", email)
+        add_member(client, association["slug"], "Chloé", email)
         chloe = new_client()
         ask_for_link(chloe, email)
         open_link(chloe, latest_access_token(email))
@@ -311,7 +324,7 @@ class TestShowAll:
     def test_shows_beyond_5_members(self, client: Any, count: int, shows_the_link: bool) -> None:
         association = managed(client)
         for n in range(count - 1):
-            add_member(client, association["id"], f"Member {n}", unique_email(f"member{n}"))
+            add_member(client, association["slug"], f"Member {n}", unique_email(f"member{n}"))
 
         main = text_of(part(members_page(client, association["slug"]), "main"))
 
@@ -321,7 +334,7 @@ class TestShowAll:
     def test_follows_the_language(self, client: Any) -> None:
         association = managed(client)
         for n in range(6):
-            add_member(client, association["id"], f"Member {n}", unique_email(f"member{n}"))
+            add_member(client, association["slug"], f"Member {n}", unique_email(f"member{n}"))
         client.cookies.set("language", "fr")
 
         assert "Voir les 7 membres" in members_page(client, association["slug"])
@@ -355,7 +368,7 @@ class TestAsAManager:
 
     def test_each_member_has_its_edit_icon(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
 
         main = html.unescape(part(members_page(client, association["slug"]), "main"))
 
@@ -364,7 +377,7 @@ class TestAsAManager:
 
     def test_the_edit_icon_follows_the_language(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         client.cookies.set("language", "fr")
 
         main = html.unescape(part(members_page(client, association["slug"]), "main"))
@@ -421,7 +434,7 @@ class TestUnknownAssociation:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         other = new_client()
         sign_up(other, "Zoé", unique_email("Zoe"))
 
@@ -509,7 +522,7 @@ class TestAddingAMember:
     def test_an_existing_member_says_so_and_changes_nothing(self, client: Any) -> None:
         association = managed(client)
         email = unique_email("Chloe")
-        add_member(client, association["id"], "Chloé", email)
+        add_member(client, association["slug"], "Chloé", email)
 
         text = shown(add_on_screen(client, association["slug"], "Chloé", email, "manager"))
 
@@ -583,7 +596,7 @@ class TestAddingAMember:
 class TestChangingTheRole:
     def test_another_role_changes_it_and_says_so(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         chloe = user_id(client, association, "Chloé")
 
         text = shown(change_role(client, association["slug"], chloe, "manager"))
@@ -593,7 +606,7 @@ class TestChangingTheRole:
 
     def test_the_list_shows_the_new_role_at_once(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         chloe = user_id(client, association, "Chloé")
 
         text = shown(change_role(client, association["slug"], chloe, "manager"))
@@ -603,7 +616,7 @@ class TestChangingTheRole:
 
     def test_a_manager_becomes_volunteer_when_another_manager_remains(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Zoé", unique_email("Zoe"), "manager")
+        add_member(client, association["slug"], "Zoé", unique_email("Zoe"), "manager")
         zoe = user_id(client, association, "Zoé")
 
         text = shown(change_role(client, association["slug"], zoe, "volunteer"))
@@ -613,7 +626,7 @@ class TestChangingTheRole:
 
     def test_a_manager_may_demote_themself_when_another_manager_remains(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Zoé", unique_email("Zoe"), "manager")
+        add_member(client, association["slug"], "Zoé", unique_email("Zoe"), "manager")
         alice = user_id(client, association, "Alice")
 
         text = shown(change_role(client, association["slug"], alice, "volunteer"))
@@ -633,7 +646,7 @@ class TestChangingTheRole:
 
     def test_the_same_role_changes_nothing(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         chloe = user_id(client, association, "Chloé")
 
         text = shown(change_role(client, association["slug"], chloe, "volunteer"))
@@ -644,7 +657,7 @@ class TestChangingTheRole:
 
     def test_demoting_the_last_manager_says_so_and_changes_nothing(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         alice = user_id(client, association, "Alice")
 
         text = shown(change_role(client, association["slug"], alice, "volunteer"))
@@ -655,7 +668,7 @@ class TestChangingTheRole:
 
     def test_messages_follow_the_language(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         chloe = user_id(client, association, "Chloé")
         alice = user_id(client, association, "Alice")
         client.cookies.set("language", "fr")
@@ -673,7 +686,7 @@ class TestChangingTheRole:
         self, client: Any, body: dict[str, str]
     ) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         chloe = user_id(client, association, "Chloé")
 
         path = f"/association/{association['slug']}/members/{chloe}/role"
@@ -704,7 +717,7 @@ class TestChangingTheRole:
 
     def test_a_non_member_changes_no_role(self, client: Any, new_client: Callable[[], Any]) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         other = new_client()
         sign_up(other, "Zoé", unique_email("Zoe"))
 
@@ -718,7 +731,7 @@ class TestChangingTheRole:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         chloe = user_id(client, association, "Chloé")
 
         text = shown(change_role(new_client(), association["slug"], chloe, "manager"))
@@ -757,8 +770,7 @@ class TestRemovingAMember:
 
     def test_the_user_can_be_added_again(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
-        members = client.get(f"/api/associations/{association['id']}").json()["members"]
-        email = next(m["email"] for m in members if m["display_name"] == "Bruno")
+        email = email_of(client, association, "Bruno")
         shown(remove_member(client, association["slug"], user_id(client, association, "Bruno")))
 
         text = shown(add_on_screen(client, association["slug"], "Bruno", email))
@@ -768,7 +780,7 @@ class TestRemovingAMember:
 
     def test_a_manager_removes_another_manager(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Zoé", unique_email("Zoe"), "manager")
+        add_member(client, association["slug"], "Zoé", unique_email("Zoe"), "manager")
 
         member = user_id(client, association, "Zoé")
         text = shown(remove_member(client, association["slug"], member))
@@ -778,7 +790,7 @@ class TestRemovingAMember:
 
     def test_removing_the_last_manager_says_so_and_changes_nothing(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
 
         member = user_id(client, association, "Alice")
         text = shown(remove_member(client, association["slug"], member))
@@ -789,7 +801,7 @@ class TestRemovingAMember:
 
     def test_a_manager_who_removes_themself_is_led_to_my_associations(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Zoé", unique_email("Zoe"), "manager")
+        add_member(client, association["slug"], "Zoé", unique_email("Zoe"), "manager")
 
         member = user_id(client, association, "Alice")
         text = shown(remove_member(client, association["slug"], member))
@@ -800,7 +812,7 @@ class TestRemovingAMember:
 
     def test_the_confirmation_asks_with_the_member_name(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
 
         page = html.unescape(members_page(client, association["slug"]))
 
@@ -810,7 +822,7 @@ class TestRemovingAMember:
 
     def test_messages_follow_the_language(self, client: Any) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         alice = user_id(client, association, "Alice")
         chloe = user_id(client, association, "Chloé")
         client.cookies.set("language", "fr")
@@ -842,7 +854,7 @@ class TestRemovingAMember:
 
     def test_a_non_member_removes_no_one(self, client: Any, new_client: Callable[[], Any]) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         other = new_client()
         sign_up(other, "Zoé", unique_email("Zoe"))
 
@@ -855,7 +867,7 @@ class TestRemovingAMember:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         chloe = user_id(client, association, "Chloé")
 
         text = shown(remove_member(new_client(), association["slug"], chloe))
@@ -921,7 +933,7 @@ class TestRevokingALink:
         text = shown(revoke_member_link(client, association["slug"], chloe))
 
         assert "Chloé's sign-in link is revoked." in text
-        assert phone.get("/api/session").status_code == 401
+        assert signed_in_as(phone) is None
         assert not signs_in(new_client(), token)
         assert REVOKE_CHLOE not in html.unescape(members_page(client, association["slug"]))
 
@@ -939,18 +951,14 @@ class TestRevokingALink:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association, bruno = with_volunteer(client, new_client)
-        email = next(
-            m["email"]
-            for m in client.get(f"/api/associations/{association['id']}").json()["members"]
-            if m["display_name"] == "Bruno"
-        )
+        email = email_of(client, association, "Bruno")
         ask_for_link(new_client(), email)
         token = latest_access_token(email)
 
         member = user_id(client, association, "Bruno")
         shown(revoke_member_link(client, association["slug"], member))
 
-        assert bruno.get("/api/session").status_code == 200
+        assert signed_in_as(bruno) is not None
         assert not signs_in(new_client(), token)
 
     def test_the_message_follows_the_language(
@@ -983,7 +991,7 @@ class TestRevokingALink:
         bruno = new_client()
         bruno_email = unique_email("Bruno")
         sign_up(bruno, "Bruno", bruno_email)
-        add_member(client, association["id"], "Bruno", bruno_email)
+        add_member(client, association["slug"], "Bruno", bruno_email)
 
         response = revoke_member_link(bruno, association["slug"], chloe)
 
@@ -1024,7 +1032,7 @@ class TestSendingALink:
         assert latest_email(email)["Subject"] == LINK_SUBJECT["en"]
         browser = new_client()
         assert signs_in(browser, latest_access_token(email))
-        assert browser.get("/api/session").json()["id"] == chloe
+        assert signed_in_as(browser) == "Chloé"
 
     def test_the_dialog_offers_revoke_link_at_once(self, client: Any) -> None:
         association, chloe, _ = with_member(client)
@@ -1060,11 +1068,7 @@ class TestSendingALink:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association, chloe, first_token = with_link(client, new_client)
-        email = next(
-            m["email"]
-            for m in client.get(f"/api/associations/{association['id']}").json()["members"]
-            if m["display_name"] == "Chloé"
-        )
+        email = email_of(client, association, "Chloé")
         time.sleep(0.01)  # Mailpit orders by Created, at millisecond precision.
 
         shown(send_member_link(client, association["slug"], chloe))
@@ -1074,16 +1078,12 @@ class TestSendingALink:
 
     def test_r26_a_manager_sends_their_own_link(self, client: Any) -> None:
         association, _, _ = with_member(client)
-        alice = next(
-            m
-            for m in client.get(f"/api/associations/{association['id']}").json()["members"]
-            if m["display_name"] == "Alice"
-        )
+        alice = user_id(client, association, "Alice")
 
-        text = shown(send_member_link(client, association["slug"], alice["user_id"]))
+        text = shown(send_member_link(client, association["slug"], alice))
 
         assert "Alice's sign-in link is sent." in text
-        latest_access_token(alice["email"])
+        latest_access_token(email_of(client, association, "Alice"))
 
     def test_when_the_email_cannot_be_sent_says_so(
         self, client: Any, monkeypatch: pytest.MonkeyPatch
@@ -1126,7 +1126,7 @@ class TestSendingALink:
     def test_a_volunteer_sends_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
         chloe_email = unique_email("Chloe")
-        add_member(client, association["id"], "Chloé", chloe_email)
+        add_member(client, association["slug"], "Chloé", chloe_email)
 
         response = send_member_link(
             bruno, association["slug"], user_id(client, association, "Chloé")
@@ -1157,30 +1157,19 @@ class TestSendingALink:
         assert no_email_sent(email)
 
 
-class TestLinkEndpointsRemoved:
-    @pytest.mark.parametrize("method", ["POST", "DELETE"])
-    def test_answer_404(self, client: Any, method: str) -> None:
-        association, chloe, _ = with_member(client)
-
-        path = f"/api/associations/{association['id']}/members/{chloe}/access-link"
-
-        assert client.request(method, path).status_code == 404
-
-
 def name_of(client: Any, association: dict[str, Any]) -> str:
-    found: str = client.get(f"/api/associations/{association['id']}").json()["name"]
-    return found
+    """The association's name, read from the database by its id, which no change alters."""
+    return str(run_sql("SELECT name FROM association WHERE id = :id", id=association["id"]))
 
 
 def slug_of(client: Any, association: dict[str, Any]) -> str:
-    found: str = client.get(f"/api/associations/{association['id']}").json()["slug"]
-    return found
+    """The association's slug, read from the database by its id, which no change alters."""
+    return str(run_sql("SELECT slug FROM association WHERE id = :id", id=association["id"]))
 
 
 def email_of(client: Any, association: dict[str, Any], display_name: str) -> str:
-    members = client.get(f"/api/associations/{association['id']}").json()["members"]
-    found: str = next(m["email"] for m in members if m["display_name"] == display_name)
-    return found
+    """The email of the member `display_name`, read from the database."""
+    return _of_member("email", association, display_name)
 
 
 def promoted(client: Any, association: dict[str, Any], display_name: str) -> None:
@@ -1517,7 +1506,6 @@ class TestDeletingTheAssociation:
         text = shown(delete_association(client, association["slug"]))
 
         assert re.search(r"window\.location = '/'", text), text
-        assert client.get(f"/api/associations/{association['id']}").status_code == 404
         assert names_listed(client) == []
         page = html.unescape(client.get(f"/association/{association['slug']}/members").text)
         assert UNKNOWN in page
@@ -1535,11 +1523,11 @@ class TestDeletingTheAssociation:
     ) -> None:
         association, bruno = with_volunteer(client, new_client)
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        add_member(client, other["id"], "Bruno", email_of(client, association, "Bruno"))
+        add_member(client, other["slug"], "Bruno", email_of(client, association, "Bruno"))
 
         shown(delete_association(client, association["slug"]))
 
-        assert bruno.get("/api/session").status_code == 200
+        assert signed_in_as(bruno) is not None
         assert names_listed(bruno) == [other["name"]]
         assert "Repair Café Belleville" in members_page(client, other["slug"])
 
@@ -1550,7 +1538,7 @@ class TestDeletingTheAssociation:
 
         shown(delete_association(client, association["slug"]))
 
-        assert bruno.get("/api/session").status_code == 200
+        assert signed_in_as(bruno) is not None
         assert names_listed(bruno) == []
 
     def test_r34_an_added_user_can_be_added_to_another_association_afterwards(
@@ -1579,14 +1567,14 @@ class TestDeletingTheAssociation:
 
         delete_association(bruno, association["slug"])
 
-        assert client.get(f"/api/associations/{association['id']}").status_code == 200
+        assert UNKNOWN not in html.unescape(members_page(client, association["slug"]))
 
     def test_a_non_member_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association = managed(client)
 
         delete_association(other_user(new_client), association["slug"])
 
-        assert client.get(f"/api/associations/{association['id']}").status_code == 200
+        assert UNKNOWN not in html.unescape(members_page(client, association["slug"]))
 
     def test_signed_out_leads_to_sign_in_and_deletes_nothing(
         self, client: Any, new_client: Callable[[], Any]
@@ -1596,17 +1584,4 @@ class TestDeletingTheAssociation:
         text = shown(delete_association(new_client(), association["slug"]))
 
         assert "window.location" in text
-        assert client.get(f"/api/associations/{association['id']}").status_code == 200
-
-
-class TestAssociationEndpointsRemoved:
-    @pytest.mark.parametrize(("method", "body"), [("PATCH", {"name": NEW_NAME}), ("DELETE", None)])
-    def test_patch_and_delete_api_association_change_nothing(
-        self, client: Any, method: str, body: dict[str, str] | None
-    ) -> None:
-        association = managed(client)
-
-        response = client.request(method, f"/api/associations/{association['id']}", json=body)
-
-        assert response.status_code in (404, 405)
-        assert name_of(client, association) == NAME
+        assert UNKNOWN not in html.unescape(members_page(client, association["slug"]))

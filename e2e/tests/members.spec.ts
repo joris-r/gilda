@@ -4,35 +4,14 @@ import {
   type APIRequestContext,
   type Page,
 } from "@playwright/test";
-import { PASSWORD, latestToken, uniqueEmail } from "./helpers";
+import { createAssociation, signedIn, uniqueEmail } from "./helpers";
 
 const GENERIC = "Something went wrong. Try again.";
 
-function uniqueSlug() {
-  return `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 /** Alice signs in on `page`, creates an association and opens its Members; returns its slug. */
 async function openMembers(page: Page, request: APIRequestContext) {
-  const email = uniqueEmail("Alice");
-  await request.post("/signup", {
-    data: { displayName: "Alice", email, password: PASSWORD },
-  });
-  await request.post("/verify-email", {
-    data: { token: await latestToken(email) },
-  });
-  await page.goto("/");
-  await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(
-    page.locator("header").getByText("My associations"),
-  ).toBeVisible();
-  const slug = uniqueSlug();
-  const created = await page.request.post("/api/associations", {
-    data: { name: "Jardin partagé", slug },
-  });
-  expect(created.status()).toBe(201);
+  await signedIn(page, request);
+  const slug = await createAssociation(page.request);
   await page.goto(`/association/${slug}/members`);
   await expect(page.locator("header").getByText("Members")).toBeVisible();
   return slug;

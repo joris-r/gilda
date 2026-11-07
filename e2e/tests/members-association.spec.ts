@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
+import { createAssociation, signedIn, uniqueSlug } from './helpers'
 
 const NAME = 'Jardin partagé'
 const GENERIC = 'Something went wrong. Try again.'
@@ -8,23 +8,10 @@ const MALFORMED =
 const TAKEN = 'This association identifier is already taken.'
 const CONFIRM_DELETE = `Delete ${NAME}? Its schedule and its members' registrations are erased. This cannot be undone.`
 
-function uniqueSlug() {
-  return `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
 /** Alice signs in on `page`, creates an association and opens its Members; returns its slug. */
 async function openMembers(page: Page, request: APIRequestContext) {
-  const alice = uniqueEmail('Alice')
-  await request.post('/signup', { data: { displayName: 'Alice', email: alice, password: PASSWORD } })
-  await request.post('/verify-email', { data: { token: await latestToken(alice) } })
-  await page.goto('/')
-  await page.getByLabel('Email', { exact: true }).fill(alice)
-  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.locator('header').getByText('My associations')).toBeVisible()
-  const slug = uniqueSlug()
-  const created = await page.request.post('/api/associations', { data: { name: NAME, slug } })
-  expect(created.status()).toBe(201)
+  await signedIn(page, request)
+  const slug = await createAssociation(page.request, NAME)
   await page.goto(`/association/${slug}/members`)
   await expect(page.locator('header').getByText('Members')).toBeVisible()
   return slug
@@ -176,8 +163,7 @@ test.describe('Members: Change the association identifier', () => {
   test('a taken slug shows its message in the dialog', async ({ page, request }) => {
     await openMembers(page, request)
     const taken = uniqueSlug()
-    const other = await page.request.post('/api/associations', { data: { name: 'Repair Café', slug: taken } })
-    expect(other.status()).toBe(201)
+    await createAssociation(page.request, 'Repair Café', taken)
 
     const dialog = await openIdentifier(page)
     await dialog.getByLabel('Association identifier').fill(taken)

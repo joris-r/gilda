@@ -1,13 +1,9 @@
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
+import { addSlot, createAssociation, signUpFor, signedIn } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-function uniqueSlug() {
-  return `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
 
 /** A day of the week `weeksAhead` weeks after the current one (0 = Sunday … 6 = Saturday). */
 function dayOfWeek(weekday: number, weeksAhead: number) {
@@ -24,28 +20,10 @@ function dayOfWeek(weekday: number, weeksAhead: number) {
 /** Alice signs in on `page`, creates an association open on Thursdays from 10:00 to 13:00, signs
  * up for next week's Thursday, creates its share link on Schedule settings, and returns it. */
 async function shareSchedule(page: Page, request: APIRequestContext) {
-  const alice = uniqueEmail('Alice')
-  await request.post('/signup', { data: { displayName: 'Alice', email: alice, password: PASSWORD } })
-  await request.post('/verify-email', { data: { token: await latestToken(alice) } })
-  await page.goto('/')
-  await page.getByLabel('Email', { exact: true }).fill(alice)
-  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.locator('header').getByText('My associations')).toBeVisible()
-  const slug = uniqueSlug()
-  const created = await page.request.post('/api/associations', { data: { name: 'Jardin partagé', slug } })
-  expect(created.status()).toBe(201)
-  const { id } = (await created.json()) as { id: string }
-  const slot = await page.request.post(`/api/associations/${id}/slots`, {
-    data: { weekday: 'thursday', start: '10:00', end: '13:00' },
-  })
-  expect(slot.status()).toBe(201)
-  const session = await page.request.get('/api/session')
-  const { id: userId } = (await session.json()) as { id: string }
-  const registration = await page.request.post(`/api/associations/${id}/registrations`, {
-    data: { user_id: userId, date: dayOfWeek(4, 1).iso, start: '10:00', end: '13:00' },
-  })
-  expect(registration.status()).toBe(201)
+  await signedIn(page, request)
+  const slug = await createAssociation(page.request)
+  await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
+  await signUpFor(page.request, slug, dayOfWeek(4, 1).iso, '10:00', '13:00')
   await page.goto(`/association/${slug}/settings`)
   await page.getByRole('button', { name: 'Create a share link' }).click()
   const shown = page.locator('main').getByText(/\/shared\/[\w-]+/)

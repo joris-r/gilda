@@ -1,4 +1,5 @@
 import re
+import uuid
 from collections.abc import Callable
 from typing import Any
 
@@ -6,9 +7,13 @@ import pytest
 
 from tests.core.conftest import (
     PASSWORD,
+    add_member,
     create_account,
+    create_association,
     latest_verification_token,
+    shown,
     sign_up,
+    signed_in_as,
     unique_email,
 )
 
@@ -125,3 +130,62 @@ class TestSignIn:
         stale = new_client()
         stale.cookies.set("session", previous)
         assert heading(stale.get("/")) == "Sign in"
+
+    def test_r16_replaces_a_session_id_planted_in_the_browser(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        email = unique_email("Alice")
+        sign_up(new_client(), "Alice", email)
+        planted = uuid.uuid4().hex
+        client.cookies.set("session", planted)
+        attacker = new_client()
+        attacker.cookies.set("session", planted)
+
+        response = sign_in(client, email)
+
+        assert "window.location" in shown(response)
+        assert response.cookies.get("session") not in (None, planted)
+        assert signed_in_as(client) == "Alice"
+        assert signed_in_as(attacker) is None
+
+    def test_r16_replaces_the_id_of_an_existing_session(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        email = unique_email("Alice")
+        sign_up(new_client(), "Alice", email)
+        attacker = new_client()
+        sign_up(attacker, "Mallory")
+        planted = attacker.cookies.get("session")
+        client.cookies.set("session", planted)
+
+        response = sign_in(client, email)
+
+        assert "window.location" in shown(response)
+        assert response.cookies.get("session") not in (None, planted)
+        assert signed_in_as(client) == "Alice"
+        assert signed_in_as(attacker) is None
+
+    def test_ignores_the_case_of_the_email(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        email = unique_email("Alice")
+        sign_up(new_client(), "Alice", email)
+
+        response = sign_in(client, email.upper())
+
+        assert WRONG_EN not in shown(response)
+        assert signed_in_as(client) == "Alice"
+
+    def test_a_member_added_without_a_password_shows_the_same_message(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        manager = new_client()
+        sign_up(manager, "Alice")
+        association = create_association(manager)
+        email = unique_email("Chloe")
+        add_member(manager, association["slug"], "Chloé", email)
+
+        response = sign_in(client, email)
+
+        assert WRONG_EN in shown(response)
+        assert signed_in_as(client) is None
