@@ -10,13 +10,14 @@
 - Tests: `shown()` would rebuild the HTML of each `datastar-patch-elements` event from its `data: elements` lines, so pytest reads a patch as the browser does and templates need not be sent on one line.
 - Process: CLAUDE.md would ask tests that read a screen's lines to look only within their section, so that a new section can't break them.
 - Process: CLAUDE.md's rule on the generic error's hidden copies would also cover closed dialogs within `main`: a test of a signed-in screen looks for the visible copy (`.filter({ visible: true })`) or within the section or dialog it means.
+- Tests: `section_of` would unescape the HTML before matching a heading, so a heading with an apostrophe needs no `| safe`.
+- Process: CLAUDE.md would ask, when a test's read of state moves from a deleted endpoint to a screen, to check that the screen still shows what the test checks (e.g. a removed member's row leaves the screen).
 
 
 ## Datastar experiment
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Schedule settings: Members' preferences.
 - Schedule: the weeks read-only, "More weeks", the today and period lines, closures.
 - Schedule: the volunteer's menu (Sign up, Confirm, Cancel registration).
 - Schedule: the manager's menu (propose, cancel, preferences and counts, absence and note icons); restores "The schedule is filled".
@@ -127,6 +128,14 @@ Choices the spec left open, settled by `availability-absences-note`:
 - Note for the managers: the dialog opens with the note as last saved, also after a Save or a Cancel; the note keeps its lines; a note of only spaces shows "None".
 - Absences and the note: a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
 
+Choices the spec left open, settled by `settings-preferences`:
+
+- Members' preferences: with no slot, it shows "None".
+- Members' preferences: a column shows its slot with the short weekday, "Thu 10:00–13:00" ("jeu." in French), as dates do.
+- Members' preferences: adding, editing or deleting a slot updates its columns at once.
+- Members' preferences: a missing or invalid value, an unknown slot or one of another association, or a user who is not a member shows the generic error.
+- Members' preferences: a volunteer's request, even for their own preference, changes nothing and shows the generic error; a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -162,6 +171,9 @@ Choices the spec left open, settled by `availability-absences-note`:
 - Absences may overlap each other, with no warning.
 - Absences with To before From show only the generic error; the former frontend said "Check the dates: the start comes before the end." (`availability.invalid`, now unused).
 - A note of only spaces is saved as is; the Schedule's note icon (a later item) should treat it as empty.
+- Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
+- Members' preferences: a member added on Members, or a choice made on My availability, shows only after a reload.
+- Members' preferences renders a selector for each member and slot, so the page grows with the association.
 
 
 ## Quality
@@ -196,7 +208,7 @@ Choices the spec left open, settled by `availability-absences-note`:
 - Send link has no rate limit, so a manager can flood a member with emails.
 - Any manager can delete the association, irreversibly, with no password, so one manager or a stolen session can erase it for every member.
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account.
-- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` `POST /association/{slug}/settings/slots/{slot_id}/delete`, `POST /association/{slug}/settings/period`, `POST /association/{slug}/settings/period/clear`, `POST /association/{slug}/settings/closures`, `POST /association/{slug}/settings/closures/{closure_id}/edit` `POST /association/{slug}/settings/closures/{closure_id}/delete` `POST /association/{slug}/availability/preferences/{slot_id}`, `POST /association/{slug}/availability/absences`, `POST /association/{slug}/availability/absences/{absence_id}/edit`, `POST /association/{slug}/availability/absences/{absence_id}/delete` and `POST /association/{slug}/availability/note` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
+- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` `POST /association/{slug}/settings/slots/{slot_id}/delete`, `POST /association/{slug}/settings/period`, `POST /association/{slug}/settings/period/clear`, `POST /association/{slug}/settings/closures`, `POST /association/{slug}/settings/closures/{closure_id}/edit` `POST /association/{slug}/settings/closures/{closure_id}/delete` `POST /association/{slug}/availability/preferences/{slot_id}`, `POST /association/{slug}/availability/absences`, `POST /association/{slug}/availability/absences/{absence_id}/edit`, `POST /association/{slug}/availability/absences/{absence_id}/delete`, `POST /association/{slug}/availability/note` and `POST /association/{slug}/settings/preferences/{slot_id}/{user_id}` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
 
