@@ -47,9 +47,19 @@ def lines_of(fragment: str) -> list[str]:
     return [" ".join(text_of(item).split()) for item in items]
 
 
+def without_hidden(fragment: str) -> str:
+    """The HTML without its hidden paragraphs, such as the errors and notice not shown yet."""
+    return re.sub(
+        r'<p(?=[^>]*(\shidden[\s>]|style="display: none"))[^>]*>.*?</p>',
+        "",
+        fragment,
+        flags=re.DOTALL,
+    )
+
+
 def section_of(page: str, heading: str) -> str:
-    """The HTML of main, outside the dialogs, from the `heading` title to the next one."""
-    main = without_dialogs(part(page, "main"))
+    """What main shows, outside the dialogs, from the `heading` title to the next one."""
+    main = without_hidden(without_dialogs(part(page, "main")))
     for chunk in re.split(r"(?=<h2[ >])", main):
         if re.match(rf"<h2[^>]*>\s*{re.escape(heading)}\s*</h2>", chunk):
             return chunk
