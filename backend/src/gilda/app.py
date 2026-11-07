@@ -65,7 +65,9 @@ from gilda.planning.pages import (
     edit_absence,
     edit_closure,
     edit_slot,
+    more_weeks,
     save_note,
+    schedule_page,
     set_period,
     settings_page,
 )
@@ -133,6 +135,8 @@ def create_app() -> Litestar:
             edit_absence,
             delete_absence,
             save_note,
+            schedule_page,
+            more_weeks,
             sign_in,
             sign_out,
             revoke_access_link,

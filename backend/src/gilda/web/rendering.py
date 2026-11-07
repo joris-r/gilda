@@ -55,6 +55,29 @@ def format_day(language: Language, value: date) -> str:
     )
 
 
+def format_short_day(language: Language, value: date) -> str:
+    """A date without its year, as the Schedule heads its days, e.g. "Thu 29 Oct"."""
+    return translate(
+        language,
+        "dates.short",
+        weekday=translate(language, f"dates.weekdays.{_WEEKDAYS[value.weekday()]}"),
+        day=value.day,
+        month=translate(language, f"dates.months.{value.month}"),
+    )
+
+
+def format_long_day(language: Language, value: date) -> str:
+    """A date in full, as the Schedule's lines show it, e.g. "Wednesday 28 October 2026"."""
+    return translate(
+        language,
+        "dates.long",
+        weekday=translate(language, f"dates.longWeekdays.{_WEEKDAYS[value.weekday()]}"),
+        day=value.day,
+        month=translate(language, f"dates.longMonths.{value.month}"),
+        year=value.year,
+    )
+
+
 def format_days(language: Language, first: date, last: date) -> str:
     """Dates from `first` to `last`, joined by an en dash, or one date when they are the same."""
     if first == last:
@@ -71,7 +94,20 @@ def _context(request: Request[Any, Any, Any], context: dict[str, Any]) -> dict[s
     def days(first: date, last: date) -> str:
         return format_days(language, first, last)
 
-    return {"language": language, "t": t, "days": days, **context}
+    def short_day(value: date) -> str:
+        return format_short_day(language, value)
+
+    def long_day(value: date) -> str:
+        return format_long_day(language, value)
+
+    return {
+        "language": language,
+        "t": t,
+        "days": days,
+        "short_day": short_day,
+        "long_day": long_day,
+        **context,
+    }
 
 
 def flash(request: Request[Any, Any, Any], message: str) -> None:

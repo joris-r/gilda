@@ -1,0 +1,44 @@
+{# The weeks of the Schedule, from view.first to view.last, then "More weeks". #}
+<div id="weeks" class="weeks">
+  {% if view.empty %}<p class="hint">{{ t("schedule.empty") }}</p>{% endif %}
+  {% for week in view.weeks %}
+  {% if week.today %}<p class="line">{{ t("schedule.today", date=long_day(view.today)) }}</p>{% endif %}
+  {% if week.starts %}<p class="line period">{{ t("schedule.periodStart", date=long_day(view.period.first)) }}</p>{% endif %}
+  <section class="week">
+    <h2>{{ t("schedule.week", n=week.number) }}</h2>
+    {% if view.columns %}
+    <div class="days" style="--hours: {{ view.hours }}; --columns: {{ view.columns }}">
+      <div class="day axis" aria-hidden="true">
+        <div class="day-head"></div>
+        <div class="track">
+          {% for tick in view.ticks %}<span class="tick{% if tick.minor %} minor{% endif %}" style="--p: {{ tick.p }}">{{ t("schedule.hour", h=tick.hour) }}</span>{% endfor %}
+        </div>
+      </div>
+      {% for day in week.days %}
+      <div class="day{% if day.past %} past{% endif %}{% if day.within %} within{% endif %}{% if day.after %} after{% endif %}" role="group" aria-label="{{ short_day(day.date) }}">
+        <div class="day-head">{{ short_day(day.date) }}</div>
+        <div class="track" style="--day-lanes: {{ day.lanes }}">
+          {% if day.closure %}<div class="closure"><strong>{{ t("schedule.closed") }}</strong>{% if day.closure.label %} <span>{{ day.closure.label }}</span>{% endif %}</div>{% endif %}
+          {% if day.items %}
+          <ul>
+            {% for item in day.items %}
+            <li class="occ {{ item.status }}{% if item.obsolete %} obsolete{% endif %}" style="--s: {{ item.top }}; --e: {{ item.bottom }}; --lane: {{ item.lane }}; --lanes: {{ item.lanes }}" aria-label="{{ item.times }}{% if item.name %} {{ item.name }}{% endif %}{% if item.status == 'proposed' %} ?{% endif %}{% if item.obsolete %} {{ t('schedule.obsolete') }}{% endif %}">
+              <div class="occ-body">
+                {% if item.name %}<span class="who">{% if item.status == "cancelled" %}<s>{{ item.name }}</s>{% else %}{{ item.name }}{% if item.status == "proposed" %} ?{% endif %}{% endif %}</span>{% endif %}
+                {% if item.obsolete %}<span class="tag">{{ t("schedule.obsolete") }}</span>{% endif %}
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+  {% if week.ends %}<p class="line period">{{ t("schedule.periodEnd", date=long_day(view.period.last)) }}</p>{% endif %}
+  {% endfor %}
+  <button type="button" class="more" data-on:click="@post('/association/{{ association.slug }}/weeks', {payload: {from: '{{ view.first }}', to: '{{ view.last }}'}, retryMaxCount: 0})">{{ t("schedule.more") }}</button>
+  {% with error_id = "weeks-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+</div>

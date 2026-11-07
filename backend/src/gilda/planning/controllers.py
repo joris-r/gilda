@@ -120,17 +120,6 @@ class PlanningController(Controller):
             current_user, association_id, data.first, data.last
         )
 
-    @get("/schedule")
-    async def schedule(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        first: Annotated[date | None, QueryParameter(name="from")] = None,
-        last: Annotated[date | None, QueryParameter(name="to")] = None,
-    ) -> ScheduleRead:
-        return await PlanningService(db_session).schedule(current_user, association_id, first, last)
-
     @get("/share-link")
     async def get_share_link(
         self,

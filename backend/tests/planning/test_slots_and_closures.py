@@ -17,6 +17,7 @@ UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
     [
         ("POST", "slots", {"weekday": "thursday", "start": "10:00", "end": "13:00"}),
         ("POST", "closures", {"first": "2026-12-24", "last": "2026-12-26", "label": None}),
+        # @dev43:unsure
         ("GET", "schedule?from=2026-11-02&to=2026-11-08", None),
         (
             "POST",
@@ -40,6 +41,7 @@ def test_planning_401_when_signed_out(
     [
         ("POST", "slots", {"weekday": "thursday", "start": "10:00", "end": "13:00"}),
         ("POST", "closures", {"first": "2026-12-24", "last": "2026-12-26", "label": None}),
+        # @dev43:unsure
         ("GET", "schedule?from=2026-11-02&to=2026-11-08", None),
     ],
 )

@@ -1,5 +1,7 @@
+import math
 import re
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -21,8 +23,10 @@ from gilda.planning.schemas import (
     AbsenceCreate,
     AbsenceRead,
     ClosureCreate,
+    ClosureRead,
     PlanningPeriodData,
     PreferenceValue,
+    ScheduleRead,
     SlotCreate,
 )
 from gilda.planning.services import PlanningService
@@ -614,3 +618,257 @@ async def save_note(
     shown = fragment(request, "availability_note.html", note=text)
     # The note's lines are <br> in `shown`, so putting it on one line keeps them.
     return _patched("edit-note", shown, ServerSentEventGenerator.patch_signals({"_note": text}))
+
+
+# Schedule
+
+# "More weeks" adds this many weeks.
+_MORE_WEEKS = 4
+# "More weeks" refuses a range longer than this, which would take long to build.
+_MAX_WEEKS = 520
+
+
+@dataclass
+class _Item:
+    """An occurrence, or an obsolete registration placed like one."""
+
+    date: date
+    start: str
+    end: str
+    name: str | None
+    status: str
+    obsolete: bool
+    lane: int = 0
+    lanes: int = 1
+    top: float = 0
+    bottom: float = 0
+
+    @property
+    def times(self) -> str:
+        return f"{_short_clock(self.start)}–{_short_clock(self.end)}"  # noqa: RUF001
+
+
+@dataclass
+class _Day:
+    date: date
+    items: list[_Item]
+    closure: ClosureRead | None
+    past: bool
+    within: bool
+    after: bool
+
+    @property
+    def lanes(self) -> int:
+        return max([1, *(item.lanes for item in self.items)])
+
+
+@dataclass
+class _Week:
+    monday: date
+    days: list[_Day]
+    today: bool = False
+    starts: bool = False
+    ends: bool = False
+
+    @property
+    def number(self) -> int:
+        return self.monday.isocalendar().week
+
+
+@dataclass
+class _Weeks:
+    """What the weeks of the Schedule show, from `first`, a Monday, to `last`, a Sunday."""
+
+    first: date
+    last: date
+    today: date
+    period: PlanningPeriodData | None
+    weeks: list[_Week] = field(default_factory=list)
+    columns: int = 0
+    first_hour: int = 0
+    hours: int = 1
+    empty: bool = True
+
+    @property
+    def ticks(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "hour": self.first_hour + n,
+                "p": round(n / self.hours, 4),
+                "minor": self.hours > 6 and n % 2 == 1,
+            }
+            for n in range(self.hours + 1)
+        ]
+
+
+def _minutes(clock: str) -> int:
+    hours, minutes = clock.split(":")
+    return int(hours) * 60 + int(minutes)
+
+
+def _short_clock(clock: str) -> str:
+    """A time as the Schedule names it, e.g. "10" for 10:00 and "10:30"."""
+    hours, minutes = clock.split(":")
+    return str(int(hours)) if minutes == "00" else f"{int(hours)}:{minutes}"
+
+
+def _with_lanes(items: list[_Item]) -> list[_Item]:
+    """A day's items by start, each in a lane, so that those that overlap sit side by side."""
+    items.sort(key=lambda item: (_minutes(item.start), _minutes(item.end)))
+    cluster: list[_Item] = []
+    cluster_end = 0
+    lane_ends: list[int] = []
+    for item in [*items, None]:
+        if item is None or _minutes(item.start) >= cluster_end:
+            for member in cluster:
+                member.lanes = len(lane_ends)
+            cluster, lane_ends = [], []
+            if item is None:
+                break
+        free = [n for n, lane_end in enumerate(lane_ends) if lane_end <= _minutes(item.start)]
+        if free:
+            item.lane = free[0]
+            lane_ends[item.lane] = _minutes(item.end)
+        else:
+            item.lane = len(lane_ends)
+            lane_ends.append(_minutes(item.end))
+        cluster.append(item)
+        cluster_end = max(cluster_end, _minutes(item.end))
+    return items
+
+
+def _weeks_view(schedule: ScheduleRead, period: PlanningPeriodData | None, today: date) -> _Weeks:
+    first = schedule.from_ - timedelta(days=schedule.from_.weekday())
+    last = schedule.to + timedelta(days=6 - schedule.to.weekday())
+    view = _Weeks(first=first, last=last, today=today, period=period)
+    by_date: dict[date, list[_Item]] = {}
+    for occurrence in schedule.occurrences:
+        registration = occurrence.registration
+        by_date.setdefault(occurrence.date, []).append(
+            _Item(
+                date=occurrence.date,
+                start=occurrence.start,
+                end=occurrence.end,
+                name=registration.display_name if registration else None,
+                status=registration.status if registration else "free",
+                obsolete=False,
+            )
+        )
+    for obsolete in schedule.obsolete:
+        by_date.setdefault(obsolete.date, []).append(
+            _Item(
+                date=obsolete.date,
+                start=obsolete.start,
+                end=obsolete.end,
+                name=obsolete.display_name,
+                status=obsolete.status,
+                obsolete=True,
+            )
+        )
+    items = [item for day in by_date.values() for item in _with_lanes(day)]
+    view.empty = not items
+    if items:
+        view.first_hour = min(_minutes(item.start) for item in items) // 60
+        last_hour = math.ceil(max(_minutes(item.end) for item in items) / 60)
+        view.hours = max(1, last_hour - view.first_hour)
+        span = view.hours * 60
+        for item in items:
+            item.top = round((_minutes(item.start) - view.first_hour * 60) / span, 4)
+            item.bottom = round((_minutes(item.end) - view.first_hour * 60) / span, 4)
+    columns = sorted({item.date.weekday() for item in items})
+    view.columns = len(columns)
+    monday = first
+    while monday <= last:
+        days = []
+        for column in columns:
+            day = monday + timedelta(days=column)
+            days.append(
+                _Day(
+                    date=day,
+                    items=by_date.get(day, []),
+                    closure=next((c for c in schedule.closures if c.first <= day <= c.last), None),
+                    past=day < today,
+                    within=period is not None and period.first <= day <= period.last,
+                    after=period is not None and day > period.last,
+                )
+            )
+        sunday = monday + timedelta(days=6)
+        view.weeks.append(
+            _Week(
+                monday=monday,
+                days=days,
+                today=monday <= today <= sunday,
+                starts=period is not None and monday <= period.first <= sunday,
+                ends=period is not None and monday <= period.last <= sunday,
+            )
+        )
+        monday += timedelta(weeks=1)
+    return view
+
+
+def _today(association: AssociationDetail) -> date:
+    return datetime.now(ZoneInfo(association.timezone)).date()
+
+
+@get("/association/{slug:str}")
+async def schedule_page(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> Template:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return page(request, "sign_in.html", message="")
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+    except NotFoundException:
+        return page(request, "association_unknown.html", user=user)
+    service = PlanningService(db_session)
+    schedule = await service.schedule(user, association.id, None, None)
+    period = await service.get_planning_period(user, association.id)
+    return page(
+        request,
+        "schedule.html",
+        user=user,
+        association=association,
+        view=_weeks_view(schedule, period, _today(association)),
+    )
+
+
+def _shown_range(signals: dict[str, Any]) -> tuple[date, date]:
+    """The weeks the Schedule shows, from their first Monday to their last Sunday."""
+    first, last = signals.get("from"), signals.get("to")
+    if not isinstance(first, str) or not isinstance(last, str):
+        raise ClientException("Give the weeks shown.")
+    try:
+        first_day, last_day = date.fromisoformat(first), date.fromisoformat(last)
+    except ValueError as error:
+        raise ClientException("Give the weeks shown as dates.") from error
+    if last_day < first_day or (last_day - first_day).days > _MAX_WEEKS * 7:
+        raise ClientException("Give a range of weeks.")
+    return first_day, last_day
+
+
+@post("/association/{slug:str}/weeks", status_code=200)
+async def more_weeks(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    error_id = "weeks-error"
+    try:
+        first, last = _shown_range(await read_signals_dict(request))
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        service = PlanningService(db_session)
+        first -= timedelta(days=first.weekday())
+        last += timedelta(days=6 - last.weekday(), weeks=_MORE_WEEKS)
+        schedule = await service.schedule(user, association.id, first, last)
+        period = await service.get_planning_period(user, association.id)
+    except _REFUSALS:
+        return _error(request, error_id, "error")
+    shown = fragment(
+        request,
+        "schedule_weeks.html",
+        association=association,
+        view=_weeks_view(schedule, period, _today(association)),
+    )
+    return DatastarResponse(ServerSentEventGenerator.patch_elements(_one_line(shown)))

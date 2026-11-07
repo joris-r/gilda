@@ -543,3 +543,281 @@ a.button.add {
 button.link.danger {
   color: var(--danger);
 }
+
+/* Schedule */
+
+.weeks {
+  display: grid;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.weeks .hint {
+  margin: 0;
+}
+
+.week h2 {
+  margin: 0 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.line::before,
+.line::after {
+  content: '';
+  height: 2px;
+  background: var(--fg);
+}
+
+.line::before {
+  flex: 0 0 16px;
+}
+
+.line::after {
+  flex: 1;
+}
+
+.line.period {
+  color: var(--period);
+}
+
+.line.period::before,
+.line.period::after {
+  background: var(--period);
+}
+
+.days {
+  --hour-px: 36px;
+  --lane-px: 44px;
+  display: grid;
+  grid-template-columns: 2.4rem repeat(var(--columns), minmax(0, 1fr));
+  gap: 0 6px;
+}
+
+.day {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 4px;
+  min-width: 0;
+}
+
+.day-head {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  min-height: 1.5em;
+}
+
+.day.past .day-head {
+  color: var(--muted);
+}
+
+.day.past .track {
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+
+.day.after .track {
+  filter: grayscale(1);
+}
+
+.track {
+  position: relative;
+  height: calc(var(--hours) * var(--hour-px));
+  border-radius: 6px;
+  background-color: var(--surface);
+  background-image: linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: 100% calc(100% / var(--hours));
+}
+
+.day.within {
+  border-radius: 6px;
+  background-color: var(--period-soft);
+}
+
+.day.within .day-head {
+  padding: 0 4px;
+}
+
+.day.within .track {
+  background-color: transparent;
+}
+
+.axis .track {
+  background: none;
+}
+
+.tick {
+  position: absolute;
+  top: calc(var(--p) * 100%);
+  right: 4px;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tick:first-child {
+  transform: none;
+}
+
+.tick:last-child {
+  transform: translateY(-100%);
+}
+
+.track ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.occ {
+  position: absolute;
+  box-sizing: border-box;
+  top: calc(var(--s) * 100% + 1px);
+  height: calc((var(--e) - var(--s)) * 100% - 2px);
+  left: calc(var(--lane) / var(--lanes) * 100% + 1px);
+  width: calc(100% / var(--lanes) - 2px);
+  border-radius: 5px;
+  border: 1px solid transparent;
+  border-left-width: 4px;
+  overflow: hidden;
+}
+
+.occ.confirmed {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+}
+
+.occ.proposed {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+}
+
+.occ.free,
+.occ.cancelled {
+  background: var(--bad-soft);
+  border-color: var(--bad);
+}
+
+.occ.obsolete {
+  border-style: dashed;
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 6px,
+    color-mix(in srgb, var(--fg) 8%, transparent) 6px 12px
+  );
+}
+
+.occ-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 2px 6px;
+  color: var(--fg);
+  font-size: 13px;
+}
+
+.who {
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cancelled .who {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.occ .tag {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.closure {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  padding: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  background: repeating-linear-gradient(45deg, var(--line) 0 2px, transparent 2px 12px);
+  border-radius: 6px;
+}
+
+.closure strong {
+  color: var(--fg);
+}
+
+.weeks .more {
+  justify-self: start;
+}
+
+@media (max-width: 560px) {
+  .days {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .day {
+    grid-template-columns: 4.2rem minmax(0, 1fr);
+    grid-template-rows: none;
+    align-items: stretch;
+  }
+
+  .day-head {
+    white-space: normal;
+    line-height: 1.2;
+    align-self: center;
+  }
+
+  .track {
+    height: calc(var(--day-lanes, 1) * var(--lane-px));
+    background-image: linear-gradient(to right, var(--line) 1px, transparent 1px);
+    background-size: calc(100% / var(--hours)) 100%;
+  }
+
+  .axis .track {
+    height: 1.2em;
+  }
+
+  .tick {
+    top: 0;
+    right: auto;
+    left: calc(var(--p) * 100%);
+    transform: translateX(-50%);
+  }
+
+  .tick:first-child {
+    transform: none;
+  }
+
+  .tick:last-child {
+    transform: translateX(-100%);
+  }
+
+  .tick.minor {
+    visibility: hidden;
+  }
+
+  .occ {
+    left: calc(var(--s) * 100% + 1px);
+    width: calc((var(--e) - var(--s)) * 100% - 2px);
+    top: calc(var(--lane) / var(--lanes) * 100% + 1px);
+    height: calc(100% / var(--lanes) - 2px);
+  }
+}

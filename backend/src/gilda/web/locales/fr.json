@@ -145,6 +145,8 @@
   },
   "dates": {
     "day": "{weekday} {day} {month} {year}",
+    "short": "{weekday} {day} {month}",
+    "long": "{weekday} {day} {month} {year}",
     "weekdays": {
       "monday": "lun.",
       "tuesday": "mar.",
@@ -167,6 +169,29 @@
       "10": "oct.",
       "11": "nov.",
       "12": "déc."
+    },
+    "longWeekdays": {
+      "monday": "lundi",
+      "tuesday": "mardi",
+      "wednesday": "mercredi",
+      "thursday": "jeudi",
+      "friday": "vendredi",
+      "saturday": "samedi",
+      "sunday": "dimanche"
+    },
+    "longMonths": {
+      "1": "janvier",
+      "2": "février",
+      "3": "mars",
+      "4": "avril",
+      "5": "mai",
+      "6": "juin",
+      "7": "juillet",
+      "8": "août",
+      "9": "septembre",
+      "10": "octobre",
+      "11": "novembre",
+      "12": "décembre"
     }
   },
   "settings": {
