@@ -51,7 +51,17 @@ from gilda.errors import api_exception_handlers
 from gilda.home.controllers import HomeController
 from gilda.home.pages import home as my_associations
 from gilda.planning.controllers import PlanningController, SharedScheduleController
-from gilda.planning.pages import add_slot, delete_slot, edit_slot, settings_page
+from gilda.planning.pages import (
+    add_closure,
+    add_slot,
+    clear_period,
+    delete_closure,
+    delete_slot,
+    edit_closure,
+    edit_slot,
+    set_period,
+    settings_page,
+)
 from gilda.planning.services import end_membership as end_planning_membership
 from gilda.web.pages import choose_language, not_found
 
@@ -104,6 +114,11 @@ def create_app() -> Litestar:
             add_slot,
             edit_slot,
             delete_slot,
+            set_period,
+            clear_period,
+            add_closure,
+            edit_closure,
+            delete_closure,
             sign_in,
             sign_out,
             revoke_access_link,

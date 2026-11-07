@@ -5,6 +5,94 @@
 {% block location %}{% include "settings_location.html" %}{% endblock %}
 {% block main %}
 {% set manages = association.role == "manager" %}
+{% set settings = "/association/" ~ association.slug ~ "/settings" %}
+{# The period and closure dialogs share first and last; _closure is the closure that Edit or Delete acts on. #}
+<section data-signals="{first: '', last: '', label: '', _closure: ''}">
+  <div class="section-head">
+    <h2>{{ t("settings.planningPeriod") }}</h2>
+  </div>
+  {% include "settings_period.html" %}
+  {% if manages %}
+  {% call form_dialog("edit-period", t("settings.planningPeriod")) %}
+  {# No retry: a request that failed must not go through later, once the dialog is cancelled. #}
+  <form data-on:submit="@post('{{ settings }}/period', {filterSignals: {include: /^(first|last)$/}, retryMaxCount: 0})">
+    <label>
+      {{ t("settings.first") }}
+      <input type="date" data-bind:first required>
+    </label>
+    <label>
+      {{ t("settings.last") }}
+      <input type="date" data-bind:last required>
+    </label>
+    {% with error_id = "edit-period-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+    <div class="dialog-actions">
+      <button type="submit">{{ t("settings.save") }}</button>
+      <button type="button" class="link" commandfor="edit-period" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+  </form>
+  {% endcall %}
+  <dialog id="clear-period" class="dialog" aria-labelledby="clear-period-question">
+    <p id="clear-period-question">{{ t("settings.confirmClearPeriod") }}</p>
+    <div class="dialog-actions">
+      <button type="button" data-on:click="@post('{{ settings }}/period/clear', {filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.clearAction") }}</button>
+      <button type="button" class="link" commandfor="clear-period" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+    {% with error_id = "clear-period-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+  </dialog>
+  {% endif %}
+</section>
+<section>
+  <div class="section-head">
+    <h2>{{ t("settings.closures") }}</h2>
+    {% if manages %}
+    <button
+      type="button"
+      class="add"
+      commandfor="add-closure"
+      command="show-modal"
+      data-on:click="$first = ''; $last = ''; $label = ''; $_failed = false; document.getElementById('add-closure-error').hidden = true"
+    >+ {{ t("settings.addClosureTitle") }}</button>
+    {% endif %}
+  </div>
+  {% include "settings_closures.html" %}
+  {% if manages %}
+  {% call form_dialog("add-closure", t("settings.addClosureTitle")) %}
+  {# No retry: a request that failed after adding would add the closure twice. #}
+  <form data-on:submit="@post('{{ settings }}/closures', {filterSignals: {include: /^(first|last|label)$/}, retryMaxCount: 0})">
+    {% include "closure_fields.html" %}
+    {% with error_id = "add-closure-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+    <div class="dialog-actions">
+      <button type="submit">{{ t("settings.addClosure") }}</button>
+      <button type="button" class="link" commandfor="add-closure" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+  </form>
+  {% endcall %}
+  {% call form_dialog("edit-closure", t("settings.editClosure")) %}
+  <form data-on:submit="@post('{{ settings }}/closures/' + $_closure + '/edit', {filterSignals: {include: /^(first|last|label)$/}, retryMaxCount: 0})">
+    {% include "closure_fields.html" %}
+    {% with error_id = "edit-closure-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+    <div class="dialog-actions">
+      <button type="submit">{{ t("settings.save") }}</button>
+      <button type="button" class="link" commandfor="edit-closure" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+  </form>
+  {% endcall %}
+  {# As the confirmation macro, but asking about the closure it is opened on. #}
+  <dialog id="delete-closure" class="dialog" aria-labelledby="delete-closure-question">
+    <p id="delete-closure-question" data-text="$_question"></p>
+    <div class="dialog-actions">
+      <button type="button" data-on:click="@post('{{ settings }}/closures/' + $_closure + '/delete', {filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.deleteAction") }}</button>
+      <button type="button" class="link" commandfor="delete-closure" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+    {% with error_id = "delete-closure-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+  </dialog>
+  {% endif %}
+</section>
 {#
   The slot dialogs share weekday, start and end; _slot is the slot that Edit or Delete acts on.
   R18: _nextWeekday and _nextStart are where the next Add a slot opens; R17: To follows From until

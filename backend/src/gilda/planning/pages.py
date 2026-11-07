@@ -14,11 +14,11 @@ from gilda.core.controllers import find_current_user
 from gilda.core.models import User
 from gilda.core.schemas import AssociationDetail
 from gilda.core.services import AssociationService, ConflictException
-from gilda.planning.schemas import SlotCreate
+from gilda.planning.schemas import ClosureCreate, PlanningPeriodData, SlotCreate
 from gilda.planning.services import PlanningService
 from gilda.web.rendering import fragment, interface_language, page, read_signals_dict, translate
 
-# A slot's action that fails on these shows the generic error.
+# An action that fails on these shows the generic error.
 _REFUSALS = (ClientException, NotFoundException, PermissionDeniedException)
 
 
@@ -33,14 +33,21 @@ async def settings_page(
         association = await AssociationService(db_session).detail_by_slug(user, slug)
     except NotFoundException:
         return page(request, "association_unknown.html", user=user)
-    slots = await PlanningService(db_session).list_slots(user, association.id)
+    service = PlanningService(db_session)
     return page(
-        request, "settings.html", user=user, association=association, slots=slots, message=""
+        request,
+        "settings.html",
+        user=user,
+        association=association,
+        period=await service.get_planning_period(user, association.id),
+        closures=await service.list_closures(user, association.id),
+        slots=await service.list_slots(user, association.id),
+        message="",
     )
 
 
 def _error(request: Request[Any, Any, Any], error_id: str, key: str) -> DatastarResponse:
-    """The message of a slot's dialog, which stays open."""
+    """The message of a dialog, which stays open."""
     message = translate(interface_language(request), key)
     return DatastarResponse(
         ServerSentEventGenerator.patch_elements(
@@ -59,17 +66,17 @@ async def _slots_patched(
 ) -> DatastarResponse:
     """Closes the dialog, then shows the slots as they now are."""
     slots = await PlanningService(db_session).list_slots(user, association.id)
+    shown = fragment(request, "settings_slots.html", association=association, slots=slots)
+    return _patched(dialog, shown, *more)
+
+
+def _patched(dialog: str, shown: str, *more: Any) -> DatastarResponse:
+    """Closes the dialog, then puts `shown` in place of the part of the page it stands for."""
     return DatastarResponse(
         [
             ServerSentEventGenerator.execute_script(f"document.getElementById('{dialog}').close()"),
-            # On one line, so that each line of the list stays whole in the event.
-            ServerSentEventGenerator.patch_elements(
-                re.sub(
-                    r"\s*\n\s*",
-                    " ",
-                    fragment(request, "settings_slots.html", association=association, slots=slots),
-                )
-            ),
+            # On one line, so that each line of a list stays whole in the event.
+            ServerSentEventGenerator.patch_elements(re.sub(r"\s*\n\s*", " ", shown)),
             *more,
         ]
     )
@@ -156,3 +163,157 @@ async def delete_slot(
     except _REFUSALS:
         return _error(request, "delete-slot-error", "error")
     return await _slots_patched(request, db_session, user, association, "delete-slot")
+
+
+# Planning period
+
+
+async def _period_patched(
+    request: Request[Any, Any, Any],
+    db_session: AsyncSession,
+    user: User,
+    association: AssociationDetail,
+    dialog: str,
+) -> DatastarResponse:
+    """Closes the dialog, then shows the period as it now is."""
+    period = await PlanningService(db_session).get_planning_period(user, association.id)
+    shown = fragment(request, "settings_period.html", association=association, period=period)
+    return _patched(dialog, shown)
+
+
+@post("/association/{slug:str}/settings/period", status_code=200)
+async def set_period(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    error_id = "edit-period-error"
+    signals = await read_signals_dict(request)
+    try:
+        asked = msgspec.convert({k: signals.get(k) for k in ("first", "last")}, PlanningPeriodData)
+    except msgspec.ValidationError:
+        return _error(request, error_id, "error")
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        await PlanningService(db_session).set_planning_period(
+            user, association.id, asked.first, asked.last
+        )
+    except _REFUSALS:
+        return _error(request, error_id, "error")
+    return await _period_patched(request, db_session, user, association, "edit-period")
+
+
+@post("/association/{slug:str}/settings/period/clear", status_code=200)
+async def clear_period(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        await PlanningService(db_session).clear_planning_period(user, association.id)
+    except _REFUSALS:
+        return _error(request, "clear-period-error", "error")
+    return await _period_patched(request, db_session, user, association, "clear-period")
+
+
+# Closures
+
+
+async def _closures_patched(
+    request: Request[Any, Any, Any],
+    db_session: AsyncSession,
+    user: User,
+    association: AssociationDetail,
+    dialog: str,
+) -> DatastarResponse:
+    """Closes the dialog, then shows the closures as they now are."""
+    closures = await PlanningService(db_session).list_closures(user, association.id)
+    shown = fragment(request, "settings_closures.html", association=association, closures=closures)
+    return _patched(dialog, shown)
+
+
+def _asked_closure(signals: dict[str, Any]) -> ClosureCreate:
+    """The closure of a dialog; an empty Label means none."""
+    asked = msgspec.convert({k: signals.get(k) for k in ("first", "last")}, ClosureCreate)
+    label = signals.get("label")
+    if label is not None and not isinstance(label, str):
+        raise msgspec.ValidationError("The label must be text.")
+    asked.label = (label or "").strip() or None
+    return asked
+
+
+def _closure_id(value: str) -> UUID:
+    try:
+        return UUID(value)
+    except ValueError:
+        raise NotFoundException("Closure not found.") from None
+
+
+@post("/association/{slug:str}/settings/closures", status_code=200)
+async def add_closure(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    error_id = "add-closure-error"
+    try:
+        asked = _asked_closure(await read_signals_dict(request))
+    except msgspec.ValidationError:
+        return _error(request, error_id, "error")
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        await PlanningService(db_session).add_closure(
+            user, association.id, asked.first, asked.last, asked.label
+        )
+    except _REFUSALS:
+        return _error(request, error_id, "error")
+    return await _closures_patched(request, db_session, user, association, "add-closure")
+
+
+@post("/association/{slug:str}/settings/closures/{closure_id:str}/edit", status_code=200)
+async def edit_closure(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    slug: str,
+    closure_id: str,
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    error_id = "edit-closure-error"
+    try:
+        asked = _asked_closure(await read_signals_dict(request))
+    except msgspec.ValidationError:
+        return _error(request, error_id, "error")
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        await PlanningService(db_session).edit_closure(
+            user, association.id, _closure_id(closure_id), asked.first, asked.last, asked.label
+        )
+    except _REFUSALS:
+        return _error(request, error_id, "error")
+    return await _closures_patched(request, db_session, user, association, "edit-closure")
+
+
+@post("/association/{slug:str}/settings/closures/{closure_id:str}/delete", status_code=200)
+async def delete_closure(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    slug: str,
+    closure_id: str,
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        await PlanningService(db_session).delete_closure(
+            user, association.id, _closure_id(closure_id)
+        )
+    except _REFUSALS:
+        return _error(request, "delete-closure-error", "error")
+    return await _closures_patched(request, db_session, user, association, "delete-closure")

@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from pathlib import Path
 from typing import Any, cast
 
@@ -39,13 +40,38 @@ def translate(language: Language, key: str, **values: object) -> str:
     return text
 
 
+_WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+
+
+def format_day(language: Language, value: date) -> str:
+    """A date as the screens show it, e.g. "Mon 2 Nov 2026"."""
+    return translate(
+        language,
+        "dates.day",
+        weekday=translate(language, f"dates.weekdays.{_WEEKDAYS[value.weekday()]}"),
+        day=value.day,
+        month=translate(language, f"dates.months.{value.month}"),
+        year=value.year,
+    )
+
+
+def format_days(language: Language, first: date, last: date) -> str:
+    """Dates from `first` to `last`, joined by an en dash, or one date when they are the same."""
+    if first == last:
+        return format_day(language, first)
+    return f"{format_day(language, first)} – {format_day(language, last)}"  # noqa: RUF001
+
+
 def _context(request: Request[Any, Any, Any], context: dict[str, Any]) -> dict[str, Any]:
     language = interface_language(request)
 
     def t(key: str, **values: object) -> str:
         return translate(language, key, **values)
 
-    return {"language": language, "t": t, **context}
+    def days(first: date, last: date) -> str:
+        return format_days(language, first, last)
+
+    return {"language": language, "t": t, "days": days, **context}
 
 
 def flash(request: Request[Any, Any, Any], message: str) -> None:

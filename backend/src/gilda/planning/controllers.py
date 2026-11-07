@@ -94,15 +94,6 @@ class PlanningController(Controller):
     ) -> list[RegistrationCount] | None:
         return await PlanningService(db_session).registration_counts(current_user, association_id)
 
-    @get("/closures")
-    async def list_closures(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> list[ClosureRead]:
-        return await PlanningService(db_session).list_closures(current_user, association_id)
-
     @post("/closures")
     async def add_closure(
         self,
@@ -114,29 +105,6 @@ class PlanningController(Controller):
         return await PlanningService(db_session).add_closure(
             current_user, association_id, data.first, data.last, data.label
         )
-
-    @put("/closures/{closure_id:uuid}")
-    async def edit_closure(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        closure_id: FromPath[UUID],
-        data: JSONBody[ClosureCreate],
-    ) -> ClosureRead:
-        return await PlanningService(db_session).edit_closure(
-            current_user, association_id, closure_id, data.first, data.last, data.label
-        )
-
-    @delete("/closures/{closure_id:uuid}")
-    async def delete_closure(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        closure_id: FromPath[UUID],
-    ) -> None:
-        await PlanningService(db_session).delete_closure(current_user, association_id, closure_id)
 
     @get("/absences")
     async def list_absences(
@@ -219,15 +187,6 @@ class PlanningController(Controller):
     ) -> NoteData:
         return await PlanningService(db_session).set_note(current_user, association_id, data.text)
 
-    @get("/planning-period")
-    async def get_planning_period(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> PlanningPeriodData | None:
-        return await PlanningService(db_session).get_planning_period(current_user, association_id)
-
     @put("/planning-period")
     async def set_planning_period(
         self,
@@ -239,15 +198,6 @@ class PlanningController(Controller):
         return await PlanningService(db_session).set_planning_period(
             current_user, association_id, data.first, data.last
         )
-
-    @delete("/planning-period")
-    async def clear_planning_period(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> None:
-        await PlanningService(db_session).clear_planning_period(current_user, association_id)
 
     @get("/schedule")
     async def schedule(

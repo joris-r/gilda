@@ -1,0 +1,45 @@
+{# The list alone: the closure dialogs stay out of it, filled from the line they are opened on. #}
+{% set manages = association.role == "manager" %}
+<div id="closures">
+  {% if closures %}
+  <ul class="list">
+    {% for closure in closures %}
+    {% set dates = days(closure.first, closure.last) %}
+    <li>
+      <div>
+        <div>{{ dates }}</div>
+        {% if closure.label %}<div class="hint">{{ closure.label }}</div>{% endif %}
+      </div>
+      {% if manages %}
+      <div class="line-actions">
+        <button
+          type="button"
+          class="icon-button"
+          aria-label="{{ t('settings.editClosure') }}"
+          commandfor="edit-closure"
+          command="show-modal"
+          data-label="{{ closure.label or '' }}"
+          data-on:click="$_closure = '{{ closure.id }}'; $first = '{{ closure.first }}'; $last = '{{ closure.last }}'; $label = el.dataset.label; $_failed = false; document.getElementById('edit-closure-error').hidden = true"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>
+        </button>
+        <button
+          type="button"
+          class="icon-button"
+          aria-label="{{ t('settings.deleteClosure') }}"
+          commandfor="delete-closure"
+          command="show-modal"
+          data-question="{{ t('settings.confirmDeleteClosure', label=closure.label) if closure.label else t('settings.confirmDeleteUnlabelledClosure', date=dates) }}"
+          data-on:click="$_closure = '{{ closure.id }}'; $_question = el.dataset.question; $_failed = false; document.getElementById('delete-closure-error').hidden = true"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+        </button>
+      </div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint">{{ t("settings.noClosures") }}</p>
+  {% endif %}
+</div>
