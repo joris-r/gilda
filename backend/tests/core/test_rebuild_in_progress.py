@@ -94,7 +94,6 @@ class TestOtherPaths:
         [
             "/associations/new",
             "/association/jardin/schedule",
-            "/shared/Hq3v",
         ],
     )
     def test_any_other_path_answers_the_not_found_page(self, client: Any, path: str) -> None:
@@ -105,7 +104,7 @@ class TestOtherPaths:
 
 
 class TestScheduleSettings:
-    def test_shows_its_sections_but_share_link(self, client: Any) -> None:
+    def test_shows_its_sections(self, client: Any) -> None:
         sign_up(client, "Alice")
         slug = f"a-{uuid.uuid4().hex[:12]}"
         created = client.post("/api/associations", json={"name": "Jardin", "slug": slug})
@@ -121,11 +120,11 @@ class TestScheduleSettings:
             "Add a closure",
             "Slots",
             "Add a slot",
+            "Share link",
+            "Create a share link",
             "Members' preferences",
         ]:
             assert present in main
-        for absent in ["Share link", "Create a share link"]:
-            assert absent not in main
 
 
 class TestMyAvailability:
@@ -202,6 +201,9 @@ class TestNotFound:
             "/association/jardin/availability/absences",
             "/association/jardin/availability/note",
             "/association/jardin/weeks",
+            "/association/jardin/settings/share-link",
+            "/association/jardin/settings/share-link/revoke",
+            "/shared/Hq3v/weeks",
         ],
     )
     def test_a_path_only_actions_use_answers_it_too(self, client: Any, path: str) -> None:

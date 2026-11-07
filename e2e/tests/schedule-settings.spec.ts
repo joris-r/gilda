@@ -949,3 +949,185 @@ test.describe("Schedule settings: Members' preferences", () => {
     await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toBeVisible()
   })
 })
+
+const REPLACE = 'Replace the share link? The current link no longer shows the Schedule.'
+const REVOKE = 'Revoke the share link? It no longer shows the Schedule.'
+
+function shareLink(page: Page) {
+  return page.locator('main').getByText(/\/shared\/[\w-]+/)
+}
+
+/** The share link that Schedule settings shows. */
+async function shownLink(page: Page) {
+  const text = (await shareLink(page).textContent()) ?? ''
+  const match = /https?:\/\/\S+\/shared\/[\w-]+/.exec(text)
+  expect(match).not.toBeNull()
+  return match![0]
+}
+
+/** Creates the share link when there is none, and returns it. */
+async function createLink(page: Page) {
+  await page.getByRole('button', { name: 'Create a share link' }).click()
+  await expect(shareLink(page)).toBeVisible()
+  return shownLink(page)
+}
+
+async function askToReplace(page: Page) {
+  await page.getByRole('button', { name: 'Create a share link' }).click()
+  const confirmation = page.getByRole('dialog', { name: REPLACE, exact: true })
+  await expect(confirmation).toBeVisible()
+  return confirmation
+}
+
+async function askToRevoke(page: Page) {
+  await page.getByRole('button', { name: 'Revoke the share link' }).click()
+  const confirmation = page.getByRole('dialog', { name: REVOKE, exact: true })
+  await expect(confirmation).toBeVisible()
+  return confirmation
+}
+
+test.describe('Schedule settings: Share link', () => {
+  test('without a link, "Create a share link" creates it at once and shows it', async ({ page, request }) => {
+    await openSettings(page, request)
+    await expect(shareLink(page)).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Create a share link' }).click()
+
+    await expect(page.getByRole('dialog', { name: REPLACE, exact: true })).toBeHidden()
+    await expect(shareLink(page)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Copy', exact: true })).toBeVisible()
+    const link = await shownLink(page)
+    await page.reload()
+    expect(await shownLink(page)).toBe(link)
+  })
+
+  test('"Copy" copies the link and shows "Link copied."', async ({ page, request, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await openSettings(page, request)
+    const link = await createLink(page)
+
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+
+    await expect(page.getByText('Link copied.')).toBeVisible()
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(link)
+  })
+
+  test('the link opens the Shared schedule', async ({ page, request, browser }) => {
+    await openSettings(page, request)
+    const link = await createLink(page)
+
+    const visitor = await browser.newPage()
+    await visitor.goto(link)
+
+    await expect(visitor.locator('header')).toContainText('Jardin partagé')
+    await expect(visitor.locator('main').getByRole('heading', { name: /^Week \d+$/ }).first()).toBeVisible()
+    await visitor.close()
+  })
+
+  test('with a link, "Create a share link" asks first; "Replace" shows a new link', async ({ page, request, browser }) => {
+    await openSettings(page, request)
+    const previous = await createLink(page)
+
+    const confirmation = await askToReplace(page)
+    await confirmation.getByRole('button', { name: 'Replace', exact: true }).click()
+
+    await expect(confirmation).toBeHidden()
+    await expect(async () => expect(await shownLink(page)).not.toBe(previous)).toPass()
+    const visitor = await browser.newPage()
+    await visitor.goto(previous)
+    await expect(visitor.getByText('This link is no longer valid.')).toBeVisible()
+    await visitor.close()
+  })
+
+  for (const way of ['Cancel', 'Escape']) {
+    test(`${way} keeps the link instead of replacing it`, async ({ page, request }) => {
+      await openSettings(page, request)
+      const link = await createLink(page)
+
+      const confirmation = await askToReplace(page)
+      if (way === 'Cancel') await confirmation.getByRole('button', { name: 'Cancel' }).click()
+      else await page.keyboard.press('Escape')
+
+      await expect(confirmation).toBeHidden()
+      await page.reload()
+      expect(await shownLink(page)).toBe(link)
+    })
+  }
+
+  test('the delete icon asks first; "Revoke" shows None', async ({ page, request, browser }) => {
+    await openSettings(page, request)
+    const link = await createLink(page)
+
+    const confirmation = await askToRevoke(page)
+    await confirmation.getByRole('button', { name: 'Revoke', exact: true }).click()
+
+    await expect(confirmation).toBeHidden()
+    await expect(shareLink(page)).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Copy', exact: true })).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Revoke the share link' })).toBeHidden()
+    const visitor = await browser.newPage()
+    await visitor.goto(link)
+    await expect(visitor.getByText('This link is no longer valid.')).toBeVisible()
+    await visitor.close()
+  })
+
+  test('after Revoke, "Create a share link" creates a new one at once', async ({ page, request }) => {
+    await openSettings(page, request)
+    await createLink(page)
+    const confirmation = await askToRevoke(page)
+    await confirmation.getByRole('button', { name: 'Revoke', exact: true }).click()
+    await expect(shareLink(page)).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Create a share link' }).click()
+
+    await expect(page.getByRole('dialog', { name: REPLACE, exact: true })).toBeHidden()
+    await expect(shareLink(page)).toBeVisible()
+  })
+
+  for (const way of ['Cancel', 'Escape']) {
+    test(`${way} keeps the link instead of revoking it`, async ({ page, request }) => {
+      await openSettings(page, request)
+      const link = await createLink(page)
+
+      const confirmation = await askToRevoke(page)
+      if (way === 'Cancel') await confirmation.getByRole('button', { name: 'Cancel' }).click()
+      else await page.keyboard.press('Escape')
+
+      await expect(confirmation).toBeHidden()
+      await page.reload()
+      expect(await shownLink(page)).toBe(link)
+    })
+  }
+
+  test('when Create fails: the generic error', async ({ page, request }) => {
+    await openSettings(page, request)
+    await page.route('**/settings/share-link', (route) => route.abort())
+
+    await page.getByRole('button', { name: 'Create a share link' }).click()
+
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toBeVisible()
+    await expect(shareLink(page)).toHaveCount(0)
+  })
+
+  test('when Replace fails: the generic error in the confirmation', async ({ page, request }) => {
+    await openSettings(page, request)
+    await createLink(page)
+    await page.route('**/settings/share-link', (route) => route.abort())
+
+    const confirmation = await askToReplace(page)
+    await confirmation.getByRole('button', { name: 'Replace', exact: true }).click()
+
+    await expect(confirmation.getByText(GENERIC)).toBeVisible()
+  })
+
+  test('when Revoke fails: the generic error in the confirmation', async ({ page, request }) => {
+    await openSettings(page, request)
+    await createLink(page)
+    await page.route('**/share-link/revoke', (route) => route.abort())
+
+    const confirmation = await askToRevoke(page)
+    await confirmation.getByRole('button', { name: 'Revoke', exact: true }).click()
+
+    await expect(confirmation.getByText(GENERIC)).toBeVisible()
+  })
+})

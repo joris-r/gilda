@@ -14,6 +14,8 @@ from tests.planning.conftest import (
     create_association,
     day_of_week,
     set_my_preference,
+    shared_page,
+    shared_token,
 )
 
 THURSDAY = ("10:00", "13:00")
@@ -73,9 +75,7 @@ def filled(planning: Planning) -> tuple[dict[str, Any], str, str]:
     assert absence.status_code == 201, absence.text
     note = bruno.put(planning.path("note"), json={"text": "Mornings only."})
     assert note.status_code == 200, note.text
-    share_link = alice.post(planning.path("share-link"))
-    assert share_link.status_code == 201, share_link.text
-    return slot, share_link.json()["token"], day
+    return slot, shared_token(planning), day
 
 
 def test_r34_everything_the_association_holds_is_erased(
@@ -90,28 +90,36 @@ def test_r34_everything_the_association_holds_is_erased(
     assert not any(rows_held(planning.id, slot["id"]).values())
 
 
-@pytest.mark.parametrize("path", ["", "/schedule"])
 def test_r34_the_share_link_no_longer_shows_the_schedule(
-    client: Any, new_client: Callable[[], Any], path: str
+    client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
     _, token, _ = filled(planning)
 
     deleted(planning)
 
-    assert new_client().get(f"/api/shared/{token}{path}").status_code == 404
+    response = shared_page(new_client(), token)
+    assert response.status_code == 200
+    assert "This link is no longer valid." in response.text
+    assert "Week" not in response.text
 
 
-@pytest.mark.parametrize("rest", ["share-link"])
+@pytest.mark.parametrize(
+    ("method", "rest", "body"),
+    [
+        ("POST", "slots", {"weekday": "monday", "start": "10:00", "end": "13:00"}),
+        ("PUT", "planning-period", {"first": "2026-11-02", "last": "2026-11-25"}),
+    ],
+)
 def test_r34_its_planning_endpoints_answer_404(
-    client: Any, new_client: Callable[[], Any], rest: str
+    client: Any, new_client: Callable[[], Any], method: str, rest: str, body: dict[str, str]
 ) -> None:
     planning = Planning(client, new_client)
     filled(planning)
 
     deleted(planning)
 
-    assert client.get(planning.path(rest)).status_code == 404
+    assert client.request(method, planning.path(rest), json=body).status_code == 404
 
 
 def test_r34_another_association_of_its_members_keeps_what_it_holds(

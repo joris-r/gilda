@@ -543,3 +543,45 @@ def cancel_registration(
 def more_weeks(as_client: Any, slug: str, first: str, last: str) -> Any:
     """Clicks "More weeks" on a Schedule that shows the weeks from `first` to `last`."""
     return as_client.post(f"/association/{slug}/weeks", json={"from": first, "to": last})
+
+
+def create_share_link(as_client: Any, slug: str) -> Any:
+    """Clicks "Create a share link" on Schedule settings, confirming "Replace" when there is
+    one."""
+    return as_client.post(f"/association/{slug}/settings/share-link", json={})
+
+
+def revoke_share_link(as_client: Any, slug: str) -> Any:
+    """Confirms "Revoke the share link?" on Schedule settings."""
+    return as_client.post(f"/association/{slug}/settings/share-link/revoke", json={})
+
+
+_SHARED_URL = re.compile(r"https?://[^\s\"'<>]+/shared/([A-Za-z0-9_-]+)")
+
+
+def share_link_shown(as_client: Any, slug: str) -> str | None:
+    """The token of the link that the Share link section of Schedule settings shows, None when
+    it shows none."""
+    section = section_of(settings_page(as_client, slug), "Share link")
+    tokens = set(_SHARED_URL.findall(text_of(section)))
+    assert len(tokens) <= 1, section
+    return tokens.pop() if tokens else None
+
+
+def shared_token(planning: Planning) -> str:
+    """Alice creates a share link on Schedule settings; returns the token of the link shown."""
+    text = shown(create_share_link(planning.alice_client, planning.slug))
+    assert GENERIC not in text, text
+    token = share_link_shown(planning.alice_client, planning.slug)
+    assert token, text
+    return token
+
+
+def shared_page(as_client: Any, token: str) -> Any:
+    """Opens the share link of `token`."""
+    return as_client.get(f"/shared/{token}")
+
+
+def shared_weeks(as_client: Any, token: str, first: str, last: str) -> Any:
+    """Clicks "More weeks" on a Shared schedule that shows the weeks from `first` to `last`."""
+    return as_client.post(f"/shared/{token}/weeks", json={"from": first, "to": last})

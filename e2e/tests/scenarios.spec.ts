@@ -316,7 +316,7 @@ test.describe('Scenarios', () => {
     })
   })
 
-  test.fixme('the schedule is shared', async ({ page, context }) => {
+  test('the schedule is shared', async ({ page, context }) => {
     const association = `Jardin partagé ${Date.now()}`
     const alice = uniqueEmail('Alice')
     const thursday = dayOfWeek(4, 1)
