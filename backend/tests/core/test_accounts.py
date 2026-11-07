@@ -180,4 +180,4 @@ def test_delete_api_session_signs_out(client: Any) -> None:
 
     assert response.status_code == 204
     assert client.get("/api/session").status_code == 401
-    assert client.get("/api/associations").status_code == 401
+    assert 'type="password"' in client.get("/").text

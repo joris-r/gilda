@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from tests.core.conftest import delete_association, shown
+from tests.core.conftest import delete_association, my_associations_listed, shown
 from tests.planning.conftest import (
     Planning,
     add_member,
@@ -143,7 +143,7 @@ def test_r34_another_association_of_its_members_keeps_what_it_holds(
 
     deleted(planning)
 
-    associations = planning.bruno_client.get("/api/associations").json()
-    assert [a["id"] for a in associations] == [other["id"]]
-    assert [r["id"] for r in associations[0]["upcoming"]] == [registration.json()["id"]]
+    associations = my_associations_listed(planning.bruno_client)
+    assert [a.name for a in associations] == [other["name"]]
+    assert len(associations[0].lines) == 1
     assert all(rows_held(other["id"], slot.json()["id"])[t] for t in ("membership", "slot"))

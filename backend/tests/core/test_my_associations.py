@@ -8,6 +8,8 @@ import pytest
 from tests.core.conftest import (
     add_member,
     create_association,
+    listed,
+    names_listed,
     shown,
     sign_up,
     unique_email,
@@ -40,9 +42,9 @@ def text_of(fragment: str) -> str:
 
 
 def line_of(page: str, name: str) -> str:
-    """The text of the list item that shows `name`."""
-    items = [text_of(item) for item in re.findall(r"<li.*?</li>", part(page, "main"), re.DOTALL)]
-    found = [item for item in items if name in item]
+    """What the association named `name` shows outside its registrations."""
+    items = listed(part(page, "main"))
+    found = [item.text for item in items if item.name == name]
     assert len(found) == 1, f"{name} in {items}"
     return found[0]
 
@@ -158,17 +160,6 @@ class TestMyAssociations:
         assert "&lt;b&gt;Lilas&lt;/b&gt;" in page
 
 
-class TestRebuildInProgress:
-    def test_my_associations_shows_no_registrations_summary(self, client: Any) -> None:
-        sign_up(client, "Alice")
-        create_association(client, NAME)
-
-        page = my_associations(client)
-
-        assert "No upcoming registration." not in page
-        assert "Choose your slots" not in page
-
-
 class TestNewAssociationScreen:
     def test_shows_the_form(self, client: Any) -> None:
         sign_up(client, "Alice")
@@ -222,10 +213,8 @@ class TestCreating:
 
         shown(create_on_screen(client, NAME, slug))
 
-        associations = client.get("/api/associations").json()
-        assert [(a["name"], a["slug"], a["role"]) for a in associations] == [
-            (NAME, slug, "manager")
-        ]
+        assert names_listed(client) == [NAME]
+        assert f'href="/association/{slug}"' in my_associations(client)
         assert "manager" in line_of(my_associations(client), NAME).lower()
 
     def test_leads_to_the_new_associations_schedule(self, client: Any) -> None:
@@ -247,7 +236,7 @@ class TestCreating:
 
         assert MALFORMED_EN in text
         assert "window.location" not in text
-        assert client.get("/api/associations").json() == []
+        assert names_listed(client) == []
 
     def test_a_taken_slug_shows_its_message(
         self, client: Any, new_client: Callable[[], Any]
@@ -262,13 +251,13 @@ class TestCreating:
 
         assert TAKEN_EN in text
         assert "window.location" not in text
-        assert other.get("/api/associations").json() == []
+        assert names_listed(other) == []
 
     def test_the_slug_new_shows_the_taken_message(self, client: Any) -> None:
         sign_up(client, "Alice")
 
         assert TAKEN_EN in shown(create_on_screen(client, NAME, "new"))
-        assert client.get("/api/associations").json() == []
+        assert names_listed(client) == []
 
     def test_messages_follow_the_language(self, client: Any) -> None:
         sign_up(client, "Alice")
@@ -297,7 +286,7 @@ class TestCreating:
         text = shown(client.post("/association/new", json=body))
 
         assert "window.location" not in text
-        assert client.get("/api/associations").json() == []
+        assert names_listed(client) == []
 
     def test_an_empty_name_shows_the_generic_error_message(self, client: Any) -> None:
         sign_up(client, "Alice")

@@ -20,6 +20,7 @@ from tests.core.conftest import (
     latest_access_token,
     latest_email,
     latest_verification_token,
+    names_listed,
     open_link,
     remove_member,
     rename_association,
@@ -1517,7 +1518,7 @@ class TestDeletingTheAssociation:
 
         assert re.search(r"window\.location = '/'", text), text
         assert client.get(f"/api/associations/{association['id']}").status_code == 404
-        assert client.get("/api/associations").json() == []
+        assert names_listed(client) == []
         page = html.unescape(client.get(f"/association/{association['slug']}/members").text)
         assert UNKNOWN in page
 
@@ -1527,7 +1528,7 @@ class TestDeletingTheAssociation:
 
         shown(delete_association(bruno, association["slug"]))
 
-        assert client.get("/api/associations").json() == []
+        assert names_listed(client) == []
 
     def test_r34_members_stay_users_in_their_other_associations(
         self, client: Any, new_client: Callable[[], Any]
@@ -1539,7 +1540,7 @@ class TestDeletingTheAssociation:
         shown(delete_association(client, association["slug"]))
 
         assert bruno.get("/api/session").status_code == 200
-        assert [a["id"] for a in bruno.get("/api/associations").json()] == [other["id"]]
+        assert names_listed(bruno) == [other["name"]]
         assert "Repair Café Belleville" in members_page(client, other["slug"])
 
     def test_r34_a_member_left_in_no_association_stays_a_user(
@@ -1550,7 +1551,7 @@ class TestDeletingTheAssociation:
         shown(delete_association(client, association["slug"]))
 
         assert bruno.get("/api/session").status_code == 200
-        assert bruno.get("/api/associations").json() == []
+        assert names_listed(bruno) == []
 
     def test_r34_an_added_user_can_be_added_to_another_association_afterwards(
         self, client: Any

@@ -16,6 +16,7 @@ from tests.core.conftest import (
     heading,
     latest_email,
     latest_verification_token,
+    my_associations_listed,
     run_sql,
     shown,
     sign_up,
@@ -204,8 +205,9 @@ class TestR2:
         assert signed_in.status_code == 200
         assert signed_in.json()["id"] == member["user_id"]
         assert signed_in.json()["display_name"] == "Chloé L."
-        associations = chloe.get("/api/associations").json()
-        assert [(a["id"], a["role"]) for a in associations] == [(association["id"], "volunteer")]
+        associations = my_associations_listed(chloe)
+        assert [a.name for a in associations] == [association["name"]]
+        assert "volunteer" in associations[0].text.lower()
         members = client.get(f"/api/associations/{association['id']}").json()["members"]
         chloe_member = next(m for m in members if m["user_id"] == member["user_id"])
         assert chloe_member["has_account"] is True

@@ -7,6 +7,7 @@ from tests.core.conftest import (
     add_member,
     create_association,
     delete_association,
+    names_listed,
     shown,
     sign_up,
     unique_email,
@@ -65,7 +66,7 @@ def test_post_api_associations_400_when_the_slug_is_malformed(client: Any, slug:
 
     assert response.status_code == 400
     assert "error" in response.json()
-    assert client.get("/api/associations").json() == []
+    assert names_listed(client) == []
 
 
 def test_post_api_associations_accepts_a_slug_of_50_characters(client: Any) -> None:
@@ -99,7 +100,7 @@ def test_post_api_associations_409_when_the_slug_is_taken(
 
     assert response.status_code == 409
     assert "error" in response.json()
-    assert other.get("/api/associations").json() == []
+    assert names_listed(other) == []
 
 
 def test_post_api_associations_409_when_the_slug_is_new(client: Any) -> None:
@@ -109,7 +110,7 @@ def test_post_api_associations_409_when_the_slug_is_new(client: Any) -> None:
 
     assert response.status_code == 409
     assert "error" in response.json()
-    assert client.get("/api/associations").json() == []
+    assert names_listed(client) == []
 
 
 def test_post_api_associations_accepts_the_slug_of_a_deleted_association(client: Any) -> None:
@@ -121,15 +122,7 @@ def test_post_api_associations_accepts_the_slug_of_a_deleted_association(client:
     assert post(client, slug).status_code == 201
 
 
-# GET /api/associations and GET /api/associations/{id}
-
-
-def test_get_api_associations_shows_the_slug(client: Any) -> None:
-    sign_up(client, "Alice")
-    slug = unique_slug()
-    create_association(client, NAME, slug)
-
-    assert [a["slug"] for a in client.get("/api/associations").json()] == [slug]
+# GET /api/associations/{id}
 
 
 def test_get_api_association_shows_the_slug(client: Any) -> None:

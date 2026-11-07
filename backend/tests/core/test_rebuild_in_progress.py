@@ -204,6 +204,8 @@ class TestNotFound:
             "/association/jardin/settings/share-link",
             "/association/jardin/settings/share-link/revoke",
             "/shared/Hq3v/weeks",
+            "/association/jardin/summary/00000000-0000-4000-8000-000000000000/confirm",
+            "/association/jardin/summary/00000000-0000-4000-8000-000000000000/cancel",
         ],
     )
     def test_a_path_only_actions_use_answers_it_too(self, client: Any, path: str) -> None:
@@ -249,11 +251,17 @@ class TestJsonApi:
     def test_stays_available(self, client: Any) -> None:
         user = sign_up(client, "Alice")
 
+        response = client.get("/api/session")
+
+        assert response.status_code == 200
+        assert response.json()["display_name"] == user["display_name"]
+
+    def test_get_api_associations_answers_nothing(self, client: Any) -> None:
+        sign_up(client, "Alice")
+
         response = client.get("/api/associations")
 
-        assert user["display_name"] == "Alice"
-        assert response.status_code == 200
-        assert response.json() == []
+        assert response.status_code in (404, 405)
 
     def test_unknown_api_path_answers_json_404(self, client: Any) -> None:
         response = client.get("/api/nothing-here")

@@ -34,7 +34,6 @@ def manager_and_volunteer(
 @pytest.mark.parametrize(
     ("method", "path", "body"),
     [
-        ("GET", "/api/associations", None),
         ("POST", "/api/associations", {"name": "Repair Café", "slug": "repair-cafe"}),
         ("GET", f"/api/associations/{UNKNOWN_ID}", None),
         (
@@ -86,51 +85,6 @@ def test_post_api_associations_400_when_the_name_is_missing_or_empty(
 
     assert response.status_code == 400
     assert "error" in response.json()
-
-
-# GET /api/associations
-
-
-def test_get_api_associations_lists_the_users_associations_with_their_role(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    association, _, bruno = manager_and_volunteer(client, new_client)
-    own = create_association(bruno, "Repair Café Belleville")
-
-    response = bruno.get("/api/associations")
-
-    assert response.status_code == 200
-    assert sorted(response.json(), key=lambda a: a["name"]) == [
-        {
-            "id": association["id"],
-            "name": association["name"],
-            "slug": association["slug"],
-            "role": "volunteer",
-            "upcoming": [],
-            "obsolete": [],
-            "planning_period": None,
-        },
-        {
-            "id": own["id"],
-            "name": "Repair Café Belleville",
-            "slug": own["slug"],
-            "role": "manager",
-            "upcoming": [],
-            "obsolete": [],
-            "planning_period": None,
-        },
-    ]
-
-
-def test_get_api_associations_omits_associations_of_others(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    sign_up(client, "Alice")
-    create_association(client)
-    other = new_client()
-    sign_up(other, "Bruno")
-
-    assert other.get("/api/associations").json() == []
 
 
 # GET /api/associations/{id}

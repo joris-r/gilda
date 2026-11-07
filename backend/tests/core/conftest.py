@@ -6,7 +6,8 @@ import time
 import uuid
 from collections.abc import Callable, Iterator
 from datetime import datetime
-from typing import Any
+from html.parser import HTMLParser
+from typing import Any, NamedTuple
 
 import httpx
 import pytest
@@ -236,3 +237,95 @@ def change_identifier(client: Any, slug: str, new_slug: str) -> Any:
 def delete_association(client: Any, slug: str) -> Any:
     """Confirms "Delete the association" on Members."""
     return client.post(f"/association/{slug}/delete", json={})
+
+
+class Listed(NamedTuple):
+    """An association as My associations lists it."""
+
+    name: str
+    """The text of its first link, its name."""
+    text: str
+    """What it shows outside its registrations, its spaces collapsed."""
+    lines: list[str]
+    """What each of its registrations shows, in order, its spaces collapsed."""
+
+
+class _ListedParser(HTMLParser):
+    """Reads each outermost list item, leaving out dialogs and hidden elements."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.items: list[tuple[list[str], list[str], list[list[str]]]] = []
+        self.depth = 0
+        self.skipped: tuple[str, int] | None = None
+        self.in_link = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self.skipped:
+            if tag == self.skipped[0]:
+                self.skipped = (tag, self.skipped[1] + 1)
+            return
+        attributes = dict(attrs)
+        if tag == "dialog" or "hidden" in attributes or attributes.get("style") == "display: none":
+            if tag not in ("input", "br", "img"):
+                self.skipped = (tag, 1)
+            return
+        if tag == "li":
+            self.depth += 1
+            if self.depth == 1:
+                self.items.append(([], [], []))
+            elif self.depth == 2:
+                self.items[-1][2].append([])
+        elif tag == "a" and self.depth == 1 and not self.items[-1][0]:
+            self.in_link = True
+
+    def handle_endtag(self, tag: str) -> None:
+        if self.skipped:
+            if tag == self.skipped[0]:
+                count = self.skipped[1] - 1
+                self.skipped = (tag, count) if count else None
+            return
+        if tag == "li" and self.depth:
+            self.depth -= 1
+        elif tag == "a":
+            self.in_link = False
+
+    def handle_data(self, data: str) -> None:
+        if self.skipped or not self.depth:
+            return
+        name, text, lines = self.items[-1]
+        if self.in_link:
+            name.append(data)
+        if self.depth == 1:
+            text.append(data)
+        else:
+            lines[-1].append(data)
+
+
+def listed(fragment: str) -> list[Listed]:
+    """The associations that a piece of HTML lists, each an outermost `<li>` whose nested `<li>`
+    are its registrations."""
+    parser = _ListedParser()
+    parser.feed(fragment)
+    return [
+        Listed(
+            " ".join("".join(name).split()),
+            " ".join("".join(text).split()),
+            [" ".join("".join(line).split()) for line in lines],
+        )
+        for name, text, lines in parser.items
+    ]
+
+
+def my_associations_listed(client: Any) -> list[Listed]:
+    """The associations that My associations lists to the signed-in user."""
+    response = client.get("/")
+    assert response.status_code == 200
+    main = re.search(r"<main[ >].*</main>", response.text, re.DOTALL)
+    assert main, response.text
+    return listed(main.group(0))
+
+
+def names_listed(client: Any) -> list[str]:
+    """The names of the associations that My associations lists, in order."""
+    return [association.name for association in my_associations_listed(client)]
