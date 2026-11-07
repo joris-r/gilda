@@ -34,8 +34,7 @@ from gilda.planning.repositories import (
 from gilda.planning.schemas import (
     AbsenceRead,
     ClosureRead,
-    MemberAbsenceRead,
-    MemberNote,
+    MemberFacts,
     NoteData,
     OccurrenceRead,
     OccurrenceRegistration,
@@ -44,7 +43,6 @@ from gilda.planning.schemas import (
     PlanningSummary,
     PreferenceRead,
     PreferenceValue,
-    RegistrationCount,
     RegistrationRead,
     ScheduleRead,
     SharedAssociation,
@@ -236,12 +234,51 @@ class PlanningService:
         if user_id != user.id and own.role != "manager":
             raise PermissionDeniedException("Only managers can change another member's preference.")
 
-    # Registration counts
+    # The manager's menu of an occurrence
 
-    async def registration_counts(
-        self, user: User, association_id: UUID
-    ) -> list[RegistrationCount] | None:
+    async def member_facts(
+        self, user: User, association_id: UUID, day: date, start: str, end: str
+    ) -> list[MemberFacts]:
+        """Each member's count (R15), preference for the occurrence's slot, absence covering
+        its date and note, for a manager."""
         await self._manager_of(user, association_id)
+        counts = await self._registration_counts(association_id)
+        slot = await self.slots.get_one_or_none(
+            association_id=association_id,
+            weekday=day.weekday(),
+            start=parse_clock(start),
+            end=parse_clock(end),
+        )
+        preferences: dict[UUID, PreferenceValue] = (
+            {
+                p.user_id: cast(PreferenceValue, p.value)
+                for p in await self.preferences.list(slot_id=slot.id)
+            }
+            if slot
+            else {}
+        )
+        absences: dict[UUID, AbsenceRead] = {}
+        for absence in sorted(
+            await self.absences.list(
+                Absence.association_id == association_id, Absence.first <= day, Absence.last >= day
+            ),
+            key=lambda a: (a.first, a.last),
+        ):
+            absences.setdefault(absence.user_id, absence_read(absence))
+        notes = {n.user_id: n.text for n in await self.notes.list(association_id=association_id)}
+        return [
+            MemberFacts(
+                user_id=m.user_id,
+                count=None if counts is None else counts.get(m.user_id, 0),
+                preference=preferences.get(m.user_id),
+                absence=absences.get(m.user_id),
+                note=notes.get(m.user_id, ""),
+            )
+            for m in await self.memberships.list(association_id=association_id)
+        ]
+
+    async def _registration_counts(self, association_id: UUID) -> dict[UUID, int] | None:
+        """Each member's registration count (R15), None without a planning period."""
         period = await self.planning_periods.get_one_or_none(association_id=association_id)
         if period is None:
             return None
@@ -254,13 +291,10 @@ class PlanningService:
                 Registration.date <= period.last,
             ),
         )
-        memberships = await self.memberships.list(association_id=association_id)
-        return [
-            RegistrationCount(
-                user_id=m.user_id, count=sum(r.user_id == m.user_id for r in registrations)
-            )
-            for m in memberships
-        ]
+        counts: dict[UUID, int] = {}
+        for registration in registrations:
+            counts[registration.user_id] = counts.get(registration.user_id, 0) + 1
+        return counts
 
     # Closures
 
@@ -309,16 +343,6 @@ class PlanningService:
         absences = await self.absences.list(association_id=association_id, user_id=user.id)
         return [absence_read(a) for a in sorted(absences, key=lambda a: (a.first, a.last))]
 
-    async def list_member_absences(
-        self, user: User, association_id: UUID
-    ) -> list[MemberAbsenceRead]:
-        await self._manager_of(user, association_id)
-        absences = await self.absences.list(association_id=association_id)
-        return [
-            MemberAbsenceRead(id=a.id, user_id=a.user_id, first=a.first, last=a.last)
-            for a in sorted(absences, key=lambda a: (a.first, a.last))
-        ]
-
     async def add_absence(
         self, user: User, association_id: UUID, first: date, last: date
     ) -> AbsenceRead:
@@ -353,12 +377,6 @@ class PlanningService:
         await self._membership_of(user, association_id)
         note = await self.notes.get_one_or_none(association_id=association_id, user_id=user.id)
         return NoteData(text=note.text if note else "")
-
-    async def list_notes(self, user: User, association_id: UUID) -> list[MemberNote]:
-        await self._manager_of(user, association_id)
-        notes = {n.user_id: n.text for n in await self.notes.list(association_id=association_id)}
-        memberships = await self.memberships.list(association_id=association_id)
-        return [MemberNote(user_id=m.user_id, text=notes.get(m.user_id, "")) for m in memberships]
 
     async def set_note(self, user: User, association_id: UUID, text: str) -> NoteData:
         await self._membership_of(user, association_id)

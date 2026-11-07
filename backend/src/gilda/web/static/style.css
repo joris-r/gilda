@@ -867,3 +867,39 @@ main:has(.occurrence-menu:popover-open) > p.error {
     height: calc(100% / var(--lanes) - 2px);
   }
 }
+
+.menu-names {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.menu-name > button.link {
+  flex: 1;
+  text-align: left;
+}
+
+.menu-name.absent {
+  background: var(--line);
+}
+
+.menu-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.menu-text {
+  white-space: pre-line;
+  color: var(--muted);
+}

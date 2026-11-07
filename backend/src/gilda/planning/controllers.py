@@ -14,11 +14,8 @@ from gilda.planning.schemas import (
     AbsenceRead,
     ClosureCreate,
     ClosureRead,
-    MemberAbsenceRead,
-    MemberNote,
     NoteData,
     PlanningPeriodData,
-    RegistrationCount,
     RegistrationCreate,
     RegistrationRead,
     ScheduleRead,
@@ -46,15 +43,6 @@ class PlanningController(Controller):
             current_user, association_id, data.weekday, data.start, data.end
         )
 
-    @get("/registration-counts")
-    async def registration_counts(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> list[RegistrationCount] | None:
-        return await PlanningService(db_session).registration_counts(current_user, association_id)
-
     @post("/closures")
     async def add_closure(
         self,
@@ -67,15 +55,6 @@ class PlanningController(Controller):
             current_user, association_id, data.first, data.last, data.label
         )
 
-    @get("/member-absences")
-    async def list_member_absences(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> list[MemberAbsenceRead]:
-        return await PlanningService(db_session).list_member_absences(current_user, association_id)
-
     @post("/absences")
     async def add_absence(
         self,
@@ -87,15 +66,6 @@ class PlanningController(Controller):
         return await PlanningService(db_session).add_absence(
             current_user, association_id, data.first, data.last
         )
-
-    @get("/notes")
-    async def list_notes(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> list[MemberNote]:
-        return await PlanningService(db_session).list_notes(current_user, association_id)
 
     @put("/note")
     async def set_note(

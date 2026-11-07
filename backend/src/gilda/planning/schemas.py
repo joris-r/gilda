@@ -48,19 +48,7 @@ class AbsenceRead(msgspec.Struct):
     last: date
 
 
-class MemberAbsenceRead(msgspec.Struct):
-    id: UUID
-    user_id: UUID
-    first: date
-    last: date
-
-
 class NoteData(msgspec.Struct):
-    text: str
-
-
-class MemberNote(msgspec.Struct):
-    user_id: UUID
     text: str
 
 
@@ -70,9 +58,14 @@ class PreferenceRead(msgspec.Struct):
     value: PreferenceValue
 
 
-class RegistrationCount(msgspec.Struct):
+class MemberFacts(msgspec.Struct):
+    """What the manager's menu of an occurrence shows on a member."""
+
     user_id: UUID
-    count: int
+    count: int | None
+    preference: PreferenceValue | None
+    absence: AbsenceRead | None
+    note: str
 
 
 class PlanningPeriodData(msgspec.Struct):

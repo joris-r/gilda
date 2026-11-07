@@ -12,6 +12,7 @@ from litestar import Request, get, post
 from litestar.di import NamedDependency
 from litestar.exceptions import ClientException, NotFoundException, PermissionDeniedException
 from litestar.response import Template
+from markupsafe import Markup, escape
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from gilda.core.controllers import find_current_user
@@ -19,11 +20,13 @@ from gilda.core.models import User
 from gilda.core.pages import members_in_order
 from gilda.core.schemas import AssociationDetail
 from gilda.core.services import AssociationService, ConflictException
+from gilda.mailer import Language
 from gilda.planning.schemas import (
     AbsenceCreate,
     AbsenceRead,
     ClosureCreate,
     ClosureRead,
+    MemberFacts,
     PlanningPeriodData,
     PreferenceValue,
     ScheduleRead,
@@ -31,7 +34,14 @@ from gilda.planning.schemas import (
     Status,
 )
 from gilda.planning.services import PlanningService, TakenException
-from gilda.web.rendering import fragment, interface_language, page, read_signals_dict, translate
+from gilda.web.rendering import (
+    format_day,
+    fragment,
+    interface_language,
+    page,
+    read_signals_dict,
+    translate,
+)
 
 # An action that fails on these shows the generic error.
 _REFUSALS = (ClientException, NotFoundException, PermissionDeniedException)
@@ -881,6 +891,26 @@ _CLOCK = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
 @dataclass
+class _Name:
+    """A member's display name in the manager's menu, which proposes the occurrence to them."""
+
+    user_id: UUID
+    name: str
+    count: int | None
+    preference: PreferenceValue | None
+    # The text of the absence icon, or "" when the member is not absent.
+    absence: str
+    # The text of the note icon, as an attribute value that keeps the note's lines, or "".
+    note: Markup
+
+    @property
+    def look(self) -> str:
+        if self.absence:
+            return "absent"
+        return f"preference-{self.preference}" if self.preference else ""
+
+
+@dataclass
 class _Menu:
     """What the menu of an occurrence or an obsolete registration offers the user."""
 
@@ -891,6 +921,7 @@ class _Menu:
     sign_up: bool = False
     confirm: bool = False
     cancel: bool = False
+    names: list[_Name] = field(default_factory=list)
 
     @property
     def times(self) -> str:
@@ -909,10 +940,8 @@ def _asked_occurrence(signals: dict[str, Any]) -> tuple[date, str, str]:
         raise ClientException("Give the occurrence's date as a date.") from error
 
 
-def _menu_of(schedule: ScheduleRead, user: User, asked: _Menu) -> _Menu:
-    """The menu of the occurrence or obsolete registration `asked` names. Until the manager's
-    menu is served, it offers Confirm and Cancel registration on the user's own registrations
-    only, to managers too."""
+def _menu_of(schedule: ScheduleRead, user: User, manages: bool, asked: _Menu) -> _Menu:
+    """The menu of the occurrence or obsolete registration `asked` names, without its names."""
     for occurrence in schedule.occurrences:
         if (occurrence.start, occurrence.end) != (asked.start, asked.end):
             continue
@@ -920,7 +949,7 @@ def _menu_of(schedule: ScheduleRead, user: User, asked: _Menu) -> _Menu:
         if registration is None or registration.status == "cancelled":
             asked.sign_up = True
             return asked
-        allowed = registration.user_id == user.id
+        allowed = manages or registration.user_id == user.id
         asked.registration_id = registration.id
         asked.confirm = allowed and registration.status == "proposed"
         asked.cancel = allowed
@@ -928,9 +957,64 @@ def _menu_of(schedule: ScheduleRead, user: User, asked: _Menu) -> _Menu:
     for obsolete in schedule.obsolete:
         if (obsolete.start, obsolete.end) == (asked.start, asked.end):
             asked.registration_id = obsolete.id
-            asked.cancel = obsolete.user_id == user.id
+            asked.cancel = manages or obsolete.user_id == user.id
             return asked
     raise NotFoundException("No occurrence at this time.")
+
+
+_PREFERENCE_ORDER: dict[PreferenceValue | None, int] = {
+    "preferred": 0,
+    "possible": 1,
+    None: 2,
+    "unavailable": 3,
+}
+
+
+def _note_attribute(note: str) -> Markup:
+    """The note, escaped for an attribute, its line breaks as character references, so that
+    they survive the response being sent on one line."""
+    return escape(note).replace("\r", Markup("&#13;")).replace("\n", Markup("&#10;"))
+
+
+def _names(
+    language: Language, association: AssociationDetail, facts: list[MemberFacts]
+) -> list[_Name]:
+    """The members' names of the manager's menu, sorted by R27."""
+    display_names = {m.user_id: m.display_name for m in association.members}
+    names = []
+    for fact in facts:
+        absence = ""
+        if fact.absence is not None:
+            first, last = fact.absence.first, fact.absence.last
+            absence = (
+                translate(language, "schedule.absentOn", date=format_day(language, first))
+                if first == last
+                else translate(
+                    language,
+                    "schedule.absentFrom",
+                    first=format_day(language, first),
+                    last=format_day(language, last),
+                )
+            )
+        names.append(
+            _Name(
+                user_id=fact.user_id,
+                name=display_names.get(fact.user_id, ""),
+                count=fact.count,
+                preference=fact.preference,
+                absence=absence,
+                note=_note_attribute(fact.note) if fact.note.strip() else Markup(""),
+            )
+        )
+    return sorted(
+        names,
+        key=lambda n: (
+            bool(n.absence),
+            0 if n.absence else _PREFERENCE_ORDER[n.preference],
+            n.count or 0,
+            n.name.casefold(),
+        ),
+    )
 
 
 async def _weeks_patched(
@@ -985,7 +1069,11 @@ async def occurrence_menu(
             opened = await service.schedule(user, association.id, None, None)
             first, last = opened.from_, opened.to
         schedule = await service.schedule(user, association.id, day, day)
-        menu = _menu_of(schedule, user, _Menu(date=day, start=start, end=end))
+        manages = association.role == "manager"
+        menu = _menu_of(schedule, user, manages, _Menu(date=day, start=start, end=end))
+        if manages and menu.sign_up:
+            facts = await service.member_facts(user, association.id, day, start, end)
+            menu.names = _names(interface_language(request), association, facts)
     except _REFUSALS:
         message = translate(interface_language(request), "error")
         body = fragment(request, "schedule_menu.html", menu=None, message=message)
@@ -1020,6 +1108,31 @@ async def schedule_sign_up(
         association = await AssociationService(db_session).detail_by_slug(user, slug)
         service = PlanningService(db_session)
         await service.register(user, association.id, user.id, day, start, end)
+    except TakenException:
+        return _error(request, "menu-error", "schedule.taken")
+    except _REFUSALS:
+        return _error(request, "menu-error", "error")
+    return await _weeks_patched(request, service, user, association, first, last, _CLOSE_MENU)
+
+
+@post("/association/{slug:str}/propose", status_code=200)
+async def schedule_propose(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    try:
+        signals = await read_signals_dict(request)
+        day, start, end = _asked_occurrence(signals)
+        first, last = _shown_range(signals)
+        try:
+            user_id = UUID(signals.get("user_id"))
+        except (TypeError, ValueError) as error:
+            raise ClientException("Give the member's user_id.") from error
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        service = PlanningService(db_session)
+        await service.register(user, association.id, user_id, day, start, end)
     except TakenException:
         return _error(request, "menu-error", "schedule.taken")
     except _REFUSALS:
