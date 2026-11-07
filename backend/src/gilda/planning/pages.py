@@ -16,11 +16,11 @@ from markupsafe import Markup, escape
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from gilda.core.controllers import find_current_user
-from gilda.core.models import User
+from gilda.core.models import Association, User
 from gilda.core.pages import members_in_order
 from gilda.core.schemas import AssociationDetail
 from gilda.core.services import AssociationService, ConflictException
-from gilda.mailer import Language
+from gilda.mailer import Language, site_url
 from gilda.planning.schemas import (
     AbsenceCreate,
     AbsenceRead,
@@ -69,6 +69,7 @@ async def settings_page(
         slots=await service.list_slots(user, association.id),
         members=members_in_order(association.members),
         values=await _all_preferences(service, user, association),
+        link=await _share_link(service, user, association),
         message="",
     )
 
@@ -426,6 +427,77 @@ async def delete_closure(
 
 
 # My availability
+
+
+# Share link
+
+
+async def _share_link(service: PlanningService, user: User, association: AssociationDetail) -> str:
+    """The URL of the association's share link for Share link, empty when there is none or the
+    user is no manager."""
+    if association.role != "manager":
+        return ""
+    token = await service.get_share_link(user, association.id)
+    return "" if token is None else site_url(f"/shared/{token}")
+
+
+_CLOSE_SHARE_LINK_DIALOGS = (
+    "document.getElementById('replace-share-link')?.close();"
+    " document.getElementById('revoke-share-link')?.close()"
+)
+
+
+async def _share_link_patched(
+    request: Request[Any, Any, Any],
+    service: PlanningService,
+    user: User,
+    association: AssociationDetail,
+) -> DatastarResponse:
+    """Closes the confirmations, then shows the Share link section as it now is."""
+    link = await _share_link(service, user, association)
+    shown = fragment(request, "settings_share_link_line.html", association=association, link=link)
+    return _patched_by(_CLOSE_SHARE_LINK_DIALOGS, shown)
+
+
+def _patched_by(script: str, shown: str) -> DatastarResponse:
+    return DatastarResponse(
+        [
+            ServerSentEventGenerator.execute_script(script),
+            ServerSentEventGenerator.patch_elements(_one_line(shown)),
+        ]
+    )
+
+
+@post("/association/{slug:str}/settings/share-link", status_code=200)
+async def create_share_link(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    service = PlanningService(db_session)
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        await service.create_share_link(user, association.id)
+    except _REFUSALS:
+        return _error(request, "share-link-error", "error")
+    return await _share_link_patched(request, service, user, association)
+
+
+@post("/association/{slug:str}/settings/share-link/revoke", status_code=200)
+async def revoke_share_link(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    service = PlanningService(db_session)
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        await service.revoke_share_link(user, association.id)
+    except _REFUSALS:
+        return _error(request, "share-link-error", "error")
+    return await _share_link_patched(request, service, user, association)
 
 
 async def _own_preferences(
@@ -817,7 +889,7 @@ def _weeks_view(schedule: ScheduleRead, period: PlanningPeriodData | None, today
     return view
 
 
-def _today(association: AssociationDetail) -> date:
+def _today(association: AssociationDetail | Association) -> date:
     return datetime.now(ZoneInfo(association.timezone)).date()
 
 
@@ -880,6 +952,47 @@ async def more_weeks(
         request,
         "schedule_weeks.html",
         association=association,
+        view=_weeks_view(schedule, period, _today(association)),
+    )
+    return DatastarResponse(ServerSentEventGenerator.patch_elements(_one_line(shown)))
+
+
+# Shared schedule, read with a share link's token, signed in or not.
+
+
+@get("/shared/{token:str}")
+async def shared_schedule_page(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: str
+) -> Template:
+    try:
+        association, schedule, period = await PlanningService(db_session).shared(token, None, None)
+    except NotFoundException:
+        return page(request, "shared_invalid.html")
+    return page(
+        request,
+        "shared_schedule.html",
+        association=association,
+        token=token,
+        view=_weeks_view(schedule, period, _today(association)),
+    )
+
+
+@post("/shared/{token:str}/weeks", status_code=200)
+async def shared_more_weeks(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: str
+) -> DatastarResponse:
+    try:
+        first, last = _shown_range(await read_signals_dict(request))
+        first -= timedelta(days=first.weekday())
+        last += timedelta(days=6 - last.weekday(), weeks=_MORE_WEEKS)
+        association, schedule, period = await PlanningService(db_session).shared(token, first, last)
+    except _REFUSALS:
+        return _error(request, "weeks-error", "error")
+    shown = fragment(
+        request,
+        "schedule_weeks.html",
+        association=association,
+        shared=token,
         view=_weeks_view(schedule, period, _today(association)),
     )
     return DatastarResponse(ServerSentEventGenerator.patch_elements(_one_line(shown)))

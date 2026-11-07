@@ -15,13 +15,13 @@
 - Process: CLAUDE.md would ask, when an endpoint leaves, to search the tests for its last path segment alone (e.g. `schedule?from=`), as parametrized lists name it without its prefix.
 - Process: CLAUDE.md would ask, before planning to keep an endpoint for the backend fixtures, to check what the fixtures do with it, since a new action may already cover their calls (e.g. they only cancel the user's own registrations).
 - Process: CLAUDE.md would ask that an e2e lookup of a display name on the Schedule look within the menu (`#occurrence-menu`), since occurrences are buttons named after their registrations.
+- Process: CLAUDE.md would note that action tests assert the generic error is absent from the whole response, so a dialog holding its hidden copy stays outside the fragment an action sends back.
 
 
 ## Datastar experiment
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Schedule settings: Share link, and Shared schedule; restores "The schedule is shared".
 - My associations: the registrations summary (R12, R13, R14, Confirm, OK, Choose your slots).
 - Finish: delete what remains of the JSON API and the `api.md` pages, the temporary pieces and "Rebuild in progress".
 
@@ -161,6 +161,14 @@ Choices the spec left open, settled by `schedule-manager-menu`:
 - Manager's menu: without a planning period, R27's tie on registrations counts everyone as 0, so names fall to display name order, ignoring case.
 - Manager's menu: the text shown under the names leaves when the menu opens again.
 
+Choices the spec left open, settled by `share-link`:
+
+- Share link: it shows the absolute URL, built from the site's address as the emails' links are.
+- Share link: "Link copied." stays until the next Create, Replace or Revoke, or a reload.
+- Create a share link, Replace and Revoke: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing and shows the generic error.
+- Shared schedule: an unknown, replaced or revoked link answers 200 with its message, under the signed-out header without the association's name.
+- Shared schedule: More weeks with a missing or invalid range, or a link no longer valid, shows the generic error.
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -208,6 +216,8 @@ Choices the spec left open, settled by `schedule-manager-menu`:
 - Manager's menu: names are ordered by `casefold`, not by the language's collation, as on Members.
 - Note icon: the whole note is the icon's accessible name, so a long note gives a long screen-reader label.
 - Manager's menu: a taken occurrence offers no names, so moving it to another member takes a cancel, then a proposal.
+- Shared schedule: once the link is replaced or revoked, More weeks on a page already open shows only the generic error, not "This link is no longer valid.".
+- Share link: "Link copied." shows even when the browser refuses the clipboard.
 
 
 ## Quality
@@ -244,7 +254,9 @@ Choices the spec left open, settled by `schedule-manager-menu`:
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account.
 - More weeks builds up to 520 weeks per request, with no rate limit, so a member could load the server with repeated long ranges.
 - Sign up, Confirm and Cancel registration accept ranges of up to 520 weeks, as More weeks does, with no rate limit.
-- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` `POST /association/{slug}/settings/slots/{slot_id}/delete`, `POST /association/{slug}/settings/period`, `POST /association/{slug}/settings/period/clear`, `POST /association/{slug}/settings/closures`, `POST /association/{slug}/settings/closures/{closure_id}/edit` `POST /association/{slug}/settings/closures/{closure_id}/delete` `POST /association/{slug}/availability/preferences/{slot_id}`, `POST /association/{slug}/availability/absences`, `POST /association/{slug}/availability/absences/{absence_id}/edit`, `POST /association/{slug}/availability/absences/{absence_id}/delete`, `POST /association/{slug}/availability/note`, `POST /association/{slug}/settings/preferences/{slot_id}/{user_id}`, `POST /association/{slug}/menu`, `POST /association/{slug}/sign-up`, `POST /association/{slug}/propose`, `POST /association/{slug}/registrations/{registration_id}/confirm` and `POST /association/{slug}/registrations/{registration_id}/cancel` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
+- The share link shows the members' display names to anyone holding it, signed out and with no expiry, until a manager replaces or revokes it.
+- `POST /shared/{token}/weeks` is public and builds up to 520 weeks per request, with no rate limit, so anyone holding a link can load the server.
+- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` `POST /association/{slug}/settings/slots/{slot_id}/delete`, `POST /association/{slug}/settings/period`, `POST /association/{slug}/settings/period/clear`, `POST /association/{slug}/settings/closures`, `POST /association/{slug}/settings/closures/{closure_id}/edit` `POST /association/{slug}/settings/closures/{closure_id}/delete` `POST /association/{slug}/availability/preferences/{slot_id}`, `POST /association/{slug}/availability/absences`, `POST /association/{slug}/availability/absences/{absence_id}/edit`, `POST /association/{slug}/availability/absences/{absence_id}/delete`, `POST /association/{slug}/availability/note`, `POST /association/{slug}/settings/preferences/{slot_id}/{user_id}`, `POST /association/{slug}/menu`, `POST /association/{slug}/sign-up`, `POST /association/{slug}/propose`, `POST /association/{slug}/registrations/{registration_id}/confirm`, `POST /association/{slug}/registrations/{registration_id}/cancel`, `POST /association/{slug}/settings/share-link` and `POST /association/{slug}/settings/share-link/revoke` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
 

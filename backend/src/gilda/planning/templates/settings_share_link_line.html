@@ -1,0 +1,52 @@
+{#
+  The Share link section's head and line, which its actions show again; its confirmations stay
+  out of it. link is the URL of the share link, or empty when there is none.
+#}
+{% set action = "/association/" ~ association.slug ~ "/settings/share-link" %}
+<div id="share-link">
+  <div class="section-head">
+    <h2>{{ t("settings.shareLink") }}</h2>
+    {# No retry: a request that failed must not go through later, once the dialog is cancelled. #}
+    {% if link %}
+    <button
+      type="button"
+      class="add"
+      commandfor="replace-share-link"
+      command="show-modal"
+      data-on:click="$_failed = false"
+    >+ {{ t("settings.createShareLink") }}</button>
+    {% else %}
+    <button
+      type="button"
+      class="add"
+      data-on:click="$_copied = false; @post('{{ action }}', {filterSignals: {include: /^$/}, retryMaxCount: 0})"
+    >+ {{ t("settings.createShareLink") }}</button>
+    {% endif %}
+  </div>
+  <ul class="list">
+    <li>
+      {% if link %}
+      <div class="share-link">{{ link }}</div>
+      <div class="line-actions">
+        <button
+          type="button"
+          data-link="{{ link }}"
+          data-on:click="navigator.clipboard.writeText(el.dataset.link); $_copied = true"
+        >{{ t("settings.copy") }}</button>
+        <button
+          type="button"
+          class="icon-button"
+          aria-label="{{ t('settings.revokeShareLink') }}"
+          commandfor="revoke-share-link"
+          command="show-modal"
+          data-on:click="$_failed = false"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+        </button>
+      </div>
+      {% else %}
+      <div class="hint">{{ t("settings.noShareLink") }}</div>
+      {% endif %}
+    </li>
+  </ul>
+</div>

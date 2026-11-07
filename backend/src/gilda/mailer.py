@@ -71,8 +71,13 @@ def send_access_link_email(to_email: str, token: str, language: Language) -> Non
     _send_link(to_email, "access", token, _ACCESS_LINK_TEXTS[language])
 
 
+def site_url(path: str) -> str:
+    """The absolute URL of `path`, which starts with a slash, as links sent out give it."""
+    return f"{os.environ.get('FRONTEND_URL', 'http://localhost:8000')}{path}"
+
+
 def _send_link(to_email: str, page: str, token: str, texts: tuple[str, str]) -> None:
-    link = f"{os.environ.get('FRONTEND_URL', 'http://localhost:8000')}/{page}?token={token}"
+    link = site_url(f"/{page}?token={token}")
     subject, text = texts
     message = EmailMessage()
     message["Subject"] = subject

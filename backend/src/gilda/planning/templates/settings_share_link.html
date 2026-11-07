@@ -1,0 +1,23 @@
+{# The Share link section, for managers: its head and line, then its confirmations. #}
+{% set action = "/association/" ~ association.slug ~ "/settings/share-link" %}
+<section data-signals="{_copied: false}">
+  {% include "settings_share_link_line.html" %}
+  <p role="status" style="display: none" data-show="$_copied">{{ t("settings.linkCopied") }}</p>
+  {% with error_id = "share-link-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+  <dialog id="replace-share-link" class="dialog" aria-labelledby="replace-share-link-question">
+    <p id="replace-share-link-question">{{ t("settings.confirmReplaceShareLink") }}</p>
+    <div class="dialog-actions">
+      <button type="button" data-on:click="$_copied = false; @post('{{ action }}', {filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.replaceAction") }}</button>
+      <button type="button" class="link" commandfor="replace-share-link" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+  </dialog>
+  <dialog id="revoke-share-link" class="dialog" aria-labelledby="revoke-share-link-question">
+    <p id="revoke-share-link-question">{{ t("settings.confirmRevokeShareLink") }}</p>
+    <div class="dialog-actions">
+      <button type="button" data-on:click="$_copied = false; @post('{{ action }}/revoke', {filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.revokeAction") }}</button>
+      <button type="button" class="link" commandfor="revoke-share-link" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+  </dialog>
+</section>

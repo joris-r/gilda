@@ -1,0 +1,5 @@
+{% extends "layout.html" %}
+{% block location %}<p id="location" class="where">{{ association.name }}</p>{% endblock %}
+{% block main %}
+{% with shared = token %}{% include "schedule_weeks.html" %}{% endwith %}
+{% endblock %}

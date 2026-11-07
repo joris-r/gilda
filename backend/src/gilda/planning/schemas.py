@@ -122,13 +122,3 @@ class PlanningSummary(msgspec.Struct):
     upcoming: list[RegistrationRead]
     obsolete: list[RegistrationRead]
     planning_period: PlanningPeriodSummary | None
-
-
-class ShareLinkRead(msgspec.Struct):
-    token: str
-
-
-class SharedAssociation(msgspec.Struct):
-    name: str
-    timezone: str
-    planning_period: PlanningPeriodData | None

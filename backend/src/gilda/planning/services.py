@@ -45,8 +45,6 @@ from gilda.planning.schemas import (
     PreferenceValue,
     RegistrationRead,
     ScheduleRead,
-    SharedAssociation,
-    ShareLinkRead,
     SlotRead,
     Status,
     Weekday,
@@ -491,38 +489,35 @@ class PlanningService:
 
     # Share link
 
-    async def get_share_link(self, user: User, association_id: UUID) -> ShareLinkRead | None:
+    async def get_share_link(self, user: User, association_id: UUID) -> str | None:
+        """The token of the association's share link, None when there is none."""
         await self._manager_of(user, association_id)
         link = await self.share_links.get_one_or_none(association_id=association_id)
-        return None if link is None else ShareLinkRead(token=link.token)
+        return None if link is None else link.token
 
-    async def create_share_link(self, user: User, association_id: UUID) -> ShareLinkRead:
+    async def create_share_link(self, user: User, association_id: UUID) -> str:
+        """R33: replaces the previous link, if any; returns the new token."""
         await self._manager_of(user, association_id)
         await self.share_links.delete_where(association_id=association_id)
         link = await self.share_links.add(
             ShareLink(association_id=association_id, token=secrets.token_urlsafe(32))
         )
-        return ShareLinkRead(token=link.token)
+        return link.token
 
     async def revoke_share_link(self, user: User, association_id: UUID) -> None:
         await self._manager_of(user, association_id)
         await self.share_links.delete_where(association_id=association_id)
 
-    async def shared(self, token: str) -> SharedAssociation:
-        association = await self._shared_association(token)
-        period = await self.planning_periods.get_one_or_none(association_id=association.id)
-        return SharedAssociation(
-            name=association.name,
-            timezone=association.timezone,
-            planning_period=None
-            if period is None
-            else PlanningPeriodData(first=period.first, last=period.last),
-        )
-
-    async def shared_schedule(
+    async def shared(
         self, token: str, first: date | None, last: date | None
-    ) -> ScheduleRead:
-        return await self._schedule(await self._shared_association(token), first, last)
+    ) -> tuple[Association, ScheduleRead, PlanningPeriodData | None]:
+        """The association of a share link, its schedule from `first` to `last` (R32 when
+        neither is given) and its planning period."""
+        association = await self._shared_association(token)
+        schedule = await self._schedule(association, first, last)
+        period = await self.planning_periods.get_one_or_none(association_id=association.id)
+        data = None if period is None else PlanningPeriodData(first=period.first, last=period.last)
+        return association, schedule, data
 
     async def _shared_association(self, token: str) -> Association:
         link = await self.share_links.get_one_or_none(token=token)

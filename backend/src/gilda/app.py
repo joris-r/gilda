@@ -50,7 +50,7 @@ from gilda.db import create_database_config, create_database_plugin
 from gilda.errors import api_exception_handlers
 from gilda.home.controllers import HomeController
 from gilda.home.pages import home as my_associations
-from gilda.planning.controllers import PlanningController, SharedScheduleController
+from gilda.planning.controllers import PlanningController
 from gilda.planning.pages import (
     add_absence,
     add_closure,
@@ -61,6 +61,7 @@ from gilda.planning.pages import (
     choose_preference,
     clear_period,
     confirm_registration,
+    create_share_link,
     delete_absence,
     delete_closure,
     delete_slot,
@@ -69,12 +70,15 @@ from gilda.planning.pages import (
     edit_slot,
     more_weeks,
     occurrence_menu,
+    revoke_share_link,
     save_note,
     schedule_page,
     schedule_propose,
     schedule_sign_up,
     set_period,
     settings_page,
+    shared_more_weeks,
+    shared_schedule_page,
 )
 from gilda.planning.services import end_membership as end_planning_membership
 from gilda.web.pages import choose_language, not_found
@@ -103,7 +107,6 @@ def create_app() -> Litestar:
             AssociationController,
             HomeController,
             PlanningController,
-            SharedScheduleController,
         ],
         exception_handlers=api_exception_handlers(),
     )
@@ -142,6 +145,10 @@ def create_app() -> Litestar:
             save_note,
             schedule_page,
             more_weeks,
+            create_share_link,
+            revoke_share_link,
+            shared_schedule_page,
+            shared_more_weeks,
             occurrence_menu,
             schedule_propose,
             schedule_sign_up,

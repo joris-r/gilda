@@ -1,10 +1,8 @@
-from datetime import date
-from typing import Annotated
 from uuid import UUID
 
-from litestar import Controller, delete, get, post, put
+from litestar import Controller, post, put
 from litestar.di import NamedDependency, Provide
-from litestar.params import FromPath, JSONBody, QueryParameter
+from litestar.params import FromPath, JSONBody
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from gilda.core.controllers import provide_current_user
@@ -18,9 +16,6 @@ from gilda.planning.schemas import (
     PlanningPeriodData,
     RegistrationCreate,
     RegistrationRead,
-    ScheduleRead,
-    SharedAssociation,
-    ShareLinkRead,
     SlotCreate,
     SlotRead,
 )
@@ -89,33 +84,6 @@ class PlanningController(Controller):
             current_user, association_id, data.first, data.last
         )
 
-    @get("/share-link")
-    async def get_share_link(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> ShareLinkRead | None:
-        return await PlanningService(db_session).get_share_link(current_user, association_id)
-
-    @post("/share-link")
-    async def create_share_link(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> ShareLinkRead:
-        return await PlanningService(db_session).create_share_link(current_user, association_id)
-
-    @delete("/share-link")
-    async def revoke_share_link(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> None:
-        await PlanningService(db_session).revoke_share_link(current_user, association_id)
-
     @post("/registrations")
     async def register(
         self,
@@ -127,25 +95,3 @@ class PlanningController(Controller):
         return await PlanningService(db_session).register(
             current_user, association_id, data.user_id, data.date, data.start, data.end
         )
-
-
-class SharedScheduleController(Controller):
-    """The Schedule read with a share link's token, signed in or not."""
-
-    path = "/shared/{token:str}"
-
-    @get()
-    async def shared(
-        self, db_session: NamedDependency[AsyncSession], token: FromPath[str]
-    ) -> SharedAssociation:
-        return await PlanningService(db_session).shared(token)
-
-    @get("/schedule")
-    async def schedule(
-        self,
-        db_session: NamedDependency[AsyncSession],
-        token: FromPath[str],
-        first: Annotated[date | None, QueryParameter(name="from")] = None,
-        last: Annotated[date | None, QueryParameter(name="to")] = None,
-    ) -> ScheduleRead:
-        return await PlanningService(db_session).shared_schedule(token, first, last)

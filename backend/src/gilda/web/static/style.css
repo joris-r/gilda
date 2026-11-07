@@ -286,6 +286,11 @@ button.link {
   border-bottom: 1px solid var(--line);
 }
 
+.share-link {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
