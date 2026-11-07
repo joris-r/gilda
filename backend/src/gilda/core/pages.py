@@ -10,6 +10,7 @@ from litestar.exceptions import (
     NotAuthorizedException,
     NotFoundException,
     PermissionDeniedException,
+    ServiceUnavailableException,
 )
 from litestar.params import FromQuery
 from litestar.response import Template
@@ -20,6 +21,7 @@ from gilda.core.models import User
 from gilda.core.schemas import (
     AccessLinkRequest,
     AccountCreate,
+    AssociationDetail,
     MemberCreate,
     MemberRead,
     MemberUpdate,
@@ -85,6 +87,21 @@ def _listed(members: list[MemberRead]) -> list[MemberRead]:
     return sorted(members, key=lambda m: (m.role != "manager", m.display_name.casefold()))
 
 
+async def _members_list(
+    request: Request[Any, Any, Any],
+    associations: AssociationService,
+    association: AssociationDetail,
+) -> str:
+    """The list of Members as it now is, with each member's dialogs."""
+    return fragment(
+        request,
+        "members_list.html",
+        association=association,
+        members=_listed(association.members),
+        with_link=await associations.with_access_link(association.members),
+    )
+
+
 @get("/association/{slug:str}/members")
 async def members_page(
     request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
@@ -92,8 +109,9 @@ async def members_page(
     user = await find_current_user(request, db_session)
     if user is None:
         return page(request, "sign_in.html", message="")
+    associations = AssociationService(db_session)
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await associations.detail_by_slug(user, slug)
     except NotFoundException:
         return page(request, "association_unknown.html", user=user)
     return page(
@@ -102,6 +120,7 @@ async def members_page(
         user=user,
         association=association,
         members=_listed(association.members),
+        with_link=await associations.with_access_link(association.members),
         message="",
     )
 
@@ -135,15 +154,12 @@ async def add_member(
         return _form_error(request, "association.alreadyMember", name=asked.display_name)
     except (NotFoundException, PermissionDeniedException):
         return _form_error(request, "error")
-    members = (await associations.detail(user, association.id)).members
+    now = await associations.detail(user, association.id)
+    listed = await _members_list(request, associations, now)
     message = translate(interface_language(request), "association.added", name=added.display_name)
     return DatastarResponse(
         [
-            ServerSentEventGenerator.patch_elements(
-                fragment(
-                    request, "members_list.html", association=association, members=_listed(members)
-                )
-            ),
+            ServerSentEventGenerator.patch_elements(listed),
             ServerSentEventGenerator.patch_elements(
                 fragment(request, "notice.html", message=message)
             ),
@@ -161,6 +177,14 @@ def _member(members: list[MemberRead], user_id: UUID) -> MemberRead:
     return found
 
 
+_CONFIRMATIONS = ("remove", "send-link", "revoke-link")
+
+
+def _close(user_id: UUID, dialogs: tuple[str, ...]) -> str:
+    """A script that closes these dialogs of the member, those still in the page."""
+    return " ".join(f"document.getElementById('{d}-{user_id}')?.close();" for d in dialogs)
+
+
 def _member_error(
     request: Request[Any, Any, Any], user_id: UUID, key: str, **values: object
 ) -> DatastarResponse:
@@ -168,9 +192,7 @@ def _member_error(
     message = translate(interface_language(request), key, **values)
     return DatastarResponse(
         [
-            ServerSentEventGenerator.execute_script(
-                f"document.getElementById('remove-{user_id}').close()"
-            ),
+            ServerSentEventGenerator.execute_script(_close(user_id, _CONFIRMATIONS)),
             ServerSentEventGenerator.patch_elements(
                 fragment(
                     request, "form_error.html", message=message, error_id=f"edit-{user_id}-error"
@@ -191,17 +213,9 @@ async def _members_patched(
     """Closes the member's dialogs, then shows the list as it now is, and the message."""
     association = await associations.detail(user, association_id)
     events = [
-        ServerSentEventGenerator.execute_script(
-            f"document.getElementById('remove-{user_id}')?.close();"
-            f" document.getElementById('edit-{user_id}')?.close()"
-        ),
+        ServerSentEventGenerator.execute_script(_close(user_id, (*_CONFIRMATIONS, "edit"))),
         ServerSentEventGenerator.patch_elements(
-            fragment(
-                request,
-                "members_list.html",
-                association=association,
-                members=_listed(association.members),
-            )
+            await _members_list(request, associations, association)
         ),
         ServerSentEventGenerator.patch_elements(fragment(request, "notice.html", message=message)),
     ]
@@ -274,6 +288,52 @@ async def remove_member(
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
     language = interface_language(request)
     message = translate(language, "association.removed", name=member.display_name)
+    return await _members_patched(request, associations, user, association.id, message, user_id)
+
+
+@post("/association/{slug:str}/members/{user_id:uuid}/send-link", status_code=200)
+async def send_member_link(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    slug: str,
+    user_id: UUID,
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    language = interface_language(request)
+    associations = AssociationService(db_session)
+    try:
+        association = await associations.detail_by_slug(user, slug)
+        member = _member(association.members, user_id)
+        await associations.send_member_link(user, association.id, user_id, language)
+    except ServiceUnavailableException:
+        return _member_error(request, user_id, "association.linkNotSent", name=member.display_name)
+    except (NotFoundException, PermissionDeniedException):
+        return _member_error(request, user_id, "error")
+    message = translate(language, "association.linkSent", name=member.display_name)
+    return await _members_patched(request, associations, user, association.id, message, user_id)
+
+
+@post("/association/{slug:str}/members/{user_id:uuid}/revoke-link", status_code=200)
+async def revoke_member_link(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    slug: str,
+    user_id: UUID,
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    associations = AssociationService(db_session)
+    try:
+        association = await associations.detail_by_slug(user, slug)
+        member = _member(association.members, user_id)
+        await associations.revoke_member_link(user, association.id, user_id)
+    except (NotFoundException, PermissionDeniedException):
+        return _member_error(request, user_id, "error")
+    language = interface_language(request)
+    message = translate(language, "association.linkRevoked", name=member.display_name)
     return await _members_patched(request, associations, user, association.id, message, user_id)
 
 

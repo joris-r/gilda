@@ -54,10 +54,31 @@
       <button type="button" class="link" commandfor="{{ id }}" command="close">{{ t("dialog.cancel") }}</button>
     </div>
   </form>
+  <h3>{{ t("association.signInLink") }}</h3>
+  <div class="dialog-actions">
+    <button type="button" commandfor="send-link-{{ member.user_id }}" command="show-modal">{{ t("association.sendLink") }}</button>
+    {% if member.user_id in with_link %}
+    <button type="button" class="link" commandfor="revoke-link-{{ member.user_id }}" command="show-modal">{{ t("association.revokeLink") }}</button>
+    {% endif %}
+  </div>
   <div class="dialog-actions">
     <button type="button" class="link danger" commandfor="remove-{{ member.user_id }}" command="show-modal">{{ t("association.removeMember") }}</button>
   </div>
   {% endcall %}
+  {{ confirmation(
+    "send-link-" ~ member.user_id,
+    t("association.confirmSendLink", name=member.display_name),
+    t("association.send"),
+    "/association/" ~ association.slug ~ "/members/" ~ member.user_id ~ "/send-link",
+  ) }}
+  {% if member.user_id in with_link %}
+  {{ confirmation(
+    "revoke-link-" ~ member.user_id,
+    t("association.confirmRevokeLink", name=member.display_name),
+    t("association.revoke"),
+    "/association/" ~ association.slug ~ "/members/" ~ member.user_id ~ "/revoke-link",
+  ) }}
+  {% endif %}
   {{ confirmation(
     "remove-" ~ member.user_id,
     t("association.confirmRemove", name=member.display_name),

@@ -77,7 +77,6 @@ class MemberRead(msgspec.Struct):
     email: str
     has_account: bool
     email_verified: bool
-    access_link: bool
     role: Role
 
 

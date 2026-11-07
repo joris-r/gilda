@@ -10,7 +10,6 @@
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Members: Revoke link and Send link; restores "A volunteer signs in by link".
 - Members: Rename the association, Change the association identifier and Delete the association.
 - Schedule settings: Slots, with R17 and R18.
 - Schedule settings: Closures and Planning period.
@@ -77,6 +76,13 @@ Choices the spec left open, settled by `members-edit`:
 - Remove from the association: removing the last manager closes the confirmation and shows the message in the edit dialog.
 - Save: a manager who demotes themself stays on Members, which then shows no edit icons and no "Add a member".
 
+Choices the spec left open, settled by `members-link`:
+
+- Send link and Revoke link: a user who is not a member shows the generic error.
+- Send link and Revoke link: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing.
+- Send link: when the email can't be sent, no link is created, so Revoke link does not appear; the message shows in the edit dialog, closing the confirmation.
+- Send link and Revoke link: success closes the dialogs and shows the message on Members, with Revoke link appearing or leaving at once.
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -92,7 +98,9 @@ Choices the spec left open, settled by `members-edit`:
 - New association: "+ New association" is a link, while `interface.md` describes a button.
 - Members: no served screen links to it yet; only its URL leads there until the Schedule returns.
 - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
-- Members renders an edit dialog and a confirmation for every member, so the page grows with the association.
+- Members renders an edit dialog and up to three confirmations for every member, so the page grows with the association.
+- Revoke link from a page opened before the member's link was revoked elsewhere still says "revoked".
+- Send link drops the link when the email can't be sent, but Sign-in link keeps it; align the two.
 
 
 ## Quality
@@ -123,8 +131,10 @@ Choices the spec left open, settled by `members-edit`:
 - Sign-in link and Forgot password have no rate limit, so anyone can flood a known address with emails.
 - Add a member tells a manager whether an email already has an account, and shows that user's own display name.
 - Any manager can demote or remove every other manager, so one manager can take an association over.
+- Any manager can send or revoke any member's sign-in link, another manager's included; revoking signs that user out of their link sessions everywhere, not only in this association.
+- Send link has no rate limit, so a manager can flood a member with emails.
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account.
-- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role` and `POST /association/{slug}/members/{user_id}/remove` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
+- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link` and `POST /association/{slug}/members/{user_id}/revoke-link` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
 

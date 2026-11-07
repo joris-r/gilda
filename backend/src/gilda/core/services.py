@@ -79,7 +79,7 @@ async def end_membership(
     await MembershipRepository(session=db_session).delete(membership.id)
 
 
-def member_read(membership: Membership, access_link: bool) -> MemberRead:
+def member_read(membership: Membership) -> MemberRead:
     user = membership.user
     return MemberRead(
         user_id=user.id,
@@ -87,7 +87,6 @@ def member_read(membership: Membership, access_link: bool) -> MemberRead:
         email=user.address,
         has_account=user.has_account,
         email_verified=user.email_verified,
-        access_link=access_link,
         role=cast(Role, membership.role),
     )
 
@@ -328,18 +327,20 @@ class AssociationService:
     async def detail(self, user: User, association_id: UUID) -> AssociationDetail:
         own = await self._membership_of(user, association_id)
         members = await self.memberships.list(association_id=association_id)
-        user_ids = [m.user_id for m in members]
-        with_link = {
-            link.user_id for link in await self.access_links.list(AccessLink.user_id.in_(user_ids))
-        }
         return AssociationDetail(
             id=own.association.id,
             name=own.association.name,
             slug=own.association.slug,
             timezone=own.association.timezone,
             role=cast(Role, own.role),
-            members=[member_read(m, m.user_id in with_link) for m in members],
+            members=[member_read(m) for m in members],
         )
+
+    async def with_access_link(self, members: Sequence[MemberRead]) -> set[UUID]:
+        """The user IDs of the `members` who have an access link."""
+        user_ids = [m.user_id for m in members]
+        links = await self.access_links.list(AccessLink.user_id.in_(user_ids))
+        return {link.user_id for link in links}
 
     async def update(
         self, manager: User, association_id: UUID, name: str | None, slug: str | None
@@ -380,7 +381,7 @@ class AssociationService:
             Membership(user_id=user.id, association_id=association_id, role=role),
             auto_refresh=True,
         )
-        return await self._member_read(membership)
+        return member_read(membership)
 
     async def change_role(
         self, manager: User, association_id: UUID, user_id: UUID, role: Role
@@ -396,11 +397,11 @@ class AssociationService:
             if managers == 1:
                 raise ConflictException("An association keeps at least one manager.")
         membership.role = role
-        return await self._member_read(await self.memberships.update(membership))
+        return member_read(await self.memberships.update(membership))
 
     async def send_member_link(
         self, manager: User, association_id: UUID, user_id: UUID, language: Language
-    ) -> MemberRead:
+    ) -> None:
         await self._manager_of(manager, association_id)
         membership = await self.memberships.get_one_or_none(
             user_id=user_id, association_id=association_id
@@ -410,11 +411,11 @@ class AssociationService:
         try:
             await send_access_link(self.access_links, membership.user, language)
         except EmailNotSentError as error:
-            # An error response rolls the transaction back, so no link is created.
+            # The link nobody received is not kept, so Members offers no Revoke link for it.
+            await self.db_session.rollback()
             raise ServiceUnavailableException(
                 "The sign-in link could not be sent. Try again later."
             ) from error
-        return await self._member_read(membership)
 
     async def remove_member(
         self,
@@ -440,9 +441,6 @@ class AssociationService:
         if not await self.memberships.exists(user_id=user_id, association_id=association_id):
             raise NotFoundException("Not a member of this association.")
         await revoke_access_link(self.access_links, user_id)
-
-    async def _member_read(self, membership: Membership) -> MemberRead:
-        return member_read(membership, await self.access_links.exists(user_id=membership.user_id))
 
     async def _membership_of(self, user: User, association_id: UUID) -> Membership:
         membership = await self.memberships.get_one_or_none(

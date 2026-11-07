@@ -24,7 +24,6 @@ from gilda.core.services import (
     is_superuser,
 )
 from gilda.core.sessions import set_session_with_new_id
-from gilda.web.rendering import interface_language
 
 SESSION_USER_KEY = "user_id"
 SESSION_LINK_KEY = "access_link_id"
@@ -153,29 +152,4 @@ class AssociationController(Controller):
     ) -> MemberRead:
         return await AssociationService(db_session).add_member(
             current_user, association_id, data.display_name, data.email, data.role
-        )
-
-    @post("/{association_id:uuid}/members/{user_id:uuid}/access-link", status_code=200)
-    async def send_member_link(
-        self,
-        request: Request[Any, Any, Any],
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        user_id: FromPath[UUID],
-    ) -> MemberRead:
-        return await AssociationService(db_session).send_member_link(
-            current_user, association_id, user_id, interface_language(request)
-        )
-
-    @delete("/{association_id:uuid}/members/{user_id:uuid}/access-link")
-    async def revoke_member_link(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        user_id: FromPath[UUID],
-    ) -> None:
-        await AssociationService(db_session).revoke_member_link(
-            current_user, association_id, user_id
         )
