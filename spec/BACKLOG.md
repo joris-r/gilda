@@ -12,13 +12,13 @@
 - Process: CLAUDE.md's rule on the generic error's hidden copies would also cover closed dialogs within `main`: a test of a signed-in screen looks for the visible copy (`.filter({ visible: true })`) or within the section or dialog it means.
 - Tests: `section_of` would unescape the HTML before matching a heading, so a heading with an apostrophe needs no `| safe`.
 - Process: CLAUDE.md would ask, when a test's read of state moves from a deleted endpoint to a screen, to check that the screen still shows what the test checks (e.g. a removed member's row leaves the screen).
+- Process: CLAUDE.md would ask, when an endpoint leaves, to search the tests for its last path segment alone (e.g. `schedule?from=`), as parametrized lists name it without its prefix.
 
 
 ## Datastar experiment
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Schedule: the weeks read-only, "More weeks", the today and period lines, closures.
 - Schedule: the volunteer's menu (Sign up, Confirm, Cancel registration).
 - Schedule: the manager's menu (propose, cancel, preferences and counts, absence and note icons); restores "The schedule is filled".
 - Schedule settings: Share link, and Shared schedule; restores "The schedule is shared".
@@ -136,6 +136,15 @@ Choices the spec left open, settled by `settings-preferences`:
 - Members' preferences: a missing or invalid value, an unknown slot or one of another association, or a user who is not a member shows the generic error.
 - Members' preferences: a volunteer's request, even for their own preference, changes nothing and shows the generic error; a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
 
+Choices the spec left open, settled by `schedule-weeks`:
+
+- Schedule: week headings show the ISO week number ("Week 53", then "Week 1").
+- Schedule: the lines show the date in full ("Monday 9 November 2026", "lundi 9 novembre 2026"); day heads show it short, without the year ("Thu 29 Oct", "jeu. 29 oct.").
+- Schedule: the time scale has a mark for every hour; on a narrow screen, every other mark is hidden past six hours.
+- Schedule: an obsolete registration gives its weekday a column, as an occurrence does.
+- Schedule: an occurrence's accessible label is its times, then what it shows, e.g. "10–13 Chloé ?".
+- More weeks: a missing, invalid or reversed range, or one over 520 weeks, shows the generic error; a non-member's request shows none of the weeks; a request that is already signed out leads to Sign in.
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -149,7 +158,6 @@ Choices the spec left open, settled by `settings-preferences`:
 - New association: its mockup shows a title in the page, but `interface.md` says the header's location stands for the title; the page follows the mockup.
 - My associations: the spec sets no order, so the list follows whatever order the database returns.
 - New association: "+ New association" is a link, while `interface.md` describes a button.
-- Members: no served screen links to it yet; only its URL leads there until the Schedule returns.
 - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
 - Members renders an edit dialog and up to three confirmations for every member, so the page grows with the association; shared dialogs filled from the line they are opened on, as Schedule settings does, would fix it.
 - Revoke link from a page opened before the member's link was revoked elsewhere still says "revoked".
@@ -158,13 +166,11 @@ Choices the spec left open, settled by `settings-preferences`:
 - Rename and Delete check against the name the page was loaded with: after a rename in another tab, Delete stays disabled for the new name until a reload.
 - Change the association identifier breaks every bookmark of the former URLs, with no redirect (R36).
 - Add a slot or Edit the slot with To not after From shows only the generic error; the former frontend said "Check the dates and times: the start comes before the end."
-- Schedule settings: no served screen links to it yet; only its URL leads there until the Schedule returns.
 - Edit the slot and Delete the slot don't warn that the slot's registrations become obsolete, nor that deleting it deletes the members' preferences on it.
 - Closures: past closures stay listed forever; they could be listed from those ending today on, as Absences are.
 - Closures may overlap each other, with no warning.
 - Add a closure, Edit the closure and Delete the closure don't warn that the registrations on the closed dates become obsolete, or stop being obsolete.
 - Planning period and closures with To before From show only the generic error, as Slots do.
-- My availability: no served screen links to it yet; only its URL leads there until the Schedule returns.
 - My preferences: a selector retries after a network error, so a late retry could overwrite a newer choice on the same slot.
 - My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
 - Adding or editing an absence that ends before today saves it, but it never shows, with no message.
@@ -174,6 +180,9 @@ Choices the spec left open, settled by `settings-preferences`:
 - Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
 - Members' preferences: a member added on Members, or a choice made on My availability, shows only after a reload.
 - Members' preferences renders a selector for each member and slot, so the page grows with the association.
+- Schedule: a page left open past midnight keeps the old today line and past days until it reloads.
+- Schedule: a closure on a weekday with no column of the shown weeks doesn't show at all.
+- More weeks resends every shown week, so each click's response grows with the weeks already shown.
 
 
 ## Quality
@@ -208,6 +217,7 @@ Choices the spec left open, settled by `settings-preferences`:
 - Send link has no rate limit, so a manager can flood a member with emails.
 - Any manager can delete the association, irreversibly, with no password, so one manager or a stolen session can erase it for every member.
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account.
+- More weeks builds up to 520 weeks per request, with no rate limit, so a member could load the server with repeated long ranges.
 - `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` `POST /association/{slug}/settings/slots/{slot_id}/delete`, `POST /association/{slug}/settings/period`, `POST /association/{slug}/settings/period/clear`, `POST /association/{slug}/settings/closures`, `POST /association/{slug}/settings/closures/{closure_id}/edit` `POST /association/{slug}/settings/closures/{closure_id}/delete` `POST /association/{slug}/availability/preferences/{slot_id}`, `POST /association/{slug}/availability/absences`, `POST /association/{slug}/availability/absences/{absence_id}/edit`, `POST /association/{slug}/availability/absences/{absence_id}/delete`, `POST /association/{slug}/availability/note` and `POST /association/{slug}/settings/preferences/{slot_id}/{user_id}` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
