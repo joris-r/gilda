@@ -200,36 +200,6 @@ Content-Type: application/json
 
 - 409 when that user is already a member.
 
-### PATCH /api/associations/{id}/members/{user_id}
-
-Changes a member's role. Managers only: 403 for a volunteer.
-
-```http
-PATCH /api/associations/5c1e…/members/77c0…
-Content-Type: application/json
-
-{"role": "manager"}
-```
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "access_link": false, "role": "manager"}
-```
-
-- 409 when it would leave the association without a manager (R1).
-- 404 when the user is not a member.
-
-### DELETE /api/associations/{id}/members/{user_id}
-
-Removes a member from the association, ending their membership (R28).
-Managers only: 403 for a volunteer.
-
-- 204. A manager may remove themself.
-- 409 when it would leave the association without a manager (R1).
-- 404 when the user is not a member.
-
 ### POST /api/associations/{id}/members/{user_id}/access-link
 
 Sends a member their access link. Managers only: 403 for a volunteer.
