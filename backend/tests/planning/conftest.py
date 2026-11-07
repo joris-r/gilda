@@ -7,9 +7,12 @@ from tests.core.conftest import (  # noqa: F401  (fixtures used by the planning 
     client,
     create_association,
     new_client,
+    shown,
     sign_up,
     unique_email,
 )
+
+GENERIC = "Something went wrong. Try again."
 
 WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
@@ -29,6 +32,8 @@ class Planning:
         self.alice = sign_up(alice_client, "Alice")
         self.association = create_association(alice_client)
         self.id = self.association["id"]
+        self.slug = self.association["slug"]
+        self.slots: list[dict[str, Any]] = []
         self.bruno_client, self.bruno = self._volunteer(open_client, "Bruno")
         self.chloe_client, self.chloe = self._volunteer(open_client, "Chloé")
 
@@ -48,7 +53,18 @@ class Planning:
         )
         assert response.status_code == 201, response.text
         slot: dict[str, Any] = response.json()
+        self.slots.append(slot)
         return slot
+
+    def edit_slot(self, slot: dict[str, Any], weekday: str, start: str, end: str) -> None:
+        """Alice saves the dialog "Edit the slot" of `slot` on Schedule settings."""
+        text = shown(edit_slot(self.alice_client, self.slug, slot["id"], weekday, start, end))
+        assert GENERIC not in text, text
+
+    def delete_slot(self, slot: dict[str, Any]) -> None:
+        """Alice confirms "Delete the slot" of `slot` on Schedule settings."""
+        text = shown(delete_slot(self.alice_client, self.slug, slot["id"]))
+        assert GENERIC not in text, text
 
     def add_closure(self, first: str, last: str, label: str | None = None) -> dict[str, Any]:
         response = self.alice_client.post(
@@ -82,3 +98,24 @@ class Planning:
         assert response.status_code == 200, response.text
         body: dict[str, Any] = response.json()
         return body
+
+
+def add_slot_on_screen(as_client: Any, slug: str, weekday: str, start: str, end: str) -> Any:
+    """Submits the dialog "Add a slot" on Schedule settings."""
+    return as_client.post(
+        f"/association/{slug}/settings/slots",
+        json={"weekday": weekday, "start": start, "end": end},
+    )
+
+
+def edit_slot(as_client: Any, slug: str, slot_id: str, weekday: str, start: str, end: str) -> Any:
+    """Submits the dialog "Edit the slot" of a slot on Schedule settings."""
+    return as_client.post(
+        f"/association/{slug}/settings/slots/{slot_id}/edit",
+        json={"weekday": weekday, "start": start, "end": end},
+    )
+
+
+def delete_slot(as_client: Any, slug: str, slot_id: str) -> Any:
+    """Confirms "Delete the slot" of a slot on Schedule settings."""
+    return as_client.post(f"/association/{slug}/settings/slots/{slot_id}/delete", json={})

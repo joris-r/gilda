@@ -132,7 +132,7 @@ def test_r12_r13_obsolete_registrations_are_neither_upcoming_nor_counted(
     slot = planning.add_slot(WEEKDAYS[(TODAY + timedelta(days=2)).weekday()], "14:00", "16:00")
     confirmed(planning, 2, "14:00", "16:00")
     planning.registered(planning.alice_client, planning.bruno, day(9), "14:00", "16:00")
-    assert planning.alice_client.delete(planning.path(f"slots/{slot['id']}")).status_code == 204
+    planning.delete_slot(slot)
 
     entry = summary(planning, planning.bruno_client)
 
@@ -147,7 +147,7 @@ def obsolete_dates(planning: Planning) -> list[str]:
 def test_r31_a_removed_slot_makes_its_registrations_obsolete(planning: Planning) -> None:
     slot = planning.add_slot(WEEKDAYS[(TODAY + timedelta(days=2)).weekday()], "14:00", "16:00")
     registration = confirmed(planning, 2, "14:00", "16:00")
-    assert planning.alice_client.delete(planning.path(f"slots/{slot['id']}")).status_code == 204
+    planning.delete_slot(slot)
 
     assert summary(planning, planning.bruno_client)["obsolete"] == [registration]
 
@@ -165,11 +165,7 @@ def test_r31_a_closure_makes_its_registrations_obsolete(planning: Planning) -> N
 def test_r31_an_edited_slot_makes_its_registrations_obsolete(planning: Planning) -> None:
     slot = planning.add_slot(WEEKDAYS[(TODAY + timedelta(days=2)).weekday()], "14:00", "16:00")
     confirmed(planning, 2, "14:00", "16:00")
-    response = planning.alice_client.put(
-        planning.path(f"slots/{slot['id']}"),
-        json={"weekday": slot["weekday"], "start": "15:00", "end": "17:00"},
-    )
-    assert response.status_code == 200, response.text
+    planning.edit_slot(slot, slot["weekday"], "15:00", "17:00")
 
     obsolete = summary(planning, planning.bruno_client)["obsolete"]
 

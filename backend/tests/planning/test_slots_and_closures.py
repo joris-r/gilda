@@ -15,10 +15,7 @@ UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 @pytest.mark.parametrize(
     ("method", "rest", "body"),
     [
-        ("GET", "slots", None),
         ("POST", "slots", {"weekday": "thursday", "start": "10:00", "end": "13:00"}),
-        ("PUT", f"slots/{UNKNOWN_ID}", {"weekday": "thursday", "start": "10:00", "end": "13:00"}),
-        ("DELETE", f"slots/{UNKNOWN_ID}", None),
         ("GET", "closures", None),
         ("POST", "closures", {"first": "2026-12-24", "last": "2026-12-26", "label": None}),
         (
@@ -48,7 +45,6 @@ def test_planning_401_when_signed_out(
 @pytest.mark.parametrize(
     ("method", "rest", "body"),
     [
-        ("GET", "slots", None),
         ("POST", "slots", {"weekday": "thursday", "start": "10:00", "end": "13:00"}),
         ("GET", "closures", None),
         ("POST", "closures", {"first": "2026-12-24", "last": "2026-12-26", "label": None}),
@@ -85,40 +81,12 @@ def test_post_api_slots_creates_a_slot(client: Any, new_client: Callable[[], Any
     uuid.UUID(body["id"])
 
 
-def test_get_api_slots_lists_them_by_weekday_then_start(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    planning = Planning(client, new_client)
-    planning.add_slot("saturday", "10:00", "13:00")
-    planning.add_slot("thursday", "13:00", "16:00")
-    planning.add_slot("thursday", "10:00", "13:00")
-
-    response = planning.bruno_client.get(planning.path("slots"))
-
-    assert response.status_code == 200
-    assert [(s["weekday"], s["start"], s["end"]) for s in response.json()] == [
-        ("thursday", "10:00", "13:00"),
-        ("thursday", "13:00", "16:00"),
-        ("saturday", "10:00", "13:00"),
-    ]
-
-
 def test_slots_are_kept_to_the_minute(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
 
     slot = planning.add_slot("friday", "18:30", "20:15")
 
     assert (slot["start"], slot["end"]) == ("18:30", "20:15")
-
-
-def test_delete_api_slot_removes_it(client: Any, new_client: Callable[[], Any]) -> None:
-    planning = Planning(client, new_client)
-    slot = planning.add_slot("thursday", "10:00", "13:00")
-
-    response = client.delete(planning.path(f"slots/{slot['id']}"))
-
-    assert response.status_code == 204
-    assert client.get(planning.path("slots")).json() == []
 
 
 def test_post_api_slots_409_when_the_association_already_has_that_slot(
@@ -170,100 +138,16 @@ def test_post_api_slots_400_when_a_field_is_missing_or_invalid(
     assert "error" in response.json()
 
 
-def test_put_api_slot_edits_it(client: Any, new_client: Callable[[], Any]) -> None:
+def test_post_api_slots_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
-    slot = planning.add_slot("thursday", "10:00", "13:00")
 
-    response = client.put(
-        planning.path(f"slots/{slot['id']}"),
-        json={"weekday": "friday", "start": "14:00", "end": "17:30"},
-    )
-
-    assert response.status_code == 200
-    edited = {"id": slot["id"], "weekday": "friday", "start": "14:00", "end": "17:30"}
-    assert response.json() == edited
-    assert client.get(planning.path("slots")).json() == [edited]
-
-
-def test_put_api_slot_to_its_own_values(client: Any, new_client: Callable[[], Any]) -> None:
-    planning = Planning(client, new_client)
-    slot = planning.add_slot("thursday", "10:00", "13:00")
-
-    response = client.put(
-        planning.path(f"slots/{slot['id']}"),
-        json={"weekday": "thursday", "start": "10:00", "end": "13:00"},
-    )
-
-    assert response.status_code == 200
-    assert response.json() == slot
-
-
-def test_put_api_slot_409_when_the_association_already_has_that_slot(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    planning = Planning(client, new_client)
-    planning.add_slot("thursday", "10:00", "13:00")
-    saturday = planning.add_slot("saturday", "10:00", "13:00")
-
-    response = client.put(
-        planning.path(f"slots/{saturday['id']}"),
-        json={"weekday": "thursday", "start": "10:00", "end": "13:00"},
-    )
-
-    assert response.status_code == 409
-    assert "error" in response.json()
-    assert [s["weekday"] for s in client.get(planning.path("slots")).json()] == [
-        "thursday",
-        "saturday",
-    ]
-
-
-@pytest.mark.parametrize(
-    "body",
-    [
-        {"start": "10:00", "end": "13:00"},
-        {"weekday": "someday", "start": "10:00", "end": "13:00"},
-        {"weekday": "thursday", "start": "13:00", "end": "10:00"},
-        {"weekday": "thursday", "start": "10h", "end": "13:00"},
-    ],
-)
-def test_put_api_slot_400_when_a_field_is_missing_or_invalid(
-    client: Any, new_client: Callable[[], Any], body: dict[str, str]
-) -> None:
-    planning = Planning(client, new_client)
-    slot = planning.add_slot("thursday", "10:00", "13:00")
-
-    response = client.put(planning.path(f"slots/{slot['id']}"), json=body)
-
-    assert response.status_code == 400
-    assert "error" in response.json()
-
-
-def test_put_api_slot_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
-    planning = Planning(client, new_client)
-    slot = planning.add_slot("thursday", "10:00", "13:00")
-
-    response = planning.bruno_client.put(
-        planning.path(f"slots/{slot['id']}"),
-        json={"weekday": "friday", "start": "10:00", "end": "13:00"},
-    )
-
-    assert response.status_code == 403
-    assert client.get(planning.path("slots")).json() == [slot]
-
-
-def test_slots_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
-    planning = Planning(client, new_client)
-    slot = planning.add_slot("thursday", "10:00", "13:00")
-    bruno = planning.bruno_client
-
-    created = bruno.post(
+    created = planning.bruno_client.post(
         planning.path("slots"), json={"weekday": "saturday", "start": "10:00", "end": "13:00"}
     )
-    deleted = bruno.delete(planning.path(f"slots/{slot['id']}"))
 
-    assert (created.status_code, deleted.status_code) == (403, 403)
-    assert len(client.get(planning.path("slots")).json()) == 1
+    assert created.status_code == 403
+    # Alice can still add it: Bruno's request created nothing.
+    planning.add_slot("saturday", "10:00", "13:00")
 
 
 # Closures

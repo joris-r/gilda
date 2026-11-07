@@ -1,5 +1,6 @@
 import html
 import re
+import uuid
 from collections.abc import Callable
 from typing import Any
 
@@ -91,7 +92,6 @@ class TestOtherPaths:
         "path",
         [
             "/associations/new",
-            "/association/jardin/settings",
             "/association/jardin/availability",
         ],
     )
@@ -100,6 +100,29 @@ class TestOtherPaths:
 
         assert response.status_code == 404
         assert "Page not found" in response.text
+
+
+class TestScheduleSettings:
+    def test_shows_only_its_slots_section(self, client: Any) -> None:
+        sign_up(client, "Alice")
+        slug = f"a-{uuid.uuid4().hex[:12]}"
+        created = client.post("/api/associations", json={"name": "Jardin", "slug": slug})
+        assert created.status_code == 201
+
+        response = client.get(f"/association/{slug}/settings")
+
+        assert response.status_code == 200
+        main = html.unescape(part(response.text, "main"))
+        assert "Slots" in main
+        assert "Add a slot" in main
+        for absent in [
+            "Planning period",
+            "Closures",
+            "Add a closure",
+            "Share link",
+            "Members' preferences",
+        ]:
+            assert absent not in main
 
 
 class TestNotFound:
@@ -123,6 +146,7 @@ class TestNotFound:
             "/association/jardin/rename",
             "/association/jardin/identifier",
             "/association/jardin/delete",
+            "/association/jardin/settings/slots",
         ],
     )
     def test_a_path_only_actions_use_answers_it_too(self, client: Any, path: str) -> None:

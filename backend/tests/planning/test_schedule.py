@@ -161,7 +161,7 @@ def test_a_registration_whose_slot_was_deleted_is_obsolete(
     slot = planning.add_slot("thursday", "10:00", "13:00")
     thursday = day_of_week("thursday")
     registration = planning.registered(client, planning.bruno, thursday, "10:00", "13:00")
-    client.delete(planning.path(f"slots/{slot['id']}"))
+    planning.delete_slot(slot)
 
     body = planning.schedule(planning.bruno_client, thursday, thursday)
 
@@ -176,7 +176,7 @@ def test_a_registration_whose_slot_changed_hours_is_obsolete(
     slot = planning.add_slot("thursday", "10:00", "13:00")
     thursday = day_of_week("thursday")
     planning.registered(planning.bruno_client, planning.bruno, thursday, "10:00", "13:00")
-    client.delete(planning.path(f"slots/{slot['id']}"))
+    planning.delete_slot(slot)
     planning.add_slot("thursday", "10:00", "12:00")
 
     body = planning.schedule(client, thursday, thursday)
@@ -197,10 +197,7 @@ def test_a_registration_whose_slot_was_edited_is_obsolete(
     thursday = day_of_week("thursday")
     registration = planning.registered(client, planning.bruno, thursday, "10:00", "13:00")
 
-    client.put(
-        planning.path(f"slots/{slot['id']}"),
-        json={"weekday": "thursday", "start": "14:00", "end": "17:00"},
-    )
+    planning.edit_slot(slot, "thursday", "14:00", "17:00")
 
     body = planning.schedule(client, thursday, thursday)
     assert body["occurrences"] == [
@@ -256,7 +253,7 @@ def test_a_cancelled_registration_is_never_obsolete(
         planning.bruno_client, planning.bruno, thursday, "10:00", "13:00"
     )
     planning.set_status(planning.bruno_client, registration, "cancelled")
-    client.delete(planning.path(f"slots/{slot['id']}"))
+    planning.delete_slot(slot)
 
     body = planning.schedule(client, thursday, thursday)
 
@@ -270,7 +267,7 @@ def test_obsolete_registrations_come_back_when_the_slot_does(
     slot = planning.add_slot("thursday", "10:00", "13:00")
     thursday = day_of_week("thursday")
     planning.registered(planning.bruno_client, planning.bruno, thursday, "10:00", "13:00")
-    client.delete(planning.path(f"slots/{slot['id']}"))
+    planning.delete_slot(slot)
     planning.add_slot("thursday", "10:00", "13:00")
 
     body = planning.schedule(client, thursday, thursday)

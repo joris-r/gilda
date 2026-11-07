@@ -304,8 +304,8 @@ def test_r7_confirming_an_obsolete_registration_409(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
-    slot = client.get(planning.path("slots")).json()[0]
-    client.delete(planning.path(f"slots/{slot['id']}"))
+    slot = planning.slots[0]
+    planning.delete_slot(slot)
 
     response = planning.set_status(planning.bruno_client, registration, "confirmed")
 
@@ -316,8 +316,8 @@ def test_r7_a_manager_confirming_an_obsolete_registration_409(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
-    slot = client.get(planning.path("slots")).json()[0]
-    client.delete(planning.path(f"slots/{slot['id']}"))
+    slot = planning.slots[0]
+    planning.delete_slot(slot)
 
     response = planning.set_status(client, registration, "confirmed")
 
@@ -354,8 +354,8 @@ def test_r7_an_obsolete_registration_can_be_cancelled(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
-    slot = client.get(planning.path("slots")).json()[0]
-    client.delete(planning.path(f"slots/{slot['id']}"))
+    slot = planning.slots[0]
+    planning.delete_slot(slot)
 
     response = planning.set_status(planning.bruno_client, registration, "cancelled")
 

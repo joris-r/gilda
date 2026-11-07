@@ -100,7 +100,7 @@ def test_r34_the_share_link_no_longer_shows_the_schedule(
 
 
 @pytest.mark.parametrize(
-    "rest", ["schedule", "slots", "closures", "planning-period", "absences", "note", "share-link"]
+    "rest", ["schedule", "closures", "planning-period", "absences", "note", "share-link"]
 )
 def test_r34_its_planning_endpoints_answer_404(
     client: Any, new_client: Callable[[], Any], rest: str

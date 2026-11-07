@@ -277,7 +277,7 @@ def test_deleting_a_slot_deletes_its_preferences(
     set_preference(planning, planning.bruno_client, thursday, planning.bruno, "preferred")
     set_preference(planning, planning.bruno_client, saturday, planning.bruno, "possible")
 
-    client.delete(planning.path(f"slots/{thursday['id']}"))
+    planning.delete_slot(thursday)
 
     assert by_user_and_slot(preferences(planning, client)) == {
         (planning.bruno["id"], saturday["id"], "possible")
@@ -289,12 +289,8 @@ def test_editing_a_slot_keeps_its_preferences(client: Any, new_client: Callable[
     slot = planning.add_slot("thursday", "10:00", "13:00")
     set_preference(planning, planning.bruno_client, slot, planning.bruno, "preferred")
 
-    response = client.put(
-        planning.path(f"slots/{slot['id']}"),
-        json={"weekday": "friday", "start": "14:00", "end": "17:00"},
-    )
+    planning.edit_slot(slot, "friday", "14:00", "17:00")
 
-    assert response.status_code == 200
     assert by_user_and_slot(preferences(planning, client)) == {
         (planning.bruno["id"], slot["id"], "preferred")
     }
@@ -304,7 +300,7 @@ def test_a_slot_added_again_has_no_preferences(client: Any, new_client: Callable
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
     set_preference(planning, planning.bruno_client, slot, planning.bruno, "preferred")
-    client.delete(planning.path(f"slots/{slot['id']}"))
+    planning.delete_slot(slot)
 
     planning.add_slot("thursday", "10:00", "13:00")
 
@@ -417,7 +413,7 @@ def test_r15_does_not_count_obsolete_registrations(
     planning.registered(
         planning.bruno_client, planning.bruno, day_of_week("thursday", 1), "10:00", "13:00"
     )
-    client.delete(planning.path(f"slots/{slot['id']}"))
+    planning.delete_slot(slot)
 
     assert counts(planning) == {
         planning.alice["id"]: 0,
