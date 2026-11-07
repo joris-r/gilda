@@ -22,6 +22,9 @@ the tests citing the rule.
 A test of a newly served page asserts its status, as the Not found page
 shares its header.
 
+On a signed-in screen, a test looks for the generic error within `main`
+or its dialog, as the header's closed dialogs hold hidden copies of it.
+
 When a test copies an expectation from another spec, the Tests phase
 checks that the fixtures it relies on match (e.g. a planning period
 that changes the default range, or a client that holds a `language`

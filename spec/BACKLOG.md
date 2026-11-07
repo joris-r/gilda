@@ -9,8 +9,7 @@
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- My associations: the list with names and roles, replacing the temporary `/`, and New association, with the form dialog (title, close button).
-- Members: the list, "Show all", "not joined yet" and Add a member.
+- Members: the list, "Show all", "not joined yet" and Add a member, with the form dialog (title, close button).
 - Members: the edit dialog, role changes and Remove from the association; restores "A volunteer becomes manager".
 - Members: Revoke link and Send link; restores "A volunteer signs in by link".
 - Members: Rename the association, Change the association identifier and Delete the association.
@@ -54,6 +53,13 @@ Choices the spec left open, settled by `sign-in-link`:
 - Access link: opening a link in another user's session signs in as the link's user.
 - Access link: the page runs the sign-in once it loads, so fetching the link alone signs no one in.
 
+Choices the spec left open, settled by `my-associations`:
+
+- New association: an empty or missing name or identifier shows the generic error.
+- New association: a request that is already signed out leads to Sign in and creates nothing.
+- New association: the identifier `new` shows the "already taken" message.
+- R35: an identifier cut at 50 characters loses a hyphen left at its end.
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -64,6 +70,9 @@ Choices the spec left open, settled by `sign-in-link`:
 - Access link and Confirm email: the page stays blank while the action runs, and after a server failure only the generic error shows, with no way forward.
 - Sign-in link: when the email can't be sent, the link is still created, so the member later shows "Revoke link" for a link nobody received.
 - End-to-end: run the suite on Firefox too; the menu and dialog rely on `popover`, `commandfor` and CSS anchor positioning.
+- New association: its mockup shows a title in the page, but `interface.md` says the header's location stands for the title; the page follows the mockup.
+- My associations: the spec sets no order, so the list follows whatever order the database returns.
+- New association: "+ New association" is a link, while `interface.md` describes a button.
 
 
 ## Quality
@@ -93,7 +102,7 @@ Choices the spec left open, settled by `sign-in-link`:
 - Sign-in link's response time can reveal an account, as the email is sent during the request.
 - Sign-in link and Forgot password have no rate limit, so anyone can flood a known address with emails.
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account.
-- `POST /delete-account` and `POST /revoke-access-link` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
+- `POST /delete-account`, `POST /revoke-access-link` and `POST /association/new` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
 
