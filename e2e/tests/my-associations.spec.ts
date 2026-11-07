@@ -167,7 +167,7 @@ test.describe('New association', () => {
     await nameField(page).fill('Jardin')
     await createButton(page).click()
 
-    await expect(page.getByText(GENERIC)).toBeVisible()
+    await expect(page.locator('main').getByText(GENERIC)).toBeVisible()
     await expect(nameField(page)).toHaveValue('Jardin')
     await expect(identifierField(page)).toHaveValue('jardin')
   })
