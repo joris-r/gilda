@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% from "form_dialog.html" import form_dialog with context %}
 {% block header_actions %}{% include "user_menu.html" %}{% endblock %}
-{% block location %}<p class="where"><a href="/association/{{ association.slug }}">{{ association.name }}</a><span class="sep">›</span>{{ t("association.members") }}</p>{% endblock %}
+{% block location %}{% include "members_location.html" %}{% endblock %}
 {% block main %}
 {% if association.role == "manager" %}
 {% call form_dialog("add-member", t("association.addMember")) %}
@@ -46,4 +46,7 @@
   {% endif %}
   {% include "members_list.html" %}
 </div>
+{% if association.role == "manager" %}
+{% include "association_actions.html" %}
+{% endif %}
 {% endblock %}

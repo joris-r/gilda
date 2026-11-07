@@ -49,11 +49,6 @@ class AssociationCreate(msgspec.Struct):
     slug: Slug
 
 
-class AssociationUpdate(msgspec.Struct):
-    name: NonEmpty | None = None
-    slug: Slug | None = None
-
-
 class AssociationRead(msgspec.Struct):
     id: UUID
     name: str

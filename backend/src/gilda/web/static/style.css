@@ -338,6 +338,17 @@ button.link {
   margin: -8px 0 0;
 }
 
+.association-links {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.association-links p {
+  margin: 0;
+}
+
 .preference-preferred {
   background: var(--ok-soft);
   border-color: var(--ok);

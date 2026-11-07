@@ -10,6 +10,7 @@ from gilda.mailer import Language, preferred_language
 
 LANGUAGE_COOKIE = "language"
 LANGUAGES: tuple[Language, ...] = ("en", "fr")
+_NOTICE_KEY = "notice"
 
 _LOCALES = Path(__file__).parent / "locales"
 _TRANSLATIONS: dict[str, dict[str, Any]] = {
@@ -47,9 +48,18 @@ def _context(request: Request[Any, Any, Any], context: dict[str, Any]) -> dict[s
     return {"language": language, "t": t, **context}
 
 
+def flash(request: Request[Any, Any, Any], message: str) -> None:
+    """Keeps `message` for the next page the user opens, which shows it as its notice."""
+    request.set_session({**(request.session or {}), _NOTICE_KEY: message})
+
+
 def page(request: Request[Any, Any, Any], template: str, **context: Any) -> Template:
-    """A full page."""
-    return Template(template, context=_context(request, context))
+    """A full page, with the notice kept for it, if any."""
+    session = request.session or {}
+    notice = session.get(_NOTICE_KEY, "")
+    if notice:
+        request.set_session({k: v for k, v in session.items() if k != _NOTICE_KEY})
+    return Template(template, context=_context(request, {"notice": notice, **context}))
 
 
 def fragment(request: Request[Any, Any, Any], template: str, **context: Any) -> str:

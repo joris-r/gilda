@@ -248,6 +248,7 @@ class TestMembersHeader:
         main = text_of(part(members_page(client, association["slug"]), "main"))
 
         assert "Members" not in main
+        # @dev43:unsure
         assert NAME not in main
 
     def test_follows_the_language(self, client: Any) -> None:

@@ -1,0 +1,83 @@
+{% from "form_dialog.html" import form_dialog with context %}
+{% set at = "/association/" ~ association.slug %}
+<div id="association-actions">
+  <div class="association-links">
+    <p>
+      <button
+        type="button"
+        class="link"
+        commandfor="rename"
+        command="show-modal"
+        data-on:click='$name = {{ association.name | tojson }}; $_failed = false; document.getElementById("rename-error").hidden = true'
+      >{{ t("association.renameAssociation") }}</button>
+    </p>
+    <p>
+      <button
+        type="button"
+        class="link"
+        commandfor="identifier"
+        command="show-modal"
+        data-on:click='$slug = {{ association.slug | tojson }}; $_failed = false; document.getElementById("identifier-error").hidden = true'
+      >{{ t("association.changeIdentifier") }}</button>
+    </p>
+    <p>
+      <button
+        type="button"
+        class="link danger"
+        commandfor="delete-association"
+        command="show-modal"
+        data-on:click="$_typedName = ''; $_failed = false"
+      >{{ t("association.deleteAssociation") }}</button>
+    </p>
+  </div>
+  {% call form_dialog("rename", t("association.renameAssociation")) %}
+  {# No retry: a request that failed must not go through later, once the dialog is cancelled. #}
+  <form data-on:submit="@post('{{ at }}/rename', {filterSignals: {include: /^name$/}, retryMaxCount: 0})">
+    <label>
+      {{ t("fields.name") }}
+      <input data-bind:name value="{{ association.name }}" autocomplete="off">
+    </label>
+    {% with error_id = "rename-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+    <div class="dialog-actions">
+      <button type="submit" data-attr:disabled="!$name">{{ t("association.save") }}</button>
+      <button type="button" class="link" commandfor="rename" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+  </form>
+  {% endcall %}
+  {% call form_dialog("identifier", t("association.changeIdentifier")) %}
+  <form data-on:submit="@post('{{ at }}/identifier', {filterSignals: {include: /^slug$/}, retryMaxCount: 0})">
+    <label>
+      {{ t("fields.associationIdentifier") }}
+      <span class="slug-field">
+        <span class="hint">/association/</span>
+        <input data-bind:slug value="{{ association.slug }}" autocomplete="off" maxlength="50">
+      </span>
+    </label>
+    {% with error_id = "identifier-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+    <div class="dialog-actions">
+      <button type="submit" data-attr:disabled="!$slug">{{ t("association.save") }}</button>
+      <button type="button" class="link" commandfor="identifier" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+  </form>
+  {% endcall %}
+  <dialog id="delete-association" class="dialog" aria-labelledby="delete-association-question">
+    <p id="delete-association-question">{{ t("association.confirmDelete", name=association.name) }}</p>
+    <label>
+      {{ t("association.typeName") }}
+      <input data-bind:_typed-name autocomplete="off">
+    </label>
+    <div class="dialog-actions">
+      <button
+        type="button"
+        class="danger"
+        disabled
+        data-attr:disabled='$_typedName !== {{ association.name | tojson }}'
+        data-on:click="@post('{{ at }}/delete', {filterSignals: {include: /^$/}, retryMaxCount: 0})"
+      >{{ t("association.delete") }}</button>
+      <button type="button" class="link" commandfor="delete-association" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+  </dialog>
+</div>

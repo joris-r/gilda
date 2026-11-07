@@ -23,7 +23,7 @@
       </header>
       <main>
         {% block main %}{% endblock %}
-        <p id="notice" role="status" hidden></p>
+        <p id="notice" role="status"{% if not notice %} hidden{% endif %}>{{ notice }}</p>
         <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
       </main>
     </div>

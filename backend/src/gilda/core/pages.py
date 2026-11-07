@@ -36,6 +36,7 @@ from gilda.core.services import (
     MembershipEndHook,
 )
 from gilda.web.rendering import (
+    flash,
     fragment,
     interface_language,
     page,
@@ -335,6 +336,108 @@ async def revoke_member_link(
     language = interface_language(request)
     message = translate(language, "association.linkRevoked", name=member.display_name)
     return await _members_patched(request, associations, user, association.id, message, user_id)
+
+
+def _dialog_error(
+    request: Request[Any, Any, Any], dialog: str, key: str, **values: object
+) -> DatastarResponse:
+    """The message of one of the association's dialogs on Members."""
+    message = translate(interface_language(request), key, **values)
+    return DatastarResponse(
+        ServerSentEventGenerator.patch_elements(
+            fragment(request, "form_error.html", message=message, error_id=f"{dialog}-error")
+        )
+    )
+
+
+def _closed(dialog: str) -> DatastarResponse:
+    return DatastarResponse(
+        ServerSentEventGenerator.execute_script(f"document.getElementById('{dialog}').close()")
+    )
+
+
+@post("/association/{slug:str}/rename", status_code=200)
+async def rename_association(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    name = (await read_signals_dict(request)).get("name")
+    if not (name and isinstance(name, str)):
+        return _dialog_error(request, "rename", "error")
+    associations = AssociationService(db_session)
+    try:
+        association = await associations.detail_by_slug(user, slug)
+        if name == association.name:
+            return _closed("rename")
+        await associations.update(user, association.id, name, None)
+    except (NotFoundException, PermissionDeniedException):
+        return _dialog_error(request, "rename", "error")
+    now = await associations.detail(user, association.id)
+    message = translate(interface_language(request), "association.renamed", name=name)
+    return DatastarResponse(
+        [
+            ServerSentEventGenerator.execute_script("document.getElementById('rename').close()"),
+            ServerSentEventGenerator.patch_elements(
+                fragment(request, "members_location.html", association=now)
+            ),
+            ServerSentEventGenerator.patch_elements(
+                fragment(request, "association_actions.html", association=now)
+            ),
+            ServerSentEventGenerator.patch_elements(
+                fragment(request, "notice.html", message=message)
+            ),
+        ]
+    )
+
+
+@post("/association/{slug:str}/identifier", status_code=200)
+async def change_identifier(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    new_slug = (await read_signals_dict(request)).get("slug")
+    if not (new_slug and isinstance(new_slug, str)):
+        return _dialog_error(request, "identifier", "error")
+    try:
+        msgspec.convert(new_slug, Slug)
+    except msgspec.ValidationError:
+        return _dialog_error(request, "identifier", "association.identifierInvalid")
+    associations = AssociationService(db_session)
+    try:
+        association = await associations.detail_by_slug(user, slug)
+        if new_slug == association.slug:
+            return _closed("identifier")
+        await associations.update(user, association.id, None, new_slug)
+    except ConflictException:
+        return _dialog_error(request, "identifier", "association.identifierTaken")
+    except (NotFoundException, PermissionDeniedException):
+        return _dialog_error(request, "identifier", "error")
+    language = interface_language(request)
+    flash(request, translate(language, "association.identifierChanged", slug=new_slug))
+    return DatastarResponse(ServerSentEventGenerator.redirect(f"/association/{new_slug}/members"))
+
+
+@post("/association/{slug:str}/delete", status_code=200)
+async def delete_association(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    associations = AssociationService(db_session)
+    try:
+        association = await associations.detail_by_slug(user, slug)
+        await associations.delete(user, association.id)
+    except (NotFoundException, PermissionDeniedException):
+        # The page no longer matches what the user may do: show it as it now is.
+        return DatastarResponse(ServerSentEventGenerator.redirect(f"/association/{slug}/members"))
+    language = interface_language(request)
+    flash(request, translate(language, "association.deleted", name=association.name))
+    return DatastarResponse(ServerSentEventGenerator.redirect("/"))
 
 
 @post("/sign-in", status_code=200)

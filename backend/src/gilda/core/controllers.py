@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import UUID
 
-from litestar import Controller, Request, delete, get, patch, post
+from litestar import Controller, Request, delete, get, post
 from litestar.di import NamedDependency, Provide
 from litestar.exceptions import NotAuthorizedException
 from litestar.params import FromPath, JSONBody
@@ -12,7 +12,6 @@ from gilda.core.schemas import (
     AssociationCreate,
     AssociationDetail,
     AssociationRead,
-    AssociationUpdate,
     Credentials,
     MemberCreate,
     MemberRead,
@@ -120,27 +119,6 @@ class AssociationController(Controller):
         association_id: FromPath[UUID],
     ) -> AssociationDetail:
         return await AssociationService(db_session).detail(current_user, association_id)
-
-    @patch("/{association_id:uuid}")
-    async def update_association(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        data: JSONBody[AssociationUpdate],
-    ) -> AssociationRead:
-        return await AssociationService(db_session).update(
-            current_user, association_id, data.name, data.slug
-        )
-
-    @delete("/{association_id:uuid}")
-    async def delete_association(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> None:
-        await AssociationService(db_session).delete(current_user, association_id)
 
     @post("/{association_id:uuid}/members")
     async def add_member(
