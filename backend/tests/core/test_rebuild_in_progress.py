@@ -92,7 +92,7 @@ class TestOtherPaths:
         "path",
         [
             "/associations/new",
-            "/association/jardin/availability",
+            "/association/jardin",
         ],
     )
     def test_any_other_path_answers_the_not_found_page(self, client: Any, path: str) -> None:
@@ -116,6 +116,22 @@ class TestScheduleSettings:
         for present in ["Planning period", "Closures", "Add a closure", "Slots", "Add a slot"]:
             assert present in main
         for absent in ["Share link", "Create a share link", "Members' preferences"]:
+            assert absent not in main
+
+
+class TestMyAvailability:
+    def test_shows_only_its_my_preferences_section(self, client: Any) -> None:
+        sign_up(client, "Alice")
+        slug = f"a-{uuid.uuid4().hex[:12]}"
+        created = client.post("/api/associations", json={"name": "Jardin", "slug": slug})
+        assert created.status_code == 201
+
+        response = client.get(f"/association/{slug}/availability")
+
+        assert response.status_code == 200
+        main = html.unescape(part(response.text, "main"))
+        assert "My preferences" in main
+        for absent in ["Absences", "Add an absence", "Note for the managers"]:
             assert absent not in main
 
 
@@ -144,6 +160,7 @@ class TestNotFound:
             "/association/jardin/settings/period",
             "/association/jardin/settings/period/clear",
             "/association/jardin/settings/closures",
+            "/association/jardin/availability/preferences/00000000-0000-4000-8000-000000000000",
         ],
     )
     def test_a_path_only_actions_use_answers_it_too(self, client: Any, path: str) -> None:

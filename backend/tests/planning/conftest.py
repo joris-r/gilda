@@ -211,3 +211,16 @@ def edit_closure(
 def delete_closure(as_client: Any, slug: str, closure_id: str) -> Any:
     """Confirms "Delete the closure" of a closure on Schedule settings."""
     return as_client.post(f"/association/{slug}/settings/closures/{closure_id}/delete", json={})
+
+
+def availability_page(as_client: Any, slug: str) -> str:
+    response = as_client.get(f"/association/{slug}/availability")
+    assert response.status_code == 200
+    return str(response.text)
+
+
+def set_my_preference(as_client: Any, slug: str, slot_id: str, value: str) -> Any:
+    """Chooses `value` in the selector of a slot on My availability; "" stands for "—"."""
+    return as_client.post(
+        f"/association/{slug}/availability/preferences/{slot_id}", json={"value": value}
+    )
