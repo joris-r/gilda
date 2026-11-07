@@ -121,14 +121,13 @@ Content-Type: application/json
   "timezone": "Europe/Paris",
   "role": "manager",
   "members": [
-    {"user_id": "0b6f…", "display_name": "Alice", "email": "alice@example.org", "has_account": true, "email_verified": true, "access_link": true, "role": "manager"},
-    {"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "access_link": false, "role": "volunteer"}
+    {"user_id": "0b6f…", "display_name": "Alice", "email": "alice@example.org", "has_account": true, "email_verified": true, "role": "manager"},
+    {"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "role": "volunteer"}
   ]
 }
 ```
 
 - `role` is the signed-in user's role.
-- `access_link` is true when the member has an AccessLink.
 - 404 when the association does not exist or the signed-in user is not
   a member.
 
@@ -195,34 +194,10 @@ Content-Type: application/json
 HTTP/1.1 201 Created
 Content-Type: application/json
 
-{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "access_link": false, "role": "volunteer"}
+{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "role": "volunteer"}
 ```
 
 - 409 when that user is already a member.
-
-### POST /api/associations/{id}/members/{user_id}/access-link
-
-Sends a member their access link. Managers only: 403 for a volunteer.
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "access_link": true, "role": "volunteer"}
-```
-
-- R26: Sends the member the email of R24, in the language R20 sets
-  from the manager's request; R25 applies.
-- 404 when the user is not a member.
-- 503 when the email cannot be sent.
-
-### DELETE /api/associations/{id}/members/{user_id}/access-link
-
-Revokes a member's AccessLink (R23), in every association they belong
-to. Managers only: 403 for a volunteer.
-
-- 204, also when the member has none.
-- 404 when the user is not a member.
 
 ## Errors
 

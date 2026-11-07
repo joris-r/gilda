@@ -330,11 +330,13 @@ As a manager:
   manager." and changes nothing.
 - "Revoke link" shows only for a member with an access link; it asks
   "Revoke Chloé's sign-in link?" with [Revoke]; confirming revokes it
-  and shows "Chloé's sign-in link is revoked."
+  (R23) and shows "Chloé's sign-in link is revoked."
 - "Send link" asks "Send Chloé's sign-in link by email?" with [Send];
-  confirming sends it (R26) and shows "Chloé's sign-in link is sent."
+  confirming sends it and shows "Chloé's sign-in link is sent."
   When the email cannot be sent: "We couldn't send Chloé's sign-in
   link. Try again later."
+  - R26: Chloé is sent the email of R24, in the language R20 sets
+    from the manager's request; R25 applies.
 - "Remove from the association" asks "Remove Chloé from the
   association? Their upcoming registrations are cancelled." with
   [Remove]; confirming removes Chloé (R28) and shows "Chloé is removed."

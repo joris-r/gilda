@@ -33,18 +33,6 @@ Until then:
       Chloé  not joined yet                      VOLUNTEER   ✎
       chloe@example.org
     ```
-
-    The edit dialog has no sign-in link section:
-
-    ```
-    ┌ Chloé ───────────────────────────────────────── ✕ ┐
-    │ chloe@example.org                                 │
-    │ Role [Volunteer ▾]                                │
-    │ [Save]  Cancel                                    │
-    │                                                   │
-    │ Remove from the association                       │
-    └───────────────────────────────────────────────────┘
-    ```
 - Any other path outside `/api` answers the Not found page, including
   the Schedule that an association's name and Create association lead
   to.
