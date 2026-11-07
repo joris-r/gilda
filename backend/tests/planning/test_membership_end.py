@@ -14,6 +14,8 @@ from tests.planning.conftest import (
     availability_lines,
     availability_section,
     day_of_week,
+    preferences_stored,
+    set_my_preference,
 )
 
 THURSDAY = ("10:00", "13:00")
@@ -157,14 +159,19 @@ def test_r28_registrations_of_other_members_and_associations_stay(
     assert in_other["status"] == "proposed"
 
 
+def chosen(planning: Planning, as_client: Any, slot: dict[str, Any], value: str) -> None:
+    """Chooses `value` for `slot` in the user's own My preferences."""
+    text = shown(set_my_preference(as_client, planning.slug, slot["id"], value))
+    assert "Something went wrong" not in text, text
+
+
 def test_r28_preferences_absences_and_note_are_deleted(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", *THURSDAY)
     bruno = planning.bruno_client
-    path = f"preferences/{slot['id']}/{planning.bruno['id']}"
-    assert bruno.put(planning.path(path), json={"value": "preferred"}).status_code == 200
+    chosen(planning, bruno, slot, "preferred")
     absence = {"first": "2037-11-09", "last": "2037-11-15"}
     assert bruno.post(planning.path("absences"), json=absence).status_code == 201
     assert bruno.put(planning.path("note"), json={"text": "Pairs, please."}).status_code == 200
@@ -172,10 +179,10 @@ def test_r28_preferences_absences_and_note_are_deleted(
     remove(planning, planning.bruno)
 
     manager = planning.alice_client
-    assert manager.get(planning.path("preferences")).json() == []
+    assert preferences_stored(manager, planning.slug) == set()
     assert manager.get(planning.path("member-absences")).json() == []
     rejoin(planning)
-    assert bruno.get(planning.path("preferences")).json() == []
+    assert preferences_stored(manager, planning.slug) == set()
     assert availability_lines(bruno, planning.slug, "Absences") == []
     note = availability_section(bruno, planning.slug, "Note for the managers")
     assert note == "Note for the managers None"
@@ -187,8 +194,7 @@ def test_r28_account_deletion_deletes_preferences_absences_and_note(
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", *THURSDAY)
     bruno = planning.bruno_client
-    path = f"preferences/{slot['id']}/{planning.bruno['id']}"
-    assert bruno.put(planning.path(path), json={"value": "preferred"}).status_code == 200
+    chosen(planning, bruno, slot, "preferred")
     absence = {"first": "2026-11-09", "last": "2026-11-15"}
     assert bruno.post(planning.path("absences"), json=absence).status_code == 201
     assert bruno.put(planning.path("note"), json={"text": "Pairs, please."}).status_code == 200
@@ -196,7 +202,7 @@ def test_r28_account_deletion_deletes_preferences_absences_and_note(
     delete_account(bruno)
 
     manager = planning.alice_client
-    assert manager.get(planning.path("preferences")).json() == []
+    assert preferences_stored(manager, planning.slug) == set()
     assert manager.get(planning.path("member-absences")).json() == []
     notes = manager.get(planning.path("notes")).json()
     assert planning.bruno["id"] not in [n["user_id"] for n in notes]
@@ -207,11 +213,10 @@ def test_r28_preferences_of_the_other_members_stay(
 ) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", *THURSDAY)
-    chloe_path = f"preferences/{slot['id']}/{planning.chloe['id']}"
-    planning.chloe_client.put(planning.path(chloe_path), json={"value": "possible"})
+    chosen(planning, planning.chloe_client, slot, "possible")
 
     remove(planning, planning.bruno)
 
-    assert planning.alice_client.get(planning.path("preferences")).json() == [
-        {"user_id": planning.chloe["id"], "slot_id": slot["id"], "value": "possible"}
-    ]
+    assert preferences_stored(planning.alice_client, planning.slug) == {
+        ("Chloé", "Thu 10:00–13:00", "possible")  # noqa: RUF001
+    }

@@ -11,7 +11,9 @@ from tests.planning.conftest import (
     GENERIC,
     Planning,
     add_closure_on_screen,
+    add_member,
     add_slot_on_screen,
+    availability_page,
     clear_period,
     create_association,
     day_of_week,
@@ -21,7 +23,12 @@ from tests.planning.conftest import (
     edit_slot,
     lines_of,
     part,
+    preferences_grid,
+    preferences_stored,
     section_of,
+    selected_option,
+    set_member_preference,
+    set_my_preference,
     set_period,
     settings_lines,
     settings_page,
@@ -1406,5 +1413,406 @@ class TestClosureEndpointsRemoved:
         planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
 
         response = client.get(planning.path("closures"))
+
+        assert response.status_code in (404, 405)
+
+
+THU = "Thu 10:00–13:00"
+SAT = "Sat 10:00–13:00"
+
+
+def chosen_for(
+    planning: Planning, member: dict[str, Any], slot: dict[str, Any], value: str
+) -> None:
+    """Alice chooses `value` for `member` and `slot` in Members' preferences."""
+    alice = planning.alice_client
+    text = shown(set_member_preference(alice, planning.slug, slot["id"], member["id"], value))
+    assert GENERIC not in text, text
+
+
+def own_preference(as_client: Any, slug: str) -> str:
+    """The label that the first selector of the user's own My preferences shows."""
+    section = section_of(availability_page(as_client, slug), "My preferences")
+    select = re.search(r"<select.*?</select>", section, re.DOTALL)
+    assert select, section
+    return selected_option(select[0])[1]
+
+
+def stored(planning: Planning) -> set[tuple[str, str, str]]:
+    return preferences_stored(planning.alice_client, planning.slug)
+
+
+class TestMembersPreferences:
+    def test_one_row_per_member_and_one_column_per_slot(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        planning.add_slot("saturday", "10:00", "13:00")
+
+        assert preferences_grid(client, planning.slug) == (
+            [THU, SAT],
+            [("Alice", ["—", "—"]), ("Bruno", ["—", "—"]), ("Chloé", ["—", "—"])],
+        )
+
+    def test_each_selector_shows_the_members_preference_on_the_slot(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+        saturday = planning.add_slot("saturday", "10:00", "13:00")
+        chosen_mine(planning, client, thursday, "preferred")
+        chosen_mine(planning, planning.bruno_client, thursday, "possible")
+        chosen_mine(planning, planning.bruno_client, saturday, "unavailable")
+        chosen_mine(planning, planning.chloe_client, saturday, "preferred")
+
+        assert preferences_grid(client, planning.slug)[1] == [
+            ("Alice", ["Preferred", "—"]),
+            ("Bruno", ["Possible", "Unavailable"]),
+            ("Chloé", ["—", "Preferred"]),
+        ]
+
+    def test_the_selector_offers_none_preferred_possible_and_unavailable(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+
+        section = section_of(settings_page(client, planning.slug), "Members' preferences")
+        select = re.search(r"<select.*?</select>", section, re.DOTALL)
+        assert select, section
+        labels = re.findall(r"<option[^>]*>(.*?)</option>", select[0], re.DOTALL)
+        assert [" ".join(label.split()) for label in labels] == [
+            "—",
+            "Preferred",
+            "Possible",
+            "Unavailable",
+        ]
+
+    def test_its_rows_follow_the_order_of_members(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        added = add_member(client, planning.id, "Zoé", unique_email("Zoe"), "manager")
+        assert added.status_code == 201
+        added = add_member(client, planning.id, "anna", unique_email("Anna"))
+        assert added.status_code == 201
+
+        rows = preferences_grid(client, planning.slug)[1]
+
+        assert [name for name, _ in rows] == ["Alice", "Zoé", "anna", "Bruno", "Chloé"]
+
+    def test_its_columns_follow_the_order_of_slots(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("saturday", "10:00", "13:00")
+        planning.add_slot("thursday", "13:00", "16:00")
+        planning.add_slot("monday", "18:30", "20:15")
+        planning.add_slot("thursday", "10:00", "13:00")
+
+        assert preferences_grid(client, planning.slug)[0] == [
+            "Mon 18:30–20:15",
+            THU,
+            "Thu 13:00–16:00",
+            SAT,
+        ]
+
+    def test_without_a_slot_shows_none(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+
+        section = settings_section(client, planning.slug, "Members' preferences")
+
+        assert section == "Members' preferences None"
+
+    def test_shows_only_the_members_and_slots_of_its_association(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        other = create_association(client, "Repair Café Belleville", unique_slug())
+        client.post(
+            f"/api/associations/{other['id']}/slots",
+            json={"weekday": "saturday", "start": "14:00", "end": "18:00"},
+        )
+        assert add_member(client, other["id"], "Zoé", unique_email("Zoe")).status_code == 201
+
+        assert preferences_grid(client, planning.slug) == (
+            [THU],
+            [("Alice", ["—"]), ("Bruno", ["—"]), ("Chloé", ["—"])],
+        )
+
+    def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+        chosen_mine(planning, planning.bruno_client, thursday, "preferred")
+        client.cookies.set("language", "fr")
+
+        page = settings_page(client, planning.slug)
+
+        section = section_of(page, "Préférences des membres")
+        assert "jeu. 10:00–13:00" in " ".join(text_of(section).split())
+        assert "Préféré" in text_of(section)
+        assert "Indisponible" in text_of(section)
+
+    def test_without_a_slot_shows_none_in_french(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        client.cookies.set("language", "fr")
+
+        section = settings_section(client, planning.slug, "Préférences des membres")
+
+        assert section == "Préférences des membres Aucun"
+
+    def test_a_volunteer_does_not_see_it(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+        chosen_mine(planning, planning.chloe_client, thursday, "unavailable")
+
+        page = html.unescape(settings_page(planning.bruno_client, planning.slug))
+
+        assert "Members' preferences" not in page
+        assert "<select" not in without_dialogs(part(page, "main"))
+
+
+def chosen_mine(planning: Planning, as_client: Any, slot: dict[str, Any], value: str) -> None:
+    """The user chooses `value` for `slot` in their own My preferences."""
+    text = shown(set_my_preference(as_client, planning.slug, slot["id"], value))
+    assert GENERIC not in text, text
+
+
+class TestChoosingAMembersPreference:
+    @pytest.mark.parametrize(
+        ("value", "label"),
+        [("preferred", "Preferred"), ("possible", "Possible"), ("unavailable", "Unavailable")],
+    )
+    def test_saves_it_at_once(
+        self, client: Any, new_client: Callable[[], Any], value: str, label: str
+    ) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+
+        chosen_for(planning, planning.bruno, thursday, value)
+
+        assert stored(planning) == {("Bruno", THU, value)}
+        assert own_preference(planning.bruno_client, planning.slug) == label
+
+    def test_replaces_the_previous_one(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+        chosen_mine(planning, planning.bruno_client, thursday, "preferred")
+
+        chosen_for(planning, planning.bruno, thursday, "unavailable")
+
+        assert stored(planning) == {("Bruno", THU, "unavailable")}
+
+    def test_none_deletes_it(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+        chosen_mine(planning, planning.bruno_client, thursday, "preferred")
+
+        chosen_for(planning, planning.bruno, thursday, "")
+
+        assert stored(planning) == set()
+        assert own_preference(planning.bruno_client, planning.slug) == "—"
+
+    def test_none_without_a_preference_changes_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+
+        chosen_for(planning, planning.bruno, thursday, "")
+
+        assert stored(planning) == set()
+
+    def test_sets_only_that_members_preference_on_that_slot(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+        planning.add_slot("saturday", "10:00", "13:00")
+        chosen_mine(planning, planning.chloe_client, thursday, "possible")
+
+        chosen_for(planning, planning.bruno, thursday, "preferred")
+
+        assert stored(planning) == {("Bruno", THU, "preferred"), ("Chloé", THU, "possible")}
+
+    def test_a_manager_sets_their_own(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+
+        chosen_for(planning, planning.alice, thursday, "possible")
+
+        assert stored(planning) == {("Alice", THU, "possible")}
+
+    @pytest.mark.parametrize("body", [{"value": "maybe"}, {"value": None}, {}])
+    def test_a_missing_or_invalid_value_shows_the_generic_error_and_changes_nothing(
+        self, client: Any, new_client: Callable[[], Any], body: dict[str, Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+        chosen_mine(planning, planning.bruno_client, thursday, "preferred")
+
+        response = client.post(
+            f"/association/{planning.slug}/settings/preferences/{thursday['id']}"
+            f"/{planning.bruno['id']}",
+            json=body,
+        )
+
+        assert GENERIC in shown(response)
+        assert stored(planning) == {("Bruno", THU, "preferred")}
+
+    def test_an_unknown_slot_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+
+        response = set_member_preference(
+            client, planning.slug, UNKNOWN_ID, planning.bruno["id"], "preferred"
+        )
+
+        assert GENERIC in shown(response)
+        assert stored(planning) == set()
+
+    def test_a_slot_of_another_association_shows_the_generic_error_and_sets_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        other = create_association(client, "Repair Café Belleville", unique_slug())
+        response = client.post(
+            f"/api/associations/{other['id']}/slots",
+            json={"weekday": "saturday", "start": "14:00", "end": "18:00"},
+        )
+        slot = response.json()
+
+        for member in (planning.alice, planning.bruno):
+            response = set_member_preference(
+                client, planning.slug, slot["id"], member["id"], "preferred"
+            )
+            assert GENERIC in shown(response)
+
+        assert preferences_stored(client, other["slug"]) == set()
+
+    def test_a_user_who_is_not_a_member_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+        outsider = sign_up(new_client(), "Zoé", unique_email("Zoe"))
+
+        for user_id in (outsider["id"], UNKNOWN_ID):
+            response = set_member_preference(
+                client, planning.slug, thursday["id"], user_id, "preferred"
+            )
+            assert GENERIC in shown(response)
+
+        assert stored(planning) == set()
+
+    def test_a_volunteer_sets_nothing_and_sees_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+        chosen_mine(planning, planning.chloe_client, thursday, "possible")
+
+        for value in ("preferred", ""):
+            response = set_member_preference(
+                planning.bruno_client, planning.slug, thursday["id"], planning.chloe["id"], value
+            )
+            assert GENERIC in shown(response)
+
+        assert stored(planning) == {("Chloé", THU, "possible")}
+
+    def test_a_non_member_sets_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+
+        set_member_preference(
+            other_user(new_client), planning.slug, thursday["id"], planning.bruno["id"], "preferred"
+        )
+
+        assert stored(planning) == set()
+
+    def test_signed_out_leads_to_sign_in_and_sets_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+
+        response = set_member_preference(
+            new_client(), planning.slug, thursday["id"], planning.bruno["id"], "preferred"
+        )
+
+        assert "window.location" in shown(response)
+        assert stored(planning) == set()
+
+
+class TestPreferenceAndSlot:
+    def test_deleting_a_slot_deletes_its_preferences(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+        saturday = planning.add_slot("saturday", "10:00", "13:00")
+        chosen_mine(planning, planning.bruno_client, thursday, "preferred")
+        chosen_mine(planning, planning.bruno_client, saturday, "possible")
+
+        planning.delete_slot(thursday)
+
+        assert stored(planning) == {("Bruno", SAT, "possible")}
+
+    def test_editing_a_slot_keeps_its_preferences(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        slot = planning.add_slot("thursday", "10:00", "13:00")
+        chosen_mine(planning, planning.bruno_client, slot, "preferred")
+
+        planning.edit_slot(slot, "friday", "14:00", "17:00")
+
+        assert stored(planning) == {("Bruno", "Fri 14:00–17:00", "preferred")}
+
+    def test_a_slot_added_again_has_no_preferences(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        slot = planning.add_slot("thursday", "10:00", "13:00")
+        chosen_mine(planning, planning.bruno_client, slot, "preferred")
+        planning.delete_slot(slot)
+
+        planning.add_slot("thursday", "10:00", "13:00")
+
+        assert stored(planning) == set()
+
+
+class TestPreferenceEndpointsRemoved:
+    @pytest.mark.parametrize(
+        ("method", "body"), [("PUT", {"value": "preferred"}), ("DELETE", None)]
+    )
+    def test_put_and_delete_api_preference_change_nothing(
+        self, client: Any, new_client: Callable[[], Any], method: str, body: dict[str, Any] | None
+    ) -> None:
+        planning = Planning(client, new_client)
+        slot = planning.add_slot("thursday", "10:00", "13:00")
+        chosen_mine(planning, planning.bruno_client, slot, "possible")
+
+        path = planning.path(f"preferences/{slot['id']}/{planning.bruno['id']}")
+        response = client.request(method, path, json=body)
+
+        assert response.status_code in (404, 405)
+        assert stored(planning) == {("Bruno", THU, "possible")}
+
+    def test_get_api_preferences_lists_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        slot = planning.add_slot("thursday", "10:00", "13:00")
+        chosen_mine(planning, planning.bruno_client, slot, "possible")
+
+        response = client.get(planning.path("preferences"))
 
         assert response.status_code in (404, 405)

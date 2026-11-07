@@ -22,6 +22,7 @@ from tests.planning.conftest import (
     edit_absence,
     lines_of,
     part,
+    preferences_stored,
     save_note,
     section_of,
     set_my_preference,
@@ -36,6 +37,7 @@ from tests.planning.conftest import (
 NAME = "Jardin partagé des Lilas"
 UNKNOWN = "This association does not exist or you are not a member."
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
+THU = "Thu 10:00–13:00"
 
 
 def collapsed(fragment: str) -> str:
@@ -79,10 +81,8 @@ def chosen(planning: Planning, as_client: Any, slot: dict[str, Any], value: str)
 
 
 def stored(planning: Planning) -> set[tuple[str, str, str]]:
-    """The preferences of the association, as a manager lists them."""
-    response = planning.alice_client.get(planning.path("preferences"))
-    assert response.status_code == 200, response.text
-    return {(p["user_id"], p["slot_id"], p["value"]) for p in response.json()}
+    """The preferences of the association, as Alice's Members' preferences shows them."""
+    return preferences_stored(planning.alice_client, planning.slug)
 
 
 def other_user(new_client: Callable[[], Any]) -> Any:
@@ -320,7 +320,7 @@ class TestChoosingAPreference:
         assert preferences_shown(planning.bruno_client, planning.slug) == [
             ("Thursday 10:00–13:00", label)
         ]
-        assert stored(planning) == {(planning.bruno["id"], thursday["id"], value)}
+        assert stored(planning) == {("Bruno", THU, value)}
 
     def test_replaces_the_previous_one(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
@@ -329,7 +329,7 @@ class TestChoosingAPreference:
 
         chosen(planning, planning.bruno_client, thursday, "unavailable")
 
-        assert stored(planning) == {(planning.bruno["id"], thursday["id"], "unavailable")}
+        assert stored(planning) == {("Bruno", THU, "unavailable")}
 
     def test_none_deletes_it(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
@@ -364,8 +364,8 @@ class TestChoosingAPreference:
         chosen(planning, planning.bruno_client, thursday, "preferred")
 
         assert stored(planning) == {
-            (planning.bruno["id"], thursday["id"], "preferred"),
-            (planning.chloe["id"], thursday["id"], "possible"),
+            ("Bruno", THU, "preferred"),
+            ("Chloé", THU, "possible"),
         }
         assert ("Saturday 10:00–13:00", "—") in preferences_shown(
             planning.bruno_client, planning.slug
@@ -377,7 +377,7 @@ class TestChoosingAPreference:
 
         chosen(planning, client, thursday, "possible")
 
-        assert stored(planning) == {(planning.alice["id"], thursday["id"], "possible")}
+        assert stored(planning) == {("Alice", THU, "possible")}
 
     @pytest.mark.parametrize("body", [{"value": "maybe"}, {"value": None}, {}])
     def test_a_missing_or_invalid_value_shows_the_generic_error_and_changes_nothing(
@@ -392,7 +392,7 @@ class TestChoosingAPreference:
         )
 
         assert GENERIC in shown(response)
-        assert stored(planning) == {(planning.bruno["id"], thursday["id"], "preferred")}
+        assert stored(planning) == {("Bruno", THU, "preferred")}
 
     def test_an_unknown_slot_shows_the_generic_error(
         self, client: Any, new_client: Callable[[], Any]
@@ -419,8 +419,7 @@ class TestChoosingAPreference:
         text = shown(set_my_preference(client, planning.slug, slot["id"], "preferred"))
 
         assert GENERIC in text
-        listed = client.get(f"/api/associations/{other['id']}/preferences").json()
-        assert listed == []
+        assert preferences_stored(client, other["slug"]) == set()
 
     def test_a_non_member_sets_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)

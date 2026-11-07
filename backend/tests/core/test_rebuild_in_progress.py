@@ -103,7 +103,7 @@ class TestOtherPaths:
 
 
 class TestScheduleSettings:
-    def test_shows_only_its_planning_period_closures_and_slots_sections(self, client: Any) -> None:
+    def test_shows_its_sections_but_share_link(self, client: Any) -> None:
         sign_up(client, "Alice")
         slug = f"a-{uuid.uuid4().hex[:12]}"
         created = client.post("/api/associations", json={"name": "Jardin", "slug": slug})
@@ -113,9 +113,16 @@ class TestScheduleSettings:
 
         assert response.status_code == 200
         main = html.unescape(part(response.text, "main"))
-        for present in ["Planning period", "Closures", "Add a closure", "Slots", "Add a slot"]:
+        for present in [
+            "Planning period",
+            "Closures",
+            "Add a closure",
+            "Slots",
+            "Add a slot",
+            "Members' preferences",
+        ]:
             assert present in main
-        for absent in ["Share link", "Create a share link", "Members' preferences"]:
+        for absent in ["Share link", "Create a share link"]:
             assert absent not in main
 
 
@@ -159,6 +166,8 @@ class TestNotFound:
             "/association/jardin/settings/period",
             "/association/jardin/settings/period/clear",
             "/association/jardin/settings/closures",
+            "/association/jardin/settings/preferences/00000000-0000-4000-8000-000000000000"
+            "/00000000-0000-4000-8000-000000000000",
             "/association/jardin/availability/preferences/00000000-0000-4000-8000-000000000000",
             "/association/jardin/availability/absences",
             "/association/jardin/availability/note",

@@ -42,22 +42,21 @@ async function openAvailability(
   }
   await page.goto(`/association/${slug}/availability`)
   await expect(page.locator('header').getByText('My availability')).toBeVisible()
-  return id
+  return slug
 }
 
 function selector(page: Page, text: string) {
   return page.locator('main').getByRole('listitem').filter({ hasText: text }).getByRole('combobox')
 }
 
-/** Waits for the preference saved on a slot to be `value`, or none when `value` is null. */
-async function expectSaved(page: Page, id: string, value: string | null) {
-  await expect
-    .poll(async () => {
-      const response = await page.request.get(`/api/associations/${id}/preferences`)
-      const preferences = (await response.json()) as { value: string }[]
-      return preferences.map((p) => p.value)
-    })
-    .toEqual(value === null ? [] : [value])
+/** Waits for the preference saved on the only slot to be `value`, or none when `value` is null, as another page shows it. */
+async function expectSaved(page: Page, slug: string, value: string | null) {
+  const other = await page.context().newPage()
+  await expect(async () => {
+    await other.goto(`/association/${slug}/availability`)
+    await expect(other.locator('main').getByRole('combobox')).toHaveValue(value ?? '', { timeout: 1000 })
+  }).toPass()
+  await other.close()
 }
 
 test.describe('My availability: My preferences', () => {
@@ -72,33 +71,33 @@ test.describe('My availability: My preferences', () => {
   })
 
   test('choosing a value saves it at once', async ({ page, request }) => {
-    const id = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
+    const slug = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
 
     await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
 
-    await expectSaved(page, id, 'preferred')
+    await expectSaved(page, slug, 'preferred')
     await page.reload()
     await expect(selector(page, 'Thursday')).toHaveValue('preferred')
   })
 
   test('choosing another value replaces it', async ({ page, request }) => {
-    const id = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
+    const slug = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
     await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
-    await expectSaved(page, id, 'preferred')
+    await expectSaved(page, slug, 'preferred')
 
     await selector(page, 'Thursday').selectOption({ label: 'Unavailable' })
 
-    await expectSaved(page, id, 'unavailable')
+    await expectSaved(page, slug, 'unavailable')
   })
 
   test('"—" deletes it', async ({ page, request }) => {
-    const id = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
+    const slug = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
     await selector(page, 'Thursday').selectOption({ label: 'Possible' })
-    await expectSaved(page, id, 'possible')
+    await expectSaved(page, slug, 'possible')
 
     await selector(page, 'Thursday').selectOption({ label: '—' })
 
-    await expectSaved(page, id, null)
+    await expectSaved(page, slug, null)
     await page.reload()
     await expect(selector(page, 'Thursday')).toHaveValue('')
   })

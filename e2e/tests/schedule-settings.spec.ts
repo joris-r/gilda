@@ -9,7 +9,7 @@ function uniqueSlug() {
   return `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-type Setup = { closures?: [string, string, string?][]; period?: [string, string] }
+type Setup = { closures?: [string, string, string?][]; period?: [string, string]; members?: string[] }
 
 /** Alice signs in on `page`, creates an association with `slots` and `setup`, and opens its Schedule settings. */
 async function openSettings(
@@ -42,6 +42,12 @@ async function openSettings(
     const [first, last] = setup.period
     const period = await page.request.put(`/api/associations/${id}/planning-period`, { data: { first, last } })
     expect(period.status()).toBe(200)
+  }
+  for (const displayName of setup.members ?? []) {
+    const member = await page.request.post(`/api/associations/${id}/members`, {
+      data: { display_name: displayName, email: uniqueEmail('Member'), role: 'volunteer' },
+    })
+    expect(member.status()).toBe(201)
   }
   await page.goto(`/association/${slug}/settings`)
   await expect(page.locator('header').getByText('Schedule settings')).toBeVisible()
@@ -840,5 +846,106 @@ test.describe('Schedule settings: Delete the closure', () => {
 
     await expect(confirmation.getByText(GENERIC)).toBeVisible()
     await expect(confirmation).toContainText(DELETE_FETE)
+  })
+})
+
+function preferences(page: Page) {
+  return page.locator('main section').filter({ has: page.getByRole('heading', { name: "Members' preferences" }) })
+}
+
+/** The selector of `member` in the column `column` (0 for the first slot) of Members' preferences. */
+function cell(page: Page, member: string, column: number) {
+  return preferences(page).getByRole('row').filter({ hasText: member }).getByRole('combobox').nth(column)
+}
+
+test.describe("Schedule settings: Members' preferences", () => {
+  test('a selector per member and slot, showing "—"', async ({ page, request }) => {
+    await openSettings(
+      page,
+      request,
+      [
+        ['thursday', '10:00', '13:00'],
+        ['saturday', '10:00', '13:00'],
+      ],
+      { members: ['Bruno'] },
+    )
+
+    await expect(preferences(page).getByRole('combobox')).toHaveCount(4)
+    await expect(cell(page, 'Alice', 0)).toHaveValue('')
+    await expect(cell(page, 'Bruno', 1)).toHaveValue('')
+  })
+
+  test('choosing a value saves it at once', async ({ page, request }) => {
+    await openSettings(
+      page,
+      request,
+      [
+        ['thursday', '10:00', '13:00'],
+        ['saturday', '10:00', '13:00'],
+      ],
+      { members: ['Bruno'] },
+    )
+
+    await cell(page, 'Bruno', 1).selectOption({ label: 'Unavailable' })
+
+    await expect(async () => {
+      await page.reload()
+      await expect(cell(page, 'Bruno', 1)).toHaveValue('unavailable', { timeout: 1000 })
+    }).toPass()
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('')
+    await expect(cell(page, 'Alice', 1)).toHaveValue('')
+  })
+
+  test('"—" deletes it', async ({ page, request }) => {
+    await openSettings(page, request, [['thursday', '10:00', '13:00']], { members: ['Bruno'] })
+    await cell(page, 'Bruno', 0).selectOption({ label: 'Possible' })
+    await expect(async () => {
+      await page.reload()
+      await expect(cell(page, 'Bruno', 0)).toHaveValue('possible', { timeout: 1000 })
+    }).toPass()
+
+    await cell(page, 'Bruno', 0).selectOption({ label: '—' })
+
+    await expect(async () => {
+      await page.reload()
+      await expect(cell(page, 'Bruno', 0)).toHaveValue('', { timeout: 1000 })
+    }).toPass()
+  })
+
+  test('a slot added shows its column at once', async ({ page, request }) => {
+    await openSettings(page, request, [['thursday', '10:00', '13:00']], { members: ['Bruno'] })
+
+    await addSlot(page, 'Saturday', '10:00', '13:00')
+
+    await expect(preferences(page).getByText('Sat 10:00–13:00')).toBeVisible()
+    await expect(preferences(page).getByRole('row').filter({ hasText: 'Bruno' }).getByRole('combobox')).toHaveCount(2)
+  })
+
+  test('a slot deleted leaves its column at once', async ({ page, request }) => {
+    await openSettings(
+      page,
+      request,
+      [
+        ['thursday', '10:00', '13:00'],
+        ['saturday', '10:00', '13:00'],
+      ],
+      { members: ['Bruno'] },
+    )
+
+    const confirmation = await askToDelete(page, 'Thursday', DELETE_THURSDAY)
+    await confirmation.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    await expect(confirmation).toBeHidden()
+    await expect(preferences(page).getByText('Thu 10:00–13:00')).toHaveCount(0)
+    await expect(preferences(page).getByRole('row').filter({ hasText: 'Bruno' }).getByRole('combobox')).toHaveCount(1)
+  })
+
+  test('when the server fails: the generic error', async ({ page, request }) => {
+    await openSettings(page, request, [['thursday', '10:00', '13:00']], { members: ['Bruno'] })
+    await page.route('**/settings/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    await cell(page, 'Bruno', 0).selectOption({ label: 'Preferred' })
+
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toBeVisible()
   })
 })

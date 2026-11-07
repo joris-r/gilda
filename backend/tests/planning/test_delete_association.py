@@ -8,7 +8,13 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from tests.core.conftest import delete_association, shown
-from tests.planning.conftest import Planning, add_member, create_association, day_of_week
+from tests.planning.conftest import (
+    Planning,
+    add_member,
+    create_association,
+    day_of_week,
+    set_my_preference,
+)
 
 THURSDAY = ("10:00", "13:00")
 HELD_BY_ASSOCIATION = (
@@ -61,11 +67,8 @@ def filled(planning: Planning) -> tuple[dict[str, Any], str, str]:
     period = alice.put(planning.path("planning-period"), json={"first": day, "last": day})
     assert period.status_code == 200, period.text
     planning.registered(bruno, planning.bruno, day, *THURSDAY)
-    preference = bruno.put(
-        planning.path(f"preferences/{slot['id']}/{planning.bruno['id']}"),
-        json={"value": "possible"},
-    )
-    assert preference.status_code == 200, preference.text
+    preference = shown(set_my_preference(bruno, planning.slug, slot["id"], "possible"))
+    assert "Something went wrong" not in preference, preference
     absence = bruno.post(planning.path("absences"), json={"first": day, "last": day})
     assert absence.status_code == 201, absence.text
     note = bruno.put(planning.path("note"), json={"text": "Mornings only."})

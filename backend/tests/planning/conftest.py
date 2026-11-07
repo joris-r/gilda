@@ -223,6 +223,61 @@ def delete_closure(as_client: Any, slug: str, closure_id: str) -> Any:
     return as_client.post(f"/association/{slug}/settings/closures/{closure_id}/delete", json={})
 
 
+def set_member_preference(as_client: Any, slug: str, slot_id: str, user_id: str, value: str) -> Any:
+    """Chooses `value` in the selector of a member and slot in Members' preferences on Schedule
+    settings; "" stands for "—"."""
+    return as_client.post(
+        f"/association/{slug}/settings/preferences/{slot_id}/{user_id}", json={"value": value}
+    )
+
+
+def selected_option(select: str) -> tuple[str, str]:
+    """The value and label of the option a selector shows chosen, or of its first one."""
+    options = re.findall(r'<option[^>]*?value="([^"]*)"([^>]*)>(.*?)</option>', select, re.DOTALL)
+    assert options, select
+    chosen = [(value, label) for value, attributes, label in options if " selected" in attributes]
+    assert len(chosen) <= 1, select
+    value, label = chosen[0] if chosen else (options[0][0], options[0][2])
+    return value, " ".join(text_of(label).split())
+
+
+def preferences_grid(as_client: Any, slug: str) -> tuple[list[str], list[tuple[str, list[str]]]]:
+    """Members' preferences on Schedule settings: the slot of each column, and each row's member
+    with the label that each of its selectors shows."""
+    section = section_of(settings_page(as_client, slug), "Members' preferences")
+    rows = re.findall(r"<tr.*?</tr>", section, re.DOTALL)
+    assert rows, section
+    head = re.findall(r"<th.*?</th>", rows[0], re.DOTALL)
+    columns = [" ".join(text_of(cell).split()) for cell in head[1:]]
+    members = []
+    for row in rows[1:]:
+        selects = re.findall(r"<select.*?</select>", row, re.DOTALL)
+        assert len(selects) == len(columns), row
+        name = " ".join(text_of(re.sub(r"<select.*?</select>", "", row, flags=re.DOTALL)).split())
+        members.append((name, [selected_option(select)[1] for select in selects]))
+    return columns, members
+
+
+def preferences_stored(as_client: Any, slug: str) -> set[tuple[str, str, str]]:
+    """The preferences of the association, as a manager's Members' preferences shows them: each
+    member's name, the slot's column and the value of each selector not on "—"."""
+    section = section_of(settings_page(as_client, slug), "Members' preferences")
+    rows = re.findall(r"<tr.*?</tr>", section, re.DOTALL)
+    if not rows:
+        return set()
+    head = re.findall(r"<th.*?</th>", rows[0], re.DOTALL)
+    columns = [" ".join(text_of(cell).split()) for cell in head[1:]]
+    stored = set()
+    for row in rows[1:]:
+        selects = re.findall(r"<select.*?</select>", row, re.DOTALL)
+        name = " ".join(text_of(re.sub(r"<select.*?</select>", "", row, flags=re.DOTALL)).split())
+        for column, select in zip(columns, selects, strict=True):
+            value = selected_option(select)[0]
+            if value:
+                stored.add((name, column, value))
+    return stored
+
+
 def availability_page(as_client: Any, slug: str) -> str:
     response = as_client.get(f"/association/{slug}/availability")
     assert response.status_code == 200
