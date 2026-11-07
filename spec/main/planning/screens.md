@@ -85,6 +85,7 @@ NOTE FOR THE MANAGERS                                         ✎
   preferences, absences and note here.
 - A selector on each slot sets the member's preference; choosing a
   value saves it at once; "—" deletes it.
+- Slots are listed by weekday, then start.
 - Each value has a colour: Preferred green, Possible orange,
   Unavailable red; "—" has none. Selectors show their value's colour,
   here and in Members' preferences. (Look of colours not testable.)
