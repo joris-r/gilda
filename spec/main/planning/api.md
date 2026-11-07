@@ -39,12 +39,7 @@ Content-Type: application/json
 {"id": "e7d2…", "first": "2026-12-24", "last": "2027-01-01", "label": "Fêtes de fin d'année"}
 ```
 
-- `GET /api/associations/{id}/closures` lists them by first date;
-  `PUT /api/associations/{id}/closures/{closure_id}` takes the body of
-  `POST` and returns the closure, as `POST` does, with 200;
-  `DELETE /api/associations/{id}/closures/{closure_id}`: 204.
-- `POST`, `PUT` and `DELETE` are for managers only: 403 for a
-  volunteer.
+- For managers only: 403 for a volunteer.
 - `label` may be omitted or `null`.
 
 ## Planning period
@@ -63,10 +58,8 @@ Content-Type: application/json
 {"first": "2026-11-02", "last": "2026-11-25"}
 ```
 
-- `PUT` sets the period, replacing the previous one.
-- `GET` returns it; `null` when there is none.
-- `DELETE`: 204; there is no period anymore.
-- `PUT` and `DELETE` are for managers only: 403 for a volunteer.
+- It sets the period, replacing the previous one.
+- For managers only: 403 for a volunteer.
 
 ## Preferences
 

@@ -37,6 +37,7 @@ Members' preferences
   closure", filled with the closure, with [Save]. Its delete icon asks
   "Delete the closure "Fête du quartier"?", or "Delete the closure of
   Sat 14 Nov 2026?" without a label, with [Delete].
+- Closures are listed by first date.
 - "Add a slot" opens the dialog "Add a slot": Day, From, To, [Add
   slot]. A slot's edit icon opens the dialog "Edit the slot", filled
   with the slot, with [Save]; From and To do not follow each other as
