@@ -54,6 +54,8 @@ from gilda.planning.controllers import PlanningController, SharedScheduleControl
 from gilda.planning.pages import (
     add_closure,
     add_slot,
+    availability_page,
+    choose_preference,
     clear_period,
     delete_closure,
     delete_slot,
@@ -119,6 +121,8 @@ def create_app() -> Litestar:
             add_closure,
             edit_closure,
             delete_closure,
+            availability_page,
+            choose_preference,
             sign_in,
             sign_out,
             revoke_access_link,

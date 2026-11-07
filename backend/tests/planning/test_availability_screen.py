@@ -157,6 +157,7 @@ class TestMyPreferences:
 
         page = availability_page(planning.bruno_client, planning.slug)
 
+        # @dev43:unsure
         assert collapsed(section_of(page, "My preferences")) == "My preferences None"
 
     def test_shows_only_the_slots_of_its_association(
@@ -192,6 +193,7 @@ class TestMyPreferences:
 
         page = availability_page(client, planning.slug)
 
+        # @dev43:unsure
         assert collapsed(section_of(page, "Mes préférences")) == "Mes préférences Aucun"
 
     def test_signed_out_shows_sign_in(self, client: Any, new_client: Callable[[], Any]) -> None:

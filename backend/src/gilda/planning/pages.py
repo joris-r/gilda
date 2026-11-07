@@ -1,5 +1,5 @@
 import re
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 import msgspec
@@ -14,7 +14,7 @@ from gilda.core.controllers import find_current_user
 from gilda.core.models import User
 from gilda.core.schemas import AssociationDetail
 from gilda.core.services import AssociationService, ConflictException
-from gilda.planning.schemas import ClosureCreate, PlanningPeriodData, SlotCreate
+from gilda.planning.schemas import ClosureCreate, PlanningPeriodData, PreferenceValue, SlotCreate
 from gilda.planning.services import PlanningService
 from gilda.web.rendering import fragment, interface_language, page, read_signals_dict, translate
 
@@ -317,3 +317,83 @@ async def delete_closure(
     except _REFUSALS:
         return _error(request, "delete-closure-error", "error")
     return await _closures_patched(request, db_session, user, association, "delete-closure")
+
+
+# My availability
+
+
+async def _own_preferences(
+    service: PlanningService, user: User, association_id: UUID
+) -> dict[UUID, str]:
+    """The user's own preference on each slot that has one."""
+    preferences = await service.list_preferences(user, association_id)
+    return {p.slot_id: p.value for p in preferences if p.user_id == user.id}
+
+
+@get("/association/{slug:str}/availability")
+async def availability_page(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> Template:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return page(request, "sign_in.html", message="")
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+    except NotFoundException:
+        return page(request, "association_unknown.html", user=user)
+    service = PlanningService(db_session)
+    return page(
+        request,
+        "availability.html",
+        user=user,
+        association=association,
+        slots=await service.list_slots(user, association.id),
+        values=await _own_preferences(service, user, association.id),
+    )
+
+
+@post("/association/{slug:str}/availability/preferences/{slot_id:str}", status_code=200)
+async def choose_preference(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    slug: str,
+    slot_id: str,
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    error_id = "preferences-error"
+    value = (await read_signals_dict(request)).get("value")
+    if value not in ("", "preferred", "possible", "unavailable"):
+        return _error(request, error_id, "error")
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        service = PlanningService(db_session)
+        wanted = _slot_id(slot_id)
+        slots = await service.list_slots(user, association.id)
+        slot = next((s for s in slots if s.id == wanted), None)
+        if slot is None:
+            raise NotFoundException("Slot not found.")
+        if value:
+            await service.set_preference(
+                user, association.id, slot.id, user.id, cast("PreferenceValue", value)
+            )
+        else:
+            await service.delete_preference(user, association.id, slot.id, user.id)
+    except _REFUSALS:
+        return _error(request, error_id, "error")
+    shown = fragment(
+        request,
+        "preference_select.html",
+        association=association,
+        slot=slot,
+        values=await _own_preferences(service, user, association.id),
+    )
+    return DatastarResponse(
+        [
+            ServerSentEventGenerator.patch_elements(re.sub(r"\s*\n\s*", " ", shown)),
+            ServerSentEventGenerator.patch_elements(
+                fragment(request, "form_error.html", message="", error_id=error_id)
+            ),
+        ]
+    )

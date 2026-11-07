@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% block header_actions %}{% include "user_menu.html" %}{% endblock %}
+{% block location %}{% include "availability_location.html" %}{% endblock %}
+{% block main %}
+{# value is the value of the selector just changed, sent with its request. #}
+<section data-signals="{value: ''}">
+  <div class="section-head">
+    <h2>{{ t("availability.preferences") }}</h2>
+  </div>
+  {% if slots %}
+  <ul class="list">
+    {% for slot in slots %}
+    <li>
+      <div>{{ t("weekdays." ~ slot.weekday) }} <span>{{ slot.start }}–{{ slot.end }}</span></div>
+      {% include "preference_select.html" %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint">{{ t("availability.noSlots") }}</p>
+  {% endif %}
+  {% with error_id = "preferences-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+</section>
+{% endblock %}
