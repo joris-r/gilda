@@ -306,6 +306,9 @@ As a manager:
 - "Add a member" opens the dialog "Add a member": Display name, Email,
   Role (Volunteer by default), [Add member]. Adding a member shows
   "Chloé added."; an existing member shows "Chloé is already a member."
+  - R3: When a user already has this email, that user becomes the
+    member; their display name is left unchanged.
+  - Otherwise a new user without a password is created.
 - The edit icon on Chloé, named "Edit Chloé", opens the dialog:
 
 ```

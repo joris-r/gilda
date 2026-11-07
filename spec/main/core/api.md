@@ -198,9 +198,6 @@ Content-Type: application/json
 {"user_id": "77c0…", "display_name": "Chloé", "email": "chloe@example.org", "has_account": false, "email_verified": false, "access_link": false, "role": "volunteer"}
 ```
 
-- R3: When a user already has this email, that user becomes the
-  member; their display name is left unchanged.
-- Otherwise a new user without a password is created.
 - 409 when that user is already a member.
 
 ### PATCH /api/associations/{id}/members/{user_id}
