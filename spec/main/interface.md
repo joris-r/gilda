@@ -1,28 +1,8 @@
 # Interface
 
-## Rebuild in progress
-
-The screens of this specification are being rebuilt one at a time.
-Until then:
-
-- Served:
-  - Sign in, Sign-in link, Access link, Forgot password, Reset
-    password, Create an account and Confirm email, with their
-    signed-out header.
-  - New association.
-  - My associations.
-  - Members.
-  - Schedule settings.
-  - My availability.
-  - The Schedule.
-  - Shared schedule.
-- Any other path outside `/api` answers the Not found page.
-- The JSON API stays available, as `core/api.md` and `planning/api.md`
-  specify it.
-
 ## Not found
 
-A path outside `/api` that leads nowhere answers 404, signed in or not:
+A path that leads nowhere answers 404, signed in or not:
 
 ```
 (logo)                                     [English ▾]
@@ -96,7 +76,7 @@ Signed out:
     user's tokens and AccessLink, signs out all their sessions, and
     ends each of their memberships (R28). Their email can then be used
     by a new user, through Create an account or
-    `POST /api/associations/{id}/members`.
+    Add a member.
   - R30: In an association where the user was the only manager, every
     remaining member becomes a manager.
 - The language selector switches between English and French; the

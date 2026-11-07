@@ -16,6 +16,9 @@ No account yet? Create an account
 ```
 
 - Wrong credentials show "Wrong email or password." under the form.
+- R16: On success, signs the user in and leads to My associations. The
+  session cookie holds a new value, and the session ID the request came
+  with, if any, no longer authenticates.
 - "Create an account" leads to `/signup`.
 - "Forgot your password?" leads to `/forgot-password`.
 - "Sign in with an email link" leads to `/sign-in-link`.
@@ -171,9 +174,10 @@ Already have an account? Sign in
 - When a user with this email has a password: "An account already
   exists for this email. Sign in instead."
 - R19: When `INVITATION_ONLY` is `true`, unless a user without a
-  password already has this email, or it is the superuser's (see
-  `POST /api/session`): "This email has not been invited. Ask a manager
-  of your association to add you as a member."; nothing is saved.
+  password already has this email, or it is the superuser's
+  (`SUPERUSER_EMAIL`, ignoring case): "This email has not been
+  invited. Ask a manager of your association to add you as a member.";
+  nothing is saved.
 - R10: When the confirmation email cannot be sent: "We couldn't send
   the confirmation email. Try again later."; nothing is saved.
 - A password has at least 8 characters. A shorter one, or a missing or

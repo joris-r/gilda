@@ -1,18 +1,17 @@
 # Technical
 
 - Repository layout:
-  - `backend/`: the API and the web interface.
+  - `backend/`: the web interface.
   - `e2e/`: the end-to-end tests.
 - Backend layout, under `backend/src/gilda/`:
   - One folder per domain (e.g. `core/`), each with its own files,
     present only when needed:
-    - `controllers.py`: the Litestar controllers of the API.
     - `pages.py`: the Litestar handlers of the screens.
     - `templates/`: the Jinja templates of the screens.
     - `models.py`: the SQLAlchemy models.
     - `repositories.py`: the Advanced Alchemy repositories.
     - `schemas.py`: the request and response types.
-    - `services.py`: the logic between controllers and repositories.
+    - `services.py`: the logic between handlers and repositories.
   - `home/`: serves My associations, gathering what each domain shows of an association there.
   - `db.py`: the database configuration.
   - `web/`: what the screens share: the page layout, the translations,
@@ -38,14 +37,12 @@
   - Each URL answers a full page. Each action answers a short-lived SSE
     response that patches the page or leads to another URL; no
     connection stays open.
-  - Handlers call the services directly, not the JSON API.
   - The interface's language comes from the `language` cookie, set by
     the language selector, then from the `Accept-Language` header.
   - Translations live in one file per language; English is the
     reference, every key has a French translation.
   - The header logo is `web/static/favicon.svg`, shown as an image; in
     dark mode, its dot takes the dark accent colour.
-- API: JSON, every endpoint under `/api`.
 - Every entity is identified by a UUIDv7.
 - Passwords are stored hashed with Argon2, never in clear.
 - Sessions are server-side, stored in PostgreSQL; the browser keeps
@@ -63,8 +60,7 @@
     unset, `sendmail`.
   - Email texts live in the backend, next to the code that sends
     them, in English and French.
-- Deployment: one hosted site. Litestar serves the API under
-  `/api` and the screens for every other path.
+- Deployment: one hosted site, served by Litestar.
 - Local development: `compose.yaml` runs Mailpit and two PostgreSQL
   servers: the development one, whose data lives in a named volume, and
   the tests' one, whose data lives in memory.
@@ -81,8 +77,7 @@
     role sees, messages); Playwright for what only happens in the
     browser (e.g. Escape closing a dialog).
   - End-to-end: Playwright against the running backend and database,
-    one test per scenario of `scenarios.md`; a scenario whose screens
-    are not served yet is marked `fixme`. Tests check text and
+    one test per scenario of `scenarios.md`. Tests check text and
     behavior, never screenshots or appearance.
   - Quality: ruff (lint and format) and mypy in strict mode for the
     backend.
