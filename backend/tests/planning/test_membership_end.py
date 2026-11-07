@@ -40,6 +40,22 @@ def move_a_year_back(registration: dict[str, Any]) -> str:
     return asyncio.run(run())
 
 
+def preferences_held(user: dict[str, Any]) -> int:
+    """Counts the stored preferences of a user, which no screen shows once they are gone."""
+
+    async def run() -> int:
+        engine = create_async_engine(os.environ["DATABASE_URL"])
+        async with engine.begin() as connection:
+            result = await connection.execute(
+                text("SELECT count(*) FROM preference WHERE user_id = :id"), {"id": user["id"]}
+            )
+            count: int = result.scalar_one()
+        await engine.dispose()
+        return count
+
+    return asyncio.run(run())
+
+
 def remove(planning: Planning, user: dict[str, Any]) -> None:
     slug = planning.association["slug"]
     assert "is removed." in shown(remove_member(planning.alice_client, slug, user["id"]))
@@ -198,10 +214,12 @@ def test_r28_account_deletion_deletes_preferences_absences_and_note(
     absence = {"first": "2026-11-09", "last": "2026-11-15"}
     assert bruno.post(planning.path("absences"), json=absence).status_code == 201
     assert bruno.put(planning.path("note"), json={"text": "Pairs, please."}).status_code == 200
+    assert preferences_held(planning.bruno) == 1
 
     delete_account(bruno)
 
     manager = planning.alice_client
+    assert preferences_held(planning.bruno) == 0
     assert preferences_stored(manager, planning.slug) == set()
     assert manager.get(planning.path("member-absences")).json() == []
     notes = manager.get(planning.path("notes")).json()
