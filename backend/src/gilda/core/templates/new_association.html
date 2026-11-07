@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block header_actions %}{% include "user_menu.html" %}{% endblock %}
+{% block location %}<p class="where"><a href="/">{{ t("myAssociations.title") }}</a><span class="sep">›</span>{{ t("myAssociations.create") }}</p>{% endblock %}
+{% block main %}
+<h1>{{ t("myAssociations.create") }}</h1>
+{# No retry: a request that failed after creating would come back as "already taken". #}
+<form
+  class="panel"
+  data-signals="{_slugEdited: false}"
+  data-on:submit="@post('/association/new', {filterSignals: {exclude: /^language$/}, retryMaxCount: 0})"
+>
+  <label>
+    {{ t("fields.name") }}
+    {# R35. It reads the field, as $name may not hold this input yet. #}
+    <input
+      data-bind:name
+      data-on:input="if (!$_slugEdited) $slug = evt.target.value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-/, '').slice(0, 50).replace(/-$/, '')"
+      autocomplete="off"
+    >
+  </label>
+  <label>
+    {{ t("fields.associationIdentifier") }}
+    <span class="slug-field">
+      <span class="hint">/association/</span>
+      <input data-bind:slug data-on:input="$_slugEdited = true" autocomplete="off" maxlength="50">
+    </span>
+  </label>
+  {% include "form_error.html" %}
+  <div class="dialog-actions">
+    <button type="submit" disabled data-attr:disabled="!$name || !$slug">{{ t("myAssociations.submit") }}</button>
+    <a href="/">{{ t("dialog.cancel") }}</a>
+  </div>
+</form>
+{% endblock %}

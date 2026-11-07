@@ -15,8 +15,14 @@ from gilda.core.schemas import (
     AccountCreate,
     NewPassword,
     PasswordResetRequest,
+    Slug,
 )
-from gilda.core.services import AccountService, MembershipEndHook
+from gilda.core.services import (
+    AccountService,
+    AssociationService,
+    ConflictException,
+    MembershipEndHook,
+)
 from gilda.web.rendering import (
     fragment,
     interface_language,
@@ -32,14 +38,36 @@ _SIGN_UP_REFUSALS = {
 }
 
 
-@get("/")
-async def home(
+@get("/association/new")
+async def new_association_page(
     request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession]
 ) -> Template:
     user = await find_current_user(request, db_session)
     if user is None:
         return page(request, "sign_in.html", message="")
-    return page(request, "home_temporary.html", user=user)
+    return page(request, "new_association.html", user=user, message="")
+
+
+@post("/association/new", status_code=200)
+async def create_association(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession]
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    signals = await read_signals_dict(request)
+    name, slug = signals.get("name"), signals.get("slug")
+    if not (name and isinstance(name, str) and slug and isinstance(slug, str)):
+        return _form_error(request, "error")
+    try:
+        msgspec.convert(slug, Slug)
+    except msgspec.ValidationError:
+        return _form_error(request, "association.identifierInvalid")
+    try:
+        await AssociationService(db_session).create(user, name, slug)
+    except ConflictException:
+        return _form_error(request, "association.identifierTaken")
+    return DatastarResponse(ServerSentEventGenerator.redirect(f"/association/{slug}"))
 
 
 @post("/sign-in", status_code=200)

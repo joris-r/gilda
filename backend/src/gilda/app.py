@@ -11,16 +11,17 @@ from litestar.plugins.jinja import JinjaTemplateEngine
 from litestar.static_files import create_static_files_router
 from litestar.template import TemplateConfig
 
-from gilda import core, web
+from gilda import core, home, web
 from gilda.core.controllers import AccountController, AssociationController
 from gilda.core.models import UserSession
 from gilda.core.pages import (
     access,
     access_page,
+    create_association,
     delete_account,
     forgot_password,
     forgot_password_page,
-    home,
+    new_association_page,
     resend_confirmation,
     reset_password,
     reset_password_page,
@@ -39,6 +40,7 @@ from gilda.core.sessions import SessionBackend
 from gilda.db import create_database_config, create_database_plugin
 from gilda.errors import api_exception_handlers
 from gilda.home.controllers import HomeController
+from gilda.home.pages import home as my_associations
 from gilda.planning.controllers import PlanningController, SharedScheduleController
 from gilda.planning.services import end_membership as end_planning_membership
 from gilda.web.pages import choose_language, not_found
@@ -76,7 +78,9 @@ def create_app() -> Litestar:
         route_handlers=[
             api,
             static,
-            home,
+            my_associations,
+            new_association_page,
+            create_association,
             sign_in,
             sign_out,
             revoke_access_link,
@@ -103,7 +107,11 @@ def create_app() -> Litestar:
         plugins=[create_database_plugin(database)],
         middleware=[DefineMiddleware(SessionMiddleware, backend=sessions)],
         template_config=TemplateConfig(
-            directory=[_directory_of(web) / "templates", _directory_of(core) / "templates"],
+            directory=[
+                _directory_of(web) / "templates",
+                _directory_of(core) / "templates",
+                _directory_of(home) / "templates",
+            ],
             engine=JinjaTemplateEngine,
         ),
     )

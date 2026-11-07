@@ -194,7 +194,8 @@ textarea {
   color: var(--fg);
 }
 
-button {
+button,
+a.button {
   font: inherit;
   font-weight: 600;
   justify-self: start;
@@ -204,6 +205,55 @@ button {
   background: var(--accent);
   color: var(--accent-fg);
   cursor: pointer;
+}
+
+a.button {
+  text-decoration: none;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.new {
+  margin: 24px 0 0;
+}
+
+.list.cards {
+  display: grid;
+  gap: 16px;
+  border-top: none;
+}
+
+.cards > li {
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.name {
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.name:hover {
+  text-decoration: underline;
+}
+
+.slug-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.slug-field input {
+  flex: 1;
+  min-width: 0;
 }
 
 button.link {
@@ -315,7 +365,8 @@ button.link {
   margin: 0;
 }
 
-button.add {
+button.add,
+a.button.add {
   display: inline-flex;
   align-items: center;
   gap: 6px;

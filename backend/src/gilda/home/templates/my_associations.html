@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block header_actions %}{% include "user_menu.html" %}{% endblock %}
+{% block location %}<h1 class="where">{{ t("myAssociations.title") }}</h1>{% endblock %}
+{% block main %}
+{% if associations %}
+<ul class="list cards">
+  {% for association in associations %}
+  <li>
+    <a class="name" href="/association/{{ association.slug }}">{{ association.name }}</a>
+    <span class="role {{ association.role }}">{{ t("roles." ~ association.role) }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>{{ t("myAssociations.none") }}</p>
+{% endif %}
+<p class="new"><a class="button add" href="/association/new">+ {{ t("myAssociations.create") }}</a></p>
+{% endblock %}
