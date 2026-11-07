@@ -99,7 +99,7 @@ def test_r34_the_share_link_no_longer_shows_the_schedule(
     assert new_client().get(f"/api/shared/{token}{path}").status_code == 404
 
 
-@pytest.mark.parametrize("rest", ["schedule", "absences", "note", "share-link"])
+@pytest.mark.parametrize("rest", ["schedule", "member-absences", "notes", "share-link"])
 def test_r34_its_planning_endpoints_answer_404(
     client: Any, new_client: Callable[[], Any], rest: str
 ) -> None:

@@ -8,7 +8,13 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from tests.core.conftest import remove_member, shown
-from tests.planning.conftest import Planning, add_member, day_of_week
+from tests.planning.conftest import (
+    Planning,
+    add_member,
+    availability_lines,
+    availability_section,
+    day_of_week,
+)
 
 THURSDAY = ("10:00", "13:00")
 
@@ -159,7 +165,7 @@ def test_r28_preferences_absences_and_note_are_deleted(
     bruno = planning.bruno_client
     path = f"preferences/{slot['id']}/{planning.bruno['id']}"
     assert bruno.put(planning.path(path), json={"value": "preferred"}).status_code == 200
-    absence = {"first": "2026-11-09", "last": "2026-11-15"}
+    absence = {"first": "2037-11-09", "last": "2037-11-15"}
     assert bruno.post(planning.path("absences"), json=absence).status_code == 201
     assert bruno.put(planning.path("note"), json={"text": "Pairs, please."}).status_code == 200
 
@@ -170,8 +176,9 @@ def test_r28_preferences_absences_and_note_are_deleted(
     assert manager.get(planning.path("member-absences")).json() == []
     rejoin(planning)
     assert bruno.get(planning.path("preferences")).json() == []
-    assert bruno.get(planning.path("absences")).json() == []
-    assert bruno.get(planning.path("note")).json() == {"text": ""}
+    assert availability_lines(bruno, planning.slug, "Absences") == []
+    note = availability_section(bruno, planning.slug, "Note for the managers")
+    assert note == "Note for the managers None"
 
 
 def test_r28_account_deletion_deletes_preferences_absences_and_note(

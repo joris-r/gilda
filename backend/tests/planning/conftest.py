@@ -234,3 +234,52 @@ def set_my_preference(as_client: Any, slug: str, slot_id: str, value: str) -> An
     return as_client.post(
         f"/association/{slug}/availability/preferences/{slot_id}", json={"value": value}
     )
+
+
+def availability_section(as_client: Any, slug: str, heading: str) -> str:
+    """The text that the `heading` section of My availability shows, its spaces collapsed."""
+    return " ".join(text_of(section_of(availability_page(as_client, slug), heading)).split())
+
+
+def availability_lines(as_client: Any, slug: str, heading: str) -> list[str]:
+    """The lines that the `heading` section of My availability lists."""
+    return lines_of(section_of(availability_page(as_client, slug), heading))
+
+
+def add_absence(as_client: Any, planning: Planning, first: str, last: str) -> dict[str, Any]:
+    """Adds an absence of the user's own through the API."""
+    response = as_client.post(planning.path("absences"), json={"first": first, "last": last})
+    assert response.status_code == 201, response.text
+    absence: dict[str, Any] = response.json()
+    return absence
+
+
+def write_note(as_client: Any, planning: Planning, text: str) -> None:
+    """Sets the user's own note through the API."""
+    response = as_client.put(planning.path("note"), json={"text": text})
+    assert response.status_code == 200, response.text
+
+
+def add_absence_on_screen(as_client: Any, slug: str, first: str, last: str) -> Any:
+    """Submits the dialog "Add an absence" on My availability."""
+    return as_client.post(
+        f"/association/{slug}/availability/absences", json={"first": first, "last": last}
+    )
+
+
+def edit_absence(as_client: Any, slug: str, absence_id: str, first: str, last: str) -> Any:
+    """Submits the dialog "Edit the absence" of an absence on My availability."""
+    return as_client.post(
+        f"/association/{slug}/availability/absences/{absence_id}/edit",
+        json={"first": first, "last": last},
+    )
+
+
+def delete_absence(as_client: Any, slug: str, absence_id: str) -> Any:
+    """Confirms "Delete the absence" of an absence on My availability."""
+    return as_client.post(f"/association/{slug}/availability/absences/{absence_id}/delete", json={})
+
+
+def save_note(as_client: Any, slug: str, text: str) -> Any:
+    """Submits the dialog "Note for the managers" on My availability."""
+    return as_client.post(f"/association/{slug}/availability/note", json={"text": text})
