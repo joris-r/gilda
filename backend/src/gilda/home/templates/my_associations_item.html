@@ -1,0 +1,37 @@
+{# An association as My associations lists it, with what concerns the user there. #}
+<li id="association-{{ association.id }}">
+  {% set here = "/association/" ~ association.slug %}
+  <a class="name" href="{{ here }}">{{ association.name }}</a>
+  <span class="role {{ association.role }}">{{ t("roles." ~ association.role) }}</span>
+  <div class="summary">
+    {% if association.obsolete or association.upcoming %}
+    <ul class="registrations">
+      {% for registration in association.obsolete %}
+      <li class="obsolete">
+        <span class="when"><span class="date">{{ short_day(registration.date) }},</span> <span class="time">{{ registration.start }}–{{ registration.end }}</span></span>
+        <span class="slot-note"><span class="who">{{ registration.display_name }}</span><span class="note">{{ t("myAssociations.obsolete") }}</span></span>
+        <button type="button" data-on:click="@post('{{ here }}/summary/{{ registration.id }}/cancel', {retryMaxCount: 0})">{{ t("myAssociations.acknowledge") }}</button>
+      </li>
+      {% endfor %}
+      {% for registration in association.upcoming %}
+      <li class="{{ registration.status }}">
+        <span class="when"><span class="date">{{ short_day(registration.date) }},</span> <span class="time">{{ registration.start }}–{{ registration.end }}</span></span>
+        <span class="who">{{ registration.display_name }}{% if registration.status == "proposed" %} ?{% endif %}</span>
+        {% if registration.status == "proposed" %}
+        <button type="button" data-on:click="@post('{{ here }}/summary/{{ registration.id }}/confirm', {retryMaxCount: 0})">{{ t("myAssociations.confirm") }}</button>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if association.reminds %}
+    <p class="reminder">
+      <span>{{ t("myAssociations.noRegistrationInPeriod", dates=period_days(association.planning_period.first, association.planning_period.last)) }}</span>
+      <a class="choose" href="{{ here }}">{{ t("myAssociations.chooseSlots") }}</a>
+    </p>
+    {% elif not association.upcoming %}
+    <p class="hint">{{ t("myAssociations.noUpcoming") }}</p>
+    {% endif %}
+    {% with error_id = "summary-error-" ~ association.slug, message = "" %}{% include "form_error.html" %}{% endwith %}
+  </div>
+</li>

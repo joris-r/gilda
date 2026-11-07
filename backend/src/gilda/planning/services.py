@@ -555,16 +555,18 @@ class PlanningService:
             (r for r in registrations if r.date >= today and r.id not in live_ids),
             key=lambda r: (r.date, r.start),
         )
-        return PlanningSummary(
-            upcoming=[registration_read(r) for r in upcoming],
-            obsolete=[registration_read(r) for r in obsolete],
-            planning_period=None
-            if period is None
-            else PlanningPeriodSummary(
+        summary = None
+        if period is not None:
+            summary = PlanningPeriodSummary(
                 first=period.first,
                 last=period.last,
                 registrations=sum(period.first <= r.date <= period.last for r in live),
-            ),
+            )
+        return PlanningSummary(
+            upcoming=[registration_read(r) for r in upcoming],
+            obsolete=[registration_read(r) for r in obsolete],
+            planning_period=summary,
+            reminds=summary is not None and summary.registrations == 0 and summary.last >= today,
         )
 
     # Registrations

@@ -122,3 +122,5 @@ class PlanningSummary(msgspec.Struct):
     upcoming: list[RegistrationRead]
     obsolete: list[RegistrationRead]
     planning_period: PlanningPeriodSummary | None
+    reminds: bool
+    """R14: the period ends today or later and holds none of the user's registrations."""

@@ -16,13 +16,14 @@
 - Process: CLAUDE.md would ask, before planning to keep an endpoint for the backend fixtures, to check what the fixtures do with it, since a new action may already cover their calls (e.g. they only cancel the user's own registrations).
 - Process: CLAUDE.md would ask that an e2e lookup of a display name on the Schedule look within the menu (`#occurrence-menu`), since occurrences are buttons named after their registrations.
 - Process: CLAUDE.md would note that action tests assert the generic error is absent from the whole response, so a dialog holding its hidden copy stays outside the fragment an action sends back.
+- Process: CLAUDE.md would ask that a ported test asserting only an absence also assert something present, so that it fails before the implementation.
+- Tests: the regex page helpers (`lines_of`, `line_of`…) would use an HTML parser, as `listed` does, so that nested lists and hidden elements read right.
 
 
 ## Datastar experiment
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- My associations: the registrations summary (R12, R13, R14, Confirm, OK, Choose your slots).
 - Finish: delete what remains of the JSON API and the `api.md` pages, the temporary pieces and "Rebuild in progress".
 
 
@@ -169,6 +170,13 @@ Choices the spec left open, settled by `share-link`:
 - Shared schedule: an unknown, replaced or revoked link answers 200 with its message, under the signed-out header without the association's name.
 - Shared schedule: More weeks with a missing or invalid range, or a link no longer valid, shows the generic error.
 
+Choices the spec left open, settled by `registrations-summary`:
+
+- Confirm and OK: an unknown registration, another association's, someone else's, one already cancelled, or a Confirm on a registration that is obsolete or already confirmed shows the generic error.
+- Confirm and OK: a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
+- Confirm and OK: the generic error shows within that association's item, and stays until the next successful action on it or a reload.
+- R14: a one-day planning period shows one date ("5 Nov").
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -218,11 +226,14 @@ Choices the spec left open, settled by `share-link`:
 - Manager's menu: a taken occurrence offers no names, so moving it to another member takes a cancel, then a proposal.
 - Shared schedule: once the link is replaced or revoked, More weeks on a page already open shows only the generic error, not "This link is no longer valid.".
 - Share link: "Link copied." shows even when the browser refuses the clipboard.
+- My associations shows dates without their year, so a proposal months ahead (e.g. "Sun 3 Jan") is ambiguous.
+- Confirm and OK use the slug from page load, so after a change of identifier in another tab they show only the generic error.
+- My associations builds each association's summary with its own queries, so the page slows as a user joins more associations.
 
 
 ## Quality
 
-- Spec: `GET /api/associations` and My associations sit in the core pages though R12–R14 are planning's; move them to a home page once other modules add their part.
+- Spec: My associations sits in the core pages though R12–R14 and R31 are planning's; move it to a home page once other modules add their part.
 - Cleanup: purge expired sessions (Advanced Alchemy's delete_expired) and expired email confirmation and password reset tokens regularly, so their tables stay small.
 - API: drop `has_account` from members, which no screen uses since the access link.
 - Association: refuse a name made only of spaces, at creation and on rename.
@@ -256,7 +267,7 @@ Choices the spec left open, settled by `share-link`:
 - Sign up, Confirm and Cancel registration accept ranges of up to 520 weeks, as More weeks does, with no rate limit.
 - The share link shows the members' display names to anyone holding it, signed out and with no expiry, until a manager replaces or revokes it.
 - `POST /shared/{token}/weeks` is public and builds up to 520 weeks per request, with no rate limit, so anyone holding a link can load the server.
-- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` `POST /association/{slug}/settings/slots/{slot_id}/delete`, `POST /association/{slug}/settings/period`, `POST /association/{slug}/settings/period/clear`, `POST /association/{slug}/settings/closures`, `POST /association/{slug}/settings/closures/{closure_id}/edit` `POST /association/{slug}/settings/closures/{closure_id}/delete` `POST /association/{slug}/availability/preferences/{slot_id}`, `POST /association/{slug}/availability/absences`, `POST /association/{slug}/availability/absences/{absence_id}/edit`, `POST /association/{slug}/availability/absences/{absence_id}/delete`, `POST /association/{slug}/availability/note`, `POST /association/{slug}/settings/preferences/{slot_id}/{user_id}`, `POST /association/{slug}/menu`, `POST /association/{slug}/sign-up`, `POST /association/{slug}/propose`, `POST /association/{slug}/registrations/{registration_id}/confirm`, `POST /association/{slug}/registrations/{registration_id}/cancel`, `POST /association/{slug}/settings/share-link` and `POST /association/{slug}/settings/share-link/revoke` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
+- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` `POST /association/{slug}/settings/slots/{slot_id}/delete`, `POST /association/{slug}/settings/period`, `POST /association/{slug}/settings/period/clear`, `POST /association/{slug}/settings/closures`, `POST /association/{slug}/settings/closures/{closure_id}/edit` `POST /association/{slug}/settings/closures/{closure_id}/delete` `POST /association/{slug}/availability/preferences/{slot_id}`, `POST /association/{slug}/availability/absences`, `POST /association/{slug}/availability/absences/{absence_id}/edit`, `POST /association/{slug}/availability/absences/{absence_id}/delete`, `POST /association/{slug}/availability/note`, `POST /association/{slug}/settings/preferences/{slot_id}/{user_id}`, `POST /association/{slug}/menu`, `POST /association/{slug}/sign-up`, `POST /association/{slug}/propose`, `POST /association/{slug}/registrations/{registration_id}/confirm`, `POST /association/{slug}/registrations/{registration_id}/cancel`, `POST /association/{slug}/settings/share-link`, `POST /association/{slug}/settings/share-link/revoke`, `POST /association/{slug}/summary/{registration_id}/confirm` and `POST /association/{slug}/summary/{registration_id}/cancel` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
 

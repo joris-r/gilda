@@ -48,7 +48,7 @@ from gilda.core.services import MembershipEndHook
 from gilda.core.sessions import SessionBackend
 from gilda.db import create_database_config, create_database_plugin
 from gilda.errors import api_exception_handlers
-from gilda.home.controllers import HomeController
+from gilda.home.pages import confirm_on_summary, ok_on_summary
 from gilda.home.pages import home as my_associations
 from gilda.planning.controllers import PlanningController
 from gilda.planning.pages import (
@@ -105,7 +105,6 @@ def create_app() -> Litestar:
         route_handlers=[
             AccountController,
             AssociationController,
-            HomeController,
             PlanningController,
         ],
         exception_handlers=api_exception_handlers(),
@@ -116,6 +115,8 @@ def create_app() -> Litestar:
             api,
             static,
             my_associations,
+            confirm_on_summary,
+            ok_on_summary,
             new_association_page,
             create_association,
             members_page,

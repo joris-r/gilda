@@ -85,6 +85,22 @@ def format_days(language: Language, first: date, last: date) -> str:
     return f"{format_day(language, first)} – {format_day(language, last)}"  # noqa: RUF001
 
 
+def format_period(language: Language, first: date, last: date) -> str:
+    """Days from `first` to `last` without their weekdays, joined by an en dash, with their
+    years only when these differ, as R14's reminder shows them."""
+
+    def day_month(value: date) -> str:
+        return f"{value.day} {translate(language, f'dates.months.{value.month}')}"
+
+    if first.year != last.year:
+        return f"{day_month(first)} {first.year} – {day_month(last)} {last.year}"  # noqa: RUF001
+    if first.month != last.month:
+        return f"{day_month(first)} – {day_month(last)}"  # noqa: RUF001
+    if first.day != last.day:
+        return f"{first.day}–{day_month(last)}"  # noqa: RUF001
+    return day_month(last)
+
+
 def _context(request: Request[Any, Any, Any], context: dict[str, Any]) -> dict[str, Any]:
     language = interface_language(request)
 
@@ -97,6 +113,9 @@ def _context(request: Request[Any, Any, Any], context: dict[str, Any]) -> dict[s
     def short_day(value: date) -> str:
         return format_short_day(language, value)
 
+    def period_days(first: date, last: date) -> str:
+        return format_period(language, first, last)
+
     def long_day(value: date) -> str:
         return format_long_day(language, value)
 
@@ -105,6 +124,7 @@ def _context(request: Request[Any, Any, Any], context: dict[str, Any]) -> dict[s
         "t": t,
         "days": days,
         "short_day": short_day,
+        "period_days": period_days,
         "long_day": long_day,
         **context,
     }

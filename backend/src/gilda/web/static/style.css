@@ -245,6 +245,96 @@ button:disabled {
   text-decoration: underline;
 }
 
+/* My associations: what concerns the user in each association. */
+.summary {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.summary p {
+  margin: 0;
+}
+
+.registrations {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A registration: its coloured edge tells its state, as on the Schedule. */
+.registrations li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 32px;
+  padding: 6px 12px;
+  background: var(--ok-soft);
+  border-left: 3px solid var(--ok);
+  border-radius: 4px;
+}
+
+.registrations li.proposed {
+  background: var(--warn-soft);
+  border-left-color: var(--warn);
+}
+
+.registrations li.obsolete {
+  background: var(--bad-soft);
+  border-left-color: var(--bad);
+}
+
+.registrations button {
+  margin-left: auto;
+  padding: 4px 12px;
+  font-size: 14px;
+}
+
+.registrations .when {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A fixed width, so that the times of an association line up. */
+.registrations .date {
+  display: inline-block;
+  min-width: 7.5em;
+  font-weight: 600;
+}
+
+.registrations .time {
+  white-space: nowrap;
+}
+
+.registrations .note {
+  color: var(--bad);
+}
+
+.reminder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 12px;
+  background: var(--period-soft);
+  border-radius: 6px;
+}
+
+.choose {
+  font-weight: 600;
+  color: var(--period);
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .registrations .date {
+    min-width: 0;
+  }
+}
+
 .slug-field {
   display: flex;
   align-items: center;

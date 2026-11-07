@@ -5,10 +5,7 @@
 {% if associations %}
 <ul class="list cards">
   {% for association in associations %}
-  <li>
-    <a class="name" href="/association/{{ association.slug }}">{{ association.name }}</a>
-    <span class="role {{ association.role }}">{{ t("roles." ~ association.role) }}</span>
-  </li>
+  {% include "my_associations_item.html" %}
   {% endfor %}
 </ul>
 {% else %}

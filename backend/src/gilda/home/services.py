@@ -1,5 +1,7 @@
 from typing import cast
+from uuid import UUID
 
+from litestar.exceptions import NotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from gilda.core.models import Role, User
@@ -28,6 +30,14 @@ class HomeService:
                     upcoming=planning.upcoming,
                     obsolete=planning.obsolete,
                     planning_period=planning.planning_period,
+                    reminds=planning.reminds,
                 )
             )
         return associations
+
+    async def one_for(self, user: User, association_id: UUID) -> HomeAssociation:
+        """The association of `user` with this id, as `list_for` gives it."""
+        found = [a for a in await self.list_for(user) if a.id == association_id]
+        if not found:
+            raise NotFoundException("Association not found.")
+        return found[0]
