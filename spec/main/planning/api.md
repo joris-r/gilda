@@ -79,20 +79,6 @@ Content-Type: application/json
 
 - It adds an absence of the user's own.
 
-```http
-GET /api/associations/5c1e…/member-absences
-```
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-[{"id": "3b8e…", "user_id": "0b6f…", "first": "2026-11-09", "last": "2026-11-15"}]
-```
-
-- The absences of all members, by first date. Managers only: 403 for
-  a volunteer.
-
 ## Note
 
 ```http
@@ -110,33 +96,6 @@ Content-Type: application/json
 ```
 
 - It replaces the user's own note.
-
-```http
-GET /api/associations/5c1e…/notes
-```
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-[{"user_id": "0b6f…", "text": "Always group my registrations in pairs."},
- {"user_id": "77c0…", "text": ""}]
-```
-
-- One entry per member. Managers only: 403 for a volunteer.
-
-## GET /api/associations/{id}/registration-counts
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-[{"user_id": "0b6f…", "count": 2}, {"user_id": "77c0…", "count": 0}]
-```
-
-- One entry per member, by R15.
-- `null` when there is no planning period.
-- Managers only: 403 for a volunteer.
 
 ## POST /api/associations/{id}/registrations
 

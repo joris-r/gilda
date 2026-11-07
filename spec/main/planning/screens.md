@@ -204,7 +204,7 @@ Sat 31   [Bruno ?    ]
     stated none, or grey when they are absent (look of colours not
     testable). An absent member's name has an absence icon, whose text
     is "Absent Mon 9 Nov 2026 – Sun 15 Nov 2026", the absence covering
-    the occurrence's date; a member with a non-empty note has a note
+    the occurrence's date; a member whose note holds more than spaces has a note
     icon, whose text is the note. Hovering an icon shows its text;
     clicking it shows its text under the names, in place of the text
     shown, or hides it when it is already shown, and proposes nothing.

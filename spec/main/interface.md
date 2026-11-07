@@ -46,9 +46,7 @@ Until then:
       Chloé    [—         ▾]     [Preferred ▾]
     ```
   - My availability.
-  - The Schedule, its menus offering only "Sign up", "Confirm" and
-    "Cancel registration…" on the user's own registrations, to
-    managers too.
+  - The Schedule.
 - Any other path outside `/api` answers the Not found page.
 - The JSON API stays available, as `core/api.md` and `planning/api.md`
   specify it.
