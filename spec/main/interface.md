@@ -40,15 +40,7 @@ Until then:
       Thursday   10:00–13:00                                ✎  🗑
       Saturday   10:00–13:00                                ✎  🗑
     ```
-  - My availability, with its My preferences section only:
-
-    ```
-    (logo)  Jardin partagé des Lilas › My availability        Alice ▾
-
-    MY PREFERENCES
-      Thursday   10:00–13:00   [Preferred ▾]
-      Saturday   10:00–13:00   [—         ▾]
-    ```
+  - My availability.
 - Any other path outside `/api` answers the Not found page, including
   the Schedule that an association's name and Create association lead
   to.

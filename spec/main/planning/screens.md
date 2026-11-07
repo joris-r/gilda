@@ -90,8 +90,8 @@ NOTE FOR THE MANAGERS                                         ✎
   Unavailable red; "—" has none. Selectors show their value's colour,
   here and in Members' preferences. (Look of colours not testable.)
 - With no slot, no absence or an empty note, the section shows "None".
-- Absences are listed from those ending today on; earlier ones do not
-  show.
+- Absences are listed by first date, from those ending today on;
+  earlier ones do not show.
 - "Add an absence" opens the dialog "Add an absence": From, To, [Add
   absence]. An absence's edit icon opens the dialog "Edit the
   absence", filled with it, with [Save]. Its delete icon asks "Delete
