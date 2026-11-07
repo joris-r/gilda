@@ -1,0 +1,8 @@
+{# The note as it shows, each of its lines kept. #}
+<div id="note">
+  {% if note.strip() %}
+  <p class="note">{% for line in note.splitlines() %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}</p>
+  {% else %}
+  <p class="hint">{{ t("availability.noNote") }}</p>
+  {% endif %}
+</div>

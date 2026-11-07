@@ -52,15 +52,19 @@ from gilda.home.controllers import HomeController
 from gilda.home.pages import home as my_associations
 from gilda.planning.controllers import PlanningController, SharedScheduleController
 from gilda.planning.pages import (
+    add_absence,
     add_closure,
     add_slot,
     availability_page,
     choose_preference,
     clear_period,
+    delete_absence,
     delete_closure,
     delete_slot,
+    edit_absence,
     edit_closure,
     edit_slot,
+    save_note,
     set_period,
     settings_page,
 )
@@ -123,6 +127,10 @@ def create_app() -> Litestar:
             delete_closure,
             availability_page,
             choose_preference,
+            add_absence,
+            edit_absence,
+            delete_absence,
+            save_note,
             sign_in,
             sign_out,
             revoke_access_link,

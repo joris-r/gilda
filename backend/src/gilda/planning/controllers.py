@@ -106,15 +106,6 @@ class PlanningController(Controller):
             current_user, association_id, data.first, data.last, data.label
         )
 
-    @get("/absences")
-    async def list_absences(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> list[AbsenceRead]:
-        return await PlanningService(db_session).list_absences(current_user, association_id)
-
     @get("/member-absences")
     async def list_member_absences(
         self,
@@ -135,38 +126,6 @@ class PlanningController(Controller):
         return await PlanningService(db_session).add_absence(
             current_user, association_id, data.first, data.last
         )
-
-    @put("/absences/{absence_id:uuid}")
-    async def edit_absence(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        absence_id: FromPath[UUID],
-        data: JSONBody[AbsenceCreate],
-    ) -> AbsenceRead:
-        return await PlanningService(db_session).edit_absence(
-            current_user, association_id, absence_id, data.first, data.last
-        )
-
-    @delete("/absences/{absence_id:uuid}")
-    async def delete_absence(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        absence_id: FromPath[UUID],
-    ) -> None:
-        await PlanningService(db_session).delete_absence(current_user, association_id, absence_id)
-
-    @get("/note")
-    async def get_note(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> NoteData:
-        return await PlanningService(db_session).get_note(current_user, association_id)
 
     @get("/notes")
     async def list_notes(

@@ -1,7 +1,9 @@
 {% extends "layout.html" %}
+{% from "form_dialog.html" import form_dialog with context %}
 {% block header_actions %}{% include "user_menu.html" %}{% endblock %}
 {% block location %}{% include "availability_location.html" %}{% endblock %}
 {% block main %}
+{% set availability = "/association/" ~ association.slug ~ "/availability" %}
 {# value is the value of the selector just changed, sent with its request. #}
 <section data-signals="{value: ''}">
   <div class="section-head">
@@ -20,5 +22,83 @@
   <p class="hint">{{ t("availability.noSlots") }}</p>
   {% endif %}
   {% with error_id = "preferences-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+</section>
+{# The absence dialogs share first and last; _absence is the absence that Edit or Delete acts on. #}
+<section data-signals="{first: '', last: '', _absence: '', _question: ''}">
+  <div class="section-head">
+    <h2>{{ t("availability.absences") }}</h2>
+    <button
+      type="button"
+      class="add"
+      commandfor="add-absence"
+      command="show-modal"
+      data-on:click="$first = ''; $last = ''; $_failed = false; document.getElementById('add-absence-error').hidden = true"
+    >+ {{ t("availability.addAbsence") }}</button>
+  </div>
+  {% include "availability_absences.html" %}
+  {% call form_dialog("add-absence", t("availability.addAbsence")) %}
+  {# No retry: a request that failed after adding would add the absence twice. #}
+  <form data-on:submit="@post('{{ availability }}/absences', {filterSignals: {include: /^(first|last)$/}, retryMaxCount: 0})">
+    {% include "absence_fields.html" %}
+    {% with error_id = "add-absence-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+    <div class="dialog-actions">
+      <button type="submit">{{ t("availability.addAbsenceAction") }}</button>
+      <button type="button" class="link" commandfor="add-absence" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+  </form>
+  {% endcall %}
+  {% call form_dialog("edit-absence", t("availability.editAbsence")) %}
+  <form data-on:submit="@post('{{ availability }}/absences/' + $_absence + '/edit', {filterSignals: {include: /^(first|last)$/}, retryMaxCount: 0})">
+    {% include "absence_fields.html" %}
+    {% with error_id = "edit-absence-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+    <div class="dialog-actions">
+      <button type="submit">{{ t("settings.save") }}</button>
+      <button type="button" class="link" commandfor="edit-absence" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+  </form>
+  {% endcall %}
+  {# As the confirmation macro, but asking about the absence it is opened on. #}
+  <dialog id="delete-absence" class="dialog" aria-labelledby="delete-absence-question">
+    <p id="delete-absence-question" data-text="$_question"></p>
+    <div class="dialog-actions">
+      <button type="button" data-on:click="@post('{{ availability }}/absences/' + $_absence + '/delete', {filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.deleteAction") }}</button>
+      <button type="button" class="link" commandfor="delete-absence" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+    {% with error_id = "delete-absence-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+  </dialog>
+</section>
+{# text is the dialog's; _note is the note as last saved, which the dialog opens with. #}
+<section data-signals='{"text": "", "_note": {{ note | tojson }}}'>
+  <div class="section-head">
+    <h2>{{ t("availability.note") }}</h2>
+    <button
+      type="button"
+      class="icon-button"
+      aria-label="{{ t('availability.editNote') }}"
+      commandfor="edit-note"
+      command="show-modal"
+      data-on:click="$text = $_note; $_failed = false; document.getElementById('edit-note-error').hidden = true"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>
+    </button>
+  </div>
+  {% include "availability_note.html" %}
+  {% call form_dialog("edit-note", t("availability.note")) %}
+  <form data-on:submit="@post('{{ availability }}/note', {filterSignals: {include: /^text$/}, retryMaxCount: 0})">
+    <label>
+      {{ t("availability.text") }}
+      <textarea rows="4" data-bind:text></textarea>
+    </label>
+    {% with error_id = "edit-note-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+    <div class="dialog-actions">
+      <button type="submit">{{ t("settings.save") }}</button>
+      <button type="button" class="link" commandfor="edit-note" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+  </form>
+  {% endcall %}
 </section>
 {% endblock %}

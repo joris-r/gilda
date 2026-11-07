@@ -1,6 +1,8 @@
 import re
+from datetime import datetime
 from typing import Any, cast
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 import msgspec
 from datastar_py.litestar import DatastarResponse, ServerSentEventGenerator
@@ -14,7 +16,14 @@ from gilda.core.controllers import find_current_user
 from gilda.core.models import User
 from gilda.core.schemas import AssociationDetail
 from gilda.core.services import AssociationService, ConflictException
-from gilda.planning.schemas import ClosureCreate, PlanningPeriodData, PreferenceValue, SlotCreate
+from gilda.planning.schemas import (
+    AbsenceCreate,
+    AbsenceRead,
+    ClosureCreate,
+    PlanningPeriodData,
+    PreferenceValue,
+    SlotCreate,
+)
 from gilda.planning.services import PlanningService
 from gilda.web.rendering import fragment, interface_language, page, read_signals_dict, translate
 
@@ -349,6 +358,8 @@ async def availability_page(
         association=association,
         slots=await service.list_slots(user, association.id),
         values=await _own_preferences(service, user, association.id),
+        absences=await _upcoming_absences(service, user, association),
+        note=(await service.get_note(user, association.id)).text,
     )
 
 
@@ -397,3 +408,127 @@ async def choose_preference(
             ),
         ]
     )
+
+
+# My availability: Absences
+
+
+async def _upcoming_absences(
+    service: PlanningService, user: User, association: AssociationDetail
+) -> list[AbsenceRead]:
+    """The user's own absences, from those ending today on, by first date."""
+    today = datetime.now(ZoneInfo(association.timezone)).date()
+    absences = await service.list_absences(user, association.id)
+    return [a for a in absences if a.last >= today]
+
+
+async def _absences_patched(
+    request: Request[Any, Any, Any],
+    db_session: AsyncSession,
+    user: User,
+    association: AssociationDetail,
+    dialog: str,
+) -> DatastarResponse:
+    """Closes the dialog, then shows the absences as they now are."""
+    absences = await _upcoming_absences(PlanningService(db_session), user, association)
+    return _patched(dialog, fragment(request, "availability_absences.html", absences=absences))
+
+
+def _asked_absence(signals: dict[str, Any]) -> AbsenceCreate:
+    return msgspec.convert({k: signals.get(k) for k in ("first", "last")}, AbsenceCreate)
+
+
+def _absence_id(value: str) -> UUID:
+    try:
+        return UUID(value)
+    except ValueError:
+        raise NotFoundException("Absence not found.") from None
+
+
+@post("/association/{slug:str}/availability/absences", status_code=200)
+async def add_absence(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    error_id = "add-absence-error"
+    try:
+        asked = _asked_absence(await read_signals_dict(request))
+    except msgspec.ValidationError:
+        return _error(request, error_id, "error")
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        await PlanningService(db_session).add_absence(user, association.id, asked.first, asked.last)
+    except _REFUSALS:
+        return _error(request, error_id, "error")
+    return await _absences_patched(request, db_session, user, association, "add-absence")
+
+
+@post("/association/{slug:str}/availability/absences/{absence_id:str}/edit", status_code=200)
+async def edit_absence(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    slug: str,
+    absence_id: str,
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    error_id = "edit-absence-error"
+    try:
+        asked = _asked_absence(await read_signals_dict(request))
+    except msgspec.ValidationError:
+        return _error(request, error_id, "error")
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        await PlanningService(db_session).edit_absence(
+            user, association.id, _absence_id(absence_id), asked.first, asked.last
+        )
+    except _REFUSALS:
+        return _error(request, error_id, "error")
+    return await _absences_patched(request, db_session, user, association, "edit-absence")
+
+
+@post("/association/{slug:str}/availability/absences/{absence_id:str}/delete", status_code=200)
+async def delete_absence(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    slug: str,
+    absence_id: str,
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        await PlanningService(db_session).delete_absence(
+            user, association.id, _absence_id(absence_id)
+        )
+    except _REFUSALS:
+        return _error(request, "delete-absence-error", "error")
+    return await _absences_patched(request, db_session, user, association, "delete-absence")
+
+
+# My availability: Note for the managers
+
+
+@post("/association/{slug:str}/availability/note", status_code=200)
+async def save_note(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    error_id = "edit-note-error"
+    text = (await read_signals_dict(request)).get("text")
+    if not isinstance(text, str):
+        return _error(request, error_id, "error")
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        await PlanningService(db_session).set_note(user, association.id, text)
+    except _REFUSALS:
+        return _error(request, error_id, "error")
+    shown = fragment(request, "availability_note.html", note=text)
+    # The note's lines are <br> in `shown`, so putting it on one line keeps them.
+    return _patched("edit-note", shown, ServerSentEventGenerator.patch_signals({"_note": text}))

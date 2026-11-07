@@ -1,0 +1,38 @@
+{# The list alone: the absence dialogs stay out of it, filled from the line they are opened on. #}
+<div id="absences">
+  {% if absences %}
+  <ul class="list">
+    {% for absence in absences %}
+    {% set dates = days(absence.first, absence.last) %}
+    <li>
+      <div>{{ dates }}</div>
+      <div class="line-actions">
+        <button
+          type="button"
+          class="icon-button"
+          aria-label="{{ t('availability.editAbsence') }}"
+          commandfor="edit-absence"
+          command="show-modal"
+          data-on:click="$_absence = '{{ absence.id }}'; $first = '{{ absence.first }}'; $last = '{{ absence.last }}'; $_failed = false; document.getElementById('edit-absence-error').hidden = true"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>
+        </button>
+        <button
+          type="button"
+          class="icon-button"
+          aria-label="{{ t('availability.deleteAbsence') }}"
+          commandfor="delete-absence"
+          command="show-modal"
+          data-question="{{ t('availability.confirmDeleteAbsence', dates=dates) }}"
+          data-on:click="$_absence = '{{ absence.id }}'; $_question = el.dataset.question; $_failed = false; document.getElementById('delete-absence-error').hidden = true"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+        </button>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint">{{ t("availability.noAbsences") }}</p>
+  {% endif %}
+</div>
