@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from tests.planning.conftest import Planning, create_association, sign_up
+from tests.planning.conftest import Planning, create_association, settings_lines, sign_up
 
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 
@@ -16,14 +16,7 @@ UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
     ("method", "rest", "body"),
     [
         ("POST", "slots", {"weekday": "thursday", "start": "10:00", "end": "13:00"}),
-        ("GET", "closures", None),
         ("POST", "closures", {"first": "2026-12-24", "last": "2026-12-26", "label": None}),
-        (
-            "PUT",
-            f"closures/{UNKNOWN_ID}",
-            {"first": "2026-12-24", "last": "2026-12-26", "label": None},
-        ),
-        ("DELETE", f"closures/{UNKNOWN_ID}", None),
         ("GET", "schedule?from=2026-11-02&to=2026-11-08", None),
         (
             "POST",
@@ -46,7 +39,6 @@ def test_planning_401_when_signed_out(
     ("method", "rest", "body"),
     [
         ("POST", "slots", {"weekday": "thursday", "start": "10:00", "end": "13:00"}),
-        ("GET", "closures", None),
         ("POST", "closures", {"first": "2026-12-24", "last": "2026-12-26", "label": None}),
         ("GET", "schedule?from=2026-11-02&to=2026-11-08", None),
     ],
@@ -190,29 +182,6 @@ def test_post_api_closures_label_is_optional(
     assert response.json()["label"] is None
 
 
-def test_get_api_closures_lists_them_by_first_date(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    planning = Planning(client, new_client)
-    planning.add_closure("2026-12-24", "2027-01-01", "Fêtes de fin d'année")
-    planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
-
-    response = planning.bruno_client.get(planning.path("closures"))
-
-    assert response.status_code == 200
-    assert [c["first"] for c in response.json()] == ["2026-11-14", "2026-12-24"]
-
-
-def test_delete_api_closure_removes_it(client: Any, new_client: Callable[[], Any]) -> None:
-    planning = Planning(client, new_client)
-    closure = planning.add_closure("2026-11-14", "2026-11-14")
-
-    response = client.delete(planning.path(f"closures/{closure['id']}"))
-
-    assert response.status_code == 204
-    assert client.get(planning.path("closures")).json() == []
-
-
 @pytest.mark.parametrize(
     "body",
     [
@@ -233,87 +202,13 @@ def test_post_api_closures_400_when_a_field_is_missing_or_invalid(
     assert "error" in response.json()
 
 
-def test_closures_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
+def test_post_api_closures_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
-    closure = planning.add_closure("2026-11-14", "2026-11-14")
-    bruno = planning.bruno_client
+    planning.add_closure("2026-11-14", "2026-11-14")
 
-    created = bruno.post(
+    response = planning.bruno_client.post(
         planning.path("closures"), json={"first": "2026-12-24", "last": "2026-12-26"}
-    )
-    deleted = bruno.delete(planning.path(f"closures/{closure['id']}"))
-
-    assert (created.status_code, deleted.status_code) == (403, 403)
-    assert len(client.get(planning.path("closures")).json()) == 1
-
-
-def test_put_api_closure_edits_it(client: Any, new_client: Callable[[], Any]) -> None:
-    planning = Planning(client, new_client)
-    closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
-
-    response = client.put(
-        planning.path(f"closures/{closure['id']}"),
-        json={"first": "2026-11-13", "last": "2026-11-15", "label": "Fête du quartier élargie"},
-    )
-
-    assert response.status_code == 200
-    edited = {
-        "id": closure["id"],
-        "first": "2026-11-13",
-        "last": "2026-11-15",
-        "label": "Fête du quartier élargie",
-    }
-    assert response.json() == edited
-    assert client.get(planning.path("closures")).json() == [edited]
-
-
-@pytest.mark.parametrize(
-    "body",
-    [
-        {"first": "2026-11-14", "last": "2026-11-14"},
-        {"first": "2026-11-14", "last": "2026-11-14", "label": None},
-    ],
-)
-def test_put_api_closure_label_is_optional(
-    client: Any, new_client: Callable[[], Any], body: dict[str, Any]
-) -> None:
-    planning = Planning(client, new_client)
-    closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
-
-    response = client.put(planning.path(f"closures/{closure['id']}"), json=body)
-
-    assert response.status_code == 200
-    assert response.json()["label"] is None
-
-
-@pytest.mark.parametrize(
-    "body",
-    [
-        {"last": "2026-11-14"},
-        {"first": "2026-11-15", "last": "2026-11-14"},
-        {"first": "14/11/2026", "last": "2026-11-14"},
-    ],
-)
-def test_put_api_closure_400_when_a_field_is_missing_or_invalid(
-    client: Any, new_client: Callable[[], Any], body: dict[str, str]
-) -> None:
-    planning = Planning(client, new_client)
-    closure = planning.add_closure("2026-11-14", "2026-11-14")
-
-    response = client.put(planning.path(f"closures/{closure['id']}"), json=body)
-
-    assert response.status_code == 400
-    assert "error" in response.json()
-
-
-def test_put_api_closure_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
-    planning = Planning(client, new_client)
-    closure = planning.add_closure("2026-11-14", "2026-11-14")
-
-    response = planning.bruno_client.put(
-        planning.path(f"closures/{closure['id']}"),
-        json={"first": "2026-12-24", "last": "2026-12-26"},
     )
 
     assert response.status_code == 403
-    assert client.get(planning.path("closures")).json() == [closure]
+    assert settings_lines(client, planning.slug, "Closures") == ["Sat 14 Nov 2026"]

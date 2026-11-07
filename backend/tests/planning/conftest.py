@@ -1,3 +1,5 @@
+import html
+import re
 from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
@@ -22,6 +24,52 @@ def day_of_week(weekday: str, weeks_ahead: int = 1) -> str:
     today = date.today()
     monday = today - timedelta(days=today.weekday()) + timedelta(weeks=weeks_ahead)
     return (monday + timedelta(days=WEEKDAYS.index(weekday))).isoformat()
+
+
+def part(page: str, tag: str) -> str:
+    match = re.search(rf"<{tag}[ >].*</{tag}>", page, re.DOTALL)
+    assert match, f"no {tag} in {page}"
+    return match.group(0)
+
+
+def text_of(fragment: str) -> str:
+    """What a piece of HTML shows, without its tags and attributes."""
+    return html.unescape(re.sub(r"<[^>]+>", " ", fragment))
+
+
+def without_dialogs(fragment: str) -> str:
+    return re.sub(r"<dialog.*?</dialog>", "", fragment, flags=re.DOTALL)
+
+
+def lines_of(fragment: str) -> list[str]:
+    """The text of each list item outside the dialogs, in order, its spaces collapsed."""
+    items = re.findall(r"<li.*?</li>", without_dialogs(fragment), re.DOTALL)
+    return [" ".join(text_of(item).split()) for item in items]
+
+
+def section_of(page: str, heading: str) -> str:
+    """The HTML of main, outside the dialogs, from the `heading` title to the next one."""
+    main = without_dialogs(part(page, "main"))
+    for chunk in re.split(r"(?=<h2[ >])", main):
+        if re.match(rf"<h2[^>]*>\s*{re.escape(heading)}\s*</h2>", chunk):
+            return chunk
+    raise AssertionError(f"no section {heading} in {main}")
+
+
+def settings_page(as_client: Any, slug: str) -> str:
+    response = as_client.get(f"/association/{slug}/settings")
+    assert response.status_code == 200
+    return str(response.text)
+
+
+def settings_section(as_client: Any, slug: str, heading: str) -> str:
+    """The text that the `heading` section of Schedule settings shows, its spaces collapsed."""
+    return " ".join(text_of(section_of(settings_page(as_client, slug), heading)).split())
+
+
+def settings_lines(as_client: Any, slug: str, heading: str) -> list[str]:
+    """The lines that the `heading` section of Schedule settings lists."""
+    return lines_of(section_of(settings_page(as_client, slug), heading))
 
 
 class Planning:
@@ -74,6 +122,13 @@ class Planning:
         closure: dict[str, Any] = response.json()
         return closure
 
+    def edit_closure(
+        self, closure: dict[str, Any], first: str, last: str, label: str | None = None
+    ) -> None:
+        """Alice saves the dialog "Edit the closure" of `closure` on Schedule settings."""
+        response = edit_closure(self.alice_client, self.slug, closure["id"], first, last, label)
+        assert GENERIC not in shown(response)
+
     def register(self, as_client: Any, user: dict[str, Any], day: str, start: str, end: str) -> Any:
         return as_client.post(
             self.path("registrations"),
@@ -119,3 +174,40 @@ def edit_slot(as_client: Any, slug: str, slot_id: str, weekday: str, start: str,
 def delete_slot(as_client: Any, slug: str, slot_id: str) -> Any:
     """Confirms "Delete the slot" of a slot on Schedule settings."""
     return as_client.post(f"/association/{slug}/settings/slots/{slot_id}/delete", json={})
+
+
+def set_period(as_client: Any, slug: str, first: str, last: str) -> Any:
+    """Submits the dialog "Planning period" on Schedule settings."""
+    return as_client.post(
+        f"/association/{slug}/settings/period", json={"first": first, "last": last}
+    )
+
+
+def clear_period(as_client: Any, slug: str) -> Any:
+    """Confirms "Clear the planning period?" on Schedule settings."""
+    return as_client.post(f"/association/{slug}/settings/period/clear", json={})
+
+
+def add_closure_on_screen(
+    as_client: Any, slug: str, first: str, last: str, label: str | None = ""
+) -> Any:
+    """Submits the dialog "Add a closure" on Schedule settings."""
+    return as_client.post(
+        f"/association/{slug}/settings/closures",
+        json={"first": first, "last": last, "label": label},
+    )
+
+
+def edit_closure(
+    as_client: Any, slug: str, closure_id: str, first: str, last: str, label: str | None = ""
+) -> Any:
+    """Submits the dialog "Edit the closure" of a closure on Schedule settings."""
+    return as_client.post(
+        f"/association/{slug}/settings/closures/{closure_id}/edit",
+        json={"first": first, "last": last, "label": label},
+    )
+
+
+def delete_closure(as_client: Any, slug: str, closure_id: str) -> Any:
+    """Confirms "Delete the closure" of a closure on Schedule settings."""
+    return as_client.post(f"/association/{slug}/settings/closures/{closure_id}/delete", json={})

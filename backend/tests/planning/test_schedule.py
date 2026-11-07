@@ -232,10 +232,7 @@ def test_a_registration_on_a_date_an_edited_closure_covers_is_obsolete(
     planning.registered(planning.bruno_client, planning.bruno, thursday, "10:00", "13:00")
     closure = planning.add_closure(saturday, saturday, "Fête du quartier")
 
-    client.put(
-        planning.path(f"closures/{closure['id']}"),
-        json={"first": thursday, "last": thursday, "label": "Fête du quartier"},
-    )
+    planning.edit_closure(closure, thursday, thursday, "Fête du quartier")
 
     body = planning.schedule(client, thursday, saturday)
     assert [(o["date"], o["registration"]) for o in body["occurrences"]] == [(saturday, None)]

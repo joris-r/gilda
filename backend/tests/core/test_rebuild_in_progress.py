@@ -103,7 +103,7 @@ class TestOtherPaths:
 
 
 class TestScheduleSettings:
-    def test_shows_only_its_slots_section(self, client: Any) -> None:
+    def test_shows_only_its_planning_period_closures_and_slots_sections(self, client: Any) -> None:
         sign_up(client, "Alice")
         slug = f"a-{uuid.uuid4().hex[:12]}"
         created = client.post("/api/associations", json={"name": "Jardin", "slug": slug})
@@ -113,15 +113,9 @@ class TestScheduleSettings:
 
         assert response.status_code == 200
         main = html.unescape(part(response.text, "main"))
-        assert "Slots" in main
-        assert "Add a slot" in main
-        for absent in [
-            "Planning period",
-            "Closures",
-            "Add a closure",
-            "Share link",
-            "Members' preferences",
-        ]:
+        for present in ["Planning period", "Closures", "Add a closure", "Slots", "Add a slot"]:
+            assert present in main
+        for absent in ["Share link", "Create a share link", "Members' preferences"]:
             assert absent not in main
 
 
@@ -147,6 +141,9 @@ class TestNotFound:
             "/association/jardin/identifier",
             "/association/jardin/delete",
             "/association/jardin/settings/slots",
+            "/association/jardin/settings/period",
+            "/association/jardin/settings/period/clear",
+            "/association/jardin/settings/closures",
         ],
     )
     def test_a_path_only_actions_use_answers_it_too(self, client: Any, path: str) -> None:
