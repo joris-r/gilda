@@ -21,8 +21,7 @@ Until then:
     [+ New association]
     ```
   - Members.
-  - Schedule settings, with its Planning period, Closures and Slots
-    sections only:
+  - Schedule settings, without its Share link section:
 
     ```
     (logo)  Jardin partagé des Lilas › Schedule settings       Alice ▾
@@ -39,6 +38,12 @@ Until then:
     SLOTS                                             [+ Add a slot]
       Thursday   10:00–13:00                                ✎  🗑
       Saturday   10:00–13:00                                ✎  🗑
+
+    Members' preferences
+               Thu 10:00–13:00   Sat 10:00–13:00
+      Alice    [Preferred ▾]     [—         ▾]
+      Bruno    [Possible  ▾]     [Unavailable ▾]
+      Chloé    [—         ▾]     [Preferred ▾]
     ```
   - My availability.
 - Any other path outside `/api` answers the Not found page, including

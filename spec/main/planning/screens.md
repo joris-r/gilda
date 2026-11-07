@@ -61,6 +61,7 @@ Members' preferences
 - "Members' preferences" is shown to managers only: one row per member,
   one column per slot, each cell a selector that saves at once like
   those of My availability.
+- Its rows follow the order of Members, its columns that of Slots.
 - When "Members' preferences" scrolls horizontally, the member names
   stay in view (not testable).
 - In French: "Préférences des membres".
