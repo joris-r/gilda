@@ -120,6 +120,9 @@ class TestNotFound:
             "/revoke-access-link",
             "/language",
             "/signup/resend",
+            "/association/jardin/rename",
+            "/association/jardin/identifier",
+            "/association/jardin/delete",
         ],
     )
     def test_a_path_only_actions_use_answers_it_too(self, client: Any, path: str) -> None:

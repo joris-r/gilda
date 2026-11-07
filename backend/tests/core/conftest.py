@@ -221,3 +221,18 @@ def send_member_link(client: Any, slug: str, user_id: str, **kwargs: Any) -> Any
 def revoke_member_link(client: Any, slug: str, user_id: str) -> Any:
     """Confirms "Revoke link" in the edit dialog of a member on Members."""
     return client.post(f"/association/{slug}/members/{user_id}/revoke-link", json={})
+
+
+def rename_association(client: Any, slug: str, name: str) -> Any:
+    """Saves "Rename the association" on Members, with `name`."""
+    return client.post(f"/association/{slug}/rename", json={"name": name})
+
+
+def change_identifier(client: Any, slug: str, new_slug: str) -> Any:
+    """Saves "Change the association identifier" on Members, with `new_slug`."""
+    return client.post(f"/association/{slug}/identifier", json={"slug": new_slug})
+
+
+def delete_association(client: Any, slug: str) -> Any:
+    """Confirms "Delete the association" on Members."""
+    return client.post(f"/association/{slug}/delete", json={})

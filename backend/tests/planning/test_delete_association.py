@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from tests.core.conftest import delete_association, shown
 from tests.planning.conftest import Planning, add_member, create_association, day_of_week
 
 THURSDAY = ("10:00", "13:00")
@@ -45,6 +46,12 @@ def rows_held(association_id: str, slot_id: str) -> dict[str, int]:
     return asyncio.run(run())
 
 
+def deleted(planning: Planning) -> None:
+    """Alice confirms "Delete the association" on Members, which leads to My associations."""
+    text = shown(delete_association(planning.alice_client, planning.association["slug"]))
+    assert "window.location" in text, text
+
+
 def filled(planning: Planning) -> tuple[dict[str, Any], str, str]:
     """Gives the association one of everything; returns its slot, share token and a Thursday."""
     alice, bruno = planning.alice_client, planning.bruno_client
@@ -75,7 +82,7 @@ def test_r34_everything_the_association_holds_is_erased(
     slot, _, _ = filled(planning)
     assert all(rows_held(planning.id, slot["id"]).values())
 
-    assert client.delete(f"/api/associations/{planning.id}").status_code == 204
+    deleted(planning)
 
     assert not any(rows_held(planning.id, slot["id"]).values())
 
@@ -87,7 +94,7 @@ def test_r34_the_share_link_no_longer_shows_the_schedule(
     planning = Planning(client, new_client)
     _, token, _ = filled(planning)
 
-    assert client.delete(f"/api/associations/{planning.id}").status_code == 204
+    deleted(planning)
 
     assert new_client().get(f"/api/shared/{token}{path}").status_code == 404
 
@@ -101,7 +108,7 @@ def test_r34_its_planning_endpoints_answer_404(
     planning = Planning(client, new_client)
     filled(planning)
 
-    assert client.delete(f"/api/associations/{planning.id}").status_code == 204
+    deleted(planning)
 
     assert client.get(planning.path(rest)).status_code == 404
 
@@ -125,7 +132,7 @@ def test_r34_another_association_of_its_members_keeps_what_it_holds(
     )
     assert registration.status_code == 201, registration.text
 
-    assert client.delete(f"/api/associations/{planning.id}").status_code == 204
+    deleted(planning)
 
     associations = planning.bruno_client.get("/api/associations").json()
     assert [a["id"] for a in associations] == [other["id"]]

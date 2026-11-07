@@ -10,16 +10,19 @@ from tests.core.conftest import (
     add_member,
     ask_for_link,
     break_the_mailer,
+    change_identifier,
     change_role,
     confirm_email,
     create_account,
     create_association,
+    delete_association,
     email_count,
     latest_access_token,
     latest_email,
     latest_verification_token,
     open_link,
     remove_member,
+    rename_association,
     revoke_member_link,
     send_member_link,
     shown,
@@ -35,6 +38,14 @@ NOT_JOINED = "not joined yet"
 LAST_MANAGER = "An association keeps at least one manager."
 REVOKE_CHLOE = "Revoke Chloé's sign-in link?"
 LINK_SUBJECT = {"en": "Your sign-in link", "fr": "Votre lien de connexion"}
+NEW_NAME = "Jardin des Lilas"
+MALFORMED_SLUG = (
+    "Use only lowercase letters, digits and hyphens, starting and ending with a letter or a digit."
+)
+TAKEN_SLUG = "This association identifier is already taken."
+CONFIRM_DELETE = (
+    f"Delete {NAME}? Its schedule and its members' registrations are erased. This cannot be undone."
+)
 
 
 def part(page: str, tag: str) -> str:
@@ -359,18 +370,6 @@ class TestAsAManager:
         assert 'aria-label="Modifier Chloé"' in main
 
 
-class TestRebuildInProgress:
-    def test_a_manager_sees_no_association_actions(self, client: Any) -> None:
-        association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
-
-        page = members_page(client, association["slug"])
-
-        assert "Rename the association" not in page
-        assert "Change the association identifier" not in page
-        assert "Delete the association" not in page
-
-
 class TestAsAVolunteer:
     def test_shows_the_members_and_their_roles_without_add_a_member(
         self, client: Any, new_client: Callable[[], Any]
@@ -393,6 +392,16 @@ class TestAsAVolunteer:
         assert "Edit Bruno" not in page
         assert "Remove from the association" not in page
         assert "Remove Alice from the association?" not in page
+
+    def test_shows_no_association_actions(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+
+        page = html.unescape(members_page(bruno, association["slug"]))
+
+        assert "Rename the association" not in page
+        assert "Change the association identifier" not in page
+        assert "Delete the association" not in page
+        assert f"Delete {NAME}?" not in page
 
 
 class TestUnknownAssociation:
@@ -1154,3 +1163,448 @@ class TestLinkEndpointsRemoved:
         path = f"/api/associations/{association['id']}/members/{chloe}/access-link"
 
         assert client.request(method, path).status_code == 404
+
+
+def name_of(client: Any, association: dict[str, Any]) -> str:
+    found: str = client.get(f"/api/associations/{association['id']}").json()["name"]
+    return found
+
+
+def slug_of(client: Any, association: dict[str, Any]) -> str:
+    found: str = client.get(f"/api/associations/{association['id']}").json()["slug"]
+    return found
+
+
+def email_of(client: Any, association: dict[str, Any], display_name: str) -> str:
+    members = client.get(f"/api/associations/{association['id']}").json()["members"]
+    found: str = next(m["email"] for m in members if m["display_name"] == display_name)
+    return found
+
+
+def promoted(client: Any, association: dict[str, Any], display_name: str) -> None:
+    """Alice makes `display_name` a manager."""
+    member = user_id(client, association, display_name)
+    assert "is now manager." in shown(change_role(client, association["slug"], member, "manager"))
+
+
+def other_user(new_client: Callable[[], Any]) -> Any:
+    """Zoé, signed in on her own client, who is not a member."""
+    other = new_client()
+    sign_up(other, "Zoé", unique_email("Zoe"))
+    return other
+
+
+class TestAssociationActions:
+    def test_a_manager_sees_the_three_actions(self, client: Any) -> None:
+        association = managed(client)
+
+        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+
+        assert re.search(r"<button[^>]*>\s*Rename the association\s*</button>", main)
+        assert re.search(r"<button[^>]*>\s*Change the association identifier\s*</button>", main)
+        assert re.search(r"<button[^>]*>\s*Delete the association\s*</button>", main)
+
+    def test_rename_the_association_opens_its_dialog(self, client: Any) -> None:
+        association = managed(client)
+
+        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+
+        assert re.search(r"<h2[^>]*>\s*Rename the association\s*</h2>", main)
+        assert re.search(r"<label[^>]*>\s*Name\b", main)
+
+    def test_change_the_association_identifier_opens_its_dialog(self, client: Any) -> None:
+        association = managed(client)
+
+        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+
+        assert re.search(r"<h2[^>]*>\s*Change the association identifier\s*</h2>", main)
+        assert re.search(r"<label[^>]*>\s*Association identifier\b", main)
+        assert "/association/" in text_of(main)
+
+    def test_delete_the_association_asks_with_its_name(self, client: Any) -> None:
+        association = managed(client)
+
+        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+
+        assert CONFIRM_DELETE in main
+        assert "Type the association's name to confirm" in main
+        assert re.search(r"<button[^>]*>\s*Delete\s*</button>", main)
+
+    def test_follow_the_language(self, client: Any) -> None:
+        association = managed(client)
+        client.cookies.set("language", "fr")
+
+        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+
+        assert "Renommer l'association" in main
+        assert "Modifier l'identifiant de l'association" in main
+        assert "Supprimer l'association" in main
+        assert f"Supprimer {NAME} ? Son planning" in main
+        assert "Saisissez le nom de l'association pour confirmer" in main
+
+
+class TestRenamingTheAssociation:
+    def test_another_name_changes_it_and_says_so(self, client: Any) -> None:
+        association = managed(client)
+
+        text = shown(rename_association(client, association["slug"], NEW_NAME))
+
+        assert f"The association is now {NEW_NAME}." in text
+        assert name_of(client, association) == NEW_NAME
+        assert NEW_NAME in text_of(part(members_page(client, association["slug"]), "header"))
+        assert NEW_NAME in client.get("/").text
+
+    def test_updates_the_header_at_once(self, client: Any) -> None:
+        association = managed(client)
+
+        text = shown(rename_association(client, association["slug"], NEW_NAME))
+
+        slug = association["slug"]
+        assert re.search(rf'<a[^>]*href="/association/{slug}"[^>]*>\s*{NEW_NAME}\s*</a>', text)
+
+    def test_the_slug_stays_unchanged(self, client: Any) -> None:
+        association = managed(client)
+
+        shown(rename_association(client, association["slug"], NEW_NAME))
+
+        assert slug_of(client, association) == association["slug"]
+        assert UNKNOWN not in html.unescape(members_page(client, association["slug"]))
+
+    def test_the_same_name_changes_nothing(self, client: Any) -> None:
+        association = managed(client)
+
+        text = shown(rename_association(client, association["slug"], NAME))
+
+        assert "is now" not in text
+        assert GENERIC not in text
+        assert name_of(client, association) == NAME
+
+    def test_accepts_the_name_of_another_association(self, client: Any) -> None:
+        association = managed(client)
+        create_association(client, NEW_NAME)
+
+        text = shown(rename_association(client, association["slug"], NEW_NAME))
+
+        assert f"The association is now {NEW_NAME}." in text
+        assert name_of(client, association) == NEW_NAME
+
+    def test_escapes_the_name(self, client: Any) -> None:
+        association = managed(client)
+
+        response = rename_association(client, association["slug"], "<b>Jardin</b>")
+
+        assert "<b>Jardin</b>" not in response.text
+        assert "<b>Jardin</b>" not in members_page(client, association["slug"])
+
+    def test_by_any_manager(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+        promoted(client, association, "Bruno")
+
+        shown(rename_association(bruno, association["slug"], NEW_NAME))
+
+        assert name_of(client, association) == NEW_NAME
+
+    def test_the_members_are_not_told(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, _ = with_volunteer(client, new_client)
+        email = email_of(client, association, "Bruno")
+        before = email_count(email)
+
+        shown(rename_association(client, association["slug"], NEW_NAME))
+
+        assert no_email_sent(email, already=before)
+
+    def test_the_message_follows_the_language(self, client: Any) -> None:
+        association = managed(client)
+        client.cookies.set("language", "fr")
+
+        text = shown(rename_association(client, association["slug"], NEW_NAME))
+
+        assert f"L'association s'appelle désormais {NEW_NAME}." in text
+
+    @pytest.mark.parametrize("body", [{}, {"name": ""}])
+    def test_a_missing_or_empty_name_shows_the_generic_error_and_changes_nothing(
+        self, client: Any, body: dict[str, str]
+    ) -> None:
+        association = managed(client)
+
+        text = shown(client.post(f"/association/{association['slug']}/rename", json=body))
+
+        assert GENERIC in text
+        assert name_of(client, association) == NAME
+
+    def test_a_volunteer_renames_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+
+        response = rename_association(bruno, association["slug"], NEW_NAME)
+
+        assert "is now" not in html.unescape(response.text)
+        assert name_of(client, association) == NAME
+
+    def test_a_non_member_renames_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association = managed(client)
+
+        response = rename_association(other_user(new_client), association["slug"], NEW_NAME)
+
+        assert "is now" not in html.unescape(response.text)
+        assert name_of(client, association) == NAME
+
+    def test_signed_out_leads_to_sign_in_and_renames_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association = managed(client)
+
+        text = shown(rename_association(new_client(), association["slug"], NEW_NAME))
+
+        assert "window.location" in text
+        assert "is now" not in text
+        assert name_of(client, association) == NAME
+
+
+class TestChangingTheIdentifier:
+    def test_another_slug_changes_it_and_leads_to_its_new_url(self, client: Any) -> None:
+        association = managed(client)
+        slug = unique_slug()
+
+        text = shown(change_identifier(client, association["slug"], slug))
+
+        assert re.search(rf"window\.location = '/association/{slug}/members'", text), text
+        assert slug_of(client, association) == slug
+        assert NAME in members_page(client, slug)
+
+    def test_accepts_a_slug_of_50_characters(self, client: Any) -> None:
+        association = managed(client)
+        slug = unique_slug().ljust(50, "x")
+
+        shown(change_identifier(client, association["slug"], slug))
+
+        assert slug_of(client, association) == slug
+
+    def test_r36_the_former_slug_no_longer_leads_to_the_association(self, client: Any) -> None:
+        association = managed(client)
+
+        shown(change_identifier(client, association["slug"], unique_slug()))
+
+        page = html.unescape(client.get(f"/association/{association['slug']}/members").text)
+        assert UNKNOWN in page
+
+    def test_r36_another_association_can_take_the_former_slug(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association = managed(client)
+        shown(change_identifier(client, association["slug"], unique_slug()))
+        other = new_client()
+        sign_up(other, "Zoé", unique_email("Zoe"))
+
+        theirs = create_association(other, "Repair Café", association["slug"])
+
+        assert "Repair Café" in members_page(other, theirs["slug"])
+
+    def test_the_same_slug_changes_nothing(self, client: Any) -> None:
+        association = managed(client)
+
+        text = shown(change_identifier(client, association["slug"], association["slug"]))
+
+        assert "is now" not in text
+        assert GENERIC not in text
+        assert TAKEN_SLUG not in text
+        assert slug_of(client, association) == association["slug"]
+
+    @pytest.mark.parametrize(
+        "slug", ["Jardin", "jardin lilas", "jardin_lilas", "-jardin", "jardin-", "jardín", "a" * 51]
+    )
+    def test_a_malformed_slug_shows_its_message(self, client: Any, slug: str) -> None:
+        association = managed(client)
+
+        text = shown(change_identifier(client, association["slug"], slug))
+
+        assert MALFORMED_SLUG in text
+        assert "window.location" not in text
+        assert slug_of(client, association) == association["slug"]
+
+    def test_a_slug_taken_by_another_association_shows_its_message(self, client: Any) -> None:
+        association = managed(client)
+        other = create_association(client, "Repair Café", unique_slug())
+
+        text = shown(change_identifier(client, association["slug"], other["slug"]))
+
+        assert TAKEN_SLUG in text
+        assert slug_of(client, association) == association["slug"]
+
+    def test_the_slug_new_shows_the_taken_message(self, client: Any) -> None:
+        association = managed(client)
+
+        text = shown(change_identifier(client, association["slug"], "new"))
+
+        assert TAKEN_SLUG in text
+        assert slug_of(client, association) == association["slug"]
+
+    def test_messages_follow_the_language(self, client: Any) -> None:
+        association = managed(client)
+        other = create_association(client, "Repair Café", unique_slug())
+        client.cookies.set("language", "fr")
+        slug = association["slug"]
+
+        assert "Utilisez uniquement des lettres minuscules" in shown(
+            change_identifier(client, slug, "Jardin")
+        )
+        assert "Cet identifiant d'association est déjà pris." in shown(
+            change_identifier(client, slug, other["slug"])
+        )
+
+    def test_a_missing_slug_shows_the_generic_error(self, client: Any) -> None:
+        association = managed(client)
+
+        text = shown(client.post(f"/association/{association['slug']}/identifier", json={}))
+
+        assert GENERIC in text
+        assert slug_of(client, association) == association["slug"]
+
+    def test_by_any_manager(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+        promoted(client, association, "Bruno")
+        slug = unique_slug()
+
+        shown(change_identifier(bruno, association["slug"], slug))
+
+        assert slug_of(client, association) == slug
+
+    def test_the_members_are_not_told(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, _ = with_volunteer(client, new_client)
+        email = email_of(client, association, "Bruno")
+        before = email_count(email)
+
+        shown(change_identifier(client, association["slug"], unique_slug()))
+
+        assert no_email_sent(email, already=before)
+
+    def test_a_volunteer_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+        slug = unique_slug()
+
+        response = change_identifier(bruno, association["slug"], slug)
+
+        assert slug not in response.text
+        assert slug_of(client, association) == association["slug"]
+
+    def test_a_non_member_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association = managed(client)
+        slug = unique_slug()
+
+        response = change_identifier(other_user(new_client), association["slug"], slug)
+
+        assert slug not in response.text
+        assert slug_of(client, association) == association["slug"]
+
+    def test_signed_out_leads_to_sign_in_and_changes_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association = managed(client)
+        slug = unique_slug()
+
+        text = shown(change_identifier(new_client(), association["slug"], slug))
+
+        assert "window.location" in text
+        assert slug not in text
+        assert slug_of(client, association) == association["slug"]
+
+
+class TestDeletingTheAssociation:
+    def test_deletes_it_and_leads_to_my_associations(self, client: Any) -> None:
+        association = managed(client)
+
+        text = shown(delete_association(client, association["slug"]))
+
+        assert re.search(r"window\.location = '/'", text), text
+        assert client.get(f"/api/associations/{association['id']}").status_code == 404
+        assert client.get("/api/associations").json() == []
+        page = html.unescape(client.get(f"/association/{association['slug']}/members").text)
+        assert UNKNOWN in page
+
+    def test_by_any_manager(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+        promoted(client, association, "Bruno")
+
+        shown(delete_association(bruno, association["slug"]))
+
+        assert client.get("/api/associations").json() == []
+
+    def test_r34_members_stay_users_in_their_other_associations(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, bruno = with_volunteer(client, new_client)
+        other = create_association(client, "Repair Café Belleville", unique_slug())
+        add_member(client, other["id"], "Bruno", email_of(client, association, "Bruno"))
+
+        shown(delete_association(client, association["slug"]))
+
+        assert bruno.get("/api/session").status_code == 200
+        assert [a["id"] for a in bruno.get("/api/associations").json()] == [other["id"]]
+        assert "Repair Café Belleville" in members_page(client, other["slug"])
+
+    def test_r34_a_member_left_in_no_association_stays_a_user(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, bruno = with_volunteer(client, new_client)
+
+        shown(delete_association(client, association["slug"]))
+
+        assert bruno.get("/api/session").status_code == 200
+        assert bruno.get("/api/associations").json() == []
+
+    def test_r34_an_added_user_can_be_added_to_another_association_afterwards(
+        self, client: Any
+    ) -> None:
+        association, chloe, email = with_member(client)
+        shown(delete_association(client, association["slug"]))
+        other = create_association(client, "Repair Café Belleville", unique_slug())
+
+        text = shown(add_on_screen(client, other["slug"], "Chloé", email))
+
+        assert "Chloé added." in text
+        assert user_id(client, other, "Chloé") == chloe
+
+    def test_r34_the_members_are_not_told(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, _ = with_volunteer(client, new_client)
+        email = email_of(client, association, "Bruno")
+        before = email_count(email)
+
+        shown(delete_association(client, association["slug"]))
+
+        assert no_email_sent(email, already=before)
+
+    def test_a_volunteer_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+
+        delete_association(bruno, association["slug"])
+
+        assert client.get(f"/api/associations/{association['id']}").status_code == 200
+
+    def test_a_non_member_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association = managed(client)
+
+        delete_association(other_user(new_client), association["slug"])
+
+        assert client.get(f"/api/associations/{association['id']}").status_code == 200
+
+    def test_signed_out_leads_to_sign_in_and_deletes_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association = managed(client)
+
+        text = shown(delete_association(new_client(), association["slug"]))
+
+        assert "window.location" in text
+        assert client.get(f"/api/associations/{association['id']}").status_code == 200
+
+
+class TestAssociationEndpointsRemoved:
+    @pytest.mark.parametrize(("method", "body"), [("PATCH", {"name": NEW_NAME}), ("DELETE", None)])
+    def test_patch_and_delete_api_association_change_nothing(
+        self, client: Any, method: str, body: dict[str, str] | None
+    ) -> None:
+        association = managed(client)
+
+        response = client.request(method, f"/api/associations/{association['id']}", json=body)
+
+        assert response.status_code in (404, 405)
+        assert name_of(client, association) == NAME
