@@ -2,7 +2,7 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from litestar import Controller, delete, get, patch, post, put
+from litestar import Controller, delete, get, post, put
 from litestar.di import NamedDependency, Provide
 from litestar.params import FromPath, JSONBody, QueryParameter
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +21,6 @@ from gilda.planning.schemas import (
     RegistrationCount,
     RegistrationCreate,
     RegistrationRead,
-    RegistrationUpdate,
     ScheduleRead,
     SharedAssociation,
     ShareLinkRead,
@@ -157,19 +156,6 @@ class PlanningController(Controller):
     ) -> RegistrationRead:
         return await PlanningService(db_session).register(
             current_user, association_id, data.user_id, data.date, data.start, data.end
-        )
-
-    @patch("/registrations/{registration_id:uuid}")
-    async def change_status(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        registration_id: FromPath[UUID],
-        data: JSONBody[RegistrationUpdate],
-    ) -> RegistrationRead:
-        return await PlanningService(db_session).change_status(
-            current_user, association_id, registration_id, data.status
         )
 
 

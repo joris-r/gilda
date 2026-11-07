@@ -28,8 +28,9 @@ from gilda.planning.schemas import (
     PreferenceValue,
     ScheduleRead,
     SlotCreate,
+    Status,
 )
-from gilda.planning.services import PlanningService
+from gilda.planning.services import PlanningService, TakenException
 from gilda.web.rendering import fragment, interface_language, page, read_signals_dict, translate
 
 # An action that fails on these shows the generic error.
@@ -872,3 +873,202 @@ async def more_weeks(
         view=_weeks_view(schedule, period, _today(association)),
     )
     return DatastarResponse(ServerSentEventGenerator.patch_elements(_one_line(shown)))
+
+
+# The Schedule's menu, opened on an occurrence or an obsolete registration.
+
+_CLOCK = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+
+
+@dataclass
+class _Menu:
+    """What the menu of an occurrence or an obsolete registration offers the user."""
+
+    date: date
+    start: str
+    end: str
+    registration_id: UUID | None = None
+    sign_up: bool = False
+    confirm: bool = False
+    cancel: bool = False
+
+    @property
+    def times(self) -> str:
+        return f"{_short_clock(self.start)}–{_short_clock(self.end)}"  # noqa: RUF001
+
+
+def _asked_occurrence(signals: dict[str, Any]) -> tuple[date, str, str]:
+    day, start, end = signals.get("date"), signals.get("start"), signals.get("end")
+    if not all(isinstance(value, str) for value in (day, start, end)):
+        raise ClientException("Give the occurrence's date, start and end.")
+    if not _CLOCK.match(cast(str, start)) or not _CLOCK.match(cast(str, end)):
+        raise ClientException("Give the occurrence's times as HH:MM.")
+    try:
+        return date.fromisoformat(cast(str, day)), cast(str, start), cast(str, end)
+    except ValueError as error:
+        raise ClientException("Give the occurrence's date as a date.") from error
+
+
+def _menu_of(schedule: ScheduleRead, user: User, asked: _Menu) -> _Menu:
+    """The menu of the occurrence or obsolete registration `asked` names. Until the manager's
+    menu is served, it offers Confirm and Cancel registration on the user's own registrations
+    only, to managers too."""
+    for occurrence in schedule.occurrences:
+        if (occurrence.start, occurrence.end) != (asked.start, asked.end):
+            continue
+        registration = occurrence.registration
+        if registration is None or registration.status == "cancelled":
+            asked.sign_up = True
+            return asked
+        allowed = registration.user_id == user.id
+        asked.registration_id = registration.id
+        asked.confirm = allowed and registration.status == "proposed"
+        asked.cancel = allowed
+        return asked
+    for obsolete in schedule.obsolete:
+        if (obsolete.start, obsolete.end) == (asked.start, asked.end):
+            asked.registration_id = obsolete.id
+            asked.cancel = obsolete.user_id == user.id
+            return asked
+    raise NotFoundException("No occurrence at this time.")
+
+
+async def _weeks_patched(
+    request: Request[Any, Any, Any],
+    service: PlanningService,
+    user: User,
+    association: AssociationDetail,
+    first: date,
+    last: date,
+    close: str,
+) -> DatastarResponse:
+    """Closes the menu, or the confirmation, then shows the weeks from `first` to `last` as
+    they now are."""
+    schedule = await service.schedule(user, association.id, first, last)
+    period = await service.get_planning_period(user, association.id)
+    shown = fragment(
+        request,
+        "schedule_weeks.html",
+        association=association,
+        view=_weeks_view(schedule, period, _today(association)),
+    )
+    return DatastarResponse(
+        [
+            ServerSentEventGenerator.execute_script(close),
+            ServerSentEventGenerator.patch_elements(_one_line(shown)),
+        ]
+    )
+
+
+_CLOSE_MENU = "document.getElementById('occurrence-menu').hidePopover()"
+_CLOSE_CANCEL = "document.getElementById('cancel-registration').close()"
+
+
+@post("/association/{slug:str}/menu", status_code=200)
+async def occurrence_menu(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    show = ServerSentEventGenerator.execute_script(
+        "document.getElementById('occurrence-menu').showPopover()"
+    )
+    try:
+        signals = await read_signals_dict(request)
+        day, start, end = _asked_occurrence(signals)
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        service = PlanningService(db_session)
+        if "from" in signals or "to" in signals:
+            first, last = _shown_range(signals)
+        else:
+            opened = await service.schedule(user, association.id, None, None)
+            first, last = opened.from_, opened.to
+        schedule = await service.schedule(user, association.id, day, day)
+        menu = _menu_of(schedule, user, _Menu(date=day, start=start, end=end))
+    except _REFUSALS:
+        message = translate(interface_language(request), "error")
+        body = fragment(request, "schedule_menu.html", menu=None, message=message)
+        return DatastarResponse([ServerSentEventGenerator.patch_elements(_one_line(body)), show])
+    weeks = {"from": first.isoformat(), "to": last.isoformat()}
+    context = {"association": association, "menu": menu, "weeks": weeks, "message": ""}
+    events = [
+        ServerSentEventGenerator.patch_elements(
+            _one_line(fragment(request, "schedule_menu.html", **context))
+        )
+    ]
+    if menu.cancel:
+        events.append(
+            ServerSentEventGenerator.patch_elements(
+                _one_line(fragment(request, "schedule_cancel.html", **context))
+            )
+        )
+    return DatastarResponse([*events, show])
+
+
+@post("/association/{slug:str}/sign-up", status_code=200)
+async def schedule_sign_up(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    try:
+        signals = await read_signals_dict(request)
+        day, start, end = _asked_occurrence(signals)
+        first, last = _shown_range(signals)
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        service = PlanningService(db_session)
+        await service.register(user, association.id, user.id, day, start, end)
+    except TakenException:
+        return _error(request, "menu-error", "schedule.taken")
+    except _REFUSALS:
+        return _error(request, "menu-error", "error")
+    return await _weeks_patched(request, service, user, association, first, last, _CLOSE_MENU)
+
+
+async def _status_changed(
+    request: Request[Any, Any, Any],
+    db_session: AsyncSession,
+    slug: str,
+    registration_id: str,
+    status: Status,
+) -> DatastarResponse:
+    """Confirms or cancels a registration (R7), then shows the weeks shown as they now are."""
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    error_id = "menu-error" if status == "confirmed" else "cancel-registration-error"
+    try:
+        first, last = _shown_range(await read_signals_dict(request))
+        try:
+            registration = UUID(registration_id)
+        except ValueError as error:
+            raise NotFoundException("Registration not found.") from error
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        service = PlanningService(db_session)
+        await service.change_status(user, association.id, registration, status)
+    except _REFUSALS:
+        return _error(request, error_id, "error")
+    close = _CLOSE_MENU if status == "confirmed" else _CLOSE_CANCEL
+    return await _weeks_patched(request, service, user, association, first, last, close)
+
+
+@post("/association/{slug:str}/registrations/{registration_id:str}/confirm", status_code=200)
+async def confirm_registration(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    slug: str,
+    registration_id: str,
+) -> DatastarResponse:
+    return await _status_changed(request, db_session, slug, registration_id, "confirmed")
+
+
+@post("/association/{slug:str}/registrations/{registration_id:str}/cancel", status_code=200)
+async def cancel_registration(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    slug: str,
+    registration_id: str,
+) -> DatastarResponse:
+    return await _status_changed(request, db_session, slug, registration_id, "cancelled")

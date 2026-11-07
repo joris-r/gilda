@@ -93,10 +93,6 @@ class RegistrationCreate(msgspec.Struct):
     end: Clock
 
 
-class RegistrationUpdate(msgspec.Struct):
-    status: Status
-
-
 class RegistrationRead(msgspec.Struct):
     id: UUID
     user_id: UUID

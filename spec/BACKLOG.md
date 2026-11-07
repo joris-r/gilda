@@ -13,13 +13,13 @@
 - Tests: `section_of` would unescape the HTML before matching a heading, so a heading with an apostrophe needs no `| safe`.
 - Process: CLAUDE.md would ask, when a test's read of state moves from a deleted endpoint to a screen, to check that the screen still shows what the test checks (e.g. a removed member's row leaves the screen).
 - Process: CLAUDE.md would ask, when an endpoint leaves, to search the tests for its last path segment alone (e.g. `schedule?from=`), as parametrized lists name it without its prefix.
+- Process: CLAUDE.md would ask, before planning to keep an endpoint for the backend fixtures, to check what the fixtures do with it, since a new action may already cover their calls (e.g. they only cancel the user's own registrations).
 
 
 ## Datastar experiment
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Schedule: the volunteer's menu (Sign up, Confirm, Cancel registration).
 - Schedule: the manager's menu (propose, cancel, preferences and counts, absence and note icons); restores "The schedule is filled".
 - Schedule settings: Share link, and Shared schedule; restores "The schedule is shared".
 - My associations: the registrations summary (R12, R13, R14, Confirm, OK, Choose your slots).
@@ -145,6 +145,14 @@ Choices the spec left open, settled by `schedule-weeks`:
 - Schedule: an occurrence's accessible label is its times, then what it shows, e.g. "10–13 Chloé ?".
 - More weeks: a missing, invalid or reversed range, or one over 520 weeks, shows the generic error; a non-member's request shows none of the weeks; a request that is already signed out leads to Sign in.
 
+Choices the spec left open, settled by `schedule-volunteer-menu`:
+
+- Schedule menu: a missing or invalid date or time, or no occurrence at that time, opens the menu with only the generic error.
+- Sign up: a date before today (R6), no matching occurrence, a closed date or a missing field shows the generic error; only R4 has its own message, "Someone took this slot in the meantime."
+- Confirm and Cancel registration: an unknown registration, or another association's, shows the generic error.
+- Menu, Sign up, Confirm and Cancel registration: a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
+- Schedule menu: the user's own obsolete registration offers Cancel registration, whether proposed or confirmed, and never Confirm.
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -183,6 +191,12 @@ Choices the spec left open, settled by `schedule-weeks`:
 - Schedule: a page left open past midnight keeps the old today line and past days until it reloads.
 - Schedule: a closure on a weekday with no column of the shown weeks doesn't show at all.
 - More weeks resends every shown week, so each click's response grows with the weeks already shown.
+- Schedule menu: it opens only once the server answers, so a slow network shows nothing for a while after the click.
+- Schedule menu: it shows centred on the screen, not anchored to the occurrence.
+- Sign up: after "Someone took this slot in the meantime.", the Schedule still shows the occurrence as free until a reload.
+- Schedule: a page left open past midnight still offers Sign up on yesterday's occurrences, which then shows only the generic error.
+- Cancel registration: the server cancels a registration dated before today (R7 doesn't forbid it), though no menu opens there.
+- Sign up, Confirm and Cancel registration resend every week shown, as More weeks does.
 
 
 ## Quality
@@ -218,7 +232,8 @@ Choices the spec left open, settled by `schedule-weeks`:
 - Any manager can delete the association, irreversibly, with no password, so one manager or a stolen session can erase it for every member.
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account.
 - More weeks builds up to 520 weeks per request, with no rate limit, so a member could load the server with repeated long ranges.
-- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` `POST /association/{slug}/settings/slots/{slot_id}/delete`, `POST /association/{slug}/settings/period`, `POST /association/{slug}/settings/period/clear`, `POST /association/{slug}/settings/closures`, `POST /association/{slug}/settings/closures/{closure_id}/edit` `POST /association/{slug}/settings/closures/{closure_id}/delete` `POST /association/{slug}/availability/preferences/{slot_id}`, `POST /association/{slug}/availability/absences`, `POST /association/{slug}/availability/absences/{absence_id}/edit`, `POST /association/{slug}/availability/absences/{absence_id}/delete`, `POST /association/{slug}/availability/note` and `POST /association/{slug}/settings/preferences/{slot_id}/{user_id}` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
+- Sign up, Confirm and Cancel registration accept ranges of up to 520 weeks, as More weeks does, with no rate limit.
+- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` `POST /association/{slug}/settings/slots/{slot_id}/delete`, `POST /association/{slug}/settings/period`, `POST /association/{slug}/settings/period/clear`, `POST /association/{slug}/settings/closures`, `POST /association/{slug}/settings/closures/{closure_id}/edit` `POST /association/{slug}/settings/closures/{closure_id}/delete` `POST /association/{slug}/availability/preferences/{slot_id}`, `POST /association/{slug}/availability/absences`, `POST /association/{slug}/availability/absences/{absence_id}/edit`, `POST /association/{slug}/availability/absences/{absence_id}/delete`, `POST /association/{slug}/availability/note`, `POST /association/{slug}/settings/preferences/{slot_id}/{user_id}`, `POST /association/{slug}/menu`, `POST /association/{slug}/sign-up`, `POST /association/{slug}/registrations/{registration_id}/confirm` and `POST /association/{slug}/registrations/{registration_id}/cancel` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
 

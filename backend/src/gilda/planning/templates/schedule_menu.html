@@ -1,0 +1,19 @@
+{# The menu's content, filled by the server when it opens on an occurrence or an obsolete registration. #}
+<div id="occurrence-menu-body" class="occurrence-menu-body">
+  {% if menu %}
+  {% set here = "/association/" ~ association.slug %}
+  {% set shown = "from: '" ~ weeks["from"] ~ "', to: '" ~ weeks["to"] ~ "'" %}
+  <p class="menu-title">{{ short_day(menu.date) }} · {{ menu.times }}</p>
+  {% if menu.sign_up %}
+  <button type="button" class="link" data-on:click="@post('{{ here }}/sign-up', {payload: {date: '{{ menu.date }}', start: '{{ menu.start }}', end: '{{ menu.end }}', {{ shown }}}, retryMaxCount: 0})">{{ t("schedule.signUp") }}</button>
+  {% endif %}
+  {% if menu.confirm %}
+  <button type="button" class="link" data-on:click="@post('{{ here }}/registrations/{{ menu.registration_id }}/confirm', {payload: { {{- shown -}} }, retryMaxCount: 0})">{{ t("schedule.confirm") }}</button>
+  {% endif %}
+  {% if menu.cancel %}
+  <button type="button" class="link" commandfor="cancel-registration" command="show-modal" data-on:click="document.getElementById('cancel-registration-error').hidden = true">{{ t("schedule.cancel") }}</button>
+  {% endif %}
+  {% endif %}
+  {% with error_id = "menu-error" %}{% include "form_error.html" %}{% endwith %}
+  <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+</div>

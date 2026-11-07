@@ -9,4 +9,8 @@
   <a href="{{ here }}/settings">{{ t("settings.title") }}</a>
 </p>
 {% include "schedule_weeks.html" %}
+<div id="occurrence-menu" class="occurrence-menu" popover>
+  {% with menu = None, message = "" %}{% include "schedule_menu.html" %}{% endwith %}
+</div>
+{% with menu = None %}{% include "schedule_cancel.html" %}{% endwith %}
 {% endblock %}

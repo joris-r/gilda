@@ -1,0 +1,10 @@
+{# The confirmation of "Cancel registration…", filled with the registration its menu was opened on. #}
+<dialog id="cancel-registration" class="dialog" aria-labelledby="cancel-registration-question">
+  <p id="cancel-registration-question">{{ t("schedule.askCancel") }}</p>
+  <div class="dialog-actions">
+    <button type="button"{% if menu %} data-on:click="@post('/association/{{ association.slug }}/registrations/{{ menu.registration_id }}/cancel', {payload: {from: '{{ weeks['from'] }}', to: '{{ weeks['to'] }}'}, retryMaxCount: 0})"{% endif %}>{{ t("schedule.yesCancel") }}</button>
+    <button type="button" class="link" commandfor="cancel-registration" command="close">{{ t("schedule.keep") }}</button>
+  </div>
+  {% with error_id = "cancel-registration-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+  <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+</dialog>

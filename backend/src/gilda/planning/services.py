@@ -61,6 +61,10 @@ UPCOMING_DAYS = 27
 SCHEDULE_WEEKS = 6
 
 
+class TakenException(ConflictException):
+    """The occurrence already holds a registration that is not cancelled (R4)."""
+
+
 def clock(value: time) -> str:
     return value.strftime("%H:%M")
 
@@ -567,19 +571,21 @@ class PlanningService:
         if not await self._is_occurrence(association_id, day, start_time, end_time):
             raise ConflictException("There is no opening at this time.")
         try:
-            registration = await self.registrations.add(
-                Registration(
-                    association_id=association_id,
-                    user_id=user_id,
-                    date=day,
-                    start=start_time,
-                    end=end_time,
-                    status="confirmed" if myself else "proposed",
-                ),
-                auto_refresh=True,
-            )
+            # A savepoint, so that the request's transaction survives a refusal.
+            async with self.registrations.session.begin_nested():
+                registration = await self.registrations.add(
+                    Registration(
+                        association_id=association_id,
+                        user_id=user_id,
+                        date=day,
+                        start=start_time,
+                        end=end_time,
+                        status="confirmed" if myself else "proposed",
+                    ),
+                    auto_refresh=True,
+                )
         except IntegrityError as error:
-            raise ConflictException("Someone is already registered at this time.") from error
+            raise TakenException("Someone is already registered at this time.") from error
         return registration_read(registration)
 
     async def change_status(
