@@ -5,6 +5,8 @@ const GENERIC = 'Something went wrong. Try again.'
 const LAST_MANAGER = 'An association keeps at least one manager.'
 const REMOVE_CHLOE =
   'Remove Chloé from the association? Their upcoming registrations are cancelled.'
+const SEND_CHLOE = "Send Chloé's sign-in link by email?"
+const REVOKE_CHLOE = "Revoke Chloé's sign-in link?"
 
 /**
  * Alice signs in on `page`, creates an association, adds Chloé as volunteer (and the
@@ -67,6 +69,15 @@ async function askToRemove(page: Page, displayName: string, question: string) {
   return confirmation
 }
 
+/** Opens the confirmation that `action` asks from the edit dialog of `displayName`. */
+async function ask(page: Page, displayName: string, action: string, question: string) {
+  const dialog = await openEdit(page, displayName)
+  await dialog.getByRole('button', { name: action, exact: true }).click()
+  const confirmation = page.getByRole('dialog', { name: question, exact: true })
+  await expect(confirmation).toBeVisible()
+  return confirmation
+}
+
 test.describe('Members: the edit dialog', () => {
   test('the edit icon opens it, with the email, the role and its actions', async ({ page, request }) => {
     const chloe = await openMembers(page, request)
@@ -79,7 +90,9 @@ test.describe('Members: the edit dialog', () => {
     await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Remove from the association' })).toBeVisible()
-    await expect(dialog).not.toContainText(/sign-in link/i)
+    await expect(dialog).toContainText(/sign-in link/i)
+    await expect(dialog.getByRole('button', { name: 'Send link' })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Revoke link' })).toHaveCount(0)
   })
 
   test("a manager's dialog shows Manager", async ({ page, request }) => {
@@ -229,5 +242,91 @@ test.describe('Members: Remove from the association', () => {
 
     await expect(confirmation.getByText(GENERIC)).toBeVisible()
     await expect(confirmation).toContainText(REMOVE_CHLOE)
+  })
+})
+
+test.describe('Members: Send link', () => {
+  test('confirming sends the link, says so and offers Revoke link', async ({ page, request }) => {
+    const chloe = await openMembers(page, request)
+
+    const confirmation = await ask(page, 'Chloé', 'Send link', SEND_CHLOE)
+    await confirmation.getByRole('button', { name: 'Send', exact: true }).click()
+
+    await expect(page.getByText("Chloé's sign-in link is sent.")).toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    expect(await latestToken(chloe)).toBeTruthy()
+    const dialog = await openEdit(page, 'Chloé')
+    await expect(dialog.getByRole('button', { name: 'Revoke link' })).toBeVisible()
+  })
+
+  test('Cancel of the confirmation changes nothing', async ({ page, request }) => {
+    await openMembers(page, request)
+
+    const confirmation = await ask(page, 'Chloé', 'Send link', SEND_CHLOE)
+    await confirmation.getByRole('button', { name: 'Cancel' }).click()
+
+    await expect(confirmation).toBeHidden()
+    await page.reload()
+    const dialog = await openEdit(page, 'Chloé')
+    await expect(dialog.getByRole('button', { name: 'Revoke link' })).toHaveCount(0)
+  })
+
+  test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
+    await openMembers(page, request)
+    await page.route('**/send-link', (route) => route.abort())
+
+    const confirmation = await ask(page, 'Chloé', 'Send link', SEND_CHLOE)
+    await confirmation.getByRole('button', { name: 'Send', exact: true }).click()
+
+    await expect(confirmation.getByText(GENERIC)).toBeVisible()
+    await expect(confirmation).toContainText(SEND_CHLOE)
+  })
+})
+
+test.describe('Members: Revoke link', () => {
+  /** Opens Members where Chloé asked for her access link; returns its token. */
+  async function withLink(page: Page, request: APIRequestContext) {
+    const chloe = await openMembers(page, request)
+    expect((await request.post('/sign-in-link', { data: { email: chloe } })).status()).toBe(200)
+    const token = await latestToken(chloe)
+    await page.reload()
+    return token
+  }
+
+  test('confirming revokes the link, says so and hides Revoke link', async ({ page, request }) => {
+    const token = await withLink(page, request)
+
+    const confirmation = await ask(page, 'Chloé', 'Revoke link', REVOKE_CHLOE)
+    await confirmation.getByRole('button', { name: 'Revoke', exact: true }).click()
+
+    await expect(page.getByText("Chloé's sign-in link is revoked.")).toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    const dialog = await openEdit(page, 'Chloé')
+    await expect(dialog.getByRole('button', { name: 'Revoke link' })).toHaveCount(0)
+    await page.goto(`/access?token=${token}`)
+    await expect(page.getByText('This link is no longer valid.')).toBeVisible()
+  })
+
+  test('Cancel of the confirmation changes nothing', async ({ page, request }) => {
+    await withLink(page, request)
+
+    const confirmation = await ask(page, 'Chloé', 'Revoke link', REVOKE_CHLOE)
+    await confirmation.getByRole('button', { name: 'Cancel' }).click()
+
+    await expect(confirmation).toBeHidden()
+    await page.reload()
+    const dialog = await openEdit(page, 'Chloé')
+    await expect(dialog.getByRole('button', { name: 'Revoke link' })).toBeVisible()
+  })
+
+  test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
+    await withLink(page, request)
+    await page.route('**/revoke-link', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    const confirmation = await ask(page, 'Chloé', 'Revoke link', REVOKE_CHLOE)
+    await confirmation.getByRole('button', { name: 'Revoke', exact: true }).click()
+
+    await expect(confirmation.getByText(GENERIC)).toBeVisible()
+    await expect(confirmation).toContainText(REVOKE_CHLOE)
   })
 })

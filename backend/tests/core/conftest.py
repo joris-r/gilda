@@ -211,3 +211,13 @@ def change_role(client: Any, slug: str, user_id: str, role: str) -> Any:
 def remove_member(client: Any, slug: str, user_id: str) -> Any:
     """Confirms "Remove from the association" for a member on Members."""
     return client.post(f"/association/{slug}/members/{user_id}/remove", json={})
+
+
+def send_member_link(client: Any, slug: str, user_id: str, **kwargs: Any) -> Any:
+    """Confirms "Send link" in the edit dialog of a member on Members."""
+    return client.post(f"/association/{slug}/members/{user_id}/send-link", json={}, **kwargs)
+
+
+def revoke_member_link(client: Any, slug: str, user_id: str) -> Any:
+    """Confirms "Revoke link" in the edit dialog of a member on Members."""
+    return client.post(f"/association/{slug}/members/{user_id}/revoke-link", json={})

@@ -1,5 +1,6 @@
 import html
 import re
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -8,14 +9,19 @@ import pytest
 from tests.core.conftest import (
     add_member,
     ask_for_link,
+    break_the_mailer,
     change_role,
     confirm_email,
     create_account,
     create_association,
+    email_count,
     latest_access_token,
+    latest_email,
     latest_verification_token,
     open_link,
     remove_member,
+    revoke_member_link,
+    send_member_link,
     shown,
     sign_up,
     unique_email,
@@ -27,6 +33,8 @@ GENERIC = "Something went wrong. Try again."
 UNKNOWN = "This association does not exist or you are not a member."
 NOT_JOINED = "not joined yet"
 LAST_MANAGER = "An association keeps at least one manager."
+REVOKE_CHLOE = "Revoke Chloé's sign-in link?"
+LINK_SUBJECT = {"en": "Your sign-in link", "fr": "Votre lien de connexion"}
 
 
 def part(page: str, tag: str) -> str:
@@ -83,6 +91,34 @@ def user_id(client: Any, association: dict[str, Any], display_name: str) -> str:
 def role_of(client: Any, association: dict[str, Any], display_name: str) -> str:
     """The role that Members shows for `display_name`, in lowercase."""
     return line_of(members_page(client, association["slug"]), display_name).lower()
+
+
+def signs_in(client: Any, token: str) -> bool:
+    """Runs the action of Access link, and tells whether it leads on, signed in."""
+    return "window.location" in shown(open_link(client, token))
+
+
+def no_email_sent(email: str, already: int = 0) -> bool:
+    """Waits for a stray email to arrive, then tells whether `email` got only `already`."""
+    time.sleep(0.5)
+    return email_count(email) == already
+
+
+def with_link(client: Any, new_client: Callable[[], Any]) -> tuple[dict[str, Any], str, str]:
+    """Alice manages an association where Chloé, added by her, asked for her access link."""
+    association = managed(client)
+    email = unique_email("Chloe")
+    add_member(client, association["id"], "Chloé", email)
+    ask_for_link(new_client(), email)
+    return association, user_id(client, association, "Chloé"), latest_access_token(email)
+
+
+def with_member(client: Any) -> tuple[dict[str, Any], str, str]:
+    """Alice manages an association where she added Chloé, who has no access link."""
+    association = managed(client)
+    email = unique_email("Chloe")
+    add_member(client, association["id"], "Chloé", email)
+    return association, user_id(client, association, "Chloé"), email
 
 
 def managed(client: Any, name: str = NAME) -> dict[str, Any]:
@@ -333,18 +369,6 @@ class TestRebuildInProgress:
         assert "Rename the association" not in page
         assert "Change the association identifier" not in page
         assert "Delete the association" not in page
-
-    def test_the_edit_dialog_has_no_sign_in_link_section(self, client: Any) -> None:
-        association = managed(client)
-        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
-
-        page = html.unescape(members_page(client, association["slug"]))
-
-        assert "Remove from the association" in page
-        assert "Sign-in link" not in page
-        assert "SIGN-IN LINK" not in page
-        assert "Send link" not in page
-        assert "Revoke link" not in page
 
 
 class TestAsAVolunteer:
@@ -828,3 +852,305 @@ class TestRemovingAMember:
         assert "window.location" in text
         assert "is removed." not in text
         assert member_count(client, association) == 2
+
+
+class TestSignInLinkSection:
+    def test_the_edit_dialog_offers_send_link_with_its_confirmation(self, client: Any) -> None:
+        association, _, _ = with_member(client)
+
+        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+
+        assert re.search(r">\s*Sign-in link\s*<", main, re.IGNORECASE)
+        assert re.search(r"<button[^>]*>\s*Send link\s*</button>", main)
+        assert "Send Chloé's sign-in link by email?" in main
+        assert re.search(r"<button[^>]*>\s*Send\s*</button>", main)
+
+    def test_revoke_link_shows_only_for_a_member_with_an_access_link(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, _, email = with_member(client)
+        slug = association["slug"]
+        assert REVOKE_CHLOE not in html.unescape(members_page(client, slug))
+
+        ask_for_link(new_client(), email)
+
+        main = html.unescape(part(members_page(client, slug), "main"))
+        assert REVOKE_CHLOE in main
+        assert re.search(r"<button[^>]*>\s*Revoke link\s*</button>", main)
+        assert re.search(r"<button[^>]*>\s*Revoke\s*</button>", main)
+
+    def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, _, _ = with_link(client, new_client)
+        client.cookies.set("language", "fr")
+
+        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+
+        assert re.search(r">\s*Lien de connexion\s*<", main, re.IGNORECASE)
+        assert "Envoyer le lien de connexion de Chloé par e-mail ?" in main
+        assert "Révoquer le lien de connexion de Chloé ?" in main
+
+    def test_a_volunteer_sees_none(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+
+        page = html.unescape(members_page(bruno, association["slug"]))
+
+        assert "Send link" not in page
+        assert "Revoke link" not in page
+        assert "Send Alice's sign-in link by email?" not in page
+
+
+class TestRevokingALink:
+    def test_r23_revokes_the_link_and_says_so(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, chloe, token = with_link(client, new_client)
+        phone = new_client()
+        open_link(phone, token)
+
+        text = shown(revoke_member_link(client, association["slug"], chloe))
+
+        assert "Chloé's sign-in link is revoked." in text
+        assert phone.get("/api/session").status_code == 401
+        assert not signs_in(new_client(), token)
+        assert REVOKE_CHLOE not in html.unescape(members_page(client, association["slug"]))
+
+    def test_the_dialog_no_longer_offers_revoke_link_at_once(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, chloe, _ = with_link(client, new_client)
+
+        text = shown(revoke_member_link(client, association["slug"], chloe))
+
+        assert "Chloé" in text
+        assert REVOKE_CHLOE not in text
+
+    def test_r23_keeps_the_members_password_sessions_signed_in(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, bruno = with_volunteer(client, new_client)
+        email = next(
+            m["email"]
+            for m in client.get(f"/api/associations/{association['id']}").json()["members"]
+            if m["display_name"] == "Bruno"
+        )
+        ask_for_link(new_client(), email)
+        token = latest_access_token(email)
+
+        member = user_id(client, association, "Bruno")
+        shown(revoke_member_link(client, association["slug"], member))
+
+        assert bruno.get("/api/session").status_code == 200
+        assert not signs_in(new_client(), token)
+
+    def test_the_message_follows_the_language(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, chloe, _ = with_link(client, new_client)
+        client.cookies.set("language", "fr")
+
+        text = shown(revoke_member_link(client, association["slug"], chloe))
+
+        assert "Le lien de connexion de Chloé est révoqué." in text
+
+    def test_a_user_who_is_not_a_member_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association = managed(client)
+        email = unique_email("Zoe")
+        zoe = sign_up(new_client(), "Zoé", email)
+        ask_for_link(new_client(), email)
+        token = latest_access_token(email)
+
+        text = shown(revoke_member_link(client, association["slug"], zoe["id"]))
+
+        assert GENERIC in text
+        assert "is revoked." not in text
+        assert signs_in(new_client(), token)
+
+    def test_a_volunteer_revokes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, chloe, token = with_link(client, new_client)
+        bruno = new_client()
+        bruno_email = unique_email("Bruno")
+        sign_up(bruno, "Bruno", bruno_email)
+        add_member(client, association["id"], "Bruno", bruno_email)
+
+        response = revoke_member_link(bruno, association["slug"], chloe)
+
+        assert "is revoked." not in html.unescape(response.text)
+        assert signs_in(new_client(), token)
+
+    def test_a_non_member_revokes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, chloe, token = with_link(client, new_client)
+        other = new_client()
+        sign_up(other, "Zoé", unique_email("Zoe"))
+
+        response = revoke_member_link(other, association["slug"], chloe)
+
+        assert "is revoked." not in html.unescape(response.text)
+        assert signs_in(new_client(), token)
+
+    def test_signed_out_leads_to_sign_in_and_revokes_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, chloe, token = with_link(client, new_client)
+
+        text = shown(revoke_member_link(new_client(), association["slug"], chloe))
+
+        assert "window.location" in text
+        assert "is revoked." not in text
+        assert signs_in(new_client(), token)
+
+
+class TestSendingALink:
+    def test_r26_sends_the_email_and_says_so(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, chloe, email = with_member(client)
+
+        text = shown(send_member_link(client, association["slug"], chloe))
+
+        assert "Chloé's sign-in link is sent." in text
+        assert latest_email(email)["Subject"] == LINK_SUBJECT["en"]
+        browser = new_client()
+        assert signs_in(browser, latest_access_token(email))
+        assert browser.get("/api/session").json()["id"] == chloe
+
+    def test_the_dialog_offers_revoke_link_at_once(self, client: Any) -> None:
+        association, chloe, _ = with_member(client)
+
+        text = shown(send_member_link(client, association["slug"], chloe))
+
+        assert REVOKE_CHLOE in text
+
+    def test_r26_the_email_and_the_message_follow_the_managers_language(self, client: Any) -> None:
+        association, chloe, email = with_member(client)
+
+        response = send_member_link(
+            client,
+            association["slug"],
+            chloe,
+            headers={"Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8"},
+        )
+
+        assert "Le lien de connexion de Chloé est envoyé." in shown(response)
+        assert latest_email(email)["Subject"] == LINK_SUBJECT["fr"]
+
+    def test_r20_r26_the_managers_language_cookie_wins_over_their_browser(
+        self, client: Any
+    ) -> None:
+        association, chloe, email = with_member(client)
+        client.cookies.set("language", "fr")
+
+        send_member_link(client, association["slug"], chloe, headers={"Accept-Language": "en"})
+
+        assert latest_email(email)["Subject"] == LINK_SUBJECT["fr"]
+
+    def test_r26_r25_sending_again_sends_the_same_link(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, chloe, first_token = with_link(client, new_client)
+        email = next(
+            m["email"]
+            for m in client.get(f"/api/associations/{association['id']}").json()["members"]
+            if m["display_name"] == "Chloé"
+        )
+        time.sleep(0.01)  # Mailpit orders by Created, at millisecond precision.
+
+        shown(send_member_link(client, association["slug"], chloe))
+
+        assert email_count(email) == 2
+        assert latest_access_token(email) == first_token
+
+    def test_r26_a_manager_sends_their_own_link(self, client: Any) -> None:
+        association, _, _ = with_member(client)
+        alice = next(
+            m
+            for m in client.get(f"/api/associations/{association['id']}").json()["members"]
+            if m["display_name"] == "Alice"
+        )
+
+        text = shown(send_member_link(client, association["slug"], alice["user_id"]))
+
+        assert "Alice's sign-in link is sent." in text
+        latest_access_token(alice["email"])
+
+    def test_when_the_email_cannot_be_sent_says_so(
+        self, client: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        association, chloe, email = with_member(client)
+        break_the_mailer(monkeypatch)
+
+        text = shown(send_member_link(client, association["slug"], chloe))
+
+        assert "We couldn't send Chloé's sign-in link. Try again later." in text
+        assert "is sent." not in text
+        monkeypatch.undo()
+        assert no_email_sent(email)
+
+    def test_when_the_email_cannot_be_sent_follows_the_language(
+        self, client: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        association, chloe, _ = with_member(client)
+        client.cookies.set("language", "fr")
+        break_the_mailer(monkeypatch)
+
+        text = shown(send_member_link(client, association["slug"], chloe))
+
+        assert "Le lien de connexion de Chloé n'a pas pu être envoyé. Réessayez plus tard." in text
+
+    def test_a_user_who_is_not_a_member_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association = managed(client)
+        email = unique_email("Zoe")
+        zoe = sign_up(new_client(), "Zoé", email)
+        time.sleep(0.01)  # Mailpit orders by Created, at millisecond precision.
+
+        text = shown(send_member_link(client, association["slug"], zoe["id"]))
+
+        assert GENERIC in text
+        assert "is sent." not in text
+        assert no_email_sent(email, already=1)  # only the confirmation email
+
+    def test_a_volunteer_sends_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+        chloe_email = unique_email("Chloe")
+        add_member(client, association["id"], "Chloé", chloe_email)
+
+        response = send_member_link(
+            bruno, association["slug"], user_id(client, association, "Chloé")
+        )
+
+        assert "is sent." not in html.unescape(response.text)
+        assert no_email_sent(chloe_email)
+
+    def test_a_non_member_sends_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, chloe, email = with_member(client)
+        other = new_client()
+        sign_up(other, "Zoé", unique_email("Zoe"))
+
+        response = send_member_link(other, association["slug"], chloe)
+
+        assert "is sent." not in html.unescape(response.text)
+        assert no_email_sent(email)
+
+    def test_signed_out_leads_to_sign_in_and_sends_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, chloe, email = with_member(client)
+
+        text = shown(send_member_link(new_client(), association["slug"], chloe))
+
+        assert "window.location" in text
+        assert "is sent." not in text
+        assert no_email_sent(email)
+
+
+class TestLinkEndpointsRemoved:
+    @pytest.mark.parametrize("method", ["POST", "DELETE"])
+    def test_answer_404(self, client: Any, method: str) -> None:
+        association, chloe, _ = with_member(client)
+
+        path = f"/api/associations/{association['id']}/members/{chloe}/access-link"
+
+        assert client.request(method, path).status_code == 404

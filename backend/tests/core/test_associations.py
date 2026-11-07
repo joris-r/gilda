@@ -42,7 +42,6 @@ def manager_and_volunteer(
             f"/api/associations/{UNKNOWN_ID}/members",
             {"display_name": "Chloé", "email": "chloe@example.org", "role": "volunteer"},
         ),
-        ("DELETE", f"/api/associations/{UNKNOWN_ID}/members/{UNKNOWN_ID}/access-link", None),
     ],
 )
 def test_associations_401_when_signed_out(
@@ -161,7 +160,6 @@ def test_get_api_association_shows_its_members(client: Any, new_client: Callable
             "email": alice_email,
             "has_account": True,
             "email_verified": True,
-            "access_link": False,
             "role": "manager",
         },
         {
@@ -170,7 +168,6 @@ def test_get_api_association_shows_its_members(client: Any, new_client: Callable
             "email": chloe_email,
             "has_account": False,
             "email_verified": False,
-            "access_link": False,
             "role": "volunteer",
         },
     ]
@@ -224,7 +221,6 @@ def test_post_api_members_returns_the_new_member(client: Any) -> None:
         "email": email,
         "has_account": False,
         "email_verified": False,
-        "access_link": False,
         "role": "volunteer",
     }
     uuid.UUID(body["user_id"])

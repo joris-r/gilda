@@ -254,17 +254,23 @@ test.describe('Scenarios', () => {
     })
   })
 
-  test.fixme('a volunteer signs in by link', async ({ page }) => {
+  test('a volunteer signs in by link', async ({ page }) => {
     const association = `Jardin partagé ${Date.now()}`
     const alice = uniqueEmail('Alice')
     const chloe = uniqueEmail('Chloe')
-    const chloeLine = page.getByRole('listitem').filter({ hasText: 'Chloé' })
+    const chloeLine = page.locator('main').getByRole('listitem').filter({ hasText: 'Chloé' })
     let link = ''
+    let members = ''
 
     await test.step('1. Alice adds Chloé, who shows "not joined yet"', async () => {
       await signUp(page, 'Alice', alice)
-      await createAssociation(page, association)
-      await page.getByRole('link', { name: 'Members', exact: true }).click()
+      await page.getByRole('link', { name: 'New association' }).click()
+      await page.getByLabel('Name', { exact: true }).fill(association)
+      await page.getByRole('button', { name: 'Create association' }).click()
+      await expect(page).toHaveURL(/\/association\/(?!new$)[\w-]+$/)
+      // Until the Schedule returns, Members is reached by its URL.
+      members = `${new URL(page.url()).pathname}/members`
+      await page.goto(members)
       await addMember(page, 'Chloé', chloe, 'Volunteer')
       await expect(chloeLine).toContainText('not joined yet')
       await signOut(page)
@@ -292,8 +298,7 @@ test.describe('Scenarios', () => {
 
     await test.step("4. Alice sees Chloé joined and revokes her link", async () => {
       await signIn(page, alice)
-      await page.getByText(association, { exact: true }).click()
-      await page.getByRole('link', { name: 'Members', exact: true }).click()
+      await page.goto(members)
       await expect(chloeLine).toContainText('chloe')
       await expect(chloeLine).not.toContainText('not joined yet')
       const dialog = await editMember(page, 'Chloé')
