@@ -1,4 +1,5 @@
 from typing import Any
+from uuid import UUID
 
 import msgspec
 from datastar_py.litestar import DatastarResponse, ServerSentEventGenerator
@@ -15,11 +16,13 @@ from litestar.response import Template
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from gilda.core.controllers import SESSION_LINK_KEY, find_current_user, sign_in_as
+from gilda.core.models import User
 from gilda.core.schemas import (
     AccessLinkRequest,
     AccountCreate,
     MemberCreate,
     MemberRead,
+    MemberUpdate,
     NewPassword,
     PasswordResetRequest,
     Slug,
@@ -137,7 +140,9 @@ async def add_member(
     return DatastarResponse(
         [
             ServerSentEventGenerator.patch_elements(
-                fragment(request, "members_list.html", members=_listed(members))
+                fragment(
+                    request, "members_list.html", association=association, members=_listed(members)
+                )
             ),
             ServerSentEventGenerator.patch_elements(
                 fragment(request, "notice.html", message=message)
@@ -147,6 +152,129 @@ async def add_member(
             ),
         ]
     )
+
+
+def _member(members: list[MemberRead], user_id: UUID) -> MemberRead:
+    found = next((m for m in members if m.user_id == user_id), None)
+    if found is None:
+        raise NotFoundException("Not a member of this association.")
+    return found
+
+
+def _member_error(
+    request: Request[Any, Any, Any], user_id: UUID, key: str, **values: object
+) -> DatastarResponse:
+    """The message of a member's edit dialog; a confirmation open over it closes."""
+    message = translate(interface_language(request), key, **values)
+    return DatastarResponse(
+        [
+            ServerSentEventGenerator.execute_script(
+                f"document.getElementById('remove-{user_id}').close()"
+            ),
+            ServerSentEventGenerator.patch_elements(
+                fragment(
+                    request, "form_error.html", message=message, error_id=f"edit-{user_id}-error"
+                )
+            ),
+        ]
+    )
+
+
+async def _members_patched(
+    request: Request[Any, Any, Any],
+    associations: AssociationService,
+    user: User,
+    association_id: UUID,
+    message: str,
+    user_id: UUID,
+) -> DatastarResponse:
+    """Closes the member's dialogs, then shows the list as it now is, and the message."""
+    association = await associations.detail(user, association_id)
+    events = [
+        ServerSentEventGenerator.execute_script(
+            f"document.getElementById('remove-{user_id}')?.close();"
+            f" document.getElementById('edit-{user_id}')?.close()"
+        ),
+        ServerSentEventGenerator.patch_elements(
+            fragment(
+                request,
+                "members_list.html",
+                association=association,
+                members=_listed(association.members),
+            )
+        ),
+        ServerSentEventGenerator.patch_elements(fragment(request, "notice.html", message=message)),
+    ]
+    if association.role != "manager":
+        events.append(ServerSentEventGenerator.remove_elements("#members-toolbar"))
+    return DatastarResponse(events)
+
+
+@post("/association/{slug:str}/members/{user_id:uuid}/role", status_code=200)
+async def change_role(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    slug: str,
+    user_id: UUID,
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    signals = await read_signals_dict(request)
+    try:
+        asked = msgspec.convert({"role": signals.get("role")}, MemberUpdate)
+    except msgspec.ValidationError:
+        return _member_error(request, user_id, "error")
+    associations = AssociationService(db_session)
+    try:
+        association = await associations.detail_by_slug(user, slug)
+        member = _member(association.members, user_id)
+        if member.role == asked.role:
+            return DatastarResponse(
+                ServerSentEventGenerator.execute_script(
+                    f"document.getElementById('edit-{user_id}').close()"
+                )
+            )
+        await associations.change_role(user, association.id, user_id, asked.role)
+    except ConflictException:
+        return _member_error(request, user_id, "association.lastManager")
+    except (NotFoundException, PermissionDeniedException):
+        return _member_error(request, user_id, "error")
+    language = interface_language(request)
+    message = translate(
+        language,
+        "association.roleChanged",
+        name=member.display_name,
+        role=translate(language, f"roleNames.{asked.role}"),
+    )
+    return await _members_patched(request, associations, user, association.id, message, user_id)
+
+
+@post("/association/{slug:str}/members/{user_id:uuid}/remove", status_code=200)
+async def remove_member(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    membership_end_hooks: NamedDependency[list[MembershipEndHook]],
+    slug: str,
+    user_id: UUID,
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    associations = AssociationService(db_session)
+    try:
+        association = await associations.detail_by_slug(user, slug)
+        member = _member(association.members, user_id)
+        await associations.remove_member(user, association.id, user_id, membership_end_hooks)
+    except ConflictException:
+        return _member_error(request, user_id, "association.lastManager")
+    except (NotFoundException, PermissionDeniedException):
+        return _member_error(request, user_id, "error")
+    if user_id == user.id:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    language = interface_language(request)
+    message = translate(language, "association.removed", name=member.display_name)
+    return await _members_patched(request, associations, user, association.id, message, user_id)
 
 
 @post("/sign-in", status_code=200)

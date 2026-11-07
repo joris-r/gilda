@@ -1,3 +1,6 @@
+{% from "form_dialog.html" import form_dialog with context %}
+{% from "confirmation.html" import confirmation with context %}
+{% set manages = association.role == "manager" %}
 <div id="members">
   <ul class="list">
     {% for member in members %}
@@ -7,7 +10,21 @@
         {% if not member.email_verified %}<span class="no-account">{{ t("association.notJoined") }}</span>{% endif %}
         <div class="sub">{{ member.email }}</div>
       </div>
-      <span class="role {{ member.role }}">{{ t("roles." ~ member.role) }}</span>
+      <div class="line-actions">
+        <span class="role {{ member.role }}">{{ t("roles." ~ member.role) }}</span>
+        {% if manages %}
+        <button
+          type="button"
+          class="icon-button"
+          aria-label="{{ t('association.edit', name=member.display_name) }}"
+          commandfor="edit-{{ member.user_id }}"
+          command="show-modal"
+          data-on:click="$role = '{{ member.role }}'; $_failed = false; document.getElementById('edit-{{ member.user_id }}-error').hidden = true"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>
+        </button>
+        {% endif %}
+      </div>
     </li>
     {% endfor %}
   </ul>
@@ -15,5 +32,38 @@
   <p class="more" data-show="!$_showAll">
     <button type="button" class="link" data-on:click="$_showAll = true">{{ t("association.showAll", n=members | length) }}</button>
   </p>
+  {% endif %}
+  {% if manages %}
+  {% for member in members %}
+  {% set id = "edit-" ~ member.user_id %}
+  {% call form_dialog(id, member.display_name) %}
+  <p class="sub">{{ member.email }}</p>
+  {# No retry: a request that failed must not go through later, once the dialog is cancelled. #}
+  <form data-on:submit="@post('/association/{{ association.slug }}/members/{{ member.user_id }}/role', {filterSignals: {include: /^role$/}, retryMaxCount: 0})">
+    <label>
+      {{ t("fields.role") }}
+      <select data-bind:role>
+        <option value="volunteer"{% if member.role == "volunteer" %} selected{% endif %}>{{ t("roles.volunteer") }}</option>
+        <option value="manager"{% if member.role == "manager" %} selected{% endif %}>{{ t("roles.manager") }}</option>
+      </select>
+    </label>
+    {% with error_id = id ~ "-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+    <div class="dialog-actions">
+      <button type="submit">{{ t("association.save") }}</button>
+      <button type="button" class="link" commandfor="{{ id }}" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+  </form>
+  <div class="dialog-actions">
+    <button type="button" class="link danger" commandfor="remove-{{ member.user_id }}" command="show-modal">{{ t("association.removeMember") }}</button>
+  </div>
+  {% endcall %}
+  {{ confirmation(
+    "remove-" ~ member.user_id,
+    t("association.confirmRemove", name=member.display_name),
+    t("association.remove"),
+    "/association/" ~ association.slug ~ "/members/" ~ member.user_id ~ "/remove",
+  ) }}
+  {% endfor %}
   {% endif %}
 </div>

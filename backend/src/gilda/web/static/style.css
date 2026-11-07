@@ -500,3 +500,7 @@ a.button.add {
     background: rgb(0 0 0 / 0.6);
   }
 }
+
+button.link.danger {
+  color: var(--danger);
+}

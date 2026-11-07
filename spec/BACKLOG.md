@@ -2,14 +2,14 @@
 
 ## Main list
 
-- *nothing to report*
+- Tooling: `make format` runs `ruff format` before `ruff check --fix`, so long lines get wrapped before the check stops.
+- Tests: the pytest tests that find a dialog by its position on the page would find it by its name.
 
 
 ## Datastar experiment
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Members: the edit dialog, role changes and Remove from the association; restores "A volunteer becomes manager".
 - Members: Revoke link and Send link; restores "A volunteer signs in by link".
 - Members: Rename the association, Change the association identifier and Delete the association.
 - Schedule settings: Slots, with R17 and R18.
@@ -69,6 +69,14 @@ Choices the spec left open, settled by `members-list`:
 - Members: an unknown association, or one the user is not a member of, answers 200 with its message.
 - Members: display names are ordered ignoring case.
 
+Choices the spec left open, settled by `members-edit`:
+
+- Edit dialog: a missing or invalid role, or a user who is not a member, shows the generic error.
+- Edit dialog: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing.
+- Edit dialog: opening it shows the member's current role and clears its message and the generic error.
+- Remove from the association: removing the last manager closes the confirmation and shows the message in the edit dialog.
+- Save: a manager who demotes themself stays on Members, which then shows no edit icons and no "Add a member".
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -84,6 +92,7 @@ Choices the spec left open, settled by `members-list`:
 - New association: "+ New association" is a link, while `interface.md` describes a button.
 - Members: no served screen links to it yet; only its URL leads there until the Schedule returns.
 - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
+- Members renders an edit dialog and a confirmation for every member, so the page grows with the association.
 
 
 ## Quality
@@ -113,8 +122,9 @@ Choices the spec left open, settled by `members-list`:
 - Sign-in link's response time can reveal an account, as the email is sent during the request.
 - Sign-in link and Forgot password have no rate limit, so anyone can flood a known address with emails.
 - Add a member tells a manager whether an email already has an account, and shows that user's own display name.
+- Any manager can demote or remove every other manager, so one manager can take an association over.
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account.
-- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new` and `POST /association/{slug}/members` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
+- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role` and `POST /association/{slug}/members/{user_id}/remove` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
 

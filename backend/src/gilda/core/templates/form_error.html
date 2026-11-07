@@ -1,1 +1,2 @@
-<p id="form-error"{% if message %} class="error"{% else %} hidden{% endif %}>{{ message }}</p>
+{# The message of a form; `error_id` names it when a page holds several forms. #}
+<p id="{{ error_id | default('form-error') }}"{% if message %} class="error"{% else %} hidden{% endif %}>{{ message }}</p>

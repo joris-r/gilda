@@ -16,13 +16,11 @@ from gilda.core.schemas import (
     Credentials,
     MemberCreate,
     MemberRead,
-    MemberUpdate,
     SessionRead,
 )
 from gilda.core.services import (
     AccountService,
     AssociationService,
-    MembershipEndHook,
     is_superuser,
 )
 from gilda.core.sessions import set_session_with_new_id
@@ -155,32 +153,6 @@ class AssociationController(Controller):
     ) -> MemberRead:
         return await AssociationService(db_session).add_member(
             current_user, association_id, data.display_name, data.email, data.role
-        )
-
-    @patch("/{association_id:uuid}/members/{user_id:uuid}")
-    async def change_role(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        user_id: FromPath[UUID],
-        data: JSONBody[MemberUpdate],
-    ) -> MemberRead:
-        return await AssociationService(db_session).change_role(
-            current_user, association_id, user_id, data.role
-        )
-
-    @delete("/{association_id:uuid}/members/{user_id:uuid}")
-    async def remove_member(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        membership_end_hooks: NamedDependency[list[MembershipEndHook]],
-        association_id: FromPath[UUID],
-        user_id: FromPath[UUID],
-    ) -> None:
-        await AssociationService(db_session).remove_member(
-            current_user, association_id, user_id, membership_end_hooks
         )
 
     @post("/{association_id:uuid}/members/{user_id:uuid}/access-link", status_code=200)
