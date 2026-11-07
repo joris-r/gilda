@@ -1,0 +1,12 @@
+{# A form in a dialog: its title and close button, then what the caller puts in it. #}
+{% macro form_dialog(id, title) %}
+<dialog id="{{ id }}" class="dialog" aria-labelledby="{{ id }}-title">
+  <div class="dialog-head">
+    <h2 id="{{ id }}-title">{{ title }}</h2>
+    <button type="button" class="icon-button" aria-label="{{ t('dialog.close') }}" commandfor="{{ id }}" command="close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+    </button>
+  </div>
+  {{ caller() }}
+</dialog>
+{% endmacro %}

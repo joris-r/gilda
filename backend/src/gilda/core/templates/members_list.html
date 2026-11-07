@@ -1,0 +1,19 @@
+<div id="members">
+  <ul class="list">
+    {% for member in members %}
+    <li{% if loop.index > 5 %} style="display: none" data-show="$_showAll"{% endif %}>
+      <div>
+        {{ member.display_name }}
+        {% if not member.email_verified %}<span class="no-account">{{ t("association.notJoined") }}</span>{% endif %}
+        <div class="sub">{{ member.email }}</div>
+      </div>
+      <span class="role {{ member.role }}">{{ t("roles." ~ member.role) }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if members | length > 5 %}
+  <p class="more" data-show="!$_showAll">
+    <button type="button" class="link" data-on:click="$_showAll = true">{{ t("association.showAll", n=members | length) }}</button>
+  </p>
+  {% endif %}
+</div>

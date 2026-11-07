@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% from "form_dialog.html" import form_dialog with context %}
+{% block header_actions %}{% include "user_menu.html" %}{% endblock %}
+{% block location %}<p class="where"><a href="/association/{{ association.slug }}">{{ association.name }}</a><span class="sep">›</span>{{ t("association.members") }}</p>{% endblock %}
+{% block main %}
+<div data-signals="{_showAll: false}">
+  {% if association.role == "manager" %}
+  <div class="toolbar">
+    <button
+      type="button"
+      class="add"
+      commandfor="add-member"
+      command="show-modal"
+      data-on:click="$displayName = ''; $email = ''; $role = 'volunteer'; document.getElementById('form-error').hidden = true"
+    >+ {{ t("association.addMember") }}</button>
+  </div>
+  {% endif %}
+  {% include "members_list.html" %}
+</div>
+{% if association.role == "manager" %}
+{% call form_dialog("add-member", t("association.addMember")) %}
+{# No retry: a request that failed after adding would come back as "already a member". #}
+<form data-on:submit="@post('/association/{{ association.slug }}/members', {filterSignals: {exclude: /^language$/}, retryMaxCount: 0})">
+  <label>
+    {{ t("fields.displayName") }}
+    <input data-bind:display-name autocomplete="off" required>
+  </label>
+  <label>
+    {{ t("fields.email") }}
+    {# Not type="email": the browser would refuse an address with accents, e.g. chloé@example.org. #}
+    <input data-bind:email inputmode="email" autocomplete="off" required>
+  </label>
+  <label>
+    {{ t("fields.role") }}
+    <select data-bind:role>
+      <option value="volunteer" selected>{{ t("roles.volunteer") }}</option>
+      <option value="manager">{{ t("roles.manager") }}</option>
+    </select>
+  </label>
+  {% include "form_error.html" %}
+  <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+  <div class="dialog-actions">
+    <button type="submit">{{ t("association.submit") }}</button>
+    <button type="button" class="link" commandfor="add-member" command="close">{{ t("dialog.cancel") }}</button>
+  </div>
+</form>
+{% endcall %}
+{% endif %}
+{% endblock %}

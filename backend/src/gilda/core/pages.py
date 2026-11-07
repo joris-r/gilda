@@ -4,7 +4,12 @@ import msgspec
 from datastar_py.litestar import DatastarResponse, ServerSentEventGenerator
 from litestar import Request, get, post
 from litestar.di import NamedDependency
-from litestar.exceptions import HTTPException, NotAuthorizedException, NotFoundException
+from litestar.exceptions import (
+    HTTPException,
+    NotAuthorizedException,
+    NotFoundException,
+    PermissionDeniedException,
+)
 from litestar.params import FromQuery
 from litestar.response import Template
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +18,8 @@ from gilda.core.controllers import SESSION_LINK_KEY, find_current_user, sign_in_
 from gilda.core.schemas import (
     AccessLinkRequest,
     AccountCreate,
+    MemberCreate,
+    MemberRead,
     NewPassword,
     PasswordResetRequest,
     Slug,
@@ -68,6 +75,78 @@ async def create_association(
     except ConflictException:
         return _form_error(request, "association.identifierTaken")
     return DatastarResponse(ServerSentEventGenerator.redirect(f"/association/{slug}"))
+
+
+def _listed(members: list[MemberRead]) -> list[MemberRead]:
+    """Managers first, then by display name."""
+    return sorted(members, key=lambda m: (m.role != "manager", m.display_name.casefold()))
+
+
+@get("/association/{slug:str}/members")
+async def members_page(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> Template:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return page(request, "sign_in.html", message="")
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+    except NotFoundException:
+        return page(request, "association_unknown.html", user=user)
+    return page(
+        request,
+        "members.html",
+        user=user,
+        association=association,
+        members=_listed(association.members),
+        message="",
+    )
+
+
+@post("/association/{slug:str}/members", status_code=200)
+async def add_member(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    signals = await read_signals_dict(request)
+    try:
+        asked = msgspec.convert(
+            {
+                "display_name": signals.get("displayName"),
+                "email": signals.get("email"),
+                "role": signals.get("role"),
+            },
+            MemberCreate,
+        )
+    except msgspec.ValidationError:
+        return _form_error(request, "error")
+    associations = AssociationService(db_session)
+    try:
+        association = await associations.detail_by_slug(user, slug)
+        added = await associations.add_member(
+            user, association.id, asked.display_name, asked.email, asked.role
+        )
+    except ConflictException:
+        return _form_error(request, "association.alreadyMember", name=asked.display_name)
+    except (NotFoundException, PermissionDeniedException):
+        return _form_error(request, "error")
+    members = (await associations.detail(user, association.id)).members
+    message = translate(interface_language(request), "association.added", name=added.display_name)
+    return DatastarResponse(
+        [
+            ServerSentEventGenerator.patch_elements(
+                fragment(request, "members_list.html", members=_listed(members))
+            ),
+            ServerSentEventGenerator.patch_elements(
+                fragment(request, "notice.html", message=message)
+            ),
+            ServerSentEventGenerator.execute_script(
+                "document.getElementById('add-member').close()"
+            ),
+        ]
+    )
 
 
 @post("/sign-in", status_code=200)
@@ -132,8 +211,8 @@ async def revoke_access_link(
     )
 
 
-def _form_error(request: Request[Any, Any, Any], key: str) -> DatastarResponse:
-    message = translate(interface_language(request), key)
+def _form_error(request: Request[Any, Any, Any], key: str, **values: object) -> DatastarResponse:
+    message = translate(interface_language(request), key, **values)
     return DatastarResponse(
         ServerSentEventGenerator.patch_elements(
             fragment(request, "form_error.html", message=message)
