@@ -128,3 +128,106 @@ test.describe('Schedule', () => {
     await expect(weekHeadings(page)).toHaveCount(6)
   })
 })
+
+function dayGroup(page: Page, weeksAhead: number) {
+  return page.getByRole('group', { name: dayOfWeek(4, weeksAhead).label, exact: true })
+}
+
+function menuTitle(page: Page, weeksAhead: number) {
+  return page.getByText(`${dayOfWeek(4, weeksAhead).label} · 10–13`, { exact: true })
+}
+
+test.describe('Schedule menu', () => {
+  test('clicking an occurrence from today on opens its menu, titled with its day and times', async ({ page, request }) => {
+    await openSchedule(page, request)
+
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await expect(menuTitle(page, 2)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
+  })
+
+  test('clicking an occurrence before today opens nothing', async ({ page, request }) => {
+    await openSchedule(page, request)
+
+    await dayGroup(page, -1).getByRole('listitem').click()
+
+    await expect(menuTitle(page, -1)).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Sign up' })).toBeHidden()
+  })
+
+  test('Escape closes the menu', async ({ page, request }) => {
+    await openSchedule(page, request)
+    await dayGroup(page, 2).getByRole('listitem').click()
+    await expect(menuTitle(page, 2)).toBeVisible()
+
+    await page.keyboard.press('Escape')
+
+    await expect(menuTitle(page, 2)).toBeHidden()
+  })
+
+  test('"Sign up" closes the menu and the occurrence shows the user', async ({ page, request }) => {
+    await openSchedule(page, request)
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await page.getByRole('button', { name: 'Sign up' }).click()
+
+    await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('Alice')
+    await expect(menuTitle(page, 2)).toBeHidden()
+    await page.reload()
+    await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('Alice')
+  })
+
+  test('"Sign up" keeps the weeks shown', async ({ page, request }) => {
+    await openSchedule(page, request)
+    await page.getByRole('button', { name: 'More weeks' }).click()
+    await expect(weekHeadings(page)).toHaveCount(10)
+    await dayGroup(page, 8).getByRole('listitem').click()
+
+    await page.getByRole('button', { name: 'Sign up' }).click()
+
+    await expect(dayGroup(page, 8).getByRole('listitem')).toHaveText('Alice')
+    await expect(weekHeadings(page)).toHaveCount(10)
+  })
+
+  test('"Sign up" when the server fails: the generic error, and the menu stays', async ({ page, request }) => {
+    await openSchedule(page, request)
+    await page.route('**/sign-up', (route) => route.fulfill({ status: 500, body: 'failure' }))
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await page.getByRole('button', { name: 'Sign up' }).click()
+
+    await expect(page.getByText(GENERIC).filter({ visible: true })).toBeVisible()
+    await expect(menuTitle(page, 2)).toBeVisible()
+    await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('')
+  })
+
+  test('"Cancel registration…" asks first; "Keep it" changes nothing', async ({ page, request }) => {
+    await openSchedule(page, request)
+    await dayGroup(page, 1).getByRole('listitem').click()
+
+    await page.getByRole('button', { name: 'Cancel registration…' }).click()
+    const dialog = page.getByRole('dialog').filter({ hasText: 'Cancel this registration?' })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('button', { name: 'Keep it' }).click()
+
+    await expect(dialog).toBeHidden()
+    await page.reload()
+    await dayGroup(page, 1).getByRole('listitem').click()
+    await expect(page.getByRole('button', { name: 'Cancel registration…' })).toBeVisible()
+  })
+
+  test('"Yes, cancel" cancels the registration and closes the dialog', async ({ page, request }) => {
+    await openSchedule(page, request)
+    await dayGroup(page, 1).getByRole('listitem').click()
+
+    await page.getByRole('button', { name: 'Cancel registration…' }).click()
+    const dialog = page.getByRole('dialog').filter({ hasText: 'Cancel this registration?' })
+    await dialog.getByRole('button', { name: 'Yes, cancel' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(menuTitle(page, 1)).toBeHidden()
+    await dayGroup(page, 1).getByRole('listitem').click()
+    await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
+  })
+})

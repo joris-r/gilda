@@ -77,7 +77,7 @@ def period_set(planning: Planning, first: str, last: str) -> None:
 
 
 def cancelled(planning: Planning, as_client: Any, registration: dict[str, Any]) -> None:
-    assert planning.set_status(as_client, registration, "cancelled").status_code == 200
+    planning.cancel(as_client, registration)
 
 
 @pytest.fixture

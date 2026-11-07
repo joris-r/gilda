@@ -106,7 +106,7 @@ def test_r15_does_not_count_cancelled_registrations(
     registration = planning.registered(
         planning.bruno_client, planning.bruno, day_of_week("thursday", 1), "10:00", "13:00"
     )
-    planning.set_status(planning.bruno_client, registration, "cancelled")
+    planning.cancel(planning.bruno_client, registration)
 
     assert counts(planning) == {
         planning.alice["id"]: 0,

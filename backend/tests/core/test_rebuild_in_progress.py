@@ -2,6 +2,7 @@ import html
 import re
 import uuid
 from collections.abc import Callable
+from datetime import date, timedelta
 from typing import Any
 
 import pytest
@@ -143,7 +144,7 @@ class TestMyAvailability:
 
 
 class TestSchedule:
-    def test_shows_its_weeks_without_menus(self, client: Any) -> None:
+    def test_shows_its_weeks_and_menus_without_the_managers_part(self, client: Any) -> None:
         sign_up(client, "Alice")
         slug = f"a-{uuid.uuid4().hex[:12]}"
         created = client.post("/api/associations", json={"name": "Jardin", "slug": slug})
@@ -158,8 +159,18 @@ class TestSchedule:
         page = html.unescape(response.text)
         for present in ["Week", "More weeks", "My availability", "Members", "Schedule settings"]:
             assert present in page
-        for absent in ["Sign up", "Cancel registration", "Propose", "Yes, cancel", "Keep it"]:
-            assert absent not in page
+        assert "Propose" not in page
+        today = date.today()
+        thursday = today + timedelta(days=(3 - today.weekday()) % 7 + 7)
+        menu = client.post(
+            f"/association/{slug}/menu",
+            json={"date": thursday.isoformat(), "start": "10:00", "end": "13:00"},
+        )
+        assert menu.status_code == 200
+        text = html.unescape(menu.text)
+        assert "Sign up" in text
+        assert "Propose" not in text
+        assert "Alice" not in text
 
 
 class TestNotFound:

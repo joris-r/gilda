@@ -22,7 +22,6 @@ UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
             "registrations",
             {"user_id": UNKNOWN_ID, "date": "2026-11-05", "start": "10:00", "end": "13:00"},
         ),
-        ("PATCH", f"registrations/{UNKNOWN_ID}", {"status": "confirmed"}),
     ],
 )
 def test_planning_401_when_signed_out(

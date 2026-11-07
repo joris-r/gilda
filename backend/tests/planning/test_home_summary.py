@@ -211,7 +211,7 @@ def test_r31_today_is_included_and_earlier_dates_are_not(
 def test_r31_cancelled_registrations_are_not_listed(planning: Planning) -> None:
     registration = confirmed(planning, 2)
     planning.add_closure(day(2), day(2))
-    assert planning.set_status(planning.bruno_client, registration, "cancelled").status_code == 200
+    planning.cancel(planning.bruno_client, registration)
 
     assert obsolete_dates(planning) == []
 
@@ -225,7 +225,7 @@ def test_r31_only_the_signed_in_users_registrations(planning: Planning) -> None:
 
 def test_r12_cancelled_registrations_are_not_shown(planning: Planning) -> None:
     registration = confirmed(planning, 2)
-    assert planning.set_status(planning.bruno_client, registration, "cancelled").status_code == 200
+    planning.cancel(planning.bruno_client, registration)
 
     assert upcoming_dates(planning) == []
 
@@ -342,7 +342,7 @@ def test_r13_counts_confirmed_and_proposed_within_the_period_both_dates_included
     confirmed(planning, 6)
     proposed(planning, 7)
     cancelled = confirmed(planning, 5)
-    assert planning.set_status(planning.bruno_client, cancelled, "cancelled").status_code == 200
+    planning.cancel(planning.bruno_client, cancelled)
 
     assert summary(planning, planning.bruno_client)["planning_period"] == {
         "first": day(2),

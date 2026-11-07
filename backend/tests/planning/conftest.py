@@ -153,10 +153,10 @@ class Planning:
         registration: dict[str, Any] = response.json()
         return registration
 
-    def set_status(self, as_client: Any, registration: dict[str, Any], status: str) -> Any:
-        return as_client.patch(
-            self.path(f"registrations/{registration['id']}"), json={"status": status}
-        )
+    def cancel(self, as_client: Any, registration: dict[str, Any]) -> None:
+        """Confirms "Cancel registration…" in the menu of `registration` on the Schedule."""
+        text = shown(cancel_registration(as_client, self.slug, registration["id"]))
+        assert GENERIC not in text, text
 
 
 def add_slot_on_screen(as_client: Any, slug: str, weekday: str, start: str, end: str) -> Any:
@@ -418,6 +418,56 @@ def day_in(entries: list[str | Week], day: str) -> str:
 def day_shown(as_client: Any, slug: str, day: str) -> str:
     """What the Schedule shows on `day`, after its label."""
     return day_in(schedule_shown(as_client, slug), day)
+
+
+def opened_weeks() -> dict[str, str]:
+    """The weeks the Schedule opens on without a planning period (R32), as its actions get
+    them."""
+    return {"from": day_of_week("monday", -1), "to": day_of_week("sunday", 4)}
+
+
+def open_menu(as_client: Any, slug: str, day: str, start: str, end: str) -> Any:
+    """Clicks the occurrence, or the obsolete registration, of `day` from `start` to `end` on
+    the Schedule."""
+    return as_client.post(
+        f"/association/{slug}/menu", json={"date": day, "start": start, "end": end}
+    )
+
+
+def sign_up_for(
+    as_client: Any,
+    slug: str,
+    day: str,
+    start: str,
+    end: str,
+    weeks: dict[str, str] | None = None,
+) -> Any:
+    """Clicks "Sign up" in the menu of an occurrence, on a Schedule that shows `weeks`."""
+    return as_client.post(
+        f"/association/{slug}/sign-up",
+        json={"date": day, "start": start, "end": end, **(weeks or opened_weeks())},
+    )
+
+
+def confirm_registration(
+    as_client: Any, slug: str, registration_id: str, weeks: dict[str, str] | None = None
+) -> Any:
+    """Clicks "Confirm" in the menu of a registration, on a Schedule that shows `weeks`."""
+    return as_client.post(
+        f"/association/{slug}/registrations/{registration_id}/confirm",
+        json=weeks or opened_weeks(),
+    )
+
+
+def cancel_registration(
+    as_client: Any, slug: str, registration_id: str, weeks: dict[str, str] | None = None
+) -> Any:
+    """Confirms "Cancel registration…" in the menu of a registration, on a Schedule that shows
+    `weeks`."""
+    return as_client.post(
+        f"/association/{slug}/registrations/{registration_id}/cancel",
+        json=weeks or opened_weeks(),
+    )
 
 
 def more_weeks(as_client: Any, slug: str, first: str, last: str) -> Any:
