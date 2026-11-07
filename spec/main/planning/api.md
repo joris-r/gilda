@@ -7,17 +7,6 @@ association does not exist or the user is not a member.
 ## Slots
 
 ```http
-GET /api/associations/5c1e…/slots
-```
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-[{"id": "a41f…", "weekday": "thursday", "start": "10:00", "end": "13:00"}]
-```
-
-```http
 POST /api/associations/5c1e…/slots
 Content-Type: application/json
 
@@ -31,14 +20,8 @@ Content-Type: application/json
 {"id": "c90b…", "weekday": "saturday", "start": "10:00", "end": "13:00"}
 ```
 
-- `PUT /api/associations/{id}/slots/{slot_id}` takes the body of
-  `POST` and returns the slot, as `POST` does, with 200.
-- `DELETE /api/associations/{id}/slots/{slot_id}`: 204.
-- `POST`, `PUT` and `DELETE` are for managers only: 403 for a
-  volunteer.
-- 409 when the association already has that slot, other than the one
-  edited.
-- Slots are listed by weekday, then start.
+- For managers only: 403 for a volunteer.
+- 409 when the association already has that slot.
 
 ## Closures
 

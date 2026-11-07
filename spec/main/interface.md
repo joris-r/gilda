@@ -21,6 +21,15 @@ Until then:
     [+ New association]
     ```
   - Members.
+  - Schedule settings, with its Slots section only:
+
+    ```
+    (logo)  Jardin partagé des Lilas › Schedule settings       Alice ▾
+
+    SLOTS                                             [+ Add a slot]
+      Thursday   10:00–13:00                                ✎  🗑
+      Saturday   10:00–13:00                                ✎  🗑
+    ```
 - Any other path outside `/api` answers the Not found page, including
   the Schedule that an association's name and Create association lead
   to.

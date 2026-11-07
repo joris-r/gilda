@@ -42,6 +42,9 @@ Members' preferences
   with the slot, with [Save]; From and To do not follow each other as
   in R17. Its delete icon asks "Delete the slot Thursday 10:00–13:00?"
   with [Delete].
+- Slots are listed by weekday, then start.
+- Adding a slot the association already has, or saving a slot as
+  another one it has, shows "This slot already exists."
 - R17: The Add a slot dialog opens with From at 09:00 and To at 09:00.
   Changing From sets To to the same time, until the manager changes To.
 - R18: After a slot is added, the next Add a slot dialog of the screen
