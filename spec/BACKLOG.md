@@ -6,6 +6,7 @@
 - Tests: the pytest tests that find a dialog by its position on the page would find it by its name.
 - End-to-end: a shorter `actionTimeout`, so a suite failing on a missing screen ends fast.
 - Process: CLAUDE.md's rule on text lookups would also cover tests asserting that the text is absent (e.g. `NAME not in main`).
+- Tests: the core tests' page helpers would also leave out hidden elements, as the planning `section_of` now does.
 - Tests: `shown()` would rebuild the HTML of each `datastar-patch-elements` event from its `data: elements` lines, so pytest reads a patch as the browser does and templates need not be sent on one line.
 - Process: CLAUDE.md would ask tests that read a screen's lines to look only within their section, so that a new section can't break them.
 
@@ -14,7 +15,6 @@
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- My availability: My preferences.
 - My availability: Absences and Note for the managers.
 - Schedule settings: Members' preferences.
 - Schedule: the weeks read-only, "More weeks", the today and period lines, closures.
@@ -111,6 +111,12 @@ Choices the spec left open, settled by `settings-closures-period`:
 - Edit the closure and Delete the closure: an unknown closure, or another association's, shows the generic error.
 - Planning period, Clear, and the closure actions: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing and shows the generic error.
 
+Choices the spec left open, settled by `availability-preferences`:
+
+- My preferences: a missing or invalid value, an unknown slot or another association's slot shows the generic error.
+- My preferences: "—" on a slot with no preference changes nothing.
+- My preferences: a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -139,6 +145,9 @@ Choices the spec left open, settled by `settings-closures-period`:
 - Closures may overlap each other, with no warning.
 - Add a closure, Edit the closure and Delete the closure don't warn that the registrations on the closed dates become obsolete, or stop being obsolete.
 - Planning period and closures with To before From show only the generic error, as Slots do.
+- My availability: no served screen links to it yet; only its URL leads there until the Schedule returns.
+- My preferences: a selector retries after a network error, so a late retry could overwrite a newer choice on the same slot.
+- My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
 
 
 ## Quality
@@ -173,7 +182,7 @@ Choices the spec left open, settled by `settings-closures-period`:
 - Send link has no rate limit, so a manager can flood a member with emails.
 - Any manager can delete the association, irreversibly, with no password, so one manager or a stolen session can erase it for every member.
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account.
-- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` `POST /association/{slug}/settings/slots/{slot_id}/delete`, `POST /association/{slug}/settings/period`, `POST /association/{slug}/settings/period/clear`, `POST /association/{slug}/settings/closures`, `POST /association/{slug}/settings/closures/{closure_id}/edit` and `POST /association/{slug}/settings/closures/{closure_id}/delete` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
+- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` `POST /association/{slug}/settings/slots/{slot_id}/delete`, `POST /association/{slug}/settings/period`, `POST /association/{slug}/settings/period/clear`, `POST /association/{slug}/settings/closures`, `POST /association/{slug}/settings/closures/{closure_id}/edit` `POST /association/{slug}/settings/closures/{closure_id}/delete` and `POST /association/{slug}/availability/preferences/{slot_id}` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
 
