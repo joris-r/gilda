@@ -11,6 +11,8 @@ from tests.planning.conftest import (
     GENERIC,
     WEEKDAYS,
     Planning,
+    add_absence,
+    add_member,
     cancel_registration,
     confirm_registration,
     create_association,
@@ -19,14 +21,20 @@ from tests.planning.conftest import (
     day_of_week,
     day_shown,
     headings_of,
+    names_offered,
     open_menu,
+    opened_weeks,
+    propose,
     schedule_entries,
     schedule_shown,
+    set_member_preference,
+    set_period,
     shown,
     sign_up,
     sign_up_for,
     text_of,
     unique_email,
+    write_note,
 )
 
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
@@ -236,6 +244,430 @@ class TestMenu:
 
         assert "window.location" in text
         assert "Sign up" not in text
+
+
+def free_thursday(client: Any, new_client: Callable[[], Any]) -> tuple[Planning, str]:
+    """A planning with a slot on Thursday 10:00-13:00, and the Thursday two weeks ahead, which
+    holds no registration."""
+    planning = Planning(client, new_client)
+    planning.add_slot("thursday", "10:00", "13:00")
+    return planning, day_of_week("thursday", 2)
+
+
+def texts_offered(as_client: Any, slug: str, day: str) -> list[str]:
+    """The text of each name the menu of the occurrence of `day` offers, in order."""
+    return [text for text, _ in names_offered(as_client, slug, day)]
+
+
+def icons_of(as_client: Any, slug: str, day: str, name: str) -> list[str]:
+    """The text of each icon of the name `name` in the menu of the occurrence of `day`."""
+    found = [icons for text, icons in names_offered(as_client, slug, day) if text == name]
+    assert len(found) == 1, (name, names_offered(as_client, slug, day))
+    return found[0]
+
+
+def prefer(planning: Planning, user: dict[str, Any], value: str) -> None:
+    """Alice sets the preference of `user` for the first slot in Members' preferences."""
+    response = set_member_preference(
+        planning.alice_client, planning.slug, planning.slots[0]["id"], user["id"], value
+    )
+    assert GENERIC not in shown(response)
+
+
+def with_period(planning: Planning) -> None:
+    """Sets the planning period from next week's Monday to the Sunday three weeks ahead."""
+    response = set_period(
+        planning.alice_client, planning.slug, day_of_week("monday", 1), day_of_week("sunday", 3)
+    )
+    assert GENERIC not in shown(response)
+
+
+class TestManagersMenu:
+    def test_a_free_occurrence_offers_the_members_display_names(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+
+        text = menu_text(client, planning.slug, thursday)
+
+        assert "Sign up" in text
+        assert texts_offered(client, planning.slug, thursday) == ["Alice", "Bruno", "Chloé"]
+
+    def test_a_cancelled_registration_offers_the_members_display_names(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+        planning.cancel(planning.chloe_client, registration)
+
+        assert texts_offered(client, planning.slug, thursday) == ["Alice", "Bruno", "Chloé"]
+
+    def test_a_volunteer_is_offered_no_names(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+
+        assert names_offered(planning.bruno_client, planning.slug, thursday) == []
+        text = menu_text(planning.bruno_client, planning.slug, thursday)
+        assert "Sign up" in text
+        assert "Alice" not in text
+        assert "Chloé" not in text
+
+    def test_a_taken_occurrence_offers_no_names(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday, _ = proposed_to_bruno(client, new_client)
+
+        assert names_offered(client, planning.slug, thursday) == []
+
+    def test_another_members_proposed_registration_offers_confirm_and_cancel_registration(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday, _ = proposed_to_bruno(client, new_client)
+
+        text = menu_text(client, planning.slug, thursday)
+
+        assert "Confirm" in text
+        assert "Cancel registration…" in text
+        assert "Sign up" not in text
+
+    def test_another_members_confirmed_registration_offers_cancel_registration(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        planning.registered(planning.bruno_client, planning.bruno, thursday, "10:00", "13:00")
+
+        text = menu_text(client, planning.slug, thursday)
+
+        assert "Cancel registration…" in text
+        assert "Confirm" not in text
+        assert "Sign up" not in text
+
+    def test_another_members_obsolete_registration_offers_cancel_registration_but_not_confirm(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday, _ = proposed_to_bruno(client, new_client)
+        planning.delete_slot(planning.slots[0])
+
+        text = menu_text(client, planning.slug, thursday)
+
+        assert "Cancel registration…" in text
+        assert "Confirm" not in text
+        assert names_offered(client, planning.slug, thursday) == []
+
+    def test_a_member_of_another_association_is_not_offered(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        other = create_association(client, "Repair Café Belleville")
+        zoe_email = unique_email("Zoe")
+        sign_up(new_client(), "Zoé", zoe_email)
+        assert add_member(client, other["id"], "Zoé", zoe_email).status_code == 201
+
+        assert texts_offered(client, planning.slug, thursday) == ["Alice", "Bruno", "Chloé"]
+
+
+class TestRegistrationCount:
+    def test_without_a_planning_period_no_count_is_shown(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        planning.registered(
+            planning.bruno_client, planning.bruno, day_of_week("thursday", 1), "10:00", "13:00"
+        )
+
+        assert texts_offered(client, planning.slug, thursday) == ["Alice", "Bruno", "Chloé"]
+
+    def test_each_name_is_followed_by_its_count(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        with_period(planning)
+
+        assert set(texts_offered(client, planning.slug, thursday)) == {
+            "Alice (0)",
+            "Bruno (0)",
+            "Chloé (0)",
+        }
+
+    def test_r15_counts_proposed_and_confirmed_registrations(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        planning.add_slot("saturday", "10:00", "13:00")
+        with_period(planning)
+        planning.registered(
+            planning.bruno_client, planning.bruno, day_of_week("thursday", 1), "10:00", "13:00"
+        )
+        planning.registered(client, planning.bruno, day_of_week("saturday", 1), "10:00", "13:00")
+        planning.registered(client, planning.chloe, day_of_week("saturday", 2), "10:00", "13:00")
+
+        assert set(texts_offered(client, planning.slug, thursday)) == {
+            "Alice (0)",
+            "Bruno (2)",
+            "Chloé (1)",
+        }
+
+    def test_r15_does_not_count_cancelled_registrations(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        with_period(planning)
+        registration = planning.registered(
+            planning.bruno_client, planning.bruno, day_of_week("thursday", 1), "10:00", "13:00"
+        )
+        planning.cancel(planning.bruno_client, registration)
+
+        assert "Bruno (0)" in texts_offered(client, planning.slug, thursday)
+
+    def test_r15_does_not_count_registrations_outside_the_planning_period(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        planning.add_slot("saturday", "10:00", "13:00")
+        for weeks_ahead in (1, 2, 3):
+            day = day_of_week("thursday", weeks_ahead)
+            planning.registered(planning.bruno_client, planning.bruno, day, "10:00", "13:00")
+        thursday = day_of_week("thursday", 2)
+        assert GENERIC not in shown(set_period(client, planning.slug, thursday, thursday))
+
+        offered = texts_offered(client, planning.slug, day_of_week("saturday", 2))
+
+        assert "Bruno (1)" in offered
+
+    def test_r15_does_not_count_obsolete_registrations(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        thursdays = planning.add_slot("thursday", "10:00", "13:00")
+        planning.add_slot("saturday", "10:00", "13:00")
+        with_period(planning)
+        planning.registered(
+            planning.bruno_client, planning.bruno, day_of_week("thursday", 1), "10:00", "13:00"
+        )
+        planning.delete_slot(thursdays)
+
+        offered = texts_offered(client, planning.slug, day_of_week("saturday", 2))
+
+        assert "Bruno (0)" in offered
+
+    def test_r15_counts_only_the_associations_registrations(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        with_period(planning)
+        other = Planning(new_client(), new_client)
+        other.add_slot("thursday", "10:00", "13:00")
+        joined = add_member(other.alice_client, other.id, "Bruno", planning.bruno["email"])
+        assert joined.status_code == 201
+        other.registered(
+            other.alice_client, planning.bruno, day_of_week("thursday", 1), "10:00", "13:00"
+        )
+
+        assert "Bruno (0)" in texts_offered(client, planning.slug, thursday)
+
+
+class TestR27:
+    def test_names_are_sorted_by_preference(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        planning._volunteer(new_client, "David")
+        prefer(planning, planning.alice, "unavailable")
+        prefer(planning, planning.bruno, "possible")
+        prefer(planning, planning.chloe, "preferred")
+
+        assert texts_offered(client, planning.slug, thursday) == [
+            "Chloé",
+            "Bruno",
+            "David",
+            "Alice",
+        ]
+
+    def test_the_preference_is_for_the_occurrences_slot(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, _ = free_thursday(client, new_client)
+        prefer(planning, planning.bruno, "unavailable")
+        planning.add_slot("saturday", "10:00", "13:00")
+
+        offered = texts_offered(client, planning.slug, day_of_week("saturday", 2))
+
+        assert offered == ["Alice", "Bruno", "Chloé"]
+
+    def test_absent_members_come_last_whatever_their_preference(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        prefer(planning, planning.alice, "unavailable")
+        prefer(planning, planning.bruno, "preferred")
+        add_absence(planning.bruno_client, planning, thursday, thursday)
+
+        assert texts_offered(client, planning.slug, thursday) == ["Chloé", "Alice", "Bruno"]
+
+    def test_then_by_fewest_registrations(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        planning.add_slot("saturday", "10:00", "13:00")
+        with_period(planning)
+        planning.registered(client, planning.alice, day_of_week("thursday", 1), "10:00", "13:00")
+        planning.registered(client, planning.chloe, day_of_week("saturday", 1), "10:00", "13:00")
+        planning.registered(client, planning.chloe, day_of_week("saturday", 2), "10:00", "13:00")
+
+        assert texts_offered(client, planning.slug, thursday) == [
+            "Bruno (0)",
+            "Alice (1)",
+            "Chloé (2)",
+        ]
+
+    def test_fewest_registrations_also_orders_absent_members(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        with_period(planning)
+        planning.registered(client, planning.alice, day_of_week("thursday", 1), "10:00", "13:00")
+        add_absence(client, planning, thursday, thursday)
+        add_absence(planning.chloe_client, planning, thursday, thursday)
+        prefer(planning, planning.alice, "preferred")
+
+        assert texts_offered(client, planning.slug, thursday) == [
+            "Bruno (0)",
+            "Chloé (0)",
+            "Alice (1)",
+        ]
+
+    def test_then_by_display_name(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        prefer(planning, planning.chloe, "possible")
+        prefer(planning, planning.alice, "possible")
+
+        assert texts_offered(client, planning.slug, thursday) == ["Alice", "Chloé", "Bruno"]
+
+
+class TestAbsenceIcon:
+    def test_an_absent_member_has_an_absence_icon(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+
+        icons = icons_of(client, planning.slug, "2037-11-12", "Bruno")
+
+        assert icons == ["Absent Mon 9 Nov 2037 – Sun 15 Nov 2037"]
+
+    def test_a_one_day_absence_shows_one_date(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        add_absence(planning.bruno_client, planning, "2037-11-12", "2037-11-12")
+
+        icons = icons_of(client, planning.slug, "2037-11-12", "Bruno")
+
+        assert icons == ["Absent Thu 12 Nov 2037"]
+
+    def test_the_icon_shows_the_absence_covering_the_occurrences_date(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        add_absence(planning.bruno_client, planning, "2037-11-02", "2037-11-06")
+        add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+        add_absence(planning.bruno_client, planning, "2037-11-16", "2037-11-20")
+
+        icons = icons_of(client, planning.slug, "2037-11-12", "Bruno")
+
+        assert icons == ["Absent Mon 9 Nov 2037 – Sun 15 Nov 2037"]
+
+    def test_an_absence_not_covering_the_date_shows_no_icon(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        add_absence(planning.bruno_client, planning, "2037-11-13", "2037-11-15")
+        add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-11")
+
+        assert icons_of(client, planning.slug, "2037-11-12", "Bruno") == []
+
+    def test_an_absence_in_another_association_shows_no_icon(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        other = create_association(client, "Repair Café Belleville")
+        response = client.post(
+            f"/api/associations/{other['id']}/absences",
+            json={"first": "2037-11-09", "last": "2037-11-15"},
+        )
+        assert response.status_code == 201
+
+        assert icons_of(client, planning.slug, "2037-11-12", "Alice") == []
+
+    def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+        client.cookies.set("language", "fr")
+
+        icons = icons_of(client, planning.slug, "2037-11-12", "Bruno")
+
+        assert icons == ["Absent du lun. 9 nov. 2037 au dim. 15 nov. 2037"]
+
+
+NOTE = "Always group my registrations in pairs."
+
+
+class TestNoteIcon:
+    def test_a_member_with_a_note_has_a_note_icon(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        write_note(planning.bruno_client, planning, NOTE)
+
+        assert icons_of(client, planning.slug, thursday, "Bruno") == [NOTE]
+        assert icons_of(client, planning.slug, thursday, "Chloé") == []
+
+    def test_the_note_keeps_its_lines(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        write_note(planning.bruno_client, planning, "Mornings only.\nNever on Sundays.")
+
+        icons = icons_of(client, planning.slug, thursday, "Bruno")
+
+        assert icons == ["Mornings only.\nNever on Sundays."]
+
+    @pytest.mark.parametrize("text", ["", "   "])
+    def test_an_empty_note_or_one_of_only_spaces_shows_no_icon(
+        self, client: Any, new_client: Callable[[], Any], text: str
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        write_note(planning.bruno_client, planning, text)
+
+        assert icons_of(client, planning.slug, thursday, "Bruno") == []
+
+    def test_a_note_in_another_association_shows_no_icon(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        other = create_association(client, "Repair Café Belleville")
+        response = client.put(f"/api/associations/{other['id']}/note", json={"text": NOTE})
+        assert response.status_code == 200
+
+        assert icons_of(client, planning.slug, thursday, "Alice") == []
+
+    def test_an_absent_member_with_a_note_has_both_icons(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        add_absence(planning.bruno_client, planning, "2037-11-12", "2037-11-12")
+        write_note(planning.bruno_client, planning, NOTE)
+
+        icons = icons_of(client, planning.slug, "2037-11-12", "Bruno")
+
+        assert sorted(icons) == sorted(["Absent Thu 12 Nov 2037", NOTE])
 
 
 class TestSignUp:
@@ -463,6 +895,163 @@ class TestSignUp:
         text = shown(sign_up_for(new_client(), planning.slug, thursday, "10:00", "13:00"))
 
         assert "window.location" in text
+        assert day_shown(client, planning.slug, thursday) == "[]"
+
+
+def propose_bruno(as_client: Any, planning: Planning, day: str) -> Any:
+    """Clicks Bruno's name in the menu of the occurrence of `day` from 10:00 to 13:00."""
+    return propose(as_client, planning.slug, planning.bruno["id"], day, "10:00", "13:00")
+
+
+class TestPropose:
+    def test_r5_a_member_proposed_the_occurrence_gets_proposed(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+
+        text = shown(propose_bruno(client, planning, thursday))
+
+        assert GENERIC not in text
+        assert day_in(schedule_entries(text), thursday) == "[Bruno ?]"
+        assert day_shown(planning.bruno_client, planning.slug, thursday) == "[Bruno ?]"
+
+    def test_r5_a_manager_registering_themself_by_their_own_name_gets_confirmed(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+
+        alice = planning.alice["id"]
+        text = shown(propose(client, planning.slug, alice, thursday, "10:00", "13:00"))
+
+        assert day_in(schedule_entries(text), thursday) == "[Alice]"
+        assert day_shown(planning.bruno_client, planning.slug, thursday) == "[Alice]"
+
+    def test_r5_only_a_manager_proposes(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+
+        response = propose(
+            planning.bruno_client, planning.slug, planning.chloe["id"], thursday, "10:00", "13:00"
+        )
+
+        assert GENERIC in shown(response)
+        assert day_shown(client, planning.slug, thursday) == "[]"
+
+    def test_shows_the_weeks_shown(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning, _ = thursday_planning(client, new_client)
+        late_thursday = day_of_week("thursday", 7)
+        weeks = {"from": day_of_week("monday", -1), "to": day_of_week("sunday", 8)}
+
+        text = shown(
+            propose(
+                client, planning.slug, planning.bruno["id"], late_thursday, "10:00", "13:00", weeks
+            )
+        )
+
+        entries = schedule_entries(text)
+        assert len(headings_of(entries)) == 10
+        assert day_in(entries, late_thursday) == "[Bruno ?]"
+
+    def test_r4_a_taken_occurrence_says_someone_took_it(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        planning.registered(planning.chloe_client, planning.chloe, thursday, "10:00", "13:00")
+
+        text = shown(propose_bruno(client, planning, thursday))
+
+        assert TAKEN in text
+        assert GENERIC not in text
+        assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+
+    def test_r4_an_occurrence_whose_registration_was_cancelled_takes_a_new_one(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+        planning.cancel(planning.chloe_client, registration)
+
+        text = shown(propose_bruno(client, planning, thursday))
+
+        assert day_in(schedule_entries(text), thursday) == "[Bruno ?]"
+
+    def test_r6_an_occurrence_before_today_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, _ = thursday_planning(client, new_client)
+        past = day_of_week("thursday", -1)
+
+        text = shown(propose_bruno(client, planning, past))
+
+        assert GENERIC in text
+        assert day_shown(client, planning.slug, past) == "[]"
+
+    def test_a_closure_date_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        planning.add_closure(thursday, thursday, "Fête")
+
+        text = shown(propose_bruno(client, planning, thursday))
+
+        assert GENERIC in text
+        assert "Bruno" not in str(schedule_shown(client, planning.slug))
+
+    @pytest.mark.parametrize("who", ["non-member", "unknown", "invalid"])
+    def test_a_user_who_is_not_a_member_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any], who: str
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        zoe = sign_up(new_client(), "Zoé", unique_email("Zoe"))
+        user_id = {"non-member": zoe["id"], "unknown": UNKNOWN_ID, "invalid": "not-an-id"}[who]
+
+        text = shown(propose(client, planning.slug, user_id, thursday, "10:00", "13:00"))
+
+        assert GENERIC in text
+        assert day_shown(client, planning.slug, thursday) == "[]"
+
+    @pytest.mark.parametrize("missing", ["user_id", "date", "start", "end", "from"])
+    def test_a_missing_field_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any], missing: str
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        body = {
+            "user_id": planning.bruno["id"],
+            "date": thursday,
+            "start": "10:00",
+            "end": "13:00",
+            **opened_weeks(),
+        }
+        del body[missing]
+
+        text = shown(client.post(f"/association/{planning.slug}/propose", json=body))
+
+        assert GENERIC in text
+        assert day_shown(client, planning.slug, thursday) == "[]"
+
+    def test_a_non_member_registers_no_one(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+
+        response = propose(
+            other_user(new_client), planning.slug, planning.bruno["id"], thursday, "10:00", "13:00"
+        )
+
+        assert "Week" not in response.text
+        assert day_shown(client, planning.slug, thursday) == "[]"
+
+    def test_signed_out_leads_to_sign_in_and_registers_no_one(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+
+        response = propose(
+            new_client(), planning.slug, planning.bruno["id"], thursday, "10:00", "13:00"
+        )
+
+        assert "window.location" in shown(response)
         assert day_shown(client, planning.slug, thursday) == "[]"
 
 

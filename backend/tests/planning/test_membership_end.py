@@ -44,12 +44,19 @@ def move_two_weeks_back(registration: dict[str, Any]) -> str:
 
 def preferences_held(user: dict[str, Any]) -> int:
     """Counts the stored preferences of a user, which no screen shows once they are gone."""
+    return rows_held("preference", user)
+
+
+def rows_held(table: str, user: dict[str, Any]) -> int:
+    """Counts the rows of `table` (preference, absence or note) that a user holds, which no
+    screen shows once they are gone."""
 
     async def run() -> int:
         engine = create_async_engine(os.environ["DATABASE_URL"])
         async with engine.begin() as connection:
             result = await connection.execute(
-                text("SELECT count(*) FROM preference WHERE user_id = :id"), {"id": user["id"]}
+                text(f"SELECT count(*) FROM {table} WHERE user_id = :id"),
+                {"id": user["id"]},
             )
             count: int = result.scalar_one()
         await engine.dispose()
@@ -180,7 +187,6 @@ def test_r28_preferences_absences_and_note_are_deleted(
 
     manager = planning.alice_client
     assert preferences_stored(manager, planning.slug) == set()
-    assert manager.get(planning.path("member-absences")).json() == []
     rejoin(planning)
     assert preferences_stored(manager, planning.slug) == set()
     assert availability_lines(bruno, planning.slug, "Absences") == []
@@ -204,10 +210,9 @@ def test_r28_account_deletion_deletes_preferences_absences_and_note(
 
     manager = planning.alice_client
     assert preferences_held(planning.bruno) == 0
+    assert rows_held("absence", planning.bruno) == 0
+    assert rows_held("note", planning.bruno) == 0
     assert preferences_stored(manager, planning.slug) == set()
-    assert manager.get(planning.path("member-absences")).json() == []
-    notes = manager.get(planning.path("notes")).json()
-    assert planning.bruno["id"] not in [n["user_id"] for n in notes]
 
 
 def test_r28_preferences_of_the_other_members_stay(

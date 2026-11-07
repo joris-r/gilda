@@ -135,7 +135,7 @@ test.describe('Scenarios', () => {
     })
   })
 
-  test.fixme('the schedule is filled', async ({ page }) => {
+  test('the schedule is filled', async ({ page }) => {
     const association = `Jardin partagé ${Date.now()}`
     const chloe = uniqueEmail('Chloe')
     const david = uniqueEmail('David')
@@ -195,7 +195,7 @@ test.describe('Scenarios', () => {
       await signIn(page, alice)
       await openSchedule(page, association)
       await occurrence(page, saturday.label, '10–13').click()
-      await page.getByRole('button', { name: 'Chloé', exact: true }).click()
+      await page.locator('#occurrence-menu').getByRole('button', { name: 'Chloé', exact: true }).click()
       await expect(occurrence(page, saturday.label, '10–13')).toContainText(/Chloé\s*\?/)
       await signOut(page)
     })

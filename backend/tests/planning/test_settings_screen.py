@@ -23,6 +23,7 @@ from tests.planning.conftest import (
     edit_closure,
     edit_slot,
     lines_of,
+    names_offered,
     part,
     preferences_grid,
     preferences_stored,
@@ -831,8 +832,8 @@ class TestSettingThePlanningPeriod:
 
         shown(set_period(client, planning.slug, thursday, thursday))
 
-        counts = client.get(planning.path("registration-counts")).json()
-        assert {c["user_id"]: c["count"] for c in counts}[planning.bruno["id"]] == 1
+        names = names_offered(client, planning.slug, day_of_week("thursday", 2))
+        assert "Bruno (1)" in [text for text, _ in names]
 
     @pytest.mark.parametrize(
         "body",

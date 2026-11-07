@@ -449,6 +449,76 @@ def sign_up_for(
     )
 
 
+def propose(
+    as_client: Any,
+    slug: str,
+    user_id: str,
+    day: str,
+    start: str,
+    end: str,
+    weeks: dict[str, str] | None = None,
+) -> Any:
+    """Clicks the display name of the member `user_id` in the menu of an occurrence, on a
+    Schedule that shows `weeks`."""
+    return as_client.post(
+        f"/association/{slug}/propose",
+        json={
+            "user_id": user_id,
+            "date": day,
+            "start": start,
+            "end": end,
+            **(weeks or opened_weeks()),
+        },
+    )
+
+
+Name = tuple[str, list[str]]
+
+
+def menu_names(fragment: str) -> list[Name]:
+    """The members' names a menu offers, in order: each one's text, its count included, e.g.
+    "Alice (2)", and the text of each of its icons, e.g. ["Absent Mon 9 Nov 2026"]. A name is
+    an `<li>` of the menu; an icon, an element in it with an aria-label, whose text that is."""
+    fragment = re.sub(r"^data: elements ", "", fragment, flags=re.MULTILINE)
+    names: list[Name] = []
+    for item in re.findall(r"<li[ >].*?</li>", without_dialogs(fragment), re.DOTALL):
+        icons = re.findall(r'<[a-z]+[^>]*\saria-label="([^"]*)"', item)
+        labelled = r'<([a-z]+)[^>]*\saria-label="[^"]*"[^>]*>.*?</\1>'
+        text = re.sub(labelled, "", item, flags=re.DOTALL)
+        names.append((" ".join(text_of(text).split()), [html.unescape(icon) for icon in icons]))
+    return names
+
+
+def names_offered(
+    as_client: Any, slug: str, day: str, start: str = "10:00", end: str = "13:00"
+) -> list[Name]:
+    """The members' names the menu of the occurrence of `day` offers, as menu_names reads
+    them."""
+    response = open_menu(as_client, slug, day, start, end)
+    assert response.status_code == 200
+    return menu_names(shown(response))
+
+
+def notes_offered(planning: Planning) -> dict[str, str]:
+    """The note of Alice, Bruno and Chloé, by user id, as the note icons of Alice's menu show
+    them on a free Thursday two weeks ahead, "" for a name with no icon; adds a Thursday slot
+    when the planning has none. The members hold no absence then."""
+    if not any(slot["weekday"] == "thursday" for slot in planning.slots):
+        planning.add_slot("thursday", "10:00", "13:00")
+        start, end = "10:00", "13:00"
+    else:
+        slot = next(slot for slot in planning.slots if slot["weekday"] == "thursday")
+        start, end = slot["start"], slot["end"]
+    day = day_of_week("thursday", 2)
+    names = names_offered(planning.alice_client, planning.slug, day, start, end)
+    users = {u["display_name"]: u["id"] for u in (planning.alice, planning.bruno, planning.chloe)}
+    notes = {}
+    for text, icons in names:
+        assert len(icons) <= 1, names
+        notes[users[re.sub(r" \(\d+\)$", "", text)]] = icons[0] if icons else ""
+    return notes
+
+
 def confirm_registration(
     as_client: Any, slug: str, registration_id: str, weeks: dict[str, str] | None = None
 ) -> Any:

@@ -231,3 +231,122 @@ test.describe('Schedule menu', () => {
     await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
   })
 })
+
+const NOTE = 'Always group my registrations in pairs.'
+
+/** The Schedule's menu, wherever it is open. */
+function menu(page: Page) {
+  return page.locator('#occurrence-menu')
+}
+
+/** The Schedule of `openSchedule`, where Bruno also volunteers, and Alice is absent the whole
+ * week two weeks ahead, with a note for the managers. */
+async function openManagersSchedule(page: Page, request: APIRequestContext) {
+  const slug = await openSchedule(page, request)
+  const found = await page.request.get(`/api/associations/by-slug/${slug}`)
+  const { id } = (await found.json()) as { id: string }
+  const bruno = await page.request.post(`/api/associations/${id}/members`, {
+    data: { display_name: 'Bruno', email: uniqueEmail('Bruno'), role: 'volunteer' },
+  })
+  expect(bruno.status()).toBe(201)
+  const absence = await page.request.post(`/api/associations/${id}/absences`, {
+    data: { first: dayOfWeek(1, 2).iso, last: dayOfWeek(0, 2).iso },
+  })
+  expect(absence.status()).toBe(201)
+  const note = await page.request.put(`/api/associations/${id}/note`, { data: { text: NOTE } })
+  expect(note.status()).toBe(200)
+  await page.reload()
+  await expect(weekHeadings(page).first()).toBeVisible()
+}
+
+/** The text of Alice's absence icon: the week two weeks ahead, from Monday to Sunday. */
+function absenceText() {
+  const monday = dayOfWeek(1, 2)
+  const sunday = dayOfWeek(0, 2)
+  return `Absent ${monday.label} ${monday.iso.slice(0, 4)} – ${sunday.label} ${sunday.iso.slice(0, 4)}`
+}
+
+test.describe("Schedule menu: the manager's part", () => {
+  test('a name proposes the occurrence to that member and closes the menu', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await menu(page).getByRole('button', { name: 'Bruno', exact: true }).click()
+
+    await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)
+    await expect(menuTitle(page, 2)).toBeHidden()
+    await page.reload()
+    await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)
+  })
+
+  test('proposing when the server fails: the generic error, and the menu stays', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await page.route('**/propose', (route) => route.fulfill({ status: 500, body: 'failure' }))
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await menu(page).getByRole('button', { name: 'Bruno', exact: true }).click()
+
+    await expect(page.getByText(GENERIC).filter({ visible: true })).toBeVisible()
+    await expect(menuTitle(page, 2)).toBeVisible()
+    await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('')
+  })
+
+  test('hovering an icon shows its text', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await expect(menu(page).getByRole('button', { name: NOTE, exact: true })).toHaveAttribute('title', NOTE)
+    await expect(menu(page).getByRole('button', { name: absenceText(), exact: true })).toHaveAttribute(
+      'title',
+      absenceText(),
+    )
+  })
+
+  test('clicking an icon shows its text under the names, and proposes nothing', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await menu(page).getByRole('button', { name: NOTE, exact: true }).click()
+
+    await expect(page.getByText(NOTE, { exact: true })).toBeVisible()
+    await expect(menuTitle(page, 2)).toBeVisible()
+    await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('')
+  })
+
+  test('clicking the icon again hides its text', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await dayGroup(page, 2).getByRole('listitem').click()
+    const icon = menu(page).getByRole('button', { name: NOTE, exact: true })
+
+    await icon.click()
+    await expect(page.getByText(NOTE, { exact: true })).toBeVisible()
+    await icon.click()
+
+    await expect(page.getByText(NOTE, { exact: true })).toBeHidden()
+    await expect(menuTitle(page, 2)).toBeVisible()
+  })
+
+  test('clicking another icon shows its text in place of the one shown', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await menu(page).getByRole('button', { name: NOTE, exact: true }).click()
+    await menu(page).getByRole('button', { name: absenceText(), exact: true }).click()
+
+    await expect(page.getByText(absenceText(), { exact: true })).toBeVisible()
+    await expect(page.getByText(NOTE, { exact: true })).toBeHidden()
+  })
+
+  test('the text shown leaves when the menu opens on another occurrence', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await dayGroup(page, 2).getByRole('listitem').click()
+    await menu(page).getByRole('button', { name: NOTE, exact: true }).click()
+    await expect(page.getByText(NOTE, { exact: true })).toBeVisible()
+    await page.keyboard.press('Escape')
+
+    await dayGroup(page, 3).getByRole('listitem').click()
+
+    await expect(menuTitle(page, 3)).toBeVisible()
+    await expect(page.getByText(NOTE, { exact: true })).toBeHidden()
+  })
+})

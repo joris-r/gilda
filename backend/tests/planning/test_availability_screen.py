@@ -11,6 +11,7 @@ import pytest
 from tests.core.conftest import delete_association, unique_slug
 from tests.planning.conftest import (
     GENERIC,
+    MONTHS,
     Planning,
     add_absence,
     add_absence_on_screen,
@@ -21,6 +22,7 @@ from tests.planning.conftest import (
     delete_absence,
     edit_absence,
     lines_of,
+    notes_offered,
     part,
     preferences_stored,
     save_note,
@@ -455,18 +457,31 @@ def note_shown(as_client: Any, slug: str) -> str:
     return availability_section(as_client, slug, "Note for the managers")
 
 
+def iso_of(shown_date: str) -> str:
+    """The ISO date of a date as My availability shows it, e.g. "Mon 9 Nov 2037"."""
+    _, day, month, year = shown_date.split()
+    return date(int(year), MONTHS.index(month) + 1, int(day)).isoformat()
+
+
 def absences_stored(planning: Planning) -> set[tuple[str, str, str]]:
-    """The absences of the association, as a manager lists them."""
-    response = planning.alice_client.get(planning.path("member-absences"))
-    assert response.status_code == 200, response.text
-    return {(a["user_id"], a["first"], a["last"]) for a in response.json()}
+    """The absences of Alice, Bruno and Chloé, each as their own My availability lists it: the
+    user's id, then its first and last dates. The tests' absences end after today, so all
+    show."""
+    stored = set()
+    for user, as_client in (
+        (planning.alice, planning.alice_client),
+        (planning.bruno, planning.bruno_client),
+        (planning.chloe, planning.chloe_client),
+    ):
+        for line in absences_shown(as_client, planning.slug):
+            first, _, last = line.partition(" – ")
+            stored.add((user["id"], iso_of(first), iso_of(last or first)))
+    return stored
 
 
 def notes_stored(planning: Planning) -> dict[str, str]:
-    """The note of each member, as a manager lists them."""
-    response = planning.alice_client.get(planning.path("notes"))
-    assert response.status_code == 200, response.text
-    return {n["user_id"]: n["text"] for n in response.json()}
+    """The note of each member, as a manager's Schedule menu shows them."""
+    return notes_offered(planning)
 
 
 def paris_today() -> date:
