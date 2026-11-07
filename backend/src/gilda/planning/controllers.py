@@ -37,15 +37,6 @@ class PlanningController(Controller):
     path = "/associations/{association_id:uuid}"
     dependencies = {"current_user": Provide(provide_current_user)}  # noqa: RUF012
 
-    @get("/slots")
-    async def list_slots(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> list[SlotRead]:
-        return await PlanningService(db_session).list_slots(current_user, association_id)
-
     @post("/slots")
     async def add_slot(
         self,
@@ -57,29 +48,6 @@ class PlanningController(Controller):
         return await PlanningService(db_session).add_slot(
             current_user, association_id, data.weekday, data.start, data.end
         )
-
-    @put("/slots/{slot_id:uuid}")
-    async def edit_slot(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        slot_id: FromPath[UUID],
-        data: JSONBody[SlotCreate],
-    ) -> SlotRead:
-        return await PlanningService(db_session).edit_slot(
-            current_user, association_id, slot_id, data.weekday, data.start, data.end
-        )
-
-    @delete("/slots/{slot_id:uuid}")
-    async def delete_slot(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        slot_id: FromPath[UUID],
-    ) -> None:
-        await PlanningService(db_session).delete_slot(current_user, association_id, slot_id)
 
     @get("/preferences")
     async def list_preferences(

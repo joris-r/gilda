@@ -1,0 +1,41 @@
+{# The list alone: the slot dialogs stay out of it, filled from the line they are opened on. #}
+{% set manages = association.role == "manager" %}
+<div id="slots">
+  {% if slots %}
+  <ul class="list">
+    {% for slot in slots %}
+    {% set shown = t("weekdays." ~ slot.weekday) ~ " " ~ slot.start ~ "–" ~ slot.end %}
+    <li>
+      <div>{{ t("weekdays." ~ slot.weekday) }} <span>{{ slot.start }}–{{ slot.end }}</span></div>
+      {% if manages %}
+      <div class="line-actions">
+        <button
+          type="button"
+          class="icon-button"
+          aria-label="{{ t('settings.editSlot') }}"
+          commandfor="edit-slot"
+          command="show-modal"
+          data-on:click="$_slot = '{{ slot.id }}'; $weekday = '{{ slot.weekday }}'; $start = '{{ slot.start }}'; $end = '{{ slot.end }}'; $_failed = false; document.getElementById('edit-slot-error').hidden = true"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>
+        </button>
+        <button
+          type="button"
+          class="icon-button"
+          aria-label="{{ t('settings.deleteSlot') }}"
+          commandfor="delete-slot"
+          command="show-modal"
+          data-question="{{ t('settings.confirmDeleteSlot', slot=shown) }}"
+          data-on:click="$_slot = '{{ slot.id }}'; $_question = el.dataset.question; $_failed = false; document.getElementById('delete-slot-error').hidden = true"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+        </button>
+      </div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint">{{ t("settings.noSlots") }}</p>
+  {% endif %}
+</div>

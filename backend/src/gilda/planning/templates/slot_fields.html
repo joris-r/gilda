@@ -1,0 +1,17 @@
+{# The fields of a slot's dialog; `follows` makes To follow From, as R17 says. #}
+<label>
+  {{ t("settings.day") }}
+  <select data-bind:weekday>
+    {% for day in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] %}
+    <option value="{{ day }}">{{ t("weekdays." ~ day) }}</option>
+    {% endfor %}
+  </select>
+</label>
+<label>
+  {{ t("settings.from") }}
+  <input type="time" data-bind:start required{% if follows | default(true) %} data-on:input="$_endTouched || ($end = evt.target.value)"{% endif %}>
+</label>
+<label>
+  {{ t("settings.to") }}
+  <input type="time" data-bind:end required{% if follows | default(true) %} data-on:input="$_endTouched = true"{% endif %}>
+</label>

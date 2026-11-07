@@ -146,7 +146,7 @@
   "settings": {
     "title": "Schedule settings",
     "slots": "Slots",
-    "noSlots": "No slots yet.",
+    "noSlots": "None",
     "day": "Day",
     "from": "From",
     "to": "To",

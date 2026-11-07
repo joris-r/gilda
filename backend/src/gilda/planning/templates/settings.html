@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+{% from "form_dialog.html" import form_dialog with context %}
+{% set base = "/association/" ~ association.slug ~ "/settings/slots" %}
+{% block header_actions %}{% include "user_menu.html" %}{% endblock %}
+{% block location %}{% include "settings_location.html" %}{% endblock %}
+{% block main %}
+{% set manages = association.role == "manager" %}
+{#
+  The slot dialogs share weekday, start and end; _slot is the slot that Edit or Delete acts on.
+  R18: _nextWeekday and _nextStart are where the next Add a slot opens; R17: To follows From until
+  _endTouched.
+#}
+<section data-signals="{weekday: 'monday', start: '09:00', end: '09:00', _slot: '', _question: '', _nextWeekday: 'monday', _nextStart: '09:00', _endTouched: false}">
+  <div class="section-head">
+    <h2>{{ t("settings.slots") }}</h2>
+    {% if manages %}
+    <button
+      type="button"
+      class="add"
+      commandfor="add-slot"
+      command="show-modal"
+      data-on:click="$weekday = $_nextWeekday; $start = $_nextStart; $end = $_nextStart; $_endTouched = false; $_failed = false; document.getElementById('add-slot-error').hidden = true"
+    >+ {{ t("settings.addSlotTitle") }}</button>
+    {% endif %}
+  </div>
+  {% include "settings_slots.html" %}
+  {% if manages %}
+  {% call form_dialog("add-slot", t("settings.addSlotTitle")) %}
+  {# No retry: a request that failed after adding would come back as "already exists". #}
+  <form data-on:submit="@post('{{ base }}', {filterSignals: {include: /^(weekday|start|end)$/}, retryMaxCount: 0})">
+    {% include "slot_fields.html" %}
+    {% with error_id = "add-slot-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+    <div class="dialog-actions">
+      <button type="submit">{{ t("settings.addSlot") }}</button>
+      <button type="button" class="link" commandfor="add-slot" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+  </form>
+  {% endcall %}
+  {% call form_dialog("edit-slot", t("settings.editSlot")) %}
+  {# No retry: a request that failed must not go through later, once the dialog is cancelled. #}
+  <form data-on:submit="@post('{{ base }}/' + $_slot + '/edit', {filterSignals: {include: /^(weekday|start|end)$/}, retryMaxCount: 0})">
+    {% with follows = false %}{% include "slot_fields.html" %}{% endwith %}
+    {% with error_id = "edit-slot-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+    <div class="dialog-actions">
+      <button type="submit">{{ t("settings.save") }}</button>
+      <button type="button" class="link" commandfor="edit-slot" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+  </form>
+  {% endcall %}
+  {# As the confirmation macro, but asking about the slot it is opened on. #}
+  <dialog id="delete-slot" class="dialog" aria-labelledby="delete-slot-question">
+    <p id="delete-slot-question" data-text="$_question"></p>
+    <div class="dialog-actions">
+      <button type="button" data-on:click="@post('{{ base }}/' + $_slot + '/delete', {filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.deleteAction") }}</button>
+      <button type="button" class="link" commandfor="delete-slot" command="close">{{ t("dialog.cancel") }}</button>
+    </div>
+    {% with error_id = "delete-slot-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+  </dialog>
+  {% endif %}
+</section>
+{% endblock %}

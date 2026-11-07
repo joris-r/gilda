@@ -6,13 +6,13 @@
 - Tests: the pytest tests that find a dialog by its position on the page would find it by its name.
 - End-to-end: a shorter `actionTimeout`, so a suite failing on a missing screen ends fast.
 - Process: CLAUDE.md's rule on text lookups would also cover tests asserting that the text is absent (e.g. `NAME not in main`).
+- Tests: `shown()` would rebuild the HTML of each `datastar-patch-elements` event from its `data: elements` lines, so pytest reads a patch as the browser does and templates need not be sent on one line.
 
 
 ## Datastar experiment
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Schedule settings: Slots, with R17 and R18.
 - Schedule settings: Closures and Planning period.
 - My availability: My preferences.
 - My availability: Absences and Note for the managers.
@@ -93,6 +93,14 @@ Choices the spec left open, settled by `members-association`:
 - Delete the association: a volunteer's or a non-member's request deletes nothing and reloads Members as it now is.
 - Change the association identifier and Delete the association: their message shows once, on the next page loaded.
 
+Choices the spec left open, settled by `settings-slots`:
+
+- Add a slot and Edit the slot: a missing or invalid field, To not after From included, shows the generic error.
+- Add a slot: Day opens at Monday until a slot is added; R18 lasts until the page reloads, which brings back R17.
+- Add a slot: reopened after Cancel, it opens as R17 or R18 say, not with what was typed.
+- Edit the slot and Delete the slot: an unknown slot, or another association's, shows the generic error.
+- Add, Edit and Delete the slot: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing and shows the generic error.
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -108,12 +116,15 @@ Choices the spec left open, settled by `members-association`:
 - New association: "+ New association" is a link, while `interface.md` describes a button.
 - Members: no served screen links to it yet; only its URL leads there until the Schedule returns.
 - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
-- Members renders an edit dialog and up to three confirmations for every member, so the page grows with the association.
+- Members renders an edit dialog and up to three confirmations for every member, so the page grows with the association; shared dialogs filled from the line they are opened on, as Schedule settings does, would fix it.
 - Revoke link from a page opened before the member's link was revoked elsewhere still says "revoked".
 - Send link drops the link when the email can't be sent, but Sign-in link keeps it; align the two.
 - The one-time notice is kept in the session, so it shows on whichever page loads next, even in another tab.
 - Rename and Delete check against the name the page was loaded with: after a rename in another tab, Delete stays disabled for the new name until a reload.
 - Change the association identifier breaks every bookmark of the former URLs, with no redirect (R36).
+- Add a slot or Edit the slot with To not after From shows only the generic error; the former frontend said "Check the dates and times: the start comes before the end."
+- Schedule settings: no served screen links to it yet; only its URL leads there until the Schedule returns.
+- Edit the slot and Delete the slot don't warn that the slot's registrations become obsolete, nor that deleting it deletes the members' preferences on it.
 
 
 ## Quality
@@ -148,7 +159,7 @@ Choices the spec left open, settled by `members-association`:
 - Send link has no rate limit, so a manager can flood a member with emails.
 - Any manager can delete the association, irreversibly, with no password, so one manager or a stolen session can erase it for every member.
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account.
-- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier` and `POST /association/{slug}/delete` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
+- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier`, `POST /association/{slug}/delete`, `POST /association/{slug}/settings/slots`, `POST /association/{slug}/settings/slots/{slot_id}/edit` and `POST /association/{slug}/settings/slots/{slot_id}/delete` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
 

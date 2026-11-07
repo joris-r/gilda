@@ -146,7 +146,7 @@
   "settings": {
     "title": "Réglages du planning",
     "slots": "Créneaux",
-    "noSlots": "Aucun créneau pour le moment.",
+    "noSlots": "Aucun",
     "day": "Jour",
     "from": "De",
     "to": "À",
