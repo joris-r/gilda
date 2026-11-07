@@ -20,19 +20,7 @@ Until then:
 
     [+ New association]
     ```
-  - Members, with its list, "Show all", "not joined yet", Add a member
-    and the edit dialog, without "Rename the association", "Change the
-    association identifier" and "Delete the association":
-
-    ```
-    (logo)  Jardin partagé des Lilas › Members                 Alice ▾
-
-                                                      [+ Add a member]
-      Alice                                        MANAGER   ✎
-      alice@example.org
-      Chloé  not joined yet                      VOLUNTEER   ✎
-      chloe@example.org
-    ```
+  - Members.
 - Any other path outside `/api` answers the Not found page, including
   the Schedule that an association's name and Create association lead
   to.

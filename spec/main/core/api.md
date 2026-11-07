@@ -131,54 +131,6 @@ Content-Type: application/json
 - 404 when the association does not exist or the signed-in user is not
   a member.
 
-### PATCH /api/associations/{id}
-
-Changes the association's name, its slug, or both. Managers only: 403
-for a volunteer.
-
-```http
-PATCH /api/associations/5c1e…
-Content-Type: application/json
-
-{"name": "Jardin des Lilas"}
-```
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{"id": "5c1e…", "name": "Jardin des Lilas", "slug": "jardin-partage-des-lilas", "role": "manager"}
-```
-
-```http
-PATCH /api/associations/5c1e…
-Content-Type: application/json
-
-{"slug": "jardin-des-lilas"}
-```
-
-- Its members are not told.
-- Changing the name leaves the slug unchanged.
-- R36: Once the slug has changed, the former slug no longer leads to
-  the association, and another association can take it.
-- 400 when the slug does not have the format of a slug.
-- 409 when the slug is taken by another association or is `new`.
-- 404 when the association does not exist or the signed-in user is not
-  a member.
-
-### DELETE /api/associations/{id}
-
-Deletes the association for good. Managers only: 403 for a volunteer.
-
-- 204.
-- R34: Everything the association holds is erased: its memberships and
-  what its domains keep (for planning: its slots, closures, planning
-  period, preferences, absences, notes, share link and registrations).
-  Its members stay users, in their other associations if any, and are
-  not told.
-- 404 when the association does not exist or the signed-in user is not
-  a member.
-
 ### POST /api/associations/{id}/members
 
 Managers only: 403 for a volunteer.

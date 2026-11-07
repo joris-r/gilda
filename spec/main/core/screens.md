@@ -355,7 +355,7 @@ As a manager:
 - [Save] is enabled only when Name is not empty. Saving another name
   changes it, updates the header and shows "The association is now
   Jardin des Lilas."; the same name closes the dialog and changes
-  nothing.
+  nothing. The slug stays unchanged, and the members are not told.
 - "Change the association identifier" opens the dialog:
 
 ```
@@ -369,7 +369,9 @@ As a manager:
   slug changes it, moves the screen to the new URL and shows "The association
   identifier is now jardin-des-lilas."; the same slug closes the dialog
   and changes nothing. A malformed or taken slug shows the same message
-  as on New association.
+  as on New association. The members are not told.
+  - R36: Once the slug has changed, the former slug no longer leads to
+    the association, and another association can take it.
 - "Delete the association" opens the confirmation:
 
 ```
@@ -383,8 +385,13 @@ As a manager:
 ```
 
 - [Delete] is enabled only when the field holds exactly the
-  association's name. Confirming deletes it (R34), leads to My
+  association's name. Confirming deletes it, leads to My
   associations and shows "Jardin partagé des Lilas is deleted."
+  - R34: Everything the association holds is erased: its memberships and
+    what its domains keep (for planning: its slots, closures, planning
+    period, preferences, absences, notes, share link and registrations).
+    Its members stay users, in their other associations if any, and are
+    not told.
 - A volunteer sees the members and their roles, without "Add a
   member", without the edit icons and without "Rename the association",
   "Change the association identifier" and "Delete the association".
