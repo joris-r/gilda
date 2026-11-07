@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from gilda.core.controllers import find_current_user
 from gilda.core.models import User
+from gilda.core.pages import members_in_order
 from gilda.core.schemas import AssociationDetail
 from gilda.core.services import AssociationService, ConflictException
 from gilda.planning.schemas import (
@@ -51,8 +52,25 @@ async def settings_page(
         period=await service.get_planning_period(user, association.id),
         closures=await service.list_closures(user, association.id),
         slots=await service.list_slots(user, association.id),
+        members=members_in_order(association.members),
+        values=await _all_preferences(service, user, association),
         message="",
     )
+
+
+async def _all_preferences(
+    service: PlanningService, user: User, association: AssociationDetail
+) -> dict[tuple[UUID, UUID], str]:
+    """Each member's preference on each slot that has one, for Members' preferences."""
+    if association.role != "manager":
+        return {}
+    preferences = await service.list_preferences(user, association.id)
+    return {(p.user_id, p.slot_id): p.value for p in preferences}
+
+
+def _one_line(shown: str) -> str:
+    """On one line, so that each line of a list stays whole in the event."""
+    return re.sub(r"\s*\n\s*", " ", shown)
 
 
 def _error(request: Request[Any, Any, Any], error_id: str, key: str) -> DatastarResponse:
@@ -73,10 +91,20 @@ async def _slots_patched(
     dialog: str,
     *more: Any,
 ) -> DatastarResponse:
-    """Closes the dialog, then shows the slots as they now are."""
-    slots = await PlanningService(db_session).list_slots(user, association.id)
+    """Closes the dialog, then shows the slots, and the columns of Members' preferences, as they
+    now are."""
+    service = PlanningService(db_session)
+    slots = await service.list_slots(user, association.id)
     shown = fragment(request, "settings_slots.html", association=association, slots=slots)
-    return _patched(dialog, shown, *more)
+    grid = fragment(
+        request,
+        "settings_preferences.html",
+        association=association,
+        slots=slots,
+        members=members_in_order(association.members),
+        values=await _all_preferences(service, user, association),
+    )
+    return _patched(dialog, shown, ServerSentEventGenerator.patch_elements(_one_line(grid)), *more)
 
 
 def _patched(dialog: str, shown: str, *more: Any) -> DatastarResponse:
@@ -84,8 +112,7 @@ def _patched(dialog: str, shown: str, *more: Any) -> DatastarResponse:
     return DatastarResponse(
         [
             ServerSentEventGenerator.execute_script(f"document.getElementById('{dialog}').close()"),
-            # On one line, so that each line of a list stays whole in the event.
-            ServerSentEventGenerator.patch_elements(re.sub(r"\s*\n\s*", " ", shown)),
+            ServerSentEventGenerator.patch_elements(_one_line(shown)),
             *more,
         ]
     )
@@ -172,6 +199,61 @@ async def delete_slot(
     except _REFUSALS:
         return _error(request, "delete-slot-error", "error")
     return await _slots_patched(request, db_session, user, association, "delete-slot")
+
+
+# Members' preferences
+
+
+@post("/association/{slug:str}/settings/preferences/{slot_id:str}/{user_id:str}", status_code=200)
+async def choose_member_preference(
+    request: Request[Any, Any, Any],
+    db_session: NamedDependency[AsyncSession],
+    slug: str,
+    slot_id: str,
+    user_id: str,
+) -> DatastarResponse:
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    error_id = "members-preferences-error"
+    value = (await read_signals_dict(request)).get("value")
+    if value not in ("", "preferred", "possible", "unavailable"):
+        return _error(request, error_id, "error")
+    try:
+        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        if association.role != "manager":
+            raise PermissionDeniedException("Only managers set the members' preferences.")
+        service = PlanningService(db_session)
+        wanted = _slot_id(slot_id)
+        slots = await service.list_slots(user, association.id)
+        slot = next((s for s in slots if s.id == wanted), None)
+        member = next((m for m in association.members if str(m.user_id) == user_id), None)
+        if slot is None or member is None:
+            raise NotFoundException("Slot or member not found.")
+        if value:
+            await service.set_preference(
+                user, association.id, slot.id, member.user_id, cast("PreferenceValue", value)
+            )
+        else:
+            await service.delete_preference(user, association.id, slot.id, member.user_id)
+    except _REFUSALS:
+        return _error(request, error_id, "error")
+    shown = fragment(
+        request,
+        "member_preference_select.html",
+        association=association,
+        slot=slot,
+        member=member,
+        values=await _all_preferences(service, user, association),
+    )
+    return DatastarResponse(
+        [
+            ServerSentEventGenerator.patch_elements(_one_line(shown)),
+            ServerSentEventGenerator.patch_elements(
+                fragment(request, "form_error.html", message="", error_id=error_id)
+            ),
+        ]
+    )
 
 
 # Planning period
@@ -402,7 +484,7 @@ async def choose_preference(
     )
     return DatastarResponse(
         [
-            ServerSentEventGenerator.patch_elements(re.sub(r"\s*\n\s*", " ", shown)),
+            ServerSentEventGenerator.patch_elements(_one_line(shown)),
             ServerSentEventGenerator.patch_elements(
                 fragment(request, "form_error.html", message="", error_id=error_id)
             ),

@@ -83,7 +83,7 @@ async def create_association(
     return DatastarResponse(ServerSentEventGenerator.redirect(f"/association/{slug}"))
 
 
-def _listed(members: list[MemberRead]) -> list[MemberRead]:
+def members_in_order(members: list[MemberRead]) -> list[MemberRead]:
     """Managers first, then by display name."""
     return sorted(members, key=lambda m: (m.role != "manager", m.display_name.casefold()))
 
@@ -98,7 +98,7 @@ async def _members_list(
         request,
         "members_list.html",
         association=association,
-        members=_listed(association.members),
+        members=members_in_order(association.members),
         with_link=await associations.with_access_link(association.members),
     )
 
@@ -120,7 +120,7 @@ async def members_page(
         "members.html",
         user=user,
         association=association,
-        members=_listed(association.members),
+        members=members_in_order(association.members),
         with_link=await associations.with_access_link(association.members),
         message="",
     )

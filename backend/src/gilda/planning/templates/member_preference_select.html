@@ -1,0 +1,13 @@
+{# The selector of `member`'s preference on `slot` in Members' preferences, which saves at once. #}
+{% set value = values.get((member.user_id, slot.id)) %}
+<select
+  id="member-preference-{{ member.user_id }}-{{ slot.id }}"
+  {% if value %}class="preference-{{ value }}"{% endif %}
+  aria-label="{{ member.display_name }}, {{ t('weekdays.' ~ slot.weekday) }} {{ slot.start }}–{{ slot.end }}"
+  data-on:change="$value = el.value; @post('/association/{{ association.slug }}/settings/preferences/{{ slot.id }}/{{ member.user_id }}', {filterSignals: {include: /^value$/}, retryMaxCount: 0})"
+>
+  <option value=""{% if not value %} selected{% endif %}>{{ t("settings.noPreference") }}</option>
+  {% for choice in ["preferred", "possible", "unavailable"] %}
+  <option value="{{ choice }}"{% if value == choice %} selected{% endif %}>{{ t("preferences." ~ choice) }}</option>
+  {% endfor %}
+</select>

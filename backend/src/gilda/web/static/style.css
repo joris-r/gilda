@@ -364,6 +364,34 @@ button.link {
   border-color: var(--bad);
 }
 
+.grid-scroll {
+  overflow-x: auto;
+}
+
+.preferences {
+  border-collapse: collapse;
+}
+
+.preferences th,
+.preferences td {
+  padding: 4px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.preferences thead th {
+  font-weight: normal;
+  color: var(--muted);
+}
+
+/* The member names stay in view when the grid scrolls. */
+.preferences tbody th {
+  position: sticky;
+  left: 0;
+  background: var(--bg);
+  font-weight: normal;
+}
+
 .section-head {
   display: flex;
   align-items: center;

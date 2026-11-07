@@ -149,4 +149,15 @@
   </dialog>
   {% endif %}
 </section>
+{% if manages %}
+{# value is the value of the selector just changed, sent with its request. #}
+<section data-signals="{value: ''}">
+  <div class="section-head">
+    {# Unescaped, as the apostrophe of a translation needs no entity. #}
+    <h2>{{ t("settings.membersPreferences") | safe }}</h2>
+  </div>
+  {% include "settings_preferences.html" %}
+  {% with error_id = "members-preferences-error", message = "" %}{% include "form_error.html" %}{% endwith %}
+</section>
+{% endif %}
 {% endblock %}

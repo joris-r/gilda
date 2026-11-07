@@ -64,10 +64,6 @@ class MemberNote(msgspec.Struct):
     text: str
 
 
-class PreferenceUpdate(msgspec.Struct):
-    value: PreferenceValue
-
-
 class PreferenceRead(msgspec.Struct):
     user_id: UUID
     slot_id: UUID

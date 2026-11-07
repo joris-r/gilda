@@ -1,0 +1,29 @@
+{# The grid of Members' preferences: a row per member, a column per slot. #}
+<div id="members-preferences">
+  {% if slots %}
+  <div class="grid-scroll">
+    <table class="preferences">
+      <thead>
+        <tr>
+          <th scope="col"></th>
+          {% for slot in slots %}
+          <th scope="col">{{ t("dates.weekdays." ~ slot.weekday) }} <span>{{ slot.start }}–{{ slot.end }}</span></th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for member in members %}
+        <tr>
+          <th scope="row">{{ member.display_name }}</th>
+          {% for slot in slots %}
+          <td>{% include "member_preference_select.html" %}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="hint">{{ t("settings.noSlots") }}</p>
+  {% endif %}
+</div>

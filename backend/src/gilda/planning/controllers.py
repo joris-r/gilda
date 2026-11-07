@@ -18,8 +18,6 @@ from gilda.planning.schemas import (
     MemberNote,
     NoteData,
     PlanningPeriodData,
-    PreferenceRead,
-    PreferenceUpdate,
     RegistrationCount,
     RegistrationCreate,
     RegistrationRead,
@@ -47,42 +45,6 @@ class PlanningController(Controller):
     ) -> SlotRead:
         return await PlanningService(db_session).add_slot(
             current_user, association_id, data.weekday, data.start, data.end
-        )
-
-    @get("/preferences")
-    async def list_preferences(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-    ) -> list[PreferenceRead]:
-        return await PlanningService(db_session).list_preferences(current_user, association_id)
-
-    @put("/preferences/{slot_id:uuid}/{user_id:uuid}")
-    async def set_preference(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        slot_id: FromPath[UUID],
-        user_id: FromPath[UUID],
-        data: JSONBody[PreferenceUpdate],
-    ) -> PreferenceRead:
-        return await PlanningService(db_session).set_preference(
-            current_user, association_id, slot_id, user_id, data.value
-        )
-
-    @delete("/preferences/{slot_id:uuid}/{user_id:uuid}")
-    async def delete_preference(
-        self,
-        current_user: NamedDependency[User],
-        db_session: NamedDependency[AsyncSession],
-        association_id: FromPath[UUID],
-        slot_id: FromPath[UUID],
-        user_id: FromPath[UUID],
-    ) -> None:
-        await PlanningService(db_session).delete_preference(
-            current_user, association_id, slot_id, user_id
         )
 
     @get("/registration-counts")
