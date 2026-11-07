@@ -91,7 +91,8 @@ class TestOtherPaths:
         "path",
         [
             "/associations/new",
-            "/association/jardin/members",
+            "/association/jardin/settings",
+            "/association/jardin/availability",
         ],
     )
     def test_any_other_path_answers_the_not_found_page(self, client: Any, path: str) -> None:

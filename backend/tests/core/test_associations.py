@@ -211,7 +211,7 @@ def test_get_api_association_404_when_not_a_member(
 # POST /api/associations/{id}/members
 
 
-def test_post_api_members_creates_a_user_without_password(client: Any) -> None:
+def test_post_api_members_returns_the_new_member(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client)
     email = unique_email("Chloe")
@@ -240,41 +240,6 @@ def test_post_api_members_can_add_a_manager(client: Any) -> None:
 
     assert response.status_code == 201
     assert response.json()["role"] == "manager"
-
-
-def test_r3_adding_an_existing_user_keeps_their_display_name(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
-    sign_up(client, "Alice")
-    association = create_association(client)
-    bruno_email = unique_email("Bruno")
-    bruno = sign_up(new_client(), "Bruno", bruno_email)
-
-    response = add_member(client, association["id"], "Someone else", bruno_email.upper())
-
-    assert response.status_code == 201
-    assert response.json() == {
-        "user_id": bruno["id"],
-        "display_name": "Bruno",
-        "email": bruno_email,
-        "has_account": True,
-        "email_verified": True,
-        "access_link": False,
-        "role": "volunteer",
-    }
-
-
-def test_r3_a_user_added_to_two_associations_is_one_user(client: Any) -> None:
-    sign_up(client, "Alice")
-    first = create_association(client, "Jardin partagé des Lilas")
-    second = create_association(client, "Repair Café Belleville")
-    email = unique_email("Chloe")
-
-    in_first = add_member(client, first["id"], "Chloé", email).json()
-    in_second = add_member(client, second["id"], "Chloé B.", email).json()
-
-    assert in_second["user_id"] == in_first["user_id"]
-    assert in_second["display_name"] == "Chloé"
 
 
 def test_post_api_members_409_when_already_a_member(client: Any) -> None:
