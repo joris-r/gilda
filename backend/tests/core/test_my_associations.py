@@ -168,16 +168,6 @@ class TestRebuildInProgress:
         assert "No upcoming registration." not in page
         assert "Choose your slots" not in page
 
-    def test_the_schedule_answers_the_not_found_page(self, client: Any) -> None:
-        sign_up(client, "Alice")
-        slug = unique_slug()
-        create_association(client, NAME, slug)
-
-        response = client.get(f"/association/{slug}")
-
-        assert response.status_code == 404
-        assert "Page not found" in response.text
-
 
 class TestNewAssociationScreen:
     def test_shows_the_form(self, client: Any) -> None:

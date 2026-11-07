@@ -1,7 +1,9 @@
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
+import time_machine
 
 from tests.planning.conftest import Planning, create_association, day_of_week, sign_up
 
@@ -180,7 +182,7 @@ def _filled(planning: Planning) -> None:
     planning.add_closure(day_of_week("saturday", 2), day_of_week("saturday", 2), "Fête")
 
 
-def test_shared_schedule_returns_what_the_members_schedule_returns(
+def test_shared_schedule_returns_the_occurrences_registrations_and_closures(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
@@ -191,21 +193,43 @@ def test_shared_schedule_returns_what_the_members_schedule_returns(
     response = new_client().get(f"/api/shared/{token}/schedule", params={"from": first, "to": last})
 
     assert response.status_code == 200
-    assert response.json() == planning.schedule(planning.bruno_client, first, last)
+    body = response.json()
+    assert (body["from"], body["to"]) == (first, last)
+    assert [
+        (o["date"], o["start"], o["end"], o["registration"] and o["registration"]["display_name"])
+        for o in body["occurrences"]
+    ] == [
+        (day_of_week("thursday", 1), "10:00", "13:00", "Bruno"),
+        (day_of_week("saturday", 1), "10:00", "13:00", "Chloé"),
+        (day_of_week("thursday", 2), "10:00", "13:00", None),
+    ]
+    assert [o["registration"]["status"] for o in body["occurrences"][:2]] == [
+        "confirmed",
+        "proposed",
+    ]
+    assert body["obsolete"] == []
+    assert [(c["first"], c["label"]) for c in body["closures"]] == [
+        (day_of_week("saturday", 2), "Fête")
+    ]
 
 
-def test_shared_schedule_without_from_and_to_returns_the_default_range(
+# Monday 9 November 2026, 00:30 in Paris, still Sunday 8 November in UTC.
+NOW = datetime(2026, 11, 8, 23, 30, tzinfo=UTC)
+
+
+def test_shared_schedule_without_from_and_to_returns_the_weeks_of_r32(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
-    _filled(planning)
-    client.put(planning.path("planning-period"), json=PERIOD)
+    planning.add_slot("thursday", "10:00", "13:00")
     token = create_share_link(planning)
+    client.put(planning.path("planning-period"), json={"first": "2026-11-10", "last": "2026-12-14"})
 
-    response = new_client().get(f"/api/shared/{token}/schedule")
+    with time_machine.travel(NOW, tick=False):
+        response = new_client().get(f"/api/shared/{token}/schedule")
 
     assert response.status_code == 200
-    assert response.json() == planning.bruno_client.get(planning.path("schedule")).json()
+    assert (response.json()["from"], response.json()["to"]) == ("2026-11-02", "2026-12-27")
 
 
 def test_shared_schedule_400_when_only_one_of_from_and_to_is_given(

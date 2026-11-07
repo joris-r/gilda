@@ -17,6 +17,7 @@ from tests.planning.conftest import (
     clear_period,
     create_association,
     day_of_week,
+    day_shown,
     delete_closure,
     delete_slot,
     edit_closure,
@@ -1132,11 +1133,8 @@ class TestAddingAClosure:
 
         shown(add_closure_on_screen(client, planning.slug, saturday, saturday, "Fête du quartier"))
 
-        body = planning.schedule(planning.bruno_client, saturday, saturday)
-        assert body["occurrences"] == []
-        assert [(c["first"], c["label"]) for c in body["closures"]] == [
-            (saturday, "Fête du quartier")
-        ]
+        shown_on = day_shown(planning.bruno_client, planning.slug, saturday)
+        assert shown_on == "Closed Fête du quartier"
 
     @pytest.mark.parametrize(
         "body",

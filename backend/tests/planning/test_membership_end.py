@@ -14,6 +14,7 @@ from tests.planning.conftest import (
     availability_lines,
     availability_section,
     day_of_week,
+    day_shown,
     preferences_stored,
     set_my_preference,
 )
@@ -21,15 +22,16 @@ from tests.planning.conftest import (
 THURSDAY = ("10:00", "13:00")
 
 
-def move_a_year_back(registration: dict[str, Any]) -> str:
-    """Moves a registration 52 weeks back, to the same weekday, which the API cannot do."""
+def move_two_weeks_back(registration: dict[str, Any]) -> str:
+    """Moves a registration two weeks back, to the same weekday of the week before the current
+    one, which the API cannot do."""
 
     async def run() -> str:
         engine = create_async_engine(os.environ["DATABASE_URL"])
         async with engine.begin() as connection:
             result = await connection.execute(
                 text(
-                    "UPDATE registration SET date = date - 364 WHERE id = :id RETURNING date::text"
+                    "UPDATE registration SET date = date - 14 WHERE id = :id RETURNING date::text"
                 ),
                 {"id": registration["id"]},
             )
@@ -78,10 +80,9 @@ ENDINGS = pytest.mark.parametrize(
 )
 
 
-def registration_on(planning: Planning, day: str) -> dict[str, Any] | None:
-    body = planning.schedule(planning.alice_client, day, day)
-    registration: dict[str, Any] | None = body["occurrences"][0]["registration"]
-    return registration
+def registration_on(planning: Planning, day: str) -> str:
+    """What Alice's Schedule shows on `day`'s only occurrence."""
+    return day_shown(planning.alice_client, planning.slug, day)
 
 
 def rejoin(planning: Planning) -> None:
@@ -106,11 +107,7 @@ def test_r28_upcoming_registrations_become_cancelled(
     end(planning)
 
     for day in (confirmed_day, proposed_day):
-        registration = registration_on(planning, day)
-        assert registration is not None
-        assert registration["user_id"] == planning.bruno["id"]
-        assert registration["display_name"] == "Bruno"
-        assert registration["status"] == "cancelled"
+        assert registration_on(planning, day) == "[~~Bruno~~]"
 
 
 def test_r28_the_freed_occurrence_can_be_registered_again(
@@ -136,16 +133,11 @@ def test_r28_past_registrations_stay_with_the_display_name(
     registration = planning.registered(
         planning.bruno_client, planning.bruno, day_of_week("thursday"), *THURSDAY
     )
-    past_day = move_a_year_back(registration)
+    past_day = move_two_weeks_back(registration)
 
     end(planning)
 
-    assert registration_on(planning, past_day) == {
-        "id": registration["id"],
-        "user_id": planning.bruno["id"],
-        "display_name": "Bruno",
-        "status": "confirmed",
-    }
+    assert registration_on(planning, past_day) == "[Bruno]"
 
 
 def test_r28_registrations_of_other_members_and_associations_stay(
@@ -154,7 +146,7 @@ def test_r28_registrations_of_other_members_and_associations_stay(
     planning = Planning(client, new_client)
     planning.add_slot("thursday", *THURSDAY)
     chloe_day = day_of_week("thursday")
-    chloes = planning.registered(planning.chloe_client, planning.chloe, chloe_day, *THURSDAY)
+    planning.registered(planning.chloe_client, planning.chloe, chloe_day, *THURSDAY)
     other = Planning(new_client(), new_client)
     other.add_slot("thursday", *THURSDAY)
     joined = add_member(other.alice_client, other.id, "Bruno", planning.bruno["email"])
@@ -163,16 +155,8 @@ def test_r28_registrations_of_other_members_and_associations_stay(
 
     remove(planning, planning.bruno)
 
-    assert registration_on(planning, chloe_day) == {
-        "id": chloes["id"],
-        "user_id": planning.chloe["id"],
-        "display_name": "Chloé",
-        "status": "confirmed",
-    }
-    in_other = registration_on(other, chloe_day)
-    assert in_other is not None
-    assert in_other["user_id"] == planning.bruno["id"]
-    assert in_other["status"] == "proposed"
+    assert registration_on(planning, chloe_day) == "[Chloé]"
+    assert registration_on(other, chloe_day) == "[Bruno ?]"
 
 
 def chosen(planning: Planning, as_client: Any, slot: dict[str, Any], value: str) -> None:

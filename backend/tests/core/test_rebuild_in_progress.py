@@ -92,7 +92,8 @@ class TestOtherPaths:
         "path",
         [
             "/associations/new",
-            "/association/jardin",
+            "/association/jardin/schedule",
+            "/shared/Hq3v",
         ],
     )
     def test_any_other_path_answers_the_not_found_page(self, client: Any, path: str) -> None:
@@ -141,6 +142,26 @@ class TestMyAvailability:
             assert present in main
 
 
+class TestSchedule:
+    def test_shows_its_weeks_without_menus(self, client: Any) -> None:
+        sign_up(client, "Alice")
+        slug = f"a-{uuid.uuid4().hex[:12]}"
+        created = client.post("/api/associations", json={"name": "Jardin", "slug": slug})
+        assert created.status_code == 201
+        slot = {"weekday": "thursday", "start": "10:00", "end": "13:00"}
+        added = client.post(f"/api/associations/{created.json()['id']}/slots", json=slot)
+        assert added.status_code == 201
+
+        response = client.get(f"/association/{slug}")
+
+        assert response.status_code == 200
+        page = html.unescape(response.text)
+        for present in ["Week", "More weeks", "My availability", "Members", "Schedule settings"]:
+            assert present in page
+        for absent in ["Sign up", "Cancel registration", "Propose", "Yes, cancel", "Keep it"]:
+            assert absent not in page
+
+
 class TestNotFound:
     @pytest.mark.parametrize("path", ["/nothing-here", "/static/nothing-here.css", "/a/b/c"])
     def test_answers_an_html_page(self, client: Any, path: str) -> None:
@@ -171,6 +192,7 @@ class TestNotFound:
             "/association/jardin/availability/preferences/00000000-0000-4000-8000-000000000000",
             "/association/jardin/availability/absences",
             "/association/jardin/availability/note",
+            "/association/jardin/weeks",
         ],
     )
     def test_a_path_only_actions_use_answers_it_too(self, client: Any, path: str) -> None:

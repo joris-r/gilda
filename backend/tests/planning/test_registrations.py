@@ -7,7 +7,13 @@ from zoneinfo import ZoneInfo
 import pytest
 import time_machine
 
-from tests.planning.conftest import WEEKDAYS, Planning, create_association, day_of_week
+from tests.planning.conftest import (
+    WEEKDAYS,
+    Planning,
+    create_association,
+    day_of_week,
+    day_shown,
+)
 
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 
@@ -74,7 +80,7 @@ def test_r5_a_volunteer_registering_another_member_403(
 
     assert response.status_code == 403
     assert "error" in response.json()
-    assert planning.schedule(client, thursday, thursday)["occurrences"][0]["registration"] is None
+    assert day_shown(client, planning.slug, thursday) == "[]"
 
 
 def test_r4_409_when_the_occurrence_already_holds_a_registration(
@@ -371,8 +377,7 @@ def test_r7_another_volunteer_cannot_cancel(client: Any, new_client: Callable[[]
     response = planning.set_status(planning.chloe_client, registration, "cancelled")
 
     assert response.status_code == 403
-    thursday_schedule = planning.schedule(client, thursday, thursday)
-    assert thursday_schedule["occurrences"][0]["registration"]["status"] == "confirmed"
+    assert day_shown(client, planning.slug, thursday) == "[Bruno]"
 
 
 def test_r7_cancelling_a_cancelled_registration_409(

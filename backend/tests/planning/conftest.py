@@ -158,12 +158,6 @@ class Planning:
             self.path(f"registrations/{registration['id']}"), json={"status": status}
         )
 
-    def schedule(self, as_client: Any, first: str, last: str) -> dict[str, Any]:
-        response = as_client.get(self.path("schedule"), params={"from": first, "to": last})
-        assert response.status_code == 200, response.text
-        body: dict[str, Any] = response.json()
-        return body
-
 
 def add_slot_on_screen(as_client: Any, slug: str, weekday: str, start: str, end: str) -> Any:
     """Submits the dialog "Add a slot" on Schedule settings."""
@@ -338,3 +332,94 @@ def delete_absence(as_client: Any, slug: str, absence_id: str) -> Any:
 def save_note(as_client: Any, slug: str, text: str) -> Any:
     """Submits the dialog "Note for the managers" on My availability."""
     return as_client.post(f"/association/{slug}/availability/note", json={"text": text})
+
+
+MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def day_label(day: str) -> str:
+    """How the Schedule heads the column of a date, e.g. "Thu 29 Oct"."""
+    value = date.fromisoformat(day)
+    return f"{WEEKDAYS[value.weekday()][:3].title()} {value.day} {MONTHS[value.month - 1]}"
+
+
+def schedule_page(as_client: Any, slug: str) -> str:
+    response = as_client.get(f"/association/{slug}")
+    assert response.status_code == 200
+    return str(response.text)
+
+
+def _occurrence_text(item: str) -> str:
+    """What an occurrence or an obsolete registration shows, between brackets, a struck name
+    between ~~."""
+    struck = re.sub(r"<s[ >](.*?)</s>", lambda m: f"~~{text_of(m.group(1)).strip()}~~", item)
+    return "[" + " ".join(text_of(struck).split()) + "]"
+
+
+Week = tuple[str, list[str]]
+
+
+def schedule_entries(fragment: str) -> list[str | Week]:
+    """The lines and weeks a piece of the Schedule shows, in order: a line as its text; a week as
+    its heading and the text of each of its days, e.g. ("Week 44", ["Thu 29 Oct [Chloé]",
+    "Sat 31 Oct [~~Bruno~~]"]). A day is an element with role="group"; it shows its label, then
+    a closure's "Closed" and label, then each occurrence or obsolete registration, an `<li>`,
+    between brackets. A line is a `<p class="line">`, a week a `<section class="week">`."""
+    fragment = re.sub(r"^data: elements ", "", fragment, flags=re.MULTILINE)
+    entries: list[str | Week] = []
+    pattern = (
+        r'<p[^>]*class="line[^"]*"[^>]*>.*?</p>'
+        r'|<section[^>]*class="week[^"]*"[^>]*>.*?</section>'
+    )
+    for match in re.finditer(pattern, fragment, re.DOTALL):
+        found = match.group(0)
+        if found.startswith("<p"):
+            entries.append(" ".join(text_of(found).split()))
+            continue
+        heading = re.search(r"<h2[^>]*>(.*?)</h2>", found, re.DOTALL)
+        assert heading, found
+        days = []
+        for chunk in re.split(r'(?=<[a-z]+[^>]*\srole="group")', found)[1:]:
+            items = re.sub(
+                r"<li[ >].*?</li>",
+                lambda m: f" {_occurrence_text(m.group(0))} ",
+                chunk,
+                flags=re.DOTALL,
+            )
+            days.append(" ".join(text_of(items).split()))
+        entries.append((" ".join(text_of(heading.group(1)).split()), days))
+    return entries
+
+
+def schedule_shown(as_client: Any, slug: str) -> list[str | Week]:
+    """The lines and weeks the Schedule shows, as schedule_entries reads them."""
+    return schedule_entries(without_dialogs(part(schedule_page(as_client, slug), "main")))
+
+
+def headings_of(entries: list[str | Week]) -> list[str]:
+    """The heading of each week, in order."""
+    return [entry[0] for entry in entries if isinstance(entry, tuple)]
+
+
+def day_in(entries: list[str | Week], day: str) -> str:
+    """What the Schedule shows on `day`, after its label, e.g. "[Bruno ?]" or "Closed Fête"."""
+    label = day_label(day)
+    found = [
+        text
+        for entry in entries
+        if isinstance(entry, tuple)
+        for text in entry[1]
+        if text == label or text.startswith(f"{label} ")
+    ]
+    assert len(found) == 1, (label, entries)
+    return found[0].removeprefix(label).strip()
+
+
+def day_shown(as_client: Any, slug: str, day: str) -> str:
+    """What the Schedule shows on `day`, after its label."""
+    return day_in(schedule_shown(as_client, slug), day)
+
+
+def more_weeks(as_client: Any, slug: str, first: str, last: str) -> Any:
+    """Clicks "More weeks" on a Schedule that shows the weeks from `first` to `last`."""
+    return as_client.post(f"/association/{slug}/weeks", json={"from": first, "to": last})

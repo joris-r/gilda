@@ -66,6 +66,12 @@ async function openSchedule(page: Page, association: string) {
   await page.getByText(association, { exact: true }).click()
 }
 
+/** Opens Members from the Schedule, by its link. */
+async function openMembers(page: Page) {
+  await page.getByRole('link', { name: 'Members', exact: true }).click()
+  await expect(page).toHaveURL(/\/members$/)
+}
+
 async function createAssociation(page: Page, association: string) {
   await page.getByRole('link', { name: 'New association' }).click()
   await page.getByLabel('Name', { exact: true }).fill(association)
@@ -87,7 +93,6 @@ test.describe('Scenarios', () => {
     const bruno = uniqueEmail('Bruno')
     const chloe = uniqueEmail('Chloe')
     const myLine = page.getByRole('listitem').filter({ hasText: association })
-    let members = ''
 
     await test.step('1. Alice creates her account and the association', async () => {
       await signUp(page, 'Alice', uniqueEmail('Alice'))
@@ -95,12 +100,10 @@ test.describe('Scenarios', () => {
       await page.getByLabel('Name', { exact: true }).fill(association)
       await page.getByRole('button', { name: 'Create association' }).click()
       await expect(page).toHaveURL(/\/association\/(?!new$)[\w-]+$/)
-      // Until the Schedule returns, Members is reached by its URL.
-      members = `${new URL(page.url()).pathname}/members`
     })
 
     await test.step('2. Alice adds Bruno as manager, Chloé and David as volunteers', async () => {
-      await page.goto(members)
+      await openMembers(page)
       await addMember(page, 'Bruno', bruno, 'Manager')
       await addMember(page, 'Chloé', chloe, 'Volunteer')
       await addMember(page, 'David', uniqueEmail('David'), 'Volunteer')
@@ -116,7 +119,8 @@ test.describe('Scenarios', () => {
     await test.step('4. Bruno creates his account and promotes Chloé', async () => {
       await signUp(page, 'Bruno', bruno)
       await expect(myLine).toContainText(/manager/i)
-      await page.goto(members)
+      await openSchedule(page, association)
+      await openMembers(page)
       const dialog = await editMember(page, 'Chloé')
       await dialog.getByRole('combobox', { name: /^Role/ }).selectOption({ label: 'Manager' })
       await dialog.getByRole('button', { name: 'Save' }).click()
@@ -260,7 +264,6 @@ test.describe('Scenarios', () => {
     const chloe = uniqueEmail('Chloe')
     const chloeLine = page.locator('main').getByRole('listitem').filter({ hasText: 'Chloé' })
     let link = ''
-    let members = ''
 
     await test.step('1. Alice adds Chloé, who shows "not joined yet"', async () => {
       await signUp(page, 'Alice', alice)
@@ -268,9 +271,7 @@ test.describe('Scenarios', () => {
       await page.getByLabel('Name', { exact: true }).fill(association)
       await page.getByRole('button', { name: 'Create association' }).click()
       await expect(page).toHaveURL(/\/association\/(?!new$)[\w-]+$/)
-      // Until the Schedule returns, Members is reached by its URL.
-      members = `${new URL(page.url()).pathname}/members`
-      await page.goto(members)
+      await openMembers(page)
       await addMember(page, 'Chloé', chloe, 'Volunteer')
       await expect(chloeLine).toContainText('not joined yet')
       await signOut(page)
@@ -298,7 +299,8 @@ test.describe('Scenarios', () => {
 
     await test.step("4. Alice sees Chloé joined and revokes her link", async () => {
       await signIn(page, alice)
-      await page.goto(members)
+      await openSchedule(page, association)
+      await openMembers(page)
       await expect(chloeLine).toContainText('chloe')
       await expect(chloeLine).not.toContainText('not joined yet')
       const dialog = await editMember(page, 'Chloé')
