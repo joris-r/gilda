@@ -4,13 +4,14 @@
 
 - Tooling: `make format` runs `ruff format` before `ruff check --fix`, so long lines get wrapped before the check stops.
 - Tests: the pytest tests that find a dialog by its position on the page would find it by its name.
+- End-to-end: a shorter `actionTimeout`, so a suite failing on a missing screen ends fast.
+- Process: CLAUDE.md's rule on text lookups would also cover tests asserting that the text is absent (e.g. `NAME not in main`).
 
 
 ## Datastar experiment
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
-- Members: Rename the association, Change the association identifier and Delete the association.
 - Schedule settings: Slots, with R17 and R18.
 - Schedule settings: Closures and Planning period.
 - My availability: My preferences.
@@ -83,6 +84,15 @@ Choices the spec left open, settled by `members-link`:
 - Send link: when the email can't be sent, no link is created, so Revoke link does not appear; the message shows in the edit dialog, closing the confirmation.
 - Send link and Revoke link: success closes the dialogs and shows the message on Members, with Revoke link appearing or leaving at once.
 
+Choices the spec left open, settled by `members-association`:
+
+- Rename the association: a missing or empty name shows the generic error; a name that only another association has is accepted.
+- Change the association identifier: a missing slug shows the generic error; a malformed slug is refused before a taken one.
+- Rename and Change the association identifier: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing and shows the generic error.
+- Delete the association: only the button checks the typed name; the server deletes on any manager's request.
+- Delete the association: a volunteer's or a non-member's request deletes nothing and reloads Members as it now is.
+- Change the association identifier and Delete the association: their message shows once, on the next page loaded.
+
 ### Possible features or bugs
 
 - Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
@@ -101,6 +111,9 @@ Choices the spec left open, settled by `members-link`:
 - Members renders an edit dialog and up to three confirmations for every member, so the page grows with the association.
 - Revoke link from a page opened before the member's link was revoked elsewhere still says "revoked".
 - Send link drops the link when the email can't be sent, but Sign-in link keeps it; align the two.
+- The one-time notice is kept in the session, so it shows on whichever page loads next, even in another tab.
+- Rename and Delete check against the name the page was loaded with: after a rename in another tab, Delete stays disabled for the new name until a reload.
+- Change the association identifier breaks every bookmark of the former URLs, with no redirect (R36).
 
 
 ## Quality
@@ -133,8 +146,9 @@ Choices the spec left open, settled by `members-link`:
 - Any manager can demote or remove every other manager, so one manager can take an association over.
 - Any manager can send or revoke any member's sign-in link, another manager's included; revoking signs that user out of their link sessions everywhere, not only in this association.
 - Send link has no rate limit, so a manager can flood a member with emails.
+- Any manager can delete the association, irreversibly, with no password, so one manager or a stolen session can erase it for every member.
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account.
-- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link` and `POST /association/{slug}/members/{user_id}/revoke-link` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
+- `POST /delete-account`, `POST /revoke-access-link`, `POST /association/new`, `POST /association/{slug}/members`, `POST /association/{slug}/members/{user_id}/role`, `POST /association/{slug}/members/{user_id}/remove`, `POST /association/{slug}/members/{user_id}/send-link`, `POST /association/{slug}/members/{user_id}/revoke-link`, `POST /association/{slug}/rename`, `POST /association/{slug}/identifier` and `POST /association/{slug}/delete` have no CSRF token and rely on the session cookie's SameSite setting, which is unchecked.
 
 ## Future
 
