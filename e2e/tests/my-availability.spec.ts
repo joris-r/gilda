@@ -125,8 +125,7 @@ test.describe('My availability: My preferences', () => {
 
     await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
 
-    // @dev43:unsure
-    await expect(page.locator('main').getByText(GENERIC)).toBeVisible()
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toBeVisible()
   })
 })
 
