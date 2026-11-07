@@ -155,30 +155,13 @@ Content-Type: application/json
  "date": "2026-11-05", "start": "10:00", "end": "13:00"}
 ```
 
-- R5: A member registering themself gets `confirmed`; a manager
-  registering another member gets `proposed`. A volunteer registering
-  another member: 403.
+- A member registering themself signs up, a manager registering
+  another member proposes, as on the Schedule (R5, R6). A volunteer
+  registering another member: 403.
 - 409 when no occurrence has this date, start and end, or it already
-  holds a registration that is not cancelled (R4).
+  holds a registration that is not cancelled (R4), or the date is
+  before today (R6).
 - 400 when the user is not a member of the association.
-- R6: 409 when the date is before today.
-
-## PATCH /api/associations/{id}/registrations/{registration_id}
-
-```http
-PATCH /api/associations/5c1e…/registrations/48be…
-Content-Type: application/json
-
-{"status": "confirmed"}
-```
-
-Returns the registration, as `POST` does.
-
-- R7: The registered user or a manager confirms, and only a `proposed`
-  registration that is not obsolete; the registered user or a manager
-  cancels a registration that is not cancelled. Anyone else: 403; any
-  other change: 409.
-- 404 when the registration is not of this association.
 
 ## Share link
 

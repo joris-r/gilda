@@ -213,11 +213,24 @@ Sat 31   [Bruno ?    ]
     occurrence's slot: Preferred, Possible, none stated, Unavailable,
     then absent members whatever their preference; then by fewest
     registrations (R15); then by display name;
-  - the user's own proposed registration, or any proposed one for a
-    manager: "Confirm";
-  - the user's own registration, or any for a manager: "Cancel
-    registration…", which asks "Cancel this registration? [Yes,
-    cancel] Keep it" before cancelling.
+  - the user's own proposed registration that is not obsolete, or any
+    for a manager: "Confirm";
+  - the user's own registration that is not cancelled, or any for a
+    manager: "Cancel registration…", which asks "Cancel this
+    registration? [Yes, cancel] Keep it" before cancelling.
+- On success, the menu closes and the occurrence shows the result.
+- R5: A member registering themself, by "Sign up" or by their own
+  name, gets `confirmed`; a member proposed the occurrence by a
+  manager gets `proposed`. Only a manager proposes.
+- R6: An occurrence before today can be neither signed up for nor
+  proposed.
+- Signing up or proposing an occurrence that holds a registration that
+  is not cancelled (R4) shows "Someone took this slot in the
+  meantime."
+- R7: The registered user or a manager confirms a `proposed`
+  registration that is not obsolete, and cancels a registration that
+  is not cancelled.
+- Any other failure shows the generic error.
 
 ## `/shared/{token}`: Shared schedule
 
