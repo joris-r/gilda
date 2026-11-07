@@ -5,8 +5,10 @@ import pytest
 
 from tests.core.conftest import (
     add_member,
+    change_role,
     create_association,
     email_count,
+    shown,
     sign_up,
     unique_email,
 )
@@ -72,11 +74,8 @@ def test_patch_api_association_keeps_its_members(
 
 def test_patch_api_association_by_any_manager(client: Any, new_client: Callable[[], Any]) -> None:
     association, bruno, bruno_user, _ = manager_and_volunteer(client, new_client)
-    promoted = client.patch(
-        f"/api/associations/{association['id']}/members/{bruno_user['id']}",
-        json={"role": "manager"},
-    )
-    assert promoted.status_code == 200
+    promoted = shown(change_role(client, association["slug"], bruno_user["id"], "manager"))
+    assert "Bruno is now manager." in promoted
 
     response = bruno.patch(f"/api/associations/{association['id']}", json={"name": NEW_NAME})
 

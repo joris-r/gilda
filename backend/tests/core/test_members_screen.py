@@ -8,12 +8,14 @@ import pytest
 from tests.core.conftest import (
     add_member,
     ask_for_link,
+    change_role,
     confirm_email,
     create_account,
     create_association,
     latest_access_token,
     latest_verification_token,
     open_link,
+    remove_member,
     shown,
     sign_up,
     unique_email,
@@ -24,6 +26,7 @@ NAME = "Jardin partagé des Lilas"
 GENERIC = "Something went wrong. Try again."
 UNKNOWN = "This association does not exist or you are not a member."
 NOT_JOINED = "not joined yet"
+LAST_MANAGER = "An association keeps at least one manager."
 
 
 def part(page: str, tag: str) -> str:
@@ -68,6 +71,18 @@ def add_on_screen(
 def member_count(client: Any, association: dict[str, Any]) -> int:
     members = client.get(f"/api/associations/{association['id']}").json()["members"]
     return len(members)
+
+
+def user_id(client: Any, association: dict[str, Any], display_name: str) -> str:
+    """The user ID of the member `display_name`, as the API lists it."""
+    members = client.get(f"/api/associations/{association['id']}").json()["members"]
+    found: str = next(m["user_id"] for m in members if m["display_name"] == display_name)
+    return found
+
+
+def role_of(client: Any, association: dict[str, Any], display_name: str) -> str:
+    """The role that Members shows for `display_name`, in lowercase."""
+    return line_of(members_page(client, association["slug"]), display_name).lower()
 
 
 def managed(client: Any, name: str = NAME) -> dict[str, Any]:
@@ -289,19 +304,47 @@ class TestAsAManager:
         assert re.search(r"<button[^>]*>\s*Add member\s*</button>", form)
         assert re.search(r"<button[^>]*>\s*Cancel\s*</button>", form)
 
+    def test_each_member_has_its_edit_icon(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+
+        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+
+        assert re.search(r'<button[^>]*aria-label="Edit Chloé"', main)
+        assert re.search(r'<button[^>]*aria-label="Edit Alice"', main)
+
+    def test_the_edit_icon_follows_the_language(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        client.cookies.set("language", "fr")
+
+        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+
+        assert 'aria-label="Modifier Chloé"' in main
+
 
 class TestRebuildInProgress:
-    def test_a_manager_sees_no_edit_icon_and_no_association_actions(self, client: Any) -> None:
+    def test_a_manager_sees_no_association_actions(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["id"], "Chloé", unique_email("Chloe"))
 
         page = members_page(client, association["slug"])
 
-        assert "Edit Chloé" not in page
-        assert "Edit Alice" not in page
         assert "Rename the association" not in page
         assert "Change the association identifier" not in page
         assert "Delete the association" not in page
+
+    def test_the_edit_dialog_has_no_sign_in_link_section(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+
+        page = html.unescape(members_page(client, association["slug"]))
+
+        assert "Remove from the association" in page
+        assert "Sign-in link" not in page
+        assert "SIGN-IN LINK" not in page
+        assert "Send link" not in page
+        assert "Revoke link" not in page
 
 
 class TestAsAVolunteer:
@@ -317,6 +360,15 @@ class TestAsAVolunteer:
         assert "Add a member" not in page
         assert "Add member" not in page
         assert "Edit Alice" not in page
+
+    def test_shows_no_edit_dialog(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+
+        page = html.unescape(members_page(bruno, association["slug"]))
+
+        assert "Edit Bruno" not in page
+        assert "Remove from the association" not in page
+        assert "Remove Alice from the association?" not in page
 
 
 class TestUnknownAssociation:
@@ -491,3 +543,288 @@ class TestAddingAMember:
         assert "window.location" in text
         assert "added." not in text
         assert member_count(client, association) == 1
+
+
+class TestChangingTheRole:
+    def test_another_role_changes_it_and_says_so(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        chloe = user_id(client, association, "Chloé")
+
+        text = shown(change_role(client, association["slug"], chloe, "manager"))
+
+        assert "Chloé is now manager." in text
+        assert "manager" in role_of(client, association, "Chloé")
+
+    def test_the_list_shows_the_new_role_at_once(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        chloe = user_id(client, association, "Chloé")
+
+        text = shown(change_role(client, association["slug"], chloe, "manager"))
+
+        listed = [line for line in map(text_of, re.findall(r"<li.*?</li>", text, re.DOTALL))]
+        assert any("Chloé" in line and "manager" in line.lower() for line in listed), text
+
+    def test_a_manager_becomes_volunteer_when_another_manager_remains(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Zoé", unique_email("Zoe"), "manager")
+        zoe = user_id(client, association, "Zoé")
+
+        text = shown(change_role(client, association["slug"], zoe, "volunteer"))
+
+        assert "Zoé is now volunteer." in text
+        assert "volunteer" in role_of(client, association, "Zoé")
+
+    def test_a_manager_may_demote_themself_when_another_manager_remains(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Zoé", unique_email("Zoe"), "manager")
+        alice = user_id(client, association, "Alice")
+
+        text = shown(change_role(client, association["slug"], alice, "volunteer"))
+
+        assert "Alice is now volunteer." in text
+        assert "Add a member" not in members_page(client, association["slug"])
+
+    def test_the_member_promoted_can_manage_the_association(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, bruno = with_volunteer(client, new_client)
+
+        member = user_id(client, association, "Bruno")
+        shown(change_role(client, association["slug"], member, "manager"))
+
+        assert "Add a member" in members_page(bruno, association["slug"])
+
+    def test_the_same_role_changes_nothing(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        chloe = user_id(client, association, "Chloé")
+
+        text = shown(change_role(client, association["slug"], chloe, "volunteer"))
+
+        assert "is now" not in text
+        assert GENERIC not in text
+        assert "volunteer" in role_of(client, association, "Chloé")
+
+    def test_demoting_the_last_manager_says_so_and_changes_nothing(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        alice = user_id(client, association, "Alice")
+
+        text = shown(change_role(client, association["slug"], alice, "volunteer"))
+
+        assert LAST_MANAGER in text
+        assert "is now" not in text
+        assert "manager" in role_of(client, association, "Alice")
+
+    def test_messages_follow_the_language(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        chloe = user_id(client, association, "Chloé")
+        alice = user_id(client, association, "Alice")
+        client.cookies.set("language", "fr")
+        slug = association["slug"]
+
+        promoted = shown(change_role(client, slug, chloe, "manager"))
+        assert "Chloé est maintenant responsable." in promoted
+        shown(change_role(client, slug, chloe, "volunteer"))
+        assert "Une association garde au moins un responsable." in shown(
+            change_role(client, slug, alice, "volunteer")
+        )
+
+    @pytest.mark.parametrize("body", [{}, {"role": ""}, {"role": "president"}])
+    def test_a_missing_or_invalid_role_shows_the_generic_error_and_changes_nothing(
+        self, client: Any, body: dict[str, str]
+    ) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        chloe = user_id(client, association, "Chloé")
+
+        path = f"/association/{association['slug']}/members/{chloe}/role"
+        text = shown(client.post(path, json=body))
+
+        assert GENERIC in text
+        assert "volunteer" in role_of(client, association, "Chloé")
+
+    def test_a_user_who_is_not_a_member_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association = managed(client)
+        zoe = sign_up(new_client(), "Zoé", unique_email("Zoe"))
+
+        text = shown(change_role(client, association["slug"], zoe["id"], "manager"))
+
+        assert GENERIC in text
+        assert "Zoé" not in members_page(client, association["slug"])
+
+    def test_a_volunteer_changes_no_role(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+
+        member = user_id(client, association, "Bruno")
+        response = change_role(bruno, association["slug"], member, "manager")
+
+        assert "is now" not in html.unescape(response.text)
+        assert "volunteer" in role_of(client, association, "Bruno")
+
+    def test_a_non_member_changes_no_role(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        other = new_client()
+        sign_up(other, "Zoé", unique_email("Zoe"))
+
+        member = user_id(client, association, "Chloé")
+        response = change_role(other, association["slug"], member, "manager")
+
+        assert "is now" not in html.unescape(response.text)
+        assert "volunteer" in role_of(client, association, "Chloé")
+
+    def test_signed_out_leads_to_sign_in_and_changes_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        chloe = user_id(client, association, "Chloé")
+
+        text = shown(change_role(new_client(), association["slug"], chloe, "manager"))
+
+        assert "window.location" in text
+        assert "is now" not in text
+        assert "volunteer" in role_of(client, association, "Chloé")
+
+
+class TestRemovingAMember:
+    def test_removes_the_member_and_says_so(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, bruno = with_volunteer(client, new_client)
+
+        member = user_id(client, association, "Bruno")
+        text = shown(remove_member(client, association["slug"], member))
+
+        assert "Bruno is removed." in text
+        assert "Bruno" not in text_of(part(members_page(client, association["slug"]), "main"))
+        page = bruno.get(f"/association/{association['slug']}/members")
+        assert UNKNOWN in html.unescape(page.text)
+        assert association["name"] not in bruno.get("/").text
+
+    def test_the_list_leaves_out_the_member_at_once(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, _ = with_volunteer(client, new_client)
+
+        member = user_id(client, association, "Bruno")
+        text = shown(remove_member(client, association["slug"], member))
+
+        listed = [text_of(item) for item in re.findall(r"<li.*?</li>", text, re.DOTALL)]
+        assert any("Alice" in line for line in listed), text
+        assert not any("Bruno" in line for line in listed)
+
+    def test_the_user_can_be_added_again(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+        members = client.get(f"/api/associations/{association['id']}").json()["members"]
+        email = next(m["email"] for m in members if m["display_name"] == "Bruno")
+        shown(remove_member(client, association["slug"], user_id(client, association, "Bruno")))
+
+        text = shown(add_on_screen(client, association["slug"], "Bruno", email))
+
+        assert "Bruno added." in text
+        assert UNKNOWN not in html.unescape(members_page(bruno, association["slug"]))
+
+    def test_a_manager_removes_another_manager(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Zoé", unique_email("Zoe"), "manager")
+
+        member = user_id(client, association, "Zoé")
+        text = shown(remove_member(client, association["slug"], member))
+
+        assert "Zoé is removed." in text
+        assert "Zoé" not in members_page(client, association["slug"])
+
+    def test_removing_the_last_manager_says_so_and_changes_nothing(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+
+        member = user_id(client, association, "Alice")
+        text = shown(remove_member(client, association["slug"], member))
+
+        assert LAST_MANAGER in text
+        assert "is removed." not in text
+        assert "manager" in role_of(client, association, "Alice")
+
+    def test_a_manager_who_removes_themself_is_led_to_my_associations(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Zoé", unique_email("Zoe"), "manager")
+
+        member = user_id(client, association, "Alice")
+        text = shown(remove_member(client, association["slug"], member))
+
+        assert re.search(r"window\.location = '/'", text), text
+        page = html.unescape(client.get(f"/association/{association['slug']}/members").text)
+        assert UNKNOWN in page
+
+    def test_the_confirmation_asks_with_the_member_name(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+
+        page = html.unescape(members_page(client, association["slug"]))
+
+        assert (
+            "Remove Chloé from the association? Their upcoming registrations are cancelled." in page
+        )
+
+    def test_messages_follow_the_language(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        alice = user_id(client, association, "Alice")
+        chloe = user_id(client, association, "Chloé")
+        client.cookies.set("language", "fr")
+        slug = association["slug"]
+
+        assert "Une association garde au moins un responsable." in shown(
+            remove_member(client, slug, alice)
+        )
+        assert "Chloé est retiré·e." in shown(remove_member(client, slug, chloe))
+
+    def test_a_user_who_is_not_a_member_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association = managed(client)
+        zoe = sign_up(new_client(), "Zoé", unique_email("Zoe"))
+
+        text = shown(remove_member(client, association["slug"], zoe["id"]))
+
+        assert GENERIC in text
+        assert "is removed." not in text
+
+    def test_a_volunteer_removes_no_one(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association, bruno = with_volunteer(client, new_client)
+
+        response = remove_member(bruno, association["slug"], user_id(client, association, "Bruno"))
+
+        assert "is removed." not in html.unescape(response.text)
+        assert member_count(client, association) == 2
+
+    def test_a_non_member_removes_no_one(self, client: Any, new_client: Callable[[], Any]) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        other = new_client()
+        sign_up(other, "Zoé", unique_email("Zoe"))
+
+        response = remove_member(other, association["slug"], user_id(client, association, "Chloé"))
+
+        assert "is removed." not in html.unescape(response.text)
+        assert member_count(client, association) == 2
+
+    def test_signed_out_leads_to_sign_in_and_removes_no_one(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association = managed(client)
+        add_member(client, association["id"], "Chloé", unique_email("Chloe"))
+        chloe = user_id(client, association, "Chloé")
+
+        text = shown(remove_member(new_client(), association["slug"], chloe))
+
+        assert "window.location" in text
+        assert "is removed." not in text
+        assert member_count(client, association) == 2

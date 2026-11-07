@@ -201,3 +201,13 @@ def add_member(
         f"/api/associations/{association_id}/members",
         json={"display_name": display_name, "email": email, "role": role},
     )
+
+
+def change_role(client: Any, slug: str, user_id: str, role: str) -> Any:
+    """Saves the edit dialog of a member on Members, with `role`."""
+    return client.post(f"/association/{slug}/members/{user_id}/role", json={"role": role})
+
+
+def remove_member(client: Any, slug: str, user_id: str) -> Any:
+    """Confirms "Remove from the association" for a member on Members."""
+    return client.post(f"/association/{slug}/members/{user_id}/remove", json={})

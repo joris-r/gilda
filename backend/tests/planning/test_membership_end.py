@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from tests.core.conftest import remove_member, shown
 from tests.planning.conftest import Planning, add_member, day_of_week
 
 THURSDAY = ("10:00", "13:00")
@@ -32,8 +33,8 @@ def move_a_year_back(registration: dict[str, Any]) -> str:
 
 
 def remove(planning: Planning, user: dict[str, Any]) -> None:
-    response = planning.alice_client.delete(planning.path(f"members/{user['id']}"))
-    assert response.status_code == 204, response.text
+    slug = planning.association["slug"]
+    assert "is removed." in shown(remove_member(planning.alice_client, slug, user["id"]))
 
 
 def delete_account(client: Any) -> None:

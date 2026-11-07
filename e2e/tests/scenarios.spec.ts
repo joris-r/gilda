@@ -82,19 +82,25 @@ function occurrence(page: Page, dayLabel: string, times: string) {
 }
 
 test.describe('Scenarios', () => {
-  test.fixme('a volunteer becomes manager', async ({ page }) => {
+  test('a volunteer becomes manager', async ({ page }) => {
     const association = `Jardin partagé ${Date.now()}`
     const bruno = uniqueEmail('Bruno')
     const chloe = uniqueEmail('Chloe')
     const myLine = page.getByRole('listitem').filter({ hasText: association })
+    let members = ''
 
     await test.step('1. Alice creates her account and the association', async () => {
       await signUp(page, 'Alice', uniqueEmail('Alice'))
-      await createAssociation(page, association)
+      await page.getByRole('link', { name: 'New association' }).click()
+      await page.getByLabel('Name', { exact: true }).fill(association)
+      await page.getByRole('button', { name: 'Create association' }).click()
+      await expect(page).toHaveURL(/\/association\/(?!new$)[\w-]+$/)
+      // Until the Schedule returns, Members is reached by its URL.
+      members = `${new URL(page.url()).pathname}/members`
     })
 
     await test.step('2. Alice adds Bruno as manager, Chloé and David as volunteers', async () => {
-      await page.getByRole('link', { name: 'Members', exact: true }).click()
+      await page.goto(members)
       await addMember(page, 'Bruno', bruno, 'Manager')
       await addMember(page, 'Chloé', chloe, 'Volunteer')
       await addMember(page, 'David', uniqueEmail('David'), 'Volunteer')
@@ -109,8 +115,8 @@ test.describe('Scenarios', () => {
 
     await test.step('4. Bruno creates his account and promotes Chloé', async () => {
       await signUp(page, 'Bruno', bruno)
-      await myLine.getByText(association, { exact: true }).click()
-      await page.getByRole('link', { name: 'Members', exact: true }).click()
+      await expect(myLine).toContainText(/manager/i)
+      await page.goto(members)
       const dialog = await editMember(page, 'Chloé')
       await dialog.getByRole('combobox', { name: /^Role/ }).selectOption({ label: 'Manager' })
       await dialog.getByRole('button', { name: 'Save' }).click()
