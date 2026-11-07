@@ -87,7 +87,6 @@
   "association": {
     "members": "Members",
     "confirm": "Confirm",
-    "cancel": "Cancel",
     "roleChanged": "{name} is now {role}.",
     "lastManager": "An association keeps at least one manager.",
     "addMember": "Add a member",
@@ -209,7 +208,6 @@
     "label": "Label",
     "addClosure": "Add closure",
     "slotExists": "This slot already exists.",
-    "invalid": "Check the dates and times: the start comes before the end.",
     "planningPeriod": "Planning period",
     "noPlanningPeriod": "None",
     "save": "Save",
@@ -254,8 +252,7 @@
     "note": "Note for the managers",
     "noNote": "None",
     "editNote": "Edit the note",
-    "text": "Text",
-    "invalid": "Check the dates: the start comes before the end."
+    "text": "Text"
   },
   "preferences": {
     "preferred": "Preferred",
@@ -273,7 +270,6 @@
     "more": "More weeks",
     "empty": "No openings in these weeks.",
     "signUp": "Sign up",
-    "proposeTo": "Propose to:",
     "confirm": "Confirm",
     "cancel": "Cancel registration…",
     "askCancel": "Cancel this registration?",

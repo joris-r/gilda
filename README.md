@@ -9,8 +9,8 @@ The interface is in English and French.
 
 ## Stack
 
-- `backend/`: JSON API and web interface in Python (Litestar, Advanced
-  Alchemy, PostgreSQL, Jinja, Datastar).
+- `backend/`: web interface in Python (Litestar, Advanced Alchemy,
+  PostgreSQL, Jinja, Datastar).
 - `e2e/`: end-to-end tests with Playwright.
 
 ## Run
@@ -49,8 +49,7 @@ never the development database; `TEST_DATABASE_URL` overrides it.
 
 ## Deploy
 
-One hosted site serves both the API and the web interface, from the
-same Litestar app. Site, PostgreSQL database and SMTP relay are
+One hosted site serves the web interface, from one Litestar app. Site, PostgreSQL database and SMTP relay are
 configured directly at the hosting provider.
 
 One-time site setup needs:

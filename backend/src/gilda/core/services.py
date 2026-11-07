@@ -55,10 +55,6 @@ def is_superuser_email(email: str) -> bool:
     return superuser_email is not None and superuser_email.lower() == email.lower()
 
 
-def is_superuser(user: User) -> bool:
-    return user.email is not None and is_superuser_email(user.email)
-
-
 def invitation_only() -> bool:
     return os.environ.get("INVITATION_ONLY") == "true"
 
@@ -85,7 +81,6 @@ def member_read(membership: Membership) -> MemberRead:
         user_id=user.id,
         display_name=user.display_name,
         email=user.address,
-        has_account=user.has_account,
         email_verified=user.email_verified,
         role=cast(Role, membership.role),
     )
@@ -290,7 +285,7 @@ async def send_access_link(links: AccessLinkRepository, user: User, language: La
 
 
 async def revoke_access_link(links: AccessLinkRepository, user_id: UUID) -> None:
-    # R23: sessions opened by the link check it still exists (see provide_current_user).
+    # R23: sessions opened by the link check it still exists (see find_current_user).
     link = await links.get_one_or_none(user_id=user_id)
     if link is not None:
         await links.delete(link.id)

@@ -79,13 +79,6 @@ class PlanningPeriodSummary(msgspec.Struct):
     registrations: int
 
 
-class RegistrationCreate(msgspec.Struct):
-    user_id: UUID
-    date: date
-    start: Clock
-    end: Clock
-
-
 class RegistrationRead(msgspec.Struct):
     id: UUID
     user_id: UUID

@@ -16,7 +16,6 @@ from litestar.params import FromQuery
 from litestar.response import Template
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gilda.core.controllers import SESSION_LINK_KEY, find_current_user, sign_in_as
 from gilda.core.models import User
 from gilda.core.schemas import (
     AccessLinkRequest,
@@ -35,6 +34,7 @@ from gilda.core.services import (
     ConflictException,
     MembershipEndHook,
 )
+from gilda.core.sessions import SESSION_LINK_KEY, find_current_user, sign_in_as
 from gilda.web.rendering import (
     flash,
     fragment,

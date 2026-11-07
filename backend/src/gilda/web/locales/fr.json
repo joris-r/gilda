@@ -87,7 +87,6 @@
   "association": {
     "members": "Membres",
     "confirm": "Confirmer",
-    "cancel": "Annuler",
     "roleChanged": "{name} est maintenant {role}.",
     "lastManager": "Une association garde au moins un responsable.",
     "addMember": "Ajouter un membre",
@@ -209,7 +208,6 @@
     "label": "Libellé",
     "addClosure": "Ajouter la fermeture",
     "slotExists": "Ce créneau existe déjà.",
-    "invalid": "Vérifiez les dates et heures : le début vient avant la fin.",
     "planningPeriod": "Période de planification",
     "noPlanningPeriod": "Aucune",
     "save": "Enregistrer",
@@ -254,8 +252,7 @@
     "note": "Note pour les responsables",
     "noNote": "Aucune",
     "editNote": "Modifier la note",
-    "text": "Texte",
-    "invalid": "Vérifiez les dates : le début vient avant la fin."
+    "text": "Texte"
   },
   "preferences": {
     "preferred": "Préféré",
@@ -273,7 +270,6 @@
     "more": "Plus de semaines",
     "empty": "Aucune ouverture sur ces semaines.",
     "signUp": "S'inscrire",
-    "proposeTo": "Proposer à :",
     "confirm": "Confirmer",
     "cancel": "Annuler l'inscription…",
     "askCancel": "Annuler cette inscription ?",

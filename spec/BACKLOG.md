@@ -18,13 +18,15 @@
 - Process: CLAUDE.md would note that action tests assert the generic error is absent from the whole response, so a dialog holding its hidden copy stays outside the fragment an action sends back.
 - Process: CLAUDE.md would ask that a ported test asserting only an absence also assert something present, so that it fails before the implementation.
 - Tests: the regex page helpers (`lines_of`, `line_of`…) would use an HTML parser, as `listed` does, so that nested lists and hidden elements read right.
+- Process: CLAUDE.md would say that tests read from the database only what no screen shows (ids, rows already erased), and everything else through the screens.
+- Process: CLAUDE.md would ask a setup helper whose action answers a list with dialogs to check success by its message, not by the generic error's absence.
+- Process: the rewrite is over, so CLAUDE.md's "During the Datastar rewrite…" rule and the empty "Datastar experiment" section can go once the human has read the feedback.
+- Config: rename `FRONTEND_URL`, a name left from the former frontend, to the site's address (e.g. `SITE_URL`), in the code, the README and the hosting provider's settings.
 
 
 ## Datastar experiment
 
 Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
-
-- Finish: delete what remains of the JSON API and the `api.md` pages, the temporary pieces and "Rebuild in progress".
 
 
 ## Datastar rewrite feedback
@@ -177,9 +179,12 @@ Choices the spec left open, settled by `registrations-summary`:
 - Confirm and OK: the generic error shows within that association's item, and stays until the next successful action on it or a reload.
 - R14: a one-day planning period shows one date ("5 Nov").
 
+Choices the spec left open, settled by `finish-rewrite`:
+
+- Not found: any method (POST, PUT, DELETE…) on a path that leads nowhere answers the Not found page, `/api/…` paths included.
+
 ### Possible features or bugs
 
-- Reset password: no test checks `superuser` right after a reset since `POST /api/accounts/password-reset/confirm` left; `GET /api/session` should report it.
 - Datastar: after a network error, `@post` retries even once its dialog is cancelled, so a failed "Delete my account" could still go through after Cancel; `retry: 'never'` covers only HTTP errors, and only `retryMaxCount: 0` stops it, as the confirmation macro does.
 - Actions outside a confirmation (Sign out, Create an account, Forgot password…) still retry after a network error, so they could run twice.
 - Confirmation: the generic error probably still shows after Cancel and reopening, until the next try.
@@ -207,7 +212,7 @@ Choices the spec left open, settled by `registrations-summary`:
 - My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
 - Adding or editing an absence that ends before today saves it, but it never shows, with no message.
 - Absences may overlap each other, with no warning.
-- Absences with To before From show only the generic error; the former frontend said "Check the dates: the start comes before the end." (`availability.invalid`, now unused).
+- Absences with To before From show only the generic error; the former frontend said "Check the dates: the start comes before the end." (its translation is gone with the former frontend's other leftovers).
 - A note of only spaces is saved as is; the Schedule's note icon (a later item) should treat it as empty.
 - Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
 - Members' preferences: a member added on Members, or a choice made on My availability, shows only after a reload.
@@ -229,23 +234,23 @@ Choices the spec left open, settled by `registrations-summary`:
 - My associations shows dates without their year, so a proposal months ahead (e.g. "Sun 3 Jan") is ambiguous.
 - Confirm and OK use the slug from page load, so after a change of identifier in another tab they show only the generic error.
 - My associations builds each association's summary with its own queries, so the page slows as a user joins more associations.
+- The superuser now only bypasses R19; no screen shows or uses the role otherwise, so a later superuser action (e.g. the Future cleanup entry) needs its own screen.
+- Tests: R1 is cited by no test name, though the last-manager tests check it.
 
 
 ## Quality
 
 - Spec: My associations sits in the core pages though R12–R14 and R31 are planning's; move it to a home page once other modules add their part.
 - Cleanup: purge expired sessions (Advanced Alchemy's delete_expired) and expired email confirmation and password reset tokens regularly, so their tables stay small.
-- API: drop `has_account` from members, which no screen uses since the access link.
 - Association: refuse a name made only of spaces, at creation and on rename.
-- Association: a manager can change the association's timezone (fixed to Europe/Paris for now) and set its preferred language, used for emails sent to its members by someone else (e.g. a manager); My associations then needs the timezone in `GET /api/associations`.
+- Association: a manager can change the association's timezone (fixed to Europe/Paris for now) and set its preferred language, used for emails sent to its members by someone else (e.g. a manager); My associations then needs each association's timezone.
 - Planning: with many slots in a day, the narrow-screen Schedule becomes unusable; stack a day's slots vertically in a single column. (3–4 slots a day, as at La Fabrique, work today.)
 - Backend: align the preference unique constraint's name with the model's naming convention, so autogenerated migrations stop proposing to rename it.
 - Quality: run Prettier and ESLint on `e2e/` in `make lint`, with a Prettier config matching the project's style (single quotes, no semicolons); `scenarios.spec.ts` is not formatted today, and `members.spec.ts` was formatted with Prettier's defaults.
-- End-to-end: the sign-up and sign-in helpers are repeated across spec files; move them to `helpers.ts`.
 - Backend tests: report to Advanced Alchemy that its Litestar lifespan disposes only the first config's engine per process, then drop the workaround in the new_client fixture.
 - Accessibility: audit the screens with a screen reader and axe (e.g. in the e2e tests); the Schedule's occurrence labels, for one, cannot say that a registration is cancelled.
 - Sessions: ask Litestar for a way to renew the session ID (e.g. on `set_session`), then drop the `SessionBackend` subclass.
-- Spec: separate invariants (data model) from post-conditions (API), with no sentence mixing both, starting with R8, R23, R28 and R33.
+- Spec: separate invariants (data model) from post-conditions (screens), with no sentence mixing both, starting with R8, R23, R28 and R33.
 - Create an account and Forgot password: a failed send keeps the previous link working.
 - Traceability: try named markers on data model rules, with a generated spec-to-tests index, to judge it for Dev43.
 

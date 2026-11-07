@@ -9,8 +9,8 @@ from litestar.exceptions import ClientException, NotFoundException, PermissionDe
 from litestar.response import Template
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gilda.core.controllers import find_current_user
 from gilda.core.services import AssociationService
+from gilda.core.sessions import find_current_user
 from gilda.home.services import HomeService
 from gilda.planning.schemas import Status
 from gilda.planning.services import PlanningService

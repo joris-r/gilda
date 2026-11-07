@@ -15,11 +15,11 @@ from litestar.response import Template
 from markupsafe import Markup, escape
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gilda.core.controllers import find_current_user
 from gilda.core.models import Association, User
 from gilda.core.pages import members_in_order
 from gilda.core.schemas import AssociationDetail
 from gilda.core.services import AssociationService, ConflictException
+from gilda.core.sessions import find_current_user
 from gilda.mailer import Language, site_url
 from gilda.planning.schemas import (
     AbsenceCreate,

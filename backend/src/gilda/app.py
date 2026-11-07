@@ -1,7 +1,7 @@
 from pathlib import Path
 from types import ModuleType
 
-from litestar import Litestar, Router
+from litestar import Litestar
 from litestar.di import Provide
 from litestar.exceptions import MethodNotAllowedException, NotFoundException
 from litestar.middleware import DefineMiddleware
@@ -12,7 +12,6 @@ from litestar.static_files import create_static_files_router
 from litestar.template import TemplateConfig
 
 from gilda import core, home, planning, web
-from gilda.core.controllers import AccountController, AssociationController
 from gilda.core.models import UserSession
 from gilda.core.pages import (
     access,
@@ -47,10 +46,8 @@ from gilda.core.pages import (
 from gilda.core.services import MembershipEndHook
 from gilda.core.sessions import SessionBackend
 from gilda.db import create_database_config, create_database_plugin
-from gilda.errors import api_exception_handlers
 from gilda.home.pages import confirm_on_summary, ok_on_summary
 from gilda.home.pages import home as my_associations
-from gilda.planning.controllers import PlanningController
 from gilda.planning.pages import (
     add_absence,
     add_closure,
@@ -100,19 +97,9 @@ def create_app() -> Litestar:
         alchemy_config=database,
         model=UserSession,
     )
-    api = Router(
-        path="/api",
-        route_handlers=[
-            AccountController,
-            AssociationController,
-            PlanningController,
-        ],
-        exception_handlers=api_exception_handlers(),
-    )
     static = create_static_files_router(path="/static", directories=[_directory_of(web) / "static"])
     return Litestar(
         route_handlers=[
-            api,
             static,
             my_associations,
             confirm_on_summary,
