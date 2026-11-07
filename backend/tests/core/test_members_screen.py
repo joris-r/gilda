@@ -245,11 +245,11 @@ class TestMembersHeader:
     def test_the_location_stands_for_the_title(self, client: Any) -> None:
         association = managed(client)
 
-        main = text_of(part(members_page(client, association["slug"]), "main"))
+        main = part(members_page(client, association["slug"]), "main")
+        shown_in_main = text_of(re.sub(r"<dialog.*?</dialog>", "", main, flags=re.DOTALL))
 
-        assert "Members" not in main
-        # @dev43:unsure
-        assert NAME not in main
+        assert "Members" not in shown_in_main
+        assert NAME not in shown_in_main
 
     def test_follows_the_language(self, client: Any) -> None:
         association = managed(client)
