@@ -10,16 +10,7 @@ Until then:
     password, Create an account and Confirm email, with their
     signed-out header.
   - New association.
-  - My associations, each association showing only its name and role:
-
-    ```
-    (logo)  My associations                                    Alice ▾
-
-      Jardin partagé des Lilas                 MANAGER
-      Repair Café Belleville                 VOLUNTEER
-
-    [+ New association]
-    ```
+  - My associations.
   - Members.
   - Schedule settings.
   - My availability.

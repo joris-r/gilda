@@ -217,22 +217,31 @@ Already have an account? Sign in
 - Each name leads to the association's Schedule.
 - With no association: "You are not a member of any association yet."
 - Sign out leads to Sign in.
-- Each association lists its `upcoming` registrations; a proposed one
-  is marked "?" and has "Confirm", which confirms it.
-- Its `obsolete` registrations come first, each followed by "this slot
-  no longer takes place." and "OK", which cancels it; it then no longer
-  shows.
+- Each association lists the user's registrations there:
+  - R31: first the obsolete ones dated today or later, each followed
+    by "this slot no longer takes place." and "OK", which cancels it
+    (R7); it then no longer shows;
+  - R12: then those dated today or later and not obsolete: every
+    proposed one, and the confirmed ones up to the later of 27 days
+    after today and, when the association has a planning period, its
+    last date;
+  - each group sorted by date, then start.
+- A proposed registration is marked "?" and has "Confirm", which
+  confirms it (R7).
 - Each registration shows its date and times, then its display name,
   then its action. The name looks as on the Schedule, and the
   registration takes the Schedule's colours: green when confirmed,
   orange when proposed, red when obsolete. (Look not testable.)
+- R13: A registration in the period is one of the user's, confirmed
+  or proposed, not obsolete, dated within the period, both dates
+  included.
 - R14: When the association has a planning period that ends today or
-  later and the user has no registration in it (`registrations` is 0),
-  the summary shows "No registration yet for the planning period,"
-  with its dates, and "Choose your slots", which leads to the
-  association's Schedule.
-- Otherwise, with no upcoming registration: "No upcoming
+  later and the user has no registration in it, the summary shows "No
+  registration yet for the planning period," with its dates, and
+  "Choose your slots", which leads to the association's Schedule.
+- Otherwise, with no upcoming registration (R12): "No upcoming
   registration."
+- An action that fails shows the generic error.
 - The period's dates read as "2–25 Nov" within a month, "28 Oct – 25
   Nov" across months, and with years when they differ: "28 Dec 2026 –
   8 Jan 2027".

@@ -43,45 +43,6 @@ Signs out: 204, and later requests are signed out.
 
 Every endpoint below requires a signed-in user: 401 otherwise.
 
-### GET /api/associations
-
-The associations the signed-in user is a member of, with their role and
-what concerns them there.
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-[{"id": "5c1e…", "name": "Jardin partagé des Lilas", "slug": "jardin-partage-des-lilas", "role": "manager",
-  "upcoming": [
-    {"id": "1d3a…", "user_id": "0b6f…", "display_name": "Alice", "status": "confirmed",
-     "date": "2026-11-05", "start": "10:00", "end": "13:00"},
-    {"id": "48be…", "user_id": "0b6f…", "display_name": "Alice", "status": "proposed",
-     "date": "2026-11-14", "start": "10:00", "end": "13:00"}
-  ],
-  "obsolete": [
-    {"id": "9f20…", "user_id": "0b6f…", "display_name": "Alice", "status": "confirmed",
-     "date": "2026-11-12", "start": "10:00", "end": "13:00"}
-  ],
-  "planning_period": {"first": "2026-11-02", "last": "2026-11-25", "registrations": 2}},
- {"id": "9a2d…", "name": "Repair Café Belleville", "slug": "repair-cafe-belleville", "role": "volunteer",
-  "upcoming": [], "obsolete": [], "planning_period": null}]
-```
-
-- Registrations are shown as `POST /api/associations/{id}/registrations`
-  returns them, and only the signed-in user's.
-- R12: `upcoming` holds the user's registrations dated today or later
-  and not obsolete, sorted by date, then start:
-  - every proposed one;
-  - the confirmed ones up to the later of 27 days after today and, when
-    the association has a planning period, its last date.
-- R31: `obsolete` holds the user's obsolete registrations dated today
-  or later, sorted by date, then start.
-- R13: `planning_period` is `null` when the association has none; else
-  `registrations` counts the user's confirmed and proposed
-  registrations dated within the period, both dates included, and not
-  obsolete.
-
 ### POST /api/associations
 
 ```http
