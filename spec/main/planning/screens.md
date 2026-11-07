@@ -156,8 +156,12 @@ Sat 31   [Bruno ?    ]
 
 - "My availability", "Members" and "Schedule settings" lead to those
   screens.
-- It opens on the weeks of R32; "More weeks", at the end, adds four
-  more.
+- R32: It opens on six weeks from the Monday of the week before
+  today's, and more if needed to reach the end of the week after the one
+  that holds the planning period's last date. "More weeks", at the end,
+  adds the four weeks that follow.
+- With no occurrence and no obsolete registration in the shown weeks,
+  it shows "No openings in these weeks."
 - Each week has one column per weekday on which an occurrence of the
   shown weeks falls. Time runs down, on the same scale in every week,
   from the earliest start to the latest end of the shown occurrences,
@@ -178,9 +182,11 @@ Sat 31   [Bruno ?    ]
   testable.)
 - Occurrences and obsolete registrations after the period's last date
   are greyed, and keep their menu. (Look not testable.)
-- An occurrence shows its registration's display name, and no times:
-  green when confirmed; orange with "?" when proposed; red when it has
-  no registration (empty) or a cancelled one, whose name is struck.
+- An occurrence shows the registration it holds that is not
+  cancelled, else its latest cancelled one: its display name, and no
+  times: green when confirmed; orange with "?" when proposed; red when
+  it has no registration (empty) or a cancelled one, whose name is
+  struck.
   (Colours not testable.)
 - An obsolete registration is placed like an occurrence, by its date,
   start and end, marked "obsolete".

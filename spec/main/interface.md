@@ -46,9 +46,9 @@ Until then:
       Chloé    [—         ▾]     [Preferred ▾]
     ```
   - My availability.
-- Any other path outside `/api` answers the Not found page, including
-  the Schedule that an association's name and Create association lead
-  to.
+  - The Schedule, without its menus: clicking an occurrence opens
+    nothing.
+- Any other path outside `/api` answers the Not found page.
 - The JSON API stays available, as `core/api.md` and `planning/api.md`
   specify it.
 

@@ -138,50 +138,6 @@ Content-Type: application/json
 - `null` when there is no planning period.
 - Managers only: 403 for a volunteer.
 
-## GET /api/associations/{id}/schedule?from=…&to=…
-
-The occurrences, obsolete registrations and closures between two
-dates, both included.
-
-```http
-GET /api/associations/5c1e…/schedule?from=2026-11-02&to=2026-11-15
-```
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "from": "2026-11-02",
-  "to": "2026-11-15",
-  "occurrences": [
-    {"date": "2026-11-05", "start": "10:00", "end": "13:00",
-     "registration": {"id": "1d3a…", "user_id": "77c0…", "display_name": "Chloé", "status": "confirmed"}},
-    {"date": "2026-11-07", "start": "10:00", "end": "13:00",
-     "registration": {"id": "48be…", "user_id": "0b6f…", "display_name": "Alice", "status": "cancelled"}},
-    {"date": "2026-11-12", "start": "10:00", "end": "13:00", "registration": null}
-  ],
-  "obsolete": [
-    {"id": "9f20…", "user_id": "a3c1…", "display_name": "David", "status": "proposed",
-     "date": "2026-11-14", "start": "10:00", "end": "13:00"}
-  ],
-  "closures": [
-    {"id": "e7d2…", "first": "2026-11-14", "last": "2026-11-14", "label": "Fête du quartier"}
-  ]
-}
-```
-
-- R32: Without `from` and `to`, the range starts on the Monday of the
-  week before today's and spans six weeks, and more if needed to reach
-  the end of the week after the one that holds the planning period's
-  last date.
-- 400 when only one of `from` and `to` is given.
-- An occurrence's `registration` is the one that is not cancelled;
-  else the latest cancelled one; else `null`.
-- `closures` holds those that cover at least one date of the range.
-- Occurrences and obsolete registrations are sorted by date, then
-  start.
-
 ## POST /api/associations/{id}/registrations
 
 ```http
@@ -262,6 +218,42 @@ Content-Type: application/json
 ```
 
 - `planning_period` is `null` when there is none.
-- `GET /api/shared/{token}/schedule?from=…&to=…` returns what
-  `GET /api/associations/{id}/schedule` returns for the association,
-  with the same parameters.
+
+The occurrences, obsolete registrations and closures between two
+dates, both included:
+
+```http
+GET /api/shared/Hq3v…/schedule?from=2026-11-02&to=2026-11-15
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "from": "2026-11-02",
+  "to": "2026-11-15",
+  "occurrences": [
+    {"date": "2026-11-05", "start": "10:00", "end": "13:00",
+     "registration": {"id": "1d3a…", "user_id": "77c0…", "display_name": "Chloé", "status": "confirmed"}},
+    {"date": "2026-11-07", "start": "10:00", "end": "13:00",
+     "registration": {"id": "48be…", "user_id": "0b6f…", "display_name": "Alice", "status": "cancelled"}},
+    {"date": "2026-11-12", "start": "10:00", "end": "13:00", "registration": null}
+  ],
+  "obsolete": [
+    {"id": "9f20…", "user_id": "a3c1…", "display_name": "David", "status": "proposed",
+     "date": "2026-11-14", "start": "10:00", "end": "13:00"}
+  ],
+  "closures": [
+    {"id": "e7d2…", "first": "2026-11-14", "last": "2026-11-14", "label": "Fête du quartier"}
+  ]
+}
+```
+
+- Without `from` and `to`, the range is the weeks the Schedule opens
+  on (R32); 400 when only one of them is given.
+- An occurrence's `registration` is the one the Schedule shows on it,
+  or `null` when it shows none.
+- `closures` holds those that cover at least one date of the range.
+- Occurrences and obsolete registrations are sorted by date, then
+  start.
