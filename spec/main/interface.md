@@ -21,32 +21,10 @@ Until then:
     [+ New association]
     ```
   - Members.
-  - Schedule settings, without its Share link section:
-
-    ```
-    (logo)  Jardin partagé des Lilas › Schedule settings       Alice ▾
-
-    PLANNING PERIOD
-      Mon 2 Nov 2026 – Wed 25 Nov 2026                      ✎  🗑
-
-    CLOSURES                                       [+ Add a closure]
-      Sat 14 Nov 2026                                       ✎  🗑
-      Fête du quartier
-      Thu 24 Dec 2026 – Fri 1 Jan 2027                      ✎  🗑
-      Fêtes de fin d'année
-
-    SLOTS                                             [+ Add a slot]
-      Thursday   10:00–13:00                                ✎  🗑
-      Saturday   10:00–13:00                                ✎  🗑
-
-    Members' preferences
-               Thu 10:00–13:00   Sat 10:00–13:00
-      Alice    [Preferred ▾]     [—         ▾]
-      Bruno    [Possible  ▾]     [Unavailable ▾]
-      Chloé    [—         ▾]     [Preferred ▾]
-    ```
+  - Schedule settings.
   - My availability.
   - The Schedule.
+  - Shared schedule.
 - Any other path outside `/api` answers the Not found page.
 - The JSON API stays available, as `core/api.md` and `planning/api.md`
   specify it.

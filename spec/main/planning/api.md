@@ -1,8 +1,8 @@
 # API
 
-Every endpoint below, except those of Shared schedule, requires a
-signed-in member of the association: 401 when signed out, 404 when the
-association does not exist or the user is not a member.
+Every endpoint below requires a signed-in member of the association:
+401 when signed out, 404 when the association does not exist or the
+user is not a member.
 
 ## Slots
 
@@ -121,81 +121,3 @@ Content-Type: application/json
   holds a registration that is not cancelled (R4), or the date is
   before today (R6).
 - 400 when the user is not a member of the association.
-
-## Share link
-
-```http
-POST /api/associations/5c1e…/share-link
-```
-
-```http
-HTTP/1.1 201 Created
-Content-Type: application/json
-
-{"token": "Hq3v…"}
-```
-
-- `POST` creates the association's ShareLink, replacing the previous
-  one (R33).
-- `GET` returns it, as `POST` does, with 200; `null` when there is
-  none.
-- `DELETE`: 204, also when there is none (R33).
-- Managers only: 403 for a volunteer.
-
-## Shared schedule
-
-Read with a share link's token, signed in or not; 404 when no
-ShareLink has this token.
-
-```http
-GET /api/shared/Hq3v…
-```
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{"name": "Jardin partagé des Lilas", "timezone": "Europe/Paris",
- "planning_period": {"first": "2026-11-02", "last": "2026-11-25"}}
-```
-
-- `planning_period` is `null` when there is none.
-
-The occurrences, obsolete registrations and closures between two
-dates, both included:
-
-```http
-GET /api/shared/Hq3v…/schedule?from=2026-11-02&to=2026-11-15
-```
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "from": "2026-11-02",
-  "to": "2026-11-15",
-  "occurrences": [
-    {"date": "2026-11-05", "start": "10:00", "end": "13:00",
-     "registration": {"id": "1d3a…", "user_id": "77c0…", "display_name": "Chloé", "status": "confirmed"}},
-    {"date": "2026-11-07", "start": "10:00", "end": "13:00",
-     "registration": {"id": "48be…", "user_id": "0b6f…", "display_name": "Alice", "status": "cancelled"}},
-    {"date": "2026-11-12", "start": "10:00", "end": "13:00", "registration": null}
-  ],
-  "obsolete": [
-    {"id": "9f20…", "user_id": "a3c1…", "display_name": "David", "status": "proposed",
-     "date": "2026-11-14", "start": "10:00", "end": "13:00"}
-  ],
-  "closures": [
-    {"id": "e7d2…", "first": "2026-11-14", "last": "2026-11-14", "label": "Fête du quartier"}
-  ]
-}
-```
-
-- Without `from` and `to`, the range is the weeks the Schedule opens
-  on (R32); 400 when only one of them is given.
-- An occurrence's `registration` is the one the Schedule shows on it,
-  or `null` when it shows none.
-- `closures` holds those that cover at least one date of the range.
-- Occurrences and obsolete registrations are sorted by date, then
-  start.
