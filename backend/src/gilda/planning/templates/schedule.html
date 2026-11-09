@@ -10,6 +10,7 @@
 </p>
 {% include "schedule_weeks.html" %}
 <div id="occurrence-menu" class="occurrence-menu" popover>
+  <button type="button" class="link menu-close" aria-label="{{ t('schedule.close') }}" popovertarget="occurrence-menu" popovertargetaction="hide">×</button>
   {% with menu = None, message = "" %}{% include "schedule_menu.html" %}{% endwith %}
 </div>
 {% with menu = None %}{% include "schedule_cancel.html" %}{% endwith %}

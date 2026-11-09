@@ -27,7 +27,7 @@
           <ul>
             {% for item in day.items %}
             <li class="occ {{ item.status }}{% if item.obsolete %} obsolete{% endif %}" style="--s: {{ item.top }}; --e: {{ item.bottom }}; --lane: {{ item.lane }}; --lanes: {{ item.lanes }}" aria-label="{{ item.times }}{% if item.name %} {{ item.name }}{% endif %}{% if item.status == 'proposed' %} ?{% endif %}{% if item.obsolete %} {{ t('schedule.obsolete') }}{% endif %}">
-              {% if day.past or shared %}<div class="occ-body">{% else %}<button type="button" class="occ-body" data-on:click="@post('/association/{{ association.slug }}/menu', {payload: {date: '{{ item.date }}', start: '{{ item.start }}', end: '{{ item.end }}', from: '{{ view.first }}', to: '{{ view.last }}'}, retryMaxCount: 0})">{% endif %}
+              {% if day.past or shared %}<div class="occ-body">{% else %}<button type="button" class="occ-body" data-on:click="document.querySelector('.menu-anchor')?.classList.remove('menu-anchor'); el.classList.add('menu-anchor'); @post('/association/{{ association.slug }}/menu', {payload: {date: '{{ item.date }}', start: '{{ item.start }}', end: '{{ item.end }}', from: '{{ view.first }}', to: '{{ view.last }}'}, retryMaxCount: 0})">{% endif %}
                 {% if item.name %}<span class="who">{% if item.status == "cancelled" %}<s>{{ item.name }}</s>{% else %}{{ item.name }}{% if item.status == "proposed" %} ?{% endif %}{% endif %}</span>{% endif %}
                 {% if item.obsolete %}<span class="tag">{{ t("schedule.obsolete") }}</span>{% endif %}
               {% if day.past or shared %}</div>{% else %}</button>{% endif %}

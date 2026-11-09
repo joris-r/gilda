@@ -6,14 +6,25 @@
   {# An icon shows its text under the names, in place of the text shown, or hides it when it is already shown. #}
   {% set toggle = "document.getElementById('menu-text').hidden = !document.getElementById('menu-text').hidden && document.getElementById('menu-text').textContent === el.title; document.getElementById('menu-text').textContent = el.title" %}
   <p class="menu-title">{{ short_day(menu.date) }} · {{ menu.times }}</p>
-  {% if menu.sign_up %}
-  <button type="button" class="link" data-on:click="@post('{{ here }}/sign-up', {payload: {date: '{{ menu.date }}', start: '{{ menu.start }}', end: '{{ menu.end }}', {{ shown }}}, retryMaxCount: 0})">{{ t("schedule.signUp") }}</button>
+  {% if menu.sign_up or menu.confirm or menu.cancel %}
+  <div class="actions">
+    {% if menu.sign_up %}
+    <button type="button" data-on:click="@post('{{ here }}/sign-up', {payload: {date: '{{ menu.date }}', start: '{{ menu.start }}', end: '{{ menu.end }}', {{ shown }}}, retryMaxCount: 0})">{{ t("schedule.signUp") }}</button>
+    {% endif %}
+    {% if menu.confirm %}
+    <button type="button" data-on:click="@post('{{ here }}/registrations/{{ menu.registration_id }}/confirm', {payload: { {{- shown -}} }, retryMaxCount: 0})">{{ t("schedule.confirm") }}</button>
+    {% endif %}
+    {% if menu.cancel %}
+    <button type="button" class="link danger" commandfor="cancel-registration" command="show-modal" data-on:click="document.getElementById('cancel-registration-error').hidden = true">{{ t("schedule.cancel") }}</button>
+    {% endif %}
+  </div>
   {% endif %}
   {% if menu.names %}
+  <p class="menu-sub">{{ t("schedule.proposeTo") }}</p>
   <ul class="menu-names">
     {% for name in menu.names %}
     <li class="menu-name {{ name.look }}">
-      <button type="button" class="link" data-on:click="@post('{{ here }}/propose', {payload: {user_id: '{{ name.user_id }}', date: '{{ menu.date }}', start: '{{ menu.start }}', end: '{{ menu.end }}', {{ shown }}}, retryMaxCount: 0})">{{ name.name }}{% if name.count is not none %} ({{ name.count }}){% endif %}</button>
+      <button type="button" class="name" data-on:click="@post('{{ here }}/propose', {payload: {user_id: '{{ name.user_id }}', date: '{{ menu.date }}', start: '{{ menu.start }}', end: '{{ menu.end }}', {{ shown }}}, retryMaxCount: 0})">{{ name.name }}{% if name.count is not none %} ({{ name.count }}){% endif %}</button>
       {% if name.absence %}
       <button type="button" class="icon-button menu-icon" aria-label="{{ name.absence }}" title="{{ name.absence }}" data-on:click="{{ toggle }}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18" /></svg>
@@ -28,12 +39,6 @@
     {% endfor %}
   </ul>
   <p id="menu-text" class="menu-text" hidden></p>
-  {% endif %}
-  {% if menu.confirm %}
-  <button type="button" class="link" data-on:click="@post('{{ here }}/registrations/{{ menu.registration_id }}/confirm', {payload: { {{- shown -}} }, retryMaxCount: 0})">{{ t("schedule.confirm") }}</button>
-  {% endif %}
-  {% if menu.cancel %}
-  <button type="button" class="link" commandfor="cancel-registration" command="show-modal" data-on:click="document.getElementById('cancel-registration-error').hidden = true">{{ t("schedule.cancel") }}</button>
   {% endif %}
   {% endif %}
   {% with error_id = "menu-error" %}{% include "form_error.html" %}{% endwith %}
