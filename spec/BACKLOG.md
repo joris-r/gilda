@@ -253,6 +253,8 @@ Choices the spec left open, settled by `finish-rewrite`:
 - Spec: separate invariants (data model) from post-conditions (screens), with no sentence mixing both, starting with R8, R23, R28 and R33.
 - Create an account and Forgot password: a failed send keeps the previous link working.
 - Traceability: try named markers on data model rules, with a generated spec-to-tests index, to judge it for Dev43.
+- Performance: compress responses (gzip), as pages and static files are sent uncompressed.
+- Performance: let browsers cache `/static`, with a versioned URL so a deploy still reaches them.
 
 ## Security
 
