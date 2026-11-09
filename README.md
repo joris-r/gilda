@@ -49,32 +49,63 @@ never the development database; `TEST_DATABASE_URL` overrides it.
 
 ## Deploy
 
-One hosted site serves the web interface, from one Litestar app. Site, PostgreSQL database and SMTP relay are
-configured directly at the hosting provider.
+One hosted site serves the whole web interface, static files included,
+from one Litestar app run by uvicorn. It needs Python 3.13, `uv`, SSH
+access, a PostgreSQL database, and this repository cloned on the site.
 
-One-time site setup needs:
+### Environment variables
 
-- A Python app, ASGI entry point `gilda.app:create_app`.
-- A PostgreSQL database, and `DATABASE_URL` set to
-  `postgresql+asyncpg://<user>:<password>@<host>:<port>/<database>`.
-- `FRONTEND_URL` set to the site's public URL, including the scheme
-  (e.g. `https://your-site.example`; used in confirmation emails).
-- `SMTP_FROM` set to the sender address for confirmation emails.
-  Leave `SMTP_HOST` unset: the app then hands emails to the server's
-  local `sendmail` binary, since the host has no local SMTP
-  listener and requires SMTP AUTH otherwise.
-- SSH access, with this repository cloned on the site.
-
-To deploy, over SSH on the site:
+Set them in the site's settings at the hosting provider:
 
 ```sh
-cd gilda
-git pull
-cd backend && uv sync --no-dev && cd ..
-cd backend && uv run litestar --app gilda.app:create_app database upgrade --no-prompt
+DATABASE_URL=postgresql+asyncpg://<user>:<password>@<host>:<port>/<database>
+FRONTEND_URL=https://your-site.example   # the public URL, used in the emails' links
+SMTP_FROM=no-reply@your-site.example     # the sender of the emails
+INVITATION_ONLY=true                     # optional: only invited members sign up
+SUPERUSER_EMAIL=you@example.org          # optional: may sign up even when invitation-only
 ```
 
-Then restart the site so it picks up the new code.
+- Mail: with `SMTP_HOST` unset, the app hands emails to the server's
+  `/usr/sbin/sendmail`. Otherwise it sends them to `SMTP_HOST` on
+  `SMTP_PORT` (default 25), without authentication.
+- `INVITATION_ONLY=true` lets only the people a manager added as
+  members create an account, plus `SUPERUSER_EMAIL`, who creates the
+  first account and the first association.
+
+### Launch command
+
+Run from `backend/`:
+
+```sh
+uv run --no-dev uvicorn --factory gilda.app:create_app --host <host> --port <port> \
+  --proxy-headers --forwarded-allow-ips "<address of the provider's proxy>"
+```
+
+- `--factory`: `create_app` builds the app.
+- `--no-dev`: otherwise `uv run` installs the development tools again.
+- `--proxy-headers`: the site sees the visitors' scheme and address
+  through the provider's proxy.
+
+uvicorn, run this way, has no hot restart: if the provider asks for a
+hot-restart command, leave it empty, so that a restart stops the
+process and starts it again.
+
+### Deploy a new version
+
+Over SSH, the variables of the site's settings are not set: export
+`DATABASE_URL` first, so that the migrations reach the database.
+
+```sh
+export DATABASE_URL='postgresql+asyncpg://…'
+
+cd gilda/backend
+git pull
+uv sync --no-dev
+uv run --no-dev litestar --app gilda.app:create_app database upgrade --no-prompt
+```
+
+Then restart the site so it picks up the new code. The first
+deployment follows the same steps, before the first start.
 
 ## Dev43
 
