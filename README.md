@@ -77,9 +77,12 @@ SUPERUSER_EMAIL=you@example.org          # optional: may sign up even when invit
 Run from `backend/`:
 
 ```sh
-uv run --no-dev uvicorn --factory gilda.app:create_app --host <host> --port <port> \
-  --proxy-headers --forwarded-allow-ips "<address of the provider's proxy>"
+uv run --no-dev uvicorn --factory gilda.app:create_app --host <host> --port <port> --proxy-headers --forwarded-allow-ips <proxy-address>
 ```
+
+The command stays on one line, without quotes, so that it pastes whole
+into a one-line field; `<proxy-address>` is the address of the
+provider's proxy, e.g. `::1`.
 
 - `--factory`: `create_app` builds the app.
 - `--no-dev`: otherwise `uv run` installs the development tools again.
