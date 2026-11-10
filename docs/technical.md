@@ -12,7 +12,8 @@
     - `repositories.py`: the Advanced Alchemy repositories.
     - `schemas.py`: the request and response types.
     - `services.py`: the logic between handlers and repositories.
-  - `home/`: serves My associations, gathering what each domain shows of an association there.
+  - `home/`: serves My associations, gathering what each domain shows
+    of an association there.
   - `db.py`: the database configuration.
   - `web/`: what the screens share: the page layout, the translations,
     the language selection and the static files.
@@ -36,7 +37,8 @@
     repository; no npm and no build step.
   - Each URL answers a full page. Each action answers a short-lived SSE
     response that patches the page or leads to another URL; no
-    connection stays open.
+    connection stays open. The URLs of the actions are left to the
+    implementation.
   - The interface's language comes from the `language` cookie, set by
     the language selector, then from the `Accept-Language` header.
   - Translations live in one file per language; English is the
@@ -49,12 +51,8 @@
   only a session identifier, in an `HttpOnly` cookie.
 - Email is sent:
   - Production: handed to the server's local `sendmail` binary.
-    The hosting provider has no local SMTP listener and requires
-    authentication the app does not implement, which rules out SMTP
-    there.
   - Development and tests: Mailpit, run alongside PostgreSQL in
-    `compose.yaml`, on non-default ports to avoid clashing with other
-    projects' containers; backend and end-to-end tests query it over
+    `compose.yaml`, on non-default ports; backend and end-to-end tests query it over
     HTTP to read the sent email.
   - The two are selected by whether `SMTP_HOST` is set: set, SMTP;
     unset, `sendmail`.

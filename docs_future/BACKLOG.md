@@ -20,13 +20,7 @@
 - Tests: the regex page helpers (`lines_of`, `line_of`…) would use an HTML parser, as `listed` does, so that nested lists and hidden elements read right.
 - Process: CLAUDE.md would say that tests read from the database only what no screen shows (ids, rows already erased), and everything else through the screens.
 - Process: CLAUDE.md would ask a setup helper whose action answers a list with dialogs to check success by its message, not by the generic error's absence.
-- Process: the rewrite is over, so CLAUDE.md's "During the Datastar rewrite…" rule and the empty "Datastar experiment" section can go once the human has read the feedback.
 - Config: rename `FRONTEND_URL`, a name left from the former frontend, to the site's address (e.g. `SITE_URL`), in the code, the README and the hosting provider's settings.
-
-
-## Datastar experiment
-
-Rebuild, in this order; each item moves its rules out of the `api.md` pages, ports its tests, deletes its endpoints where no later item needs them, and restores its scenario once its screens are all back:
 
 
 ## Datastar rewrite feedback
@@ -61,12 +55,12 @@ Choices the spec left open, settled by `my-associations`:
 - New association: an empty or missing name or identifier shows the generic error.
 - New association: a request that is already signed out leads to Sign in and creates nothing.
 - New association: the identifier `new` shows the "already taken" message.
-- R35: an identifier cut at 50 characters loses a hyphen left at its end.
+- /core/model/association/derived: an identifier cut at 50 characters loses a hyphen left at its end.
 
 Choices the spec left open, settled by `members-list`:
 
 - Add a member: a missing or invalid field, including the role, shows the generic error.
-- Add a member: "is already a member" names the person as typed; "added" names them as listed, so an existing user (R3) shows under their own display name.
+- Add a member: "is already a member" names the person as typed; "added" names them as listed, so an existing user (/core/operations/add-member/existing-user) shows under their own display name.
 - Add a member: a request that is already signed out leads to Sign in and adds no one; a volunteer's or a non-member's request adds no one.
 - Add a member: opening the dialog clears its fields and its message.
 - Add a member: Email accepts an address with accents, as the browser does not check it.
@@ -100,8 +94,8 @@ Choices the spec left open, settled by `members-association`:
 Choices the spec left open, settled by `settings-slots`:
 
 - Add a slot and Edit the slot: a missing or invalid field, To not after From included, shows the generic error.
-- Add a slot: Day opens at Monday until a slot is added; R18 lasts until the page reloads, which brings back R17.
-- Add a slot: reopened after Cancel, it opens as R17 or R18 say, not with what was typed.
+- Add a slot: Day opens at Monday until a slot is added; /planning/ui/schedule-settings/next-slot lasts until the page reloads, which brings back /planning/ui/schedule-settings/defaults.
+- Add a slot: reopened after Cancel, it opens as /planning/ui/schedule-settings/defaults or /planning/ui/schedule-settings/next-slot say, not with what was typed.
 - Edit the slot and Delete the slot: an unknown slot, or another association's, shows the generic error.
 - Add, Edit and Delete the slot: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing and shows the generic error.
 
@@ -151,7 +145,7 @@ Choices the spec left open, settled by `schedule-weeks`:
 Choices the spec left open, settled by `schedule-volunteer-menu`:
 
 - Schedule menu: a missing or invalid date or time, or no occurrence at that time, opens the menu with only the generic error.
-- Sign up: a date before today (R6), no matching occurrence, a closed date or a missing field shows the generic error; only R4 has its own message, "Someone took this slot in the meantime."
+- Sign up: a date before today (/planning/operations/register/past), no matching occurrence, a closed date or a missing field shows the generic error; only /planning/operations/register/taken has its own message, "Someone took this slot in the meantime."
 - Confirm and Cancel registration: an unknown registration, or another association's, shows the generic error.
 - Menu, Sign up, Confirm and Cancel registration: a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
 - Schedule menu: the user's own obsolete registration offers Cancel registration, whether proposed or confirmed, and never Confirm.
@@ -159,9 +153,9 @@ Choices the spec left open, settled by `schedule-volunteer-menu`:
 Choices the spec left open, settled by `schedule-manager-menu`:
 
 - Absence icon: a one-day absence shows one date, "Absent Thu 12 Nov 2037" ("Absent le jeu. 12 nov. 2037"); when several absences cover the date, the one starting first shows.
-- Propose: a user who is not a member, a missing or invalid field, a date before today, a closed date, or a volunteer proposing to another member shows the generic error; only R4 has its own message.
+- Propose: a user who is not a member, a missing or invalid field, a date before today, a closed date, or a volunteer proposing to another member shows the generic error; only /planning/operations/register/taken has its own message.
 - Propose: a request that is already signed out leads to Sign in and registers no one; a non-member's request registers no one.
-- Manager's menu: without a planning period, R27's tie on registrations counts everyone as 0, so names fall to display name order, ignoring case.
+- Manager's menu: without a planning period, /planning/ui/occurrence-menu/order's tie on registrations counts everyone as 0, so names fall to display name order, ignoring case.
 - Manager's menu: the text shown under the names leaves when the menu opens again.
 
 Choices the spec left open, settled by `share-link`:
@@ -177,7 +171,7 @@ Choices the spec left open, settled by `registrations-summary`:
 - Confirm and OK: an unknown registration, another association's, someone else's, one already cancelled, or a Confirm on a registration that is obsolete or already confirmed shows the generic error.
 - Confirm and OK: a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
 - Confirm and OK: the generic error shows within that association's item, and stays until the next successful action on it or a reload.
-- R14: a one-day planning period shows one date ("5 Nov").
+- /home/ui/my-associations/no-registration: a one-day planning period shows one date ("5 Nov").
 
 Choices the spec left open, settled by `finish-rewrite`:
 
@@ -201,7 +195,7 @@ Choices the spec left open, settled by `finish-rewrite`:
 - Send link drops the link when the email can't be sent, but Sign-in link keeps it; align the two.
 - The one-time notice is kept in the session, so it shows on whichever page loads next, even in another tab.
 - Rename and Delete check against the name the page was loaded with: after a rename in another tab, Delete stays disabled for the new name until a reload.
-- Change the association identifier breaks every bookmark of the former URLs, with no redirect (R36).
+- Change the association identifier breaks every bookmark of the former URLs, with no redirect (/core/operations/update-association/new-slug).
 - Add a slot or Edit the slot with To not after From shows only the generic error; the former frontend said "Check the dates and times: the start comes before the end."
 - Edit the slot and Delete the slot don't warn that the slot's registrations become obsolete, nor that deleting it deletes the members' preferences on it.
 - Closures: past closures stay listed forever; they could be listed from those ending today on, as Absences are.
@@ -224,7 +218,7 @@ Choices the spec left open, settled by `finish-rewrite`:
 - Schedule menu: it shows centred on the screen, not anchored to the occurrence.
 - Sign up: after "Someone took this slot in the meantime.", the Schedule still shows the occurrence as free until a reload.
 - Schedule: a page left open past midnight still offers Sign up on yesterday's occurrences, which then shows only the generic error.
-- Cancel registration: the server cancels a registration dated before today (R7 doesn't forbid it), though no menu opens there.
+- Cancel registration: the server cancels a registration dated before today (/planning/operations/change-registration/cancel doesn't forbid it), though no menu opens there.
 - Sign up, Propose, Confirm and Cancel registration resend every week shown, as More weeks does.
 - Manager's menu: names are ordered by `casefold`, not by the language's collation, as on Members.
 - Note icon: the whole note is the icon's accessible name, so a long note gives a long screen-reader label.
@@ -234,13 +228,11 @@ Choices the spec left open, settled by `finish-rewrite`:
 - My associations shows dates without their year, so a proposal months ahead (e.g. "Sun 3 Jan") is ambiguous.
 - Confirm and OK use the slug from page load, so after a change of identifier in another tab they show only the generic error.
 - My associations builds each association's summary with its own queries, so the page slows as a user joins more associations.
-- The superuser now only bypasses R19; no screen shows or uses the role otherwise, so a later superuser action (e.g. the Future cleanup entry) needs its own screen.
-- Tests: R1 is cited by no test name, though the last-manager tests check it.
+- The superuser now only bypasses /core/operations/create-account/not-invited; no screen shows or uses the role otherwise, so a later superuser action (e.g. the Future cleanup entry) needs its own screen.
 
 
 ## Quality
 
-- Spec: My associations sits in the core pages though R12–R14 and R31 are planning's; move it to a home page once other modules add their part.
 - Cleanup: purge expired sessions (Advanced Alchemy's delete_expired) and expired email confirmation and password reset tokens regularly, so their tables stay small.
 - Association: refuse a name made only of spaces, at creation and on rename.
 - Association: a manager can change the association's timezone (fixed to Europe/Paris for now) and set its preferred language, used for emails sent to its members by someone else (e.g. a manager); My associations then needs each association's timezone.
@@ -250,16 +242,14 @@ Choices the spec left open, settled by `finish-rewrite`:
 - Backend tests: report to Advanced Alchemy that its Litestar lifespan disposes only the first config's engine per process, then drop the workaround in the new_client fixture.
 - Accessibility: audit the screens with a screen reader and axe (e.g. in the e2e tests); the Schedule's occurrence labels, for one, cannot say that a registration is cancelled.
 - Sessions: ask Litestar for a way to renew the session ID (e.g. on `set_session`), then drop the `SessionBackend` subclass.
-- Spec: separate invariants (data model) from post-conditions (screens), with no sentence mixing both, starting with R8, R23, R28 and R33.
 - Create an account and Forgot password: a failed send keeps the previous link working.
-- Traceability: try named markers on data model rules, with a generated spec-to-tests index, to judge it for Dev43.
 - Performance: compress responses (gzip), as pages and static files are sent uncompressed.
 - Performance: let browsers cache `/static`, with a versioned URL so a deploy still reaches them.
 
 ## Security
 
 - Access links never expire; consider an expiration, with a `created_at` filled from their UUIDv7 id.
-- R22 keeps the user's other sessions signed in, so someone who stole a session stays connected after a password reset; revisit it.
+- /core/operations/reset-password/reset keeps the user's other sessions signed in, so someone who stole a session stays connected after a password reset; revisit it.
 - Forgot password shows the same message for everyone, but its response time can reveal an account, as only a user with a password gets an email during the request; send it in the background.
 - Delete my account asks for no password, so an unattended or stolen session can erase the account.
 - Sign-in link's response time can reveal an account, as the email is sent during the request.
