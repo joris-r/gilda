@@ -12,6 +12,7 @@ afterEach(() => {
 })
 
 describe('Confirm email', () => {
+  // /core/ui/confirm-email/confirmed
   it('confirms the token from the link and leads to My associations, signed in', async () => {
     let verified = false
     const calls = mockApi({
@@ -35,6 +36,7 @@ describe('Confirm email', () => {
     expect(pageText(wrapper)).toContain('Alice')
   })
 
+  // /core/ui/confirm-email/invalid
   it('says the link is no longer valid for an unknown or expired token', async () => {
     mockApi({
       'GET /api/session': signedOut,

@@ -68,7 +68,8 @@ def filled(planning: Planning) -> tuple[dict[str, Any], str, str]:
     return slot, share_link.json()["token"], day
 
 
-def test_r34_everything_the_association_holds_is_erased(
+# /planning/operations/delete-association/planning
+def test_everything_the_association_holds_is_erased(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
@@ -80,8 +81,11 @@ def test_r34_everything_the_association_holds_is_erased(
     assert not any(rows_held(planning.id, slot["id"]).values())
 
 
+# /planning/operations/delete-association/planning
+# /planning/operations/get-shared-association/unknown
+# /planning/operations/get-shared-schedule/unknown
 @pytest.mark.parametrize("path", ["", "/schedule"])
-def test_r34_the_share_link_no_longer_shows_the_schedule(
+def test_the_share_link_no_longer_shows_the_schedule(
     client: Any, new_client: Callable[[], Any], path: str
 ) -> None:
     planning = Planning(client, new_client)
@@ -92,10 +96,11 @@ def test_r34_the_share_link_no_longer_shows_the_schedule(
     assert new_client().get(f"/api/shared/{token}{path}").status_code == 404
 
 
+# /core/operations/general/unknown-association
 @pytest.mark.parametrize(
     "rest", ["schedule", "slots", "closures", "planning-period", "absences", "note", "share-link"]
 )
-def test_r34_its_planning_endpoints_answer_404(
+def test_its_planning_endpoints_answer_404(
     client: Any, new_client: Callable[[], Any], rest: str
 ) -> None:
     planning = Planning(client, new_client)
@@ -106,7 +111,8 @@ def test_r34_its_planning_endpoints_answer_404(
     assert client.get(planning.path(rest)).status_code == 404
 
 
-def test_r34_another_association_of_its_members_keeps_what_it_holds(
+# /planning/operations/delete-association/planning
+def test_another_association_of_its_members_keeps_what_it_holds(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)

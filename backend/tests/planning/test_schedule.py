@@ -10,6 +10,7 @@ from tests.planning.conftest import WEEKDAYS, Planning, day_of_week
 # GET /api/associations/{id}/schedule
 
 
+# /planning/operations/get-schedule/range /planning/operations/get-schedule/order
 def test_schedule_lists_the_occurrences_between_both_dates_included(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -30,6 +31,7 @@ def test_schedule_lists_the_occurrences_between_both_dates_included(
     assert body["closures"] == []
 
 
+# /planning/operations/get-schedule/range /planning/model/occurrence
 def test_schedule_has_one_occurrence_per_week(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     planning.add_slot("thursday", "10:00", "13:00")
@@ -43,6 +45,7 @@ def test_schedule_has_one_occurrence_per_week(client: Any, new_client: Callable[
     ]
 
 
+# /planning/operations/get-schedule/range /planning/model/occurrence
 def test_schedule_has_no_occurrence_on_a_closure_date(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -62,6 +65,7 @@ def test_schedule_has_no_occurrence_on_a_closure_date(
     assert body["closures"] == [closure]
 
 
+# /planning/operations/get-schedule/closures
 def test_schedule_lists_only_the_closures_that_cover_a_date_of_the_range(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -75,6 +79,7 @@ def test_schedule_lists_only_the_closures_that_cover_a_date_of_the_range(
     assert body["closures"] == [before, inside]
 
 
+# /planning/operations/get-schedule/range
 def test_schedule_occurrences_of_other_associations_are_not_listed(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -87,6 +92,7 @@ def test_schedule_occurrences_of_other_associations_are_not_listed(
     assert body["occurrences"] == []
 
 
+# /planning/operations/get-schedule/registration
 def test_schedule_occurrence_shows_its_registration(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -114,6 +120,7 @@ def test_schedule_occurrence_shows_its_registration(
     ]
 
 
+# /planning/operations/get-schedule/registration
 def test_schedule_occurrence_shows_the_latest_cancelled_registration_when_none_other(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -133,6 +140,7 @@ def test_schedule_occurrence_shows_the_latest_cancelled_registration_when_none_o
     assert (shown["display_name"], shown["status"]) == ("Chloé", "cancelled")
 
 
+# /planning/operations/get-schedule/registration
 def test_schedule_occurrence_shows_a_new_registration_over_a_cancelled_one(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -154,6 +162,7 @@ def test_schedule_occurrence_shows_a_new_registration_over_a_cancelled_one(
 # Obsolete registrations
 
 
+# /planning/operations/get-schedule/range /planning/model/registration/obsolete
 def test_a_registration_whose_slot_was_deleted_is_obsolete(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -169,6 +178,7 @@ def test_a_registration_whose_slot_was_deleted_is_obsolete(
     assert body["obsolete"] == [registration]
 
 
+# /planning/operations/get-schedule/range /planning/model/registration/obsolete
 def test_a_registration_whose_slot_changed_hours_is_obsolete(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -189,6 +199,7 @@ def test_a_registration_whose_slot_changed_hours_is_obsolete(
     ]
 
 
+# /planning/operations/get-schedule/range /planning/model/registration/obsolete
 def test_a_registration_whose_slot_was_edited_is_obsolete(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -209,6 +220,7 @@ def test_a_registration_whose_slot_was_edited_is_obsolete(
     assert body["obsolete"] == [registration]
 
 
+# /planning/operations/get-schedule/range /planning/model/registration/obsolete
 def test_a_registration_on_a_closure_date_is_obsolete(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -224,6 +236,7 @@ def test_a_registration_on_a_closure_date_is_obsolete(
     assert [r["display_name"] for r in body["obsolete"]] == ["Bruno"]
 
 
+# /planning/operations/get-schedule/range /planning/model/registration/obsolete
 def test_a_registration_on_a_date_an_edited_closure_covers_is_obsolete(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -246,6 +259,7 @@ def test_a_registration_on_a_date_an_edited_closure_covers_is_obsolete(
     assert [(c["first"], c["last"]) for c in body["closures"]] == [(thursday, thursday)]
 
 
+# /planning/model/registration/obsolete
 def test_a_cancelled_registration_is_never_obsolete(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -263,6 +277,7 @@ def test_a_cancelled_registration_is_never_obsolete(
     assert body["obsolete"] == []
 
 
+# /planning/model/registration/obsolete
 def test_obsolete_registrations_come_back_when_the_slot_does(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -279,6 +294,7 @@ def test_obsolete_registrations_come_back_when_the_slot_does(
     assert body["occurrences"][0]["registration"]["display_name"] == "Bruno"
 
 
+# /planning/operations/get-schedule/one-bound
 @pytest.mark.parametrize("given", ["from", "to"])
 def test_schedule_400_when_only_one_of_from_and_to_is_given(
     client: Any, new_client: Callable[[], Any], given: str
@@ -291,6 +307,7 @@ def test_schedule_400_when_only_one_of_from_and_to_is_given(
     assert "error" in response.json()
 
 
+# /planning/operations/get-schedule/range
 def test_schedule_returns_the_range_it_was_asked_for(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -302,7 +319,7 @@ def test_schedule_returns_the_range_it_was_asked_for(
     assert (body["from"], body["to"]) == (thursday, saturday)
 
 
-# R32: the default range
+# The default range
 
 # Monday 9 November 2026, 00:30 in Paris, still Sunday 8 November in UTC.
 NOW = datetime(2026, 11, 8, 23, 30, tzinfo=UTC)
@@ -332,7 +349,8 @@ def set_period(planning: Planning, first: str, last: str) -> None:
     assert response.status_code == 200, response.text
 
 
-def test_r32_without_a_period_six_weeks_from_the_week_before_todays(
+# /planning/operations/get-schedule/default
+def test_without_a_period_six_weeks_from_the_week_before_todays(
     every_day: Planning,
 ) -> None:
     body = default_schedule(every_day, every_day.bruno_client)
@@ -342,7 +360,8 @@ def test_r32_without_a_period_six_weeks_from_the_week_before_todays(
     assert (dates[0], dates[-1], len(dates)) == ("2026-11-02", "2026-12-13", 42)
 
 
-def test_r32_lists_the_closures_that_cover_a_date_of_the_default_range(
+# /planning/operations/get-schedule/default /planning/operations/get-schedule/closures
+def test_lists_the_closures_that_cover_a_date_of_the_default_range(
     every_day: Planning,
 ) -> None:
     closure = every_day.add_closure("2026-12-13", "2026-12-20", "Noël")
@@ -353,6 +372,7 @@ def test_r32_lists_the_closures_that_cover_a_date_of_the_default_range(
     assert body["closures"] == [closure]
 
 
+# /planning/operations/get-schedule/default
 @pytest.mark.parametrize(
     ("last", "to"),
     [
@@ -365,7 +385,7 @@ def test_r32_lists_the_closures_that_cover_a_date_of_the_default_range(
         ("2027-01-10", "2027-01-17"),
     ],
 )
-def test_r32_the_range_reaches_the_end_of_the_week_after_the_periods_last_date(
+def test_the_range_reaches_the_end_of_the_week_after_the_periods_last_date(
     every_day: Planning, last: str, to: str
 ) -> None:
     set_period(every_day, "2026-11-10", last)
@@ -376,9 +396,39 @@ def test_r32_the_range_reaches_the_end_of_the_week_after_the_periods_last_date(
     assert body["occurrences"][-1]["date"] == to
 
 
-def test_r32_a_past_period_leaves_six_weeks(every_day: Planning) -> None:
+# /planning/operations/get-schedule/default
+def test_a_past_period_leaves_six_weeks(every_day: Planning) -> None:
     set_period(every_day, "2026-10-01", "2026-10-20")
 
     body = default_schedule(every_day, every_day.bruno_client)
 
     assert (body["from"], body["to"]) == ("2026-11-02", "2026-12-13")
+
+
+# /planning/operations/get-schedule/order
+def test_obsolete_registrations_are_sorted_by_date_then_start(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    planning = Planning(client, new_client)
+    slots = [
+        planning.add_slot("saturday", "10:00", "13:00"),
+        planning.add_slot("thursday", "13:00", "16:00"),
+        planning.add_slot("thursday", "10:00", "13:00"),
+    ]
+    thursday, saturday = day_of_week("thursday"), day_of_week("saturday")
+    for day, start, end in (
+        (saturday, "10:00", "13:00"),
+        (thursday, "13:00", "16:00"),
+        (thursday, "10:00", "13:00"),
+    ):
+        planning.registered(client, planning.bruno, day, start, end)
+    for slot in slots:
+        client.delete(planning.path(f"slots/{slot['id']}"))
+
+    body = planning.schedule(client, thursday, saturday)
+
+    assert [(r["date"], r["start"]) for r in body["obsolete"]] == [
+        (thursday, "10:00"),
+        (thursday, "13:00"),
+        (saturday, "10:00"),
+    ]

@@ -4,6 +4,7 @@ from typing import Any
 from tests.planning.conftest import Planning
 
 
+# /planning/operations/get-shared-association/shared /core/operations/update-association/renamed
 def test_patch_api_association_share_link_keeps_working_and_shows_the_new_name(
     client: Any, new_client: Callable[[], Any]
 ) -> None:

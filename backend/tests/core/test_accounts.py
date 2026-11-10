@@ -1,6 +1,8 @@
 import re
+import time
 import uuid
 from collections.abc import Callable
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -9,15 +11,18 @@ from tests.core.conftest import (
     PASSWORD,
     add_member,
     create_association,
+    email_count,
     latest_email,
     latest_verification_token,
     sign_up,
     unique_email,
 )
+from tests.core.test_password_reset import run_sql
 
 # POST /api/accounts
 
 
+# /core/operations/create-account/created
 def test_post_api_accounts_creates_the_account_but_does_not_sign_it_in(client: Any) -> None:
     email = unique_email("Alice")
 
@@ -34,7 +39,8 @@ def test_post_api_accounts_creates_the_account_but_does_not_sign_it_in(client: A
     assert client.get("/api/session").status_code == 401
 
 
-def test_r9_sign_up_sends_a_confirmation_email(client: Any) -> None:
+# /core/operations/create-account/confirmation
+def test_sign_up_sends_a_confirmation_email(client: Any) -> None:
     email = unique_email("Alice")
 
     response = client.post(
@@ -72,24 +78,27 @@ def assert_written_in(sent: dict[str, str], language: dict[str, str]) -> None:
     assert re.search(r"/verify-email\?token=[\w-]+", sent["Text"])
 
 
+# /core/operations/create-account/language
 @pytest.mark.parametrize(
     "accept_language",
     ["fr", "fr-FR", "fr-FR,fr;q=0.9,en;q=0.8", "de,fr;q=0.5", "en;q=0.4,fr;q=0.9"],
 )
-def test_r20_confirmation_email_is_in_french_when_the_request_prefers_french(
+def test_confirmation_email_is_in_french_when_the_request_prefers_french(
     client: Any, accept_language: str
 ) -> None:
     assert_written_in(sign_up_with_language(client, accept_language), FRENCH)
 
 
+# /core/operations/create-account/language
 @pytest.mark.parametrize("accept_language", [None, "en", "en-GB,en;q=0.9,fr;q=0.8", "de", "*"])
-def test_r20_confirmation_email_is_in_english_otherwise(
+def test_confirmation_email_is_in_english_otherwise(
     client: Any, accept_language: str | None
 ) -> None:
     assert_written_in(sign_up_with_language(client, accept_language), ENGLISH)
 
 
-def test_r20_resent_confirmation_email_follows_the_resend_request(client: Any) -> None:
+# /core/operations/resend-confirmation/resent
+def test_resent_confirmation_email_follows_the_resend_request(client: Any) -> None:
     email = unique_email("Alice")
     client.post(
         "/api/accounts", json={"display_name": "Alice", "email": email, "password": PASSWORD}
@@ -104,13 +113,15 @@ def test_r20_resent_confirmation_email_follows_the_resend_request(client: Any) -
     assert_written_in(latest_email(email), FRENCH)
 
 
+# /core/operations/create-account/created
 def test_post_api_accounts_user_ids_are_uuids(client: Any) -> None:
     user = sign_up(client, "Alice")
 
     uuid.UUID(user["id"])
 
 
-def test_r2_sign_up_takes_over_a_user_without_password(
+# /core/operations/create-account/claimed
+def test_sign_up_takes_over_a_user_without_password(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     sign_up(client, "Alice")
@@ -160,7 +171,8 @@ def break_the_mailer(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SMTP_PORT", "1")
 
 
-def test_r10_sign_up_503_when_the_email_cannot_be_sent(
+# /core/operations/create-account/not-sent
+def test_sign_up_503_when_the_email_cannot_be_sent(
     client: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     email = unique_email("Alice")
@@ -175,7 +187,8 @@ def test_r10_sign_up_503_when_the_email_cannot_be_sent(
     assert client.post("/api/accounts", json=account).status_code == 201
 
 
-def test_r10_failed_sign_up_leaves_a_user_without_password_unchanged(
+# /core/operations/create-account/not-sent /core/operations/general/refused
+def test_failed_sign_up_leaves_a_user_without_password_unchanged(
     client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     sign_up(client, "Alice")
@@ -197,6 +210,7 @@ def test_r10_failed_sign_up_leaves_a_user_without_password_unchanged(
     assert chloe_member["display_name"] == "Chloé"
 
 
+# /core/operations/create-account/exists
 def test_post_api_accounts_409_when_the_email_has_an_account(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -212,6 +226,7 @@ def test_post_api_accounts_409_when_the_email_has_an_account(
     assert "error" in response.json()
 
 
+# /core/operations/create-account/exists /core/model/user/email
 def test_post_api_accounts_409_when_the_email_differs_only_by_case(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -226,6 +241,7 @@ def test_post_api_accounts_409_when_the_email_differs_only_by_case(
     assert response.status_code == 409
 
 
+# /core/operations/create-account/short-password
 def test_post_api_accounts_400_when_the_password_has_fewer_than_8_characters(
     client: Any,
 ) -> None:
@@ -238,6 +254,7 @@ def test_post_api_accounts_400_when_the_password_has_fewer_than_8_characters(
     assert "error" in response.json()
 
 
+# /core/operations/create-account/short-password /core/operations/create-account/created
 def test_post_api_accounts_accepts_a_password_of_8_characters(client: Any) -> None:
     response = client.post(
         "/api/accounts",
@@ -247,6 +264,7 @@ def test_post_api_accounts_accepts_a_password_of_8_characters(client: Any) -> No
     assert response.status_code == 201
 
 
+# /core/operations/general/malformed /core/model/user/display-name
 @pytest.mark.parametrize(
     "body",
     [
@@ -266,6 +284,7 @@ def test_post_api_accounts_400_when_a_field_is_missing_empty_or_invalid(
     assert "error" in response.json()
 
 
+# /core/operations/general/malformed
 def test_post_api_accounts_400_when_the_body_is_not_json(client: Any) -> None:
     response = client.post(
         "/api/accounts", content=b"{not json", headers={"content-type": "application/json"}
@@ -275,7 +294,8 @@ def test_post_api_accounts_400_when_the_body_is_not_json(client: Any) -> None:
     assert "error" in response.json()
 
 
-def test_r19_invitation_only_403_for_an_email_not_invited(
+# /core/operations/create-account/not-invited
+def test_invitation_only_403_for_an_email_not_invited(
     client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     sign_up(client, "Alice")
@@ -296,7 +316,8 @@ def test_r19_invitation_only_403_for_an_email_not_invited(
     assert member["has_account"] is False
 
 
-def test_r19_invitation_only_creates_the_account_of_an_added_member(
+# /core/operations/create-account/claimed
+def test_invitation_only_creates_the_account_of_an_added_member(
     client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     sign_up(client, "Alice")
@@ -313,7 +334,8 @@ def test_r19_invitation_only_creates_the_account_of_an_added_member(
     assert response.status_code == 201
 
 
-def test_r19_invitation_only_creates_the_account_of_the_superuser(
+# /core/operations/create-account/created
+def test_invitation_only_creates_the_account_of_the_superuser(
     new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     email = unique_email("Root")
@@ -328,7 +350,8 @@ def test_r19_invitation_only_creates_the_account_of_the_superuser(
     assert response.status_code == 201
 
 
-def test_r19_invitation_only_still_409_for_an_email_with_an_account(
+# /core/operations/create-account/exists
+def test_invitation_only_still_409_for_an_email_with_an_account(
     client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     email = unique_email("Alice")
@@ -343,8 +366,9 @@ def test_r19_invitation_only_still_409_for_an_email_with_an_account(
     assert response.status_code == 409
 
 
+# /core/operations/create-account/created /core/operations/create-account/not-invited
 @pytest.mark.parametrize("value", [None, "", "false", "yes"])
-def test_r19_sign_up_is_open_unless_invitation_only_is_true(
+def test_sign_up_is_open_unless_invitation_only_is_true(
     value: str | None, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     if value is None:
@@ -363,6 +387,7 @@ def test_r19_sign_up_is_open_unless_invitation_only_is_true(
 # POST /api/session
 
 
+# /core/operations/sign-in/signed-in
 def test_post_api_session_signs_in(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     user = sign_up(client, "Alice", email)
@@ -376,6 +401,7 @@ def test_post_api_session_signs_in(client: Any, new_client: Callable[[], Any]) -
     assert browser.get("/api/session").json() == {**user, "superuser": False}
 
 
+# /core/operations/sign-in/signed-in /core/model/user/email
 def test_post_api_session_ignores_the_case_of_the_email(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -389,6 +415,7 @@ def test_post_api_session_ignores_the_case_of_the_email(
     assert response.status_code == 200
 
 
+# /core/operations/sign-in/wrong
 def test_post_api_session_401_does_not_say_which_credential_is_wrong(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -420,7 +447,8 @@ def test_post_api_session_401_does_not_say_which_credential_is_wrong(
     assert browser.get("/api/session").status_code == 401
 
 
-def test_r16_sign_in_replaces_a_session_id_planted_in_the_browser(
+# /core/operations/sign-in/new-session
+def test_sign_in_replaces_a_session_id_planted_in_the_browser(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -438,7 +466,8 @@ def test_r16_sign_in_replaces_a_session_id_planted_in_the_browser(
     assert attacker.get("/api/session").status_code == 401
 
 
-def test_r16_sign_in_replaces_the_id_of_an_existing_session(
+# /core/operations/sign-in/new-session
+def test_sign_in_replaces_the_id_of_an_existing_session(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -456,6 +485,7 @@ def test_r16_sign_in_replaces_the_id_of_an_existing_session(
     assert attacker.get("/api/session").status_code == 401
 
 
+# /core/operations/sign-in/signed-in /core/model/user/superuser
 def test_post_api_session_superuser_is_true_for_superuser_email_ignoring_case(
     new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -470,6 +500,7 @@ def test_post_api_session_superuser_is_true_for_superuser_email_ignoring_case(
     assert response.json()["superuser"] is True
 
 
+# /core/operations/sign-in/signed-in /core/model/user/superuser
 def test_post_api_session_superuser_is_false_for_another_email(
     new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -483,6 +514,7 @@ def test_post_api_session_superuser_is_false_for_another_email(
     assert response.json()["superuser"] is False
 
 
+# /core/operations/sign-in/signed-in /core/model/user/superuser
 def test_post_api_session_superuser_is_false_when_superuser_email_is_unset(
     new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -499,6 +531,7 @@ def test_post_api_session_superuser_is_false_when_superuser_email_is_unset(
 # GET /api/session
 
 
+# /core/operations/get-session/user /core/model/user/superuser
 def test_get_api_session_tells_the_superuser(
     new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -513,6 +546,7 @@ def test_get_api_session_tells_the_superuser(
     assert response.json()["superuser"] is True
 
 
+# /core/operations/general/signed-out
 def test_get_api_session_401_when_signed_out(client: Any) -> None:
     response = client.get("/api/session")
 
@@ -523,6 +557,7 @@ def test_get_api_session_401_when_signed_out(client: Any) -> None:
 # DELETE /api/session
 
 
+# /core/operations/sign-out/signed-out
 def test_delete_api_session_signs_out(client: Any) -> None:
     sign_up(client, "Alice")
 
@@ -536,6 +571,7 @@ def test_delete_api_session_signs_out(client: Any) -> None:
 # POST /api/accounts/verify
 
 
+# /core/operations/confirm-email/confirmed
 def test_post_api_accounts_verify_confirms_and_signs_in(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -557,7 +593,8 @@ def test_post_api_accounts_verify_confirms_and_signs_in(
     )
 
 
-def test_r16_verify_replaces_a_session_id_planted_in_the_browser(
+# /core/operations/confirm-email/confirmed /core/operations/sign-in/new-session
+def test_verify_replaces_a_session_id_planted_in_the_browser(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -577,6 +614,7 @@ def test_r16_verify_replaces_a_session_id_planted_in_the_browser(
     assert attacker.get("/api/session").status_code == 401
 
 
+# /core/operations/confirm-email/invalid
 def test_post_api_accounts_verify_404_when_the_token_is_unknown(client: Any) -> None:
     response = client.post("/api/accounts/verify", json={"token": "unknown-token"})
 
@@ -584,6 +622,7 @@ def test_post_api_accounts_verify_404_when_the_token_is_unknown(client: Any) -> 
     assert "error" in response.json()
 
 
+# /core/operations/confirm-email/invalid
 def test_post_api_accounts_verify_404_when_the_token_was_already_used(client: Any) -> None:
     email = unique_email("Alice")
     client.post(
@@ -600,7 +639,8 @@ def test_post_api_accounts_verify_404_when_the_token_was_already_used(client: An
 # POST /api/accounts/verify/resend
 
 
-def test_r8_resend_invalidates_the_previous_token(client: Any) -> None:
+# /core/operations/resend-confirmation/resent /core/model/emailverificationtoken/single
+def test_resend_invalidates_the_previous_token(client: Any) -> None:
     email = unique_email("Alice")
     client.post(
         "/api/accounts", json={"display_name": "Alice", "email": email, "password": PASSWORD}
@@ -615,12 +655,14 @@ def test_r8_resend_invalidates_the_previous_token(client: Any) -> None:
     assert client.post("/api/accounts/verify", json={"token": second_token}).status_code == 200
 
 
+# /core/operations/resend-confirmation/answer
 def test_post_api_accounts_verify_resend_204_when_the_email_is_unknown(client: Any) -> None:
     response = client.post("/api/accounts/verify/resend", json={"email": unique_email("Nobody")})
 
     assert response.status_code == 204
 
 
+# /core/operations/resend-confirmation/answer
 def test_post_api_accounts_verify_resend_204_when_already_confirmed(client: Any) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
@@ -630,6 +672,7 @@ def test_post_api_accounts_verify_resend_204_when_already_confirmed(client: Any)
     assert response.status_code == 204
 
 
+# /core/operations/resend-confirmation/answer
 def test_post_api_accounts_verify_resend_204_when_the_email_cannot_be_sent(
     client: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -642,3 +685,52 @@ def test_post_api_accounts_verify_resend_204_when_the_email_cannot_be_sent(
     response = client.post("/api/accounts/verify/resend", json={"email": email})
 
     assert response.status_code == 204
+
+
+# /core/model/emailverificationtoken/token
+def test_confirmation_tokens_of_two_users_differ(client: Any) -> None:
+    alice, bruno = unique_email("Alice"), unique_email("Bruno")
+    for name, email in (("Alice", alice), ("Bruno", bruno)):
+        response = client.post(
+            "/api/accounts", json={"display_name": name, "email": email, "password": PASSWORD}
+        )
+        assert response.status_code == 201
+
+    assert latest_verification_token(alice) != latest_verification_token(bruno)
+
+
+# /core/model/emailverificationtoken/expiry /core/operations/confirm-email/invalid
+def test_confirmation_token_expires_after_24_hours(client: Any) -> None:
+    email = unique_email("Alice")
+    response = client.post(
+        "/api/accounts", json={"display_name": "Alice", "email": email, "password": PASSWORD}
+    )
+    assert response.status_code == 201
+    token = latest_verification_token(email)
+    left = run_sql(
+        "SELECT expires_at - now() FROM email_verification_token WHERE token = :token", token
+    )
+    assert timedelta(hours=23, minutes=59) < left <= timedelta(hours=24)
+
+    run_sql(
+        "UPDATE email_verification_token SET expires_at = now() - interval '1 second'"
+        " WHERE token = :token",
+        token,
+    )
+
+    assert client.post("/api/accounts/verify", json={"token": token}).status_code == 404
+
+
+# /core/operations/resend-confirmation/ignored /core/operations/resend-confirmation/answer
+def test_resend_sends_nothing_to_an_unknown_or_confirmed_email(client: Any) -> None:
+    confirmed, unknown = unique_email("Alice"), unique_email("Nobody")
+    sign_up(client, "Alice", confirmed)
+    before = email_count(confirmed)
+
+    for email in (confirmed, unknown):
+        response = client.post("/api/accounts/verify/resend", json={"email": email})
+        assert response.status_code == 204
+
+    time.sleep(0.5)
+    assert email_count(confirmed) == before
+    assert email_count(unknown) == 0

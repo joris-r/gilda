@@ -12,6 +12,7 @@ afterEach(() => {
 })
 
 describe('Access link', () => {
+  // /core/ui/access-link/signed-in
   it('signs in with the token from the link and leads to My associations', async () => {
     let signedIn = false
     const calls = mockApi({
@@ -35,6 +36,7 @@ describe('Access link', () => {
     expect(pageText(wrapper)).toContain('Alice')
   })
 
+  // /core/ui/access-link/invalid
   it('says the link is no longer valid for an unknown token or a revoked link', async () => {
     mockApi({
       'GET /api/session': signedOut,

@@ -12,6 +12,7 @@ NOTE = "Always group my registrations in pairs."
 # Signed-in member required
 
 
+# /planning/operations/general/member /core/operations/general/signed-out
 @pytest.mark.parametrize(
     ("method", "rest", "body"),
     [
@@ -34,6 +35,7 @@ def test_absences_and_note_401_when_signed_out(
     assert "error" in response.json()
 
 
+# /planning/operations/general/member /core/operations/general/unknown-association
 @pytest.mark.parametrize(
     ("method", "rest", "body"),
     [
@@ -69,6 +71,7 @@ def add_absence(as_client: Any, planning: Planning, first: str, last: str) -> di
     return absence
 
 
+# /planning/operations/add-absence/added
 def test_post_api_absences_creates_an_absence(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
 
@@ -82,6 +85,7 @@ def test_post_api_absences_creates_an_absence(client: Any, new_client: Callable[
     assert planning.bruno_client.get(planning.path("absences")).json() == [absence]
 
 
+# /planning/operations/add-absence/added /planning/model/absence/order
 def test_an_absence_may_last_one_day(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
 
@@ -90,6 +94,7 @@ def test_an_absence_may_last_one_day(client: Any, new_client: Callable[[], Any])
     assert absence["first"] == absence["last"] == "2026-11-09"
 
 
+# /planning/operations/list-absences/listed
 def test_get_api_absences_lists_them_by_first_date(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -103,6 +108,7 @@ def test_get_api_absences_lists_them_by_first_date(
     assert response.json() == [earlier, later]
 
 
+# /planning/operations/list-absences/listed
 def test_get_api_absences_lists_past_ones_too(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     past = add_absence(planning.bruno_client, planning, "2020-01-06", "2020-01-10")
@@ -110,6 +116,7 @@ def test_get_api_absences_lists_past_ones_too(client: Any, new_client: Callable[
     assert planning.bruno_client.get(planning.path("absences")).json() == [past]
 
 
+# /planning/operations/list-absences/listed
 def test_get_api_absences_lists_only_the_users_own(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -122,6 +129,7 @@ def test_get_api_absences_lists_only_the_users_own(
     assert client.get(planning.path("absences")).json() == []
 
 
+# /planning/operations/list-absences/listed
 def test_absences_are_kept_per_association(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     other = create_association(client, "Repair Café Belleville")
@@ -133,6 +141,7 @@ def test_absences_are_kept_per_association(client: Any, new_client: Callable[[],
     assert response.json() == []
 
 
+# /planning/operations/edit-absence/edited
 def test_put_api_absence_edits_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     absence = add_absence(planning.bruno_client, planning, "2026-11-09", "2026-11-15")
@@ -148,6 +157,7 @@ def test_put_api_absence_edits_it(client: Any, new_client: Callable[[], Any]) ->
     assert planning.bruno_client.get(planning.path("absences")).json() == [edited]
 
 
+# /planning/operations/delete-absence/deleted
 def test_delete_api_absence_removes_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     absence = add_absence(planning.bruno_client, planning, "2026-11-09", "2026-11-15")
@@ -158,6 +168,7 @@ def test_delete_api_absence_removes_it(client: Any, new_client: Callable[[], Any
     assert planning.bruno_client.get(planning.path("absences")).json() == []
 
 
+# /planning/operations/edit-absence/unknown /planning/operations/delete-absence/unknown
 @pytest.mark.parametrize("who", ["manager", "volunteer"])
 def test_absence_404_when_not_the_users(
     client: Any, new_client: Callable[[], Any], who: str
@@ -175,6 +186,7 @@ def test_absence_404_when_not_the_users(
     assert planning.bruno_client.get(planning.path("absences")).json() == [absence]
 
 
+# /planning/operations/edit-absence/unknown /planning/operations/delete-absence/unknown
 def test_absence_404_when_of_another_association(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -187,6 +199,7 @@ def test_absence_404_when_of_another_association(
     assert client.delete(at).status_code == 404
 
 
+# /planning/operations/edit-absence/unknown /planning/operations/delete-absence/unknown
 def test_absence_404_when_unknown(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     at = planning.path(f"absences/{UNKNOWN_ID}")
@@ -203,6 +216,7 @@ INVALID_DATES = [
 ]
 
 
+# /core/operations/general/malformed /planning/operations/add-absence/order
 @pytest.mark.parametrize("body", INVALID_DATES)
 def test_post_api_absences_400_when_a_field_is_missing_or_invalid(
     client: Any, new_client: Callable[[], Any], body: dict[str, str]
@@ -215,6 +229,7 @@ def test_post_api_absences_400_when_a_field_is_missing_or_invalid(
     assert "error" in response.json()
 
 
+# /core/operations/general/malformed /planning/operations/edit-absence/order
 @pytest.mark.parametrize("body", INVALID_DATES)
 def test_put_api_absence_400_when_a_field_is_missing_or_invalid(
     client: Any, new_client: Callable[[], Any], body: dict[str, str]
@@ -231,6 +246,7 @@ def test_put_api_absence_400_when_a_field_is_missing_or_invalid(
 # Note
 
 
+# /planning/operations/get-note/note
 def test_get_api_note_is_empty_when_never_set(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
 
@@ -240,6 +256,7 @@ def test_get_api_note_is_empty_when_never_set(client: Any, new_client: Callable[
     assert response.json() == {"text": ""}
 
 
+# /planning/operations/set-note/set
 def test_put_api_note_sets_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
 
@@ -250,6 +267,7 @@ def test_put_api_note_sets_it(client: Any, new_client: Callable[[], Any]) -> Non
     assert planning.bruno_client.get(planning.path("note")).json() == {"text": NOTE}
 
 
+# /planning/operations/set-note/set /planning/model/note/single
 def test_put_api_note_replaces_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     planning.bruno_client.put(planning.path("note"), json={"text": NOTE})
@@ -260,6 +278,7 @@ def test_put_api_note_replaces_it(client: Any, new_client: Callable[[], Any]) ->
     assert planning.bruno_client.get(planning.path("note")).json() == {"text": "Mornings\nonly."}
 
 
+# /planning/operations/set-note/set
 def test_put_api_note_empties_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     planning.bruno_client.put(planning.path("note"), json={"text": NOTE})
@@ -270,6 +289,7 @@ def test_put_api_note_empties_it(client: Any, new_client: Callable[[], Any]) -> 
     assert planning.bruno_client.get(planning.path("note")).json() == {"text": ""}
 
 
+# /planning/operations/get-note/note /planning/operations/set-note/set
 def test_note_is_the_users_own(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     planning.bruno_client.put(planning.path("note"), json={"text": NOTE})
@@ -278,6 +298,7 @@ def test_note_is_the_users_own(client: Any, new_client: Callable[[], Any]) -> No
     assert client.get(planning.path("note")).json() == {"text": ""}
 
 
+# /planning/operations/get-note/note
 def test_note_is_kept_per_association(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     other = create_association(client, "Repair Café Belleville")
@@ -286,6 +307,7 @@ def test_note_is_kept_per_association(client: Any, new_client: Callable[[], Any]
     assert client.get(f"/api/associations/{other['id']}/note").json() == {"text": ""}
 
 
+# /core/operations/general/malformed
 @pytest.mark.parametrize("body", [{}, {"text": None}, {"text": 3}])
 def test_put_api_note_400_when_text_is_missing_or_invalid(
     client: Any, new_client: Callable[[], Any], body: dict[str, Any]
@@ -301,6 +323,7 @@ def test_put_api_note_400_when_text_is_missing_or_invalid(
 # GET /api/associations/{id}/member-absences
 
 
+# /planning/operations/list-member-absences/listed
 def test_get_api_member_absences_lists_all_members_by_first_date(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -319,6 +342,7 @@ def test_get_api_member_absences_lists_all_members_by_first_date(
     ]
 
 
+# /planning/operations/list-member-absences/listed
 def test_get_api_member_absences_lists_past_ones_too(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -330,6 +354,7 @@ def test_get_api_member_absences_lists_past_ones_too(
     assert response.json() == [{**past, "user_id": planning.bruno["id"]}]
 
 
+# /planning/operations/list-member-absences/listed
 def test_get_api_member_absences_is_per_association(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -343,6 +368,7 @@ def test_get_api_member_absences_is_per_association(
     assert response.json() == []
 
 
+# /planning/operations/list-member-absences/volunteer
 def test_get_api_member_absences_403_for_a_volunteer(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -357,6 +383,7 @@ def test_get_api_member_absences_403_for_a_volunteer(
 # GET /api/associations/{id}/notes
 
 
+# /planning/operations/list-notes/listed
 def test_get_api_notes_one_entry_per_member(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     planning.bruno_client.put(planning.path("note"), json={"text": NOTE})
@@ -373,6 +400,7 @@ def test_get_api_notes_one_entry_per_member(client: Any, new_client: Callable[[]
     }
 
 
+# /planning/operations/list-notes/listed
 def test_get_api_notes_is_per_association(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     other = create_association(client, "Repair Café Belleville")
@@ -383,6 +411,7 @@ def test_get_api_notes_is_per_association(client: Any, new_client: Callable[[], 
     assert response.json() == [{"user_id": planning.alice["id"], "text": ""}]
 
 
+# /planning/operations/list-notes/volunteer
 def test_get_api_notes_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
 

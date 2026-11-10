@@ -87,7 +87,8 @@ def assert_no_email_sent(email: str) -> None:
 # POST /api/accounts/password-reset
 
 
-def test_r21_sends_a_reset_link_to_a_user_with_a_password(
+# /core/operations/request-password-reset/sent
+def test_sends_a_reset_link_to_a_user_with_a_password(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -102,8 +103,9 @@ def test_r21_sends_a_reset_link_to_a_user_with_a_password(
     assert re.search(r"/reset-password\?token=[\w-]+", sent["Text"])
 
 
+# /core/operations/request-password-reset/sent /core/operations/create-account/language
 @pytest.mark.parametrize("accept_language", ["fr", "fr-FR,fr;q=0.9,en;q=0.8"])
-def test_r21_reset_email_is_in_french_when_the_request_prefers_french(
+def test_reset_email_is_in_french_when_the_request_prefers_french(
     client: Any, new_client: Callable[[], Any], accept_language: str
 ) -> None:
     email = unique_email("Alice")
@@ -117,9 +119,8 @@ def test_r21_reset_email_is_in_french_when_the_request_prefers_french(
     assert re.search(r"/reset-password\?token=[\w-]+", sent["Text"])
 
 
-def test_r21_reset_email_is_in_english_otherwise(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
+# /core/operations/request-password-reset/sent /core/operations/create-account/language
+def test_reset_email_is_in_english_otherwise(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
 
@@ -128,7 +129,8 @@ def test_r21_reset_email_is_in_english_otherwise(
     assert latest_email(email)["Subject"] == ENGLISH["Subject"]
 
 
-def test_r21_ignores_the_case_of_the_email(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/request-password-reset/sent /core/model/user/email
+def test_ignores_the_case_of_the_email(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
 
@@ -137,7 +139,8 @@ def test_r21_ignores_the_case_of_the_email(client: Any, new_client: Callable[[],
     latest_reset_token(email)  # raises if no reset email was sent
 
 
-def test_r21_sends_a_reset_link_to_a_user_whose_email_is_not_confirmed(client: Any) -> None:
+# /core/operations/request-password-reset/sent
+def test_sends_a_reset_link_to_a_user_whose_email_is_not_confirmed(client: Any) -> None:
     email = unique_email("Bruno")
     client.post(
         "/api/accounts", json={"display_name": "Bruno", "email": email, "password": PASSWORD}
@@ -149,6 +152,7 @@ def test_r21_sends_a_reset_link_to_a_user_whose_email_is_not_confirmed(client: A
     latest_reset_token(email)
 
 
+# /core/operations/request-password-reset/ignored
 def test_password_reset_sends_nothing_to_a_user_without_a_password(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -163,6 +167,7 @@ def test_password_reset_sends_nothing_to_a_user_without_a_password(
     assert_no_email_sent(chloe_email)
 
 
+# /core/operations/request-password-reset/ignored
 def test_password_reset_sends_nothing_to_an_unknown_email(client: Any) -> None:
     email = unique_email("Nobody")
 
@@ -172,6 +177,7 @@ def test_password_reset_sends_nothing_to_an_unknown_email(client: Any) -> None:
     assert_no_email_sent(email)
 
 
+# /core/operations/request-password-reset/answer
 def test_password_reset_204_when_the_email_cannot_be_sent(
     client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -185,7 +191,8 @@ def test_password_reset_204_when_the_email_cannot_be_sent(
     assert response.status_code == 204
 
 
-def test_r8_a_new_reset_request_invalidates_the_previous_link(
+# /core/operations/request-password-reset/sent /core/model/passwordresettoken/single
+def test_a_new_reset_request_invalidates_the_previous_link(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -203,6 +210,7 @@ def test_r8_a_new_reset_request_invalidates_the_previous_link(
     assert reset(browser, second_token).status_code == 200
 
 
+# /core/operations/general/malformed
 @pytest.mark.parametrize("body", [{}, {"email": ""}, {"email": "not-an-email"}])
 def test_password_reset_400_when_the_email_is_missing_empty_or_invalid(
     client: Any, body: dict[str, str]
@@ -216,7 +224,8 @@ def test_password_reset_400_when_the_email_is_missing_empty_or_invalid(
 # POST /api/accounts/password-reset/confirm
 
 
-def test_r22_replaces_the_password(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/reset-password/reset
+def test_replaces_the_password(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
     browser = new_client()
@@ -229,7 +238,8 @@ def test_r22_replaces_the_password(client: Any, new_client: Callable[[], Any]) -
     assert not can_sign_in(new_client, email, PASSWORD)
 
 
-def test_r22_signs_the_user_in(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/reset-password/reset
+def test_signs_the_user_in(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     user = sign_up(client, "Alice", email)
     browser = new_client()
@@ -242,7 +252,8 @@ def test_r22_signs_the_user_in(client: Any, new_client: Callable[[], Any]) -> No
     assert browser.get("/api/session").json() == {**user, "superuser": False}
 
 
-def test_r22_tells_the_superuser(
+# /core/operations/reset-password/reset /core/model/user/superuser
+def test_tells_the_superuser(
     new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     email = unique_email("Root")
@@ -256,7 +267,8 @@ def test_r22_tells_the_superuser(
     assert response.json()["superuser"] is True
 
 
-def test_r22_keeps_the_other_sessions_signed_in(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/reset-password/reset
+def test_keeps_the_other_sessions_signed_in(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     user = sign_up(client, "Alice", email)
     browser = new_client()
@@ -267,7 +279,8 @@ def test_r22_keeps_the_other_sessions_signed_in(client: Any, new_client: Callabl
     assert client.get("/api/session").json() == {**user, "superuser": False}
 
 
-def test_r22_confirms_an_unconfirmed_email(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/reset-password/reset
+def test_confirms_an_unconfirmed_email(client: Any, new_client: Callable[[], Any]) -> None:
     sign_up(client, "Alice")
     association = create_association(client)
     bruno_email = unique_email("Bruno")
@@ -287,7 +300,8 @@ def test_r22_confirms_an_unconfirmed_email(client: Any, new_client: Callable[[],
     assert bruno_member["email_verified"] is True
 
 
-def test_r22_the_link_works_only_once(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/reset-password/reset /core/operations/reset-password/invalid
+def test_the_link_works_only_once(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
     browser = new_client()
@@ -302,7 +316,8 @@ def test_r22_the_link_works_only_once(client: Any, new_client: Callable[[], Any]
     assert can_sign_in(new_client, email, NEW_PASSWORD)
 
 
-def test_r16_reset_replaces_a_session_id_planted_in_the_browser(
+# /core/operations/reset-password/reset /core/operations/sign-in/new-session
+def test_reset_replaces_a_session_id_planted_in_the_browser(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -321,6 +336,7 @@ def test_r16_reset_replaces_a_session_id_planted_in_the_browser(
     assert attacker.get("/api/session").status_code == 401
 
 
+# /core/operations/reset-password/invalid
 def test_password_reset_confirm_404_when_the_token_is_unknown(client: Any) -> None:
     response = reset(client, "unknown-token")
 
@@ -329,6 +345,7 @@ def test_password_reset_confirm_404_when_the_token_is_unknown(client: Any) -> No
     assert client.get("/api/session").status_code == 401
 
 
+# /core/model/passwordresettoken/expiry /core/operations/reset-password/invalid
 def test_password_reset_token_expires_after_one_hour(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -346,6 +363,7 @@ def test_password_reset_token_expires_after_one_hour(
     assert can_sign_in(new_client, email, PASSWORD)
 
 
+# /core/operations/reset-password/short-password /core/operations/general/refused
 def test_password_reset_confirm_400_when_the_password_is_too_short_and_the_link_still_works(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -364,6 +382,7 @@ def test_password_reset_confirm_400_when_the_password_is_too_short_and_the_link_
     assert reset(browser, token, "12345678").status_code == 200
 
 
+# /core/operations/general/malformed
 @pytest.mark.parametrize("body", [{"token": "t"}, {"password": NEW_PASSWORD}])
 def test_password_reset_confirm_400_when_a_field_is_missing(
     client: Any, body: dict[str, str]
@@ -372,3 +391,15 @@ def test_password_reset_confirm_400_when_a_field_is_missing(
 
     assert response.status_code == 400
     assert "error" in response.json()
+
+
+# /core/model/passwordresettoken/token
+def test_reset_tokens_of_two_users_differ(client: Any, new_client: Callable[[], Any]) -> None:
+    alice, bruno = unique_email("Alice"), unique_email("Bruno")
+    sign_up(new_client(), "Alice", alice)
+    sign_up(new_client(), "Bruno", bruno)
+
+    assert ask_for_reset(client, alice).status_code == 204
+    assert ask_for_reset(client, bruno).status_code == 204
+
+    assert latest_reset_token(alice) != latest_reset_token(bruno)

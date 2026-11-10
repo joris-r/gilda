@@ -50,6 +50,8 @@ Actions:
 - [edit-slot] A slot's edit icon opens the dialog "Edit the slot",
   filled with the slot, with [Save]; From and To do not follow each
   other. It runs /planning/operations/edit-slot.
+  - [edit-exists] /planning/operations/edit-slot/exists: "This slot
+    already exists."
 - [delete-slot] A slot's delete icon asks "Delete the slot <weekday>
   <start>–<end>?" with [Delete], which runs
   /planning/operations/delete-slot.

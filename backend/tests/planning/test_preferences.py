@@ -41,6 +41,7 @@ def by_user_and_slot(body: list[dict[str, Any]]) -> set[tuple[str, str, str]]:
     return {(p["user_id"], p["slot_id"], p["value"]) for p in body}
 
 
+# /planning/operations/general/member /core/operations/general/signed-out
 @pytest.mark.parametrize(
     ("method", "rest", "body"),
     [
@@ -59,6 +60,7 @@ def test_preferences_401_when_signed_out(
     assert "error" in response.json()
 
 
+# /planning/operations/general/member /core/operations/general/unknown-association
 @pytest.mark.parametrize(
     ("method", "rest", "body"),
     [
@@ -85,6 +87,7 @@ def test_preferences_404_when_not_a_member(
 # Preferences
 
 
+# /planning/operations/set-preference/set
 def test_put_api_preference_sets_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -100,6 +103,7 @@ def test_put_api_preference_sets_it(client: Any, new_client: Callable[[], Any]) 
     assert preferences(planning, planning.bruno_client) == [response.json()]
 
 
+# /planning/operations/set-preference/set
 @pytest.mark.parametrize("value", ["preferred", "possible", "unavailable"])
 def test_preference_values(client: Any, new_client: Callable[[], Any], value: str) -> None:
     planning = Planning(client, new_client)
@@ -111,6 +115,7 @@ def test_preference_values(client: Any, new_client: Callable[[], Any], value: st
     assert response.json()["value"] == value
 
 
+# /planning/operations/set-preference/set /planning/model/preference/single
 def test_put_api_preference_replaces_the_previous_one(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -125,6 +130,7 @@ def test_put_api_preference_replaces_the_previous_one(
     }
 
 
+# /core/operations/general/malformed
 def test_put_api_preference_400_when_the_value_is_invalid(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -137,6 +143,7 @@ def test_put_api_preference_400_when_the_value_is_invalid(
     assert "error" in response.json()
 
 
+# /planning/operations/delete-preference/deleted
 def test_delete_api_preference_removes_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -150,6 +157,7 @@ def test_delete_api_preference_removes_it(client: Any, new_client: Callable[[], 
     assert preferences(planning, planning.bruno_client) == []
 
 
+# /planning/operations/list-preferences/manager
 def test_get_api_preferences_empty_when_none_is_set(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -159,6 +167,7 @@ def test_get_api_preferences_empty_when_none_is_set(
     assert preferences(planning, client) == []
 
 
+# /planning/operations/list-preferences/manager
 def test_get_api_preferences_lists_all_of_them_for_a_manager(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -176,6 +185,7 @@ def test_get_api_preferences_lists_all_of_them_for_a_manager(
     }
 
 
+# /planning/operations/list-preferences/volunteer
 def test_get_api_preferences_lists_only_their_own_for_a_volunteer(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -190,6 +200,7 @@ def test_get_api_preferences_lists_only_their_own_for_a_volunteer(
     }
 
 
+# /planning/operations/set-preference/set /planning/operations/delete-preference/deleted
 def test_a_manager_sets_and_deletes_another_members_preference(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -209,6 +220,7 @@ def test_a_manager_sets_and_deletes_another_members_preference(
     assert preferences(planning, planning.bruno_client) == []
 
 
+# /planning/operations/set-preference/other
 def test_a_volunteer_setting_another_members_preference_403(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -222,6 +234,7 @@ def test_a_volunteer_setting_another_members_preference_403(
     assert preferences(planning, client) == []
 
 
+# /planning/operations/delete-preference/other
 def test_a_volunteer_deleting_another_members_preference_403(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -237,6 +250,7 @@ def test_a_volunteer_deleting_another_members_preference_403(
     assert len(preferences(planning, client)) == 1
 
 
+# /planning/operations/set-preference/unknown /planning/operations/delete-preference/unknown
 def test_preference_404_when_the_slot_is_not_of_this_association(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -255,6 +269,7 @@ def test_preference_404_when_the_slot_is_not_of_this_association(
         assert response.status_code == 404
 
 
+# /planning/operations/set-preference/unknown /planning/model/preference/member
 def test_preference_404_when_the_user_is_not_a_member(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -268,6 +283,7 @@ def test_preference_404_when_the_user_is_not_a_member(
         assert "error" in response.json()
 
 
+# /planning/operations/delete-slot/deleted
 def test_deleting_a_slot_deletes_its_preferences(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -284,6 +300,7 @@ def test_deleting_a_slot_deletes_its_preferences(
     }
 
 
+# /planning/operations/edit-slot/edited
 def test_editing_a_slot_keeps_its_preferences(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -300,6 +317,7 @@ def test_editing_a_slot_keeps_its_preferences(client: Any, new_client: Callable[
     }
 
 
+# /planning/operations/delete-slot/deleted /planning/operations/add-slot/added
 def test_a_slot_added_again_has_no_preferences(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -314,6 +332,7 @@ def test_a_slot_added_again_has_no_preferences(client: Any, new_client: Callable
 # GET /api/associations/{id}/registration-counts
 
 
+# /planning/operations/get-registration-counts/no-period
 def test_registration_counts_null_when_there_is_no_planning_period(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -322,6 +341,7 @@ def test_registration_counts_null_when_there_is_no_planning_period(
     assert counts(planning) is None
 
 
+# /planning/operations/get-registration-counts/counts
 def test_registration_counts_one_entry_per_member(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -335,6 +355,7 @@ def test_registration_counts_one_entry_per_member(
     }
 
 
+# /planning/operations/get-registration-counts/volunteer
 def test_registration_counts_403_for_a_volunteer(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -347,7 +368,8 @@ def test_registration_counts_403_for_a_volunteer(
     assert "error" in response.json()
 
 
-def test_r15_counts_proposed_and_confirmed_registrations(
+# /planning/operations/get-registration-counts/counts /planning/model/registration/count
+def test_counts_proposed_and_confirmed_registrations(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
@@ -367,9 +389,8 @@ def test_r15_counts_proposed_and_confirmed_registrations(
     }
 
 
-def test_r15_does_not_count_cancelled_registrations(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
+# /planning/operations/get-registration-counts/counts /planning/model/registration/count
+def test_does_not_count_cancelled_registrations(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     planning.add_slot("thursday", "10:00", "13:00")
     set_period(planning, day_of_week("monday", 1), day_of_week("sunday", 2))
@@ -385,7 +406,8 @@ def test_r15_does_not_count_cancelled_registrations(
     }
 
 
-def test_r15_does_not_count_registrations_outside_the_planning_period(
+# /planning/operations/get-registration-counts/counts /planning/model/registration/count
+def test_does_not_count_registrations_outside_the_planning_period(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
@@ -408,9 +430,8 @@ def test_r15_does_not_count_registrations_outside_the_planning_period(
     }
 
 
-def test_r15_does_not_count_obsolete_registrations(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
+# /planning/operations/get-registration-counts/counts /planning/model/registration/count
+def test_does_not_count_obsolete_registrations(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
     set_period(planning, day_of_week("monday", 1), day_of_week("sunday", 2))

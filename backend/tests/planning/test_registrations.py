@@ -22,7 +22,8 @@ def thursday_planning(client: Any, new_client: Callable[[], Any]) -> tuple[Plann
 # POST /api/associations/{id}/registrations
 
 
-def test_r5_a_volunteer_registering_themself_is_confirmed(
+# /planning/operations/register/self
+def test_a_volunteer_registering_themself_is_confirmed(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, thursday = thursday_planning(client, new_client)
@@ -43,7 +44,8 @@ def test_r5_a_volunteer_registering_themself_is_confirmed(
     uuid.UUID(body["id"])
 
 
-def test_r5_a_manager_registering_themself_is_confirmed(
+# /planning/operations/register/self
+def test_a_manager_registering_themself_is_confirmed(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, thursday = thursday_planning(client, new_client)
@@ -54,7 +56,8 @@ def test_r5_a_manager_registering_themself_is_confirmed(
     assert response.json()["status"] == "confirmed"
 
 
-def test_r5_a_manager_registering_another_member_proposes(
+# /planning/operations/register/proposed
+def test_a_manager_registering_another_member_proposes(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, thursday = thursday_planning(client, new_client)
@@ -65,7 +68,8 @@ def test_r5_a_manager_registering_another_member_proposes(
     assert (response.json()["display_name"], response.json()["status"]) == ("Bruno", "proposed")
 
 
-def test_r5_a_volunteer_registering_another_member_403(
+# /planning/operations/register/other
+def test_a_volunteer_registering_another_member_403(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, thursday = thursday_planning(client, new_client)
@@ -77,7 +81,8 @@ def test_r5_a_volunteer_registering_another_member_403(
     assert planning.schedule(client, thursday, thursday)["occurrences"][0]["registration"] is None
 
 
-def test_r4_409_when_the_occurrence_already_holds_a_registration(
+# /planning/operations/register/taken /planning/model/registration/single
+def test_409_when_the_occurrence_already_holds_a_registration(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, thursday = thursday_planning(client, new_client)
@@ -89,9 +94,8 @@ def test_r4_409_when_the_occurrence_already_holds_a_registration(
     assert "error" in response.json()
 
 
-def test_r4_409_also_for_a_proposed_registration(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
+# /planning/operations/register/taken /planning/model/registration/single
+def test_409_also_for_a_proposed_registration(client: Any, new_client: Callable[[], Any]) -> None:
     planning, thursday = thursday_planning(client, new_client)
     planning.registered(client, planning.bruno, thursday, "10:00", "13:00")
 
@@ -100,7 +104,8 @@ def test_r4_409_also_for_a_proposed_registration(
     assert response.status_code == 409
 
 
-def test_r4_an_occurrence_whose_registration_was_cancelled_takes_a_new_one(
+# /planning/operations/register/taken /planning/operations/register/self
+def test_an_occurrence_whose_registration_was_cancelled_takes_a_new_one(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, thursday = thursday_planning(client, new_client)
@@ -112,6 +117,7 @@ def test_r4_an_occurrence_whose_registration_was_cancelled_takes_a_new_one(
     assert response.status_code == 201
 
 
+# /planning/operations/register/no-occurrence /planning/model/occurrence/identity
 @pytest.mark.parametrize(
     ("weekday", "start", "end"),
     [
@@ -133,6 +139,7 @@ def test_post_api_registrations_409_when_no_occurrence_matches(
     assert "error" in response.json()
 
 
+# /planning/operations/register/no-occurrence /planning/model/occurrence
 def test_post_api_registrations_409_on_a_closure_date(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -144,6 +151,7 @@ def test_post_api_registrations_409_on_a_closure_date(
     assert response.status_code == 409
 
 
+# /planning/operations/register/no-occurrence
 def test_post_api_registrations_409_on_a_slot_of_another_association(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -161,7 +169,8 @@ def test_post_api_registrations_409_on_a_slot_of_another_association(
     assert response.status_code == 409
 
 
-def test_r6_409_when_the_date_is_before_today(client: Any, new_client: Callable[[], Any]) -> None:
+# /planning/operations/register/past
+def test_409_when_the_date_is_before_today(client: Any, new_client: Callable[[], Any]) -> None:
     planning, _ = thursday_planning(client, new_client)
 
     response = planning.register(
@@ -172,7 +181,8 @@ def test_r6_409_when_the_date_is_before_today(client: Any, new_client: Callable[
     assert "error" in response.json()
 
 
-def test_r6_today_is_not_before_today(client: Any, new_client: Callable[[], Any]) -> None:
+# /planning/operations/register/past
+def test_today_is_not_before_today(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     today = datetime.now(ZoneInfo("Europe/Paris")).date()
     planning.add_slot(WEEKDAYS[today.weekday()], "23:00", "23:30")
@@ -184,6 +194,9 @@ def test_r6_today_is_not_before_today(client: Any, new_client: Callable[[], Any]
     assert response.status_code == 201
 
 
+# /planning/operations/register/past
+# /planning/model/time-zone/today
+# /planning/model/time-zone/local
 @pytest.mark.parametrize(
     ("now", "day", "status"),
     [
@@ -197,7 +210,7 @@ def test_r6_today_is_not_before_today(client: Any, new_client: Callable[[], Any]
         (datetime(2026, 12, 31, 22, 30, tzinfo=UTC), date(2026, 12, 31), 201),
     ],
 )
-def test_r11_r6_today_is_in_the_associations_timezone(
+def test_today_is_in_the_associations_timezone(
     client: Any, new_client: Callable[[], Any], now: datetime, day: date, status: int
 ) -> None:
     with time_machine.travel(now, tick=False):
@@ -211,6 +224,7 @@ def test_r11_r6_today_is_in_the_associations_timezone(
     assert response.status_code == status, response.text
 
 
+# /planning/operations/register/non-member /planning/model/registration/member
 def test_post_api_registrations_400_when_the_user_is_not_a_member(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -222,6 +236,7 @@ def test_post_api_registrations_400_when_the_user_is_not_a_member(
     assert "error" in response.json()
 
 
+# /core/operations/general/malformed
 @pytest.mark.parametrize("missing", ["user_id", "date", "start", "end"])
 def test_post_api_registrations_400_when_a_field_is_missing(
     client: Any, new_client: Callable[[], Any], missing: str
@@ -244,7 +259,8 @@ def proposed_to_bruno(client: Any, new_client: Callable[[], Any]) -> tuple[Plann
     return planning, planning.registered(client, planning.bruno, thursday, "10:00", "13:00")
 
 
-def test_r7_the_registered_user_confirms_a_proposed_registration(
+# /planning/operations/change-registration/confirm
+def test_the_registered_user_confirms_a_proposed_registration(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
@@ -255,7 +271,8 @@ def test_r7_the_registered_user_confirms_a_proposed_registration(
     assert response.json() == {**registration, "status": "confirmed"}
 
 
-def test_r7_a_manager_confirms_another_members_proposed_registration(
+# /planning/operations/change-registration/confirm
+def test_a_manager_confirms_another_members_proposed_registration(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
@@ -266,7 +283,8 @@ def test_r7_a_manager_confirms_another_members_proposed_registration(
     assert response.json() == {**registration, "status": "confirmed"}
 
 
-def test_r7_nobody_else_confirms(client: Any, new_client: Callable[[], Any]) -> None:
+# /planning/operations/change-registration/forbidden
+def test_nobody_else_confirms(client: Any, new_client: Callable[[], Any]) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
 
     response = planning.set_status(planning.chloe_client, registration, "confirmed")
@@ -275,7 +293,8 @@ def test_r7_nobody_else_confirms(client: Any, new_client: Callable[[], Any]) -> 
     assert "error" in response.json()
 
 
-def test_r7_confirming_a_confirmed_registration_409(
+# /planning/operations/change-registration/other
+def test_confirming_a_confirmed_registration_409(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, thursday = thursday_planning(client, new_client)
@@ -289,7 +308,8 @@ def test_r7_confirming_a_confirmed_registration_409(
     assert "error" in response.json()
 
 
-def test_r7_confirming_a_cancelled_registration_409(
+# /planning/operations/change-registration/other
+def test_confirming_a_cancelled_registration_409(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
@@ -300,7 +320,8 @@ def test_r7_confirming_a_cancelled_registration_409(
     assert response.status_code == 409
 
 
-def test_r7_confirming_an_obsolete_registration_409(
+# /planning/operations/change-registration/other
+def test_confirming_an_obsolete_registration_409(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
@@ -312,7 +333,8 @@ def test_r7_confirming_an_obsolete_registration_409(
     assert response.status_code == 409
 
 
-def test_r7_a_manager_confirming_an_obsolete_registration_409(
+# /planning/operations/change-registration/other
+def test_a_manager_confirming_an_obsolete_registration_409(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
@@ -324,7 +346,8 @@ def test_r7_a_manager_confirming_an_obsolete_registration_409(
     assert response.status_code == 409
 
 
-def test_r7_the_registered_user_cancels(client: Any, new_client: Callable[[], Any]) -> None:
+# /planning/operations/change-registration/cancel
+def test_the_registered_user_cancels(client: Any, new_client: Callable[[], Any]) -> None:
     planning, thursday = thursday_planning(client, new_client)
     registration = planning.registered(
         planning.bruno_client, planning.bruno, thursday, "10:00", "13:00"
@@ -336,7 +359,8 @@ def test_r7_the_registered_user_cancels(client: Any, new_client: Callable[[], An
     assert response.json() == {**registration, "status": "cancelled"}
 
 
-def test_r7_a_manager_cancels_another_members_registration(
+# /planning/operations/change-registration/cancel
+def test_a_manager_cancels_another_members_registration(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, thursday = thursday_planning(client, new_client)
@@ -350,7 +374,8 @@ def test_r7_a_manager_cancels_another_members_registration(
     assert response.json()["status"] == "cancelled"
 
 
-def test_r7_an_obsolete_registration_can_be_cancelled(
+# /planning/operations/change-registration/cancel
+def test_an_obsolete_registration_can_be_cancelled(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
@@ -362,7 +387,8 @@ def test_r7_an_obsolete_registration_can_be_cancelled(
     assert response.status_code == 200
 
 
-def test_r7_another_volunteer_cannot_cancel(client: Any, new_client: Callable[[], Any]) -> None:
+# /planning/operations/change-registration/forbidden
+def test_another_volunteer_cannot_cancel(client: Any, new_client: Callable[[], Any]) -> None:
     planning, thursday = thursday_planning(client, new_client)
     registration = planning.registered(
         planning.bruno_client, planning.bruno, thursday, "10:00", "13:00"
@@ -375,7 +401,8 @@ def test_r7_another_volunteer_cannot_cancel(client: Any, new_client: Callable[[]
     assert thursday_schedule["occurrences"][0]["registration"]["status"] == "confirmed"
 
 
-def test_r7_cancelling_a_cancelled_registration_409(
+# /planning/operations/change-registration/other
+def test_cancelling_a_cancelled_registration_409(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning, registration = proposed_to_bruno(client, new_client)
@@ -386,7 +413,8 @@ def test_r7_cancelling_a_cancelled_registration_409(
     assert response.status_code == 409
 
 
-def test_r7_back_to_proposed_409(client: Any, new_client: Callable[[], Any]) -> None:
+# /planning/operations/change-registration/other
+def test_back_to_proposed_409(client: Any, new_client: Callable[[], Any]) -> None:
     planning, thursday = thursday_planning(client, new_client)
     registration = planning.registered(
         planning.bruno_client, planning.bruno, thursday, "10:00", "13:00"
@@ -397,6 +425,7 @@ def test_r7_back_to_proposed_409(client: Any, new_client: Callable[[], Any]) -> 
     assert response.status_code == 409
 
 
+# /core/operations/general/malformed
 def test_patch_api_registration_400_when_the_status_is_invalid(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -408,6 +437,7 @@ def test_patch_api_registration_400_when_the_status_is_invalid(
     assert "error" in response.json()
 
 
+# /planning/operations/change-registration/unknown
 def test_patch_api_registration_404_when_not_of_this_association(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -423,6 +453,7 @@ def test_patch_api_registration_404_when_not_of_this_association(
     assert "error" in response.json()
 
 
+# /planning/operations/change-registration/unknown
 def test_patch_api_registration_404_when_unknown(
     client: Any, new_client: Callable[[], Any]
 ) -> None:

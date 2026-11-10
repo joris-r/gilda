@@ -78,6 +78,7 @@ afterEach(() => {
 
 describe('My associations', () => {
   describe('summary', () => {
+    // /home/ui/my-associations/upcoming
     it('lists the upcoming registrations of each association', async () => {
       const wrapper = await mountHome(drawing).mounting
 
@@ -87,6 +88,7 @@ describe('My associations', () => {
       expect(text.indexOf('Thu 5 Nov')).toBeLessThan(text.indexOf('Sat 14 Nov'))
     })
 
+    // /home/ui/my-associations/registration
     it('each registration shows its date and times, then its display name, then its action', async () => {
       const wrapper = await mountHome(drawing).mounting
 
@@ -99,6 +101,7 @@ describe('My associations', () => {
       )
     })
 
+    // /home/ui/my-associations/upcoming
     it('a confirmed registration is not marked "?" and has no "Confirm"', async () => {
       const wrapper = await mountHome([
         summary(garden, [registration('r-5', 'confirmed', '2026-11-05')]),
@@ -109,6 +112,7 @@ describe('My associations', () => {
       expect(hasControl(shown, 'Confirm')).toBe(false)
     })
 
+    // /home/ui/my-associations/upcoming
     it('a proposed registration is marked "?" and has "Confirm"', async () => {
       const wrapper = await mountHome(drawing).mounting
 
@@ -116,6 +120,7 @@ describe('My associations', () => {
       expect(hasControl(line(wrapper, 'Thu 5 Nov'), 'Confirm')).toBe(false)
     })
 
+    // /home/ui/my-associations/confirm
     it('"Confirm" confirms the registration, and the summary shows it updated', async () => {
       let status: Registration['status'] = 'proposed'
       const calls = mockApi({
@@ -143,6 +148,7 @@ describe('My associations', () => {
       expect(hasControl(shown, 'Confirm')).toBe(false)
     })
 
+    // /home/ui/my-associations/no-upcoming
     it('says "No upcoming registration." when there is none', async () => {
       const wrapper = await mountHome(drawing).mounting
 
@@ -152,6 +158,7 @@ describe('My associations', () => {
   })
 
   describe('obsolete registrations', () => {
+    // /home/ui/my-associations/obsolete
     it('come first, each saying "this slot no longer takes place." with "OK"', async () => {
       const wrapper = await mountHome(drawing).mounting
 
@@ -163,6 +170,7 @@ describe('My associations', () => {
       expect(text.indexOf('Thu 12 Nov')).toBeLessThan(text.indexOf('Thu 5 Nov'))
     })
 
+    // /home/ui/my-associations/obsolete
     it('upcoming registrations say nothing of the kind and have no "OK"', async () => {
       const wrapper = await mountHome(drawing).mounting
 
@@ -172,6 +180,7 @@ describe('My associations', () => {
       }
     })
 
+    // /home/ui/my-associations/obsolete
     it('a proposed one has "OK" but no "Confirm"', async () => {
       const wrapper = await mountHome([
         summary(garden, [], null, 'volunteer', [registration('r-12', 'proposed', '2026-11-12')]),
@@ -182,6 +191,7 @@ describe('My associations', () => {
       expect(hasControl(shown, 'Confirm')).toBe(false)
     })
 
+    // /home/ui/my-associations/acknowledge
     it('"OK" cancels the registration, which then no longer shows', async () => {
       let status: Registration['status'] = 'confirmed'
       const calls = mockApi({
@@ -218,7 +228,8 @@ describe('My associations', () => {
     })
   })
 
-  describe('R14', () => {
+  describe('planning period reminder', () => {
+    // /home/ui/my-associations/no-registration /home/ui/my-associations/dates
     it('reminds of a planning period with no registration of mine', async () => {
       const wrapper = await mountHome(drawing).mounting
 
@@ -228,6 +239,7 @@ describe('My associations', () => {
       expect(text).not.toContain('No upcoming registration.')
     })
 
+    // /home/ui/my-associations/no-registration
     it('no reminder when I have a registration in the period', async () => {
       const wrapper = await mountHome(drawing).mounting
 
@@ -235,6 +247,7 @@ describe('My associations', () => {
       expect(hasControl(item(wrapper, garden.name), 'Choose your slots')).toBe(false)
     })
 
+    // /home/ui/my-associations/no-registration /home/ui/my-associations/no-upcoming
     it('no reminder once the period has ended, but "No upcoming registration."', async () => {
       const wrapper = await mountHome([summary(garden, [], period('2026-10-01', '2026-11-03', 0))])
         .mounting
@@ -244,6 +257,7 @@ describe('My associations', () => {
       expect(text).toContain('No upcoming registration.')
     })
 
+    // /home/ui/my-associations/no-registration
     it('a period ending today still reminds', async () => {
       const wrapper = await mountHome([summary(garden, [], period('2026-10-01', '2026-11-04', 0))])
         .mounting
@@ -253,6 +267,7 @@ describe('My associations', () => {
       )
     })
 
+    // /home/ui/my-associations/no-registration /planning/model/time-zone/today
     it('after midnight in Paris, a period that ended yesterday no longer reminds', async () => {
       // 00:30 on 5 November in Paris, still 4 November in UTC.
       vi.setSystemTime(new Date('2026-11-04T23:30:00Z'))
@@ -262,12 +277,14 @@ describe('My associations', () => {
       expect(pageText(item(wrapper, garden.name))).not.toContain('No registration yet')
     })
 
+    // /home/ui/my-associations/no-registration
     it('no reminder when there is no period', async () => {
       const wrapper = await mountHome(drawing).mounting
 
       expect(pageText(item(wrapper, atelier.name))).not.toContain('No registration yet')
     })
 
+    // /home/ui/my-associations/no-registration /home/ui/my-associations/upcoming
     it('reminds alongside upcoming registrations outside the period', async () => {
       const wrapper = await mountHome([
         summary(
@@ -282,6 +299,7 @@ describe('My associations', () => {
       expect(text).toContain('No registration yet for the planning period, 2–25 Nov.')
     })
 
+    // /home/ui/my-associations/choose
     it('"Choose your slots" leads to the association Schedule', async () => {
       const api = planningApi({
         me: 'u-alice',
@@ -303,6 +321,7 @@ describe('My associations', () => {
       expect(wrapper.vm.$route.path).toBe(`/association/${garden.slug}`)
     })
 
+    // /home/ui/my-associations/dates
     it.each([
       ['2026-11-02', '2026-11-25', '2–25 Nov'],
       ['2026-10-28', '2026-11-25', '28 Oct – 25 Nov'],
@@ -316,6 +335,7 @@ describe('My associations', () => {
     })
   })
 
+  // /home/ui/my-associations/no-registration /home/ui/my-associations/dates
   it('in French', async () => {
     localStorage.setItem('gilda.locale', 'fr')
     const wrapper = await mountHome(drawing).mounting

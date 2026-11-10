@@ -74,7 +74,8 @@ def assert_no_email_sent(email: str) -> None:
 # POST /api/access-link
 
 
-def test_r24_sends_the_access_link_to_a_user_with_a_password(
+# /core/operations/request-access-link/sent
+def test_sends_the_access_link_to_a_user_with_a_password(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -89,7 +90,8 @@ def test_r24_sends_the_access_link_to_a_user_with_a_password(
     assert re.search(r"/access\?token=[\w-]+", sent["Text"])
 
 
-def test_r24_sends_the_access_link_to_a_member_without_a_password(
+# /core/operations/request-access-link/sent
+def test_sends_the_access_link_to_a_member_without_a_password(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     _, _, chloe_email = manager_with_member(client)
@@ -100,8 +102,9 @@ def test_r24_sends_the_access_link_to_a_member_without_a_password(
     latest_access_token(chloe_email)  # raises if no access link was sent
 
 
+# /core/operations/request-access-link/sent /core/operations/create-account/language
 @pytest.mark.parametrize("accept_language", ["fr", "fr-FR,fr;q=0.9,en;q=0.8"])
-def test_r24_access_link_email_is_in_french_when_the_request_prefers_french(
+def test_access_link_email_is_in_french_when_the_request_prefers_french(
     client: Any, new_client: Callable[[], Any], accept_language: str
 ) -> None:
     _, _, chloe_email = manager_with_member(client)
@@ -114,7 +117,8 @@ def test_r24_access_link_email_is_in_french_when_the_request_prefers_french(
     assert re.search(r"/access\?token=[\w-]+", sent["Text"])
 
 
-def test_r24_access_link_email_is_in_english_otherwise(
+# /core/operations/request-access-link/sent /core/operations/create-account/language
+def test_access_link_email_is_in_english_otherwise(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     _, _, chloe_email = manager_with_member(client)
@@ -124,7 +128,8 @@ def test_r24_access_link_email_is_in_english_otherwise(
     assert latest_email(chloe_email)["Subject"] == ENGLISH["Subject"]
 
 
-def test_r24_ignores_the_case_of_the_email(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/request-access-link/sent /core/model/user/email
+def test_ignores_the_case_of_the_email(client: Any, new_client: Callable[[], Any]) -> None:
     _, _, chloe_email = manager_with_member(client)
 
     ask_for_link(new_client(), chloe_email.upper())
@@ -132,7 +137,8 @@ def test_r24_ignores_the_case_of_the_email(client: Any, new_client: Callable[[],
     latest_access_token(chloe_email)
 
 
-def test_r25_a_new_request_sends_the_same_link(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/request-access-link/same /core/model/accesslink/single
+def test_a_new_request_sends_the_same_link(client: Any, new_client: Callable[[], Any]) -> None:
     _, _, chloe_email = manager_with_member(client)
     browser = new_client()
     ask_for_link(browser, chloe_email)
@@ -146,6 +152,7 @@ def test_r25_a_new_request_sends_the_same_link(client: Any, new_client: Callable
     assert open_link(new_client(), first_token).status_code == 200
 
 
+# /core/operations/request-access-link/ignored /core/operations/request-access-link/answer
 def test_access_link_sends_nothing_to_an_unknown_email(client: Any) -> None:
     email = unique_email("Nobody")
 
@@ -155,6 +162,7 @@ def test_access_link_sends_nothing_to_an_unknown_email(client: Any) -> None:
     assert_no_email_sent(email)
 
 
+# /core/operations/general/malformed
 @pytest.mark.parametrize("body", [{}, {"email": ""}, {"email": "not-an-email"}])
 def test_access_link_400_when_the_email_is_missing_empty_or_invalid(
     client: Any, body: dict[str, str]
@@ -168,6 +176,7 @@ def test_access_link_400_when_the_email_is_missing_empty_or_invalid(
 # POST /api/session/access-link
 
 
+# /core/operations/sign-in-by-access-link/signed-in
 def test_access_link_signs_a_member_without_a_password_in(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -189,6 +198,7 @@ def test_access_link_signs_a_member_without_a_password_in(
     assert browser.get("/api/session").json() == expected
 
 
+# /core/operations/sign-in-by-access-link/signed-in
 def test_access_link_signs_a_user_with_a_password_in(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -203,6 +213,7 @@ def test_access_link_signs_a_user_with_a_password_in(
     assert browser.get("/api/session").json() == {**user, "superuser": False}
 
 
+# /core/operations/sign-in-by-access-link/signed-in
 def test_access_link_confirms_the_email(client: Any, new_client: Callable[[], Any]) -> None:
     association, chloe, chloe_email = manager_with_member(client)
     browser = new_client()
@@ -213,6 +224,7 @@ def test_access_link_confirms_the_email(client: Any, new_client: Callable[[], An
     assert member(client, association["id"], chloe["user_id"])["email_verified"] is True
 
 
+# /core/operations/sign-in-by-access-link/signed-in /core/operations/sign-in/signed-in
 def test_access_link_lets_a_user_with_an_unconfirmed_email_sign_in_with_their_password(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -228,6 +240,7 @@ def test_access_link_lets_a_user_with_an_unconfirmed_email_sign_in_with_their_pa
     assert response.status_code == 200
 
 
+# /core/operations/sign-in-by-access-link/signed-in
 def test_access_link_stays_usable(client: Any, new_client: Callable[[], Any]) -> None:
     _, chloe, chloe_email = manager_with_member(client)
     ask_for_link(new_client(), chloe_email)
@@ -243,7 +256,8 @@ def test_access_link_stays_usable(client: Any, new_client: Callable[[], Any]) ->
     assert second.get("/api/session").json()["id"] == chloe["user_id"]
 
 
-def test_r16_access_link_replaces_a_session_id_planted_in_the_browser(
+# /core/operations/sign-in-by-access-link/signed-in /core/operations/sign-in/new-session
+def test_access_link_replaces_a_session_id_planted_in_the_browser(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     _, _, chloe_email = manager_with_member(client)
@@ -261,6 +275,7 @@ def test_r16_access_link_replaces_a_session_id_planted_in_the_browser(
     assert attacker.get("/api/session").status_code == 401
 
 
+# /core/operations/sign-in-by-access-link/invalid
 def test_session_access_link_404_when_the_token_is_unknown(client: Any) -> None:
     response = open_link(client, "unknown-token")
 
@@ -269,6 +284,7 @@ def test_session_access_link_404_when_the_token_is_unknown(client: Any) -> None:
     assert client.get("/api/session").status_code == 401
 
 
+# /core/operations/general/malformed
 @pytest.mark.parametrize("body", [{}, {"token": ""}])
 def test_session_access_link_400_when_the_token_is_missing_or_empty(
     client: Any, body: dict[str, str]
@@ -282,9 +298,8 @@ def test_session_access_link_400_when_the_token_is_missing_or_empty(
 # DELETE /api/access-link
 
 
-def test_r23_revoking_the_link_makes_it_unusable(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
+# /core/operations/revoke-my-access-link/revoked /core/operations/sign-in-by-access-link/invalid
+def test_revoking_the_link_makes_it_unusable(client: Any, new_client: Callable[[], Any]) -> None:
     _, _, chloe_email = manager_with_member(client)
     chloe = new_client()
     ask_for_link(chloe, chloe_email)
@@ -297,7 +312,8 @@ def test_r23_revoking_the_link_makes_it_unusable(
     assert open_link(new_client(), token).status_code == 404
 
 
-def test_r23_revoking_the_link_signs_out_the_sessions_it_opened(
+# /core/operations/revoke-my-access-link/revoked
+def test_revoking_the_link_signs_out_the_sessions_it_opened(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     _, _, chloe_email = manager_with_member(client)
@@ -314,7 +330,8 @@ def test_r23_revoking_the_link_signs_out_the_sessions_it_opened(
     assert laptop.get("/api/session").status_code == 401
 
 
-def test_r23_revoking_the_link_keeps_password_sessions_signed_in(
+# /core/operations/revoke-my-access-link/revoked
+def test_revoking_the_link_keeps_password_sessions_signed_in(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -331,7 +348,8 @@ def test_r23_revoking_the_link_keeps_password_sessions_signed_in(
     assert phone.get("/api/session").status_code == 401
 
 
-def test_r25_after_revoking_a_new_request_sends_a_new_link(
+# /core/operations/request-access-link/sent /core/operations/revoke-my-access-link/revoked
+def test_after_revoking_a_new_request_sends_a_new_link(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -348,12 +366,14 @@ def test_r25_after_revoking_a_new_request_sends_a_new_link(
     assert open_link(new_client(), new_token).status_code == 200
 
 
+# /core/operations/revoke-my-access-link/revoked
 def test_delete_api_access_link_204_without_a_link(client: Any) -> None:
     sign_up(client, "Alice")
 
     assert client.delete("/api/access-link").status_code == 204
 
 
+# /core/operations/general/signed-out
 def test_delete_api_access_link_401_when_signed_out(client: Any) -> None:
     response = client.delete("/api/access-link")
 
@@ -364,6 +384,7 @@ def test_delete_api_access_link_401_when_signed_out(client: Any) -> None:
 # DELETE /api/associations/{id}/members/{user_id}/access-link
 
 
+# /core/operations/get-association/detail
 def test_access_link_shows_whether_a_member_has_one(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -375,7 +396,8 @@ def test_access_link_shows_whether_a_member_has_one(
     assert member(client, association["id"], chloe["user_id"])["access_link"] is True
 
 
-def test_r23_a_manager_revokes_a_members_link(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/revoke-access-link/revoked
+def test_a_manager_revokes_a_members_link(client: Any, new_client: Callable[[], Any]) -> None:
     association, chloe, chloe_email = manager_with_member(client)
     ask_for_link(new_client(), chloe_email)
     token = latest_access_token(chloe_email)
@@ -392,6 +414,7 @@ def test_r23_a_manager_revokes_a_members_link(client: Any, new_client: Callable[
     assert member(client, association["id"], chloe["user_id"])["access_link"] is False
 
 
+# /core/operations/revoke-access-link/revoked
 def test_manager_revoke_204_when_the_member_has_no_link(client: Any) -> None:
     association, chloe, _ = manager_with_member(client)
 
@@ -402,6 +425,7 @@ def test_manager_revoke_204_when_the_member_has_no_link(client: Any) -> None:
     assert response.status_code == 204
 
 
+# /core/operations/revoke-access-link/volunteer
 def test_manager_revoke_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     association, chloe, chloe_email = manager_with_member(client)
     ask_for_link(new_client(), chloe_email)
@@ -420,6 +444,7 @@ def test_manager_revoke_403_for_a_volunteer(client: Any, new_client: Callable[[]
     assert open_link(new_client(), token).status_code == 200
 
 
+# /core/operations/revoke-access-link/not-member
 def test_manager_revoke_404_when_the_user_is_not_a_member(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -450,7 +475,8 @@ def send_link(
     )
 
 
-def test_r26_a_manager_sends_a_member_their_access_link(
+# /core/operations/send-access-link/sent
+def test_a_manager_sends_a_member_their_access_link(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     association, chloe, chloe_email = manager_with_member(client)
@@ -467,7 +493,8 @@ def test_r26_a_manager_sends_a_member_their_access_link(
     assert browser.get("/api/session").json()["id"] == chloe["user_id"]
 
 
-def test_r26_the_email_follows_the_managers_language(client: Any) -> None:
+# /core/operations/send-access-link/sent /core/operations/create-account/language
+def test_the_email_follows_the_managers_language(client: Any) -> None:
     association, chloe, chloe_email = manager_with_member(client)
 
     send_link(client, association["id"], chloe["user_id"], "fr-FR,fr;q=0.9,en;q=0.8")
@@ -477,9 +504,8 @@ def test_r26_the_email_follows_the_managers_language(client: Any) -> None:
     assert normalized(sent["Text"]).startswith(normalized(FRENCH["Text"]))
 
 
-def test_r26_r25_sending_again_sends_the_same_link(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
+# /core/operations/send-access-link/sent /core/operations/request-access-link/same
+def test_sending_again_sends_the_same_link(client: Any, new_client: Callable[[], Any]) -> None:
     association, chloe, chloe_email = manager_with_member(client)
     ask_for_link(new_client(), chloe_email)
     first_token = latest_access_token(chloe_email)
@@ -491,7 +517,8 @@ def test_r26_r25_sending_again_sends_the_same_link(
     assert latest_access_token(chloe_email) == first_token
 
 
-def test_r26_a_manager_sends_their_own_link(client: Any) -> None:
+# /core/operations/send-access-link/sent
+def test_a_manager_sends_their_own_link(client: Any) -> None:
     association, _, _ = manager_with_member(client)
     alice = next(
         m
@@ -505,6 +532,7 @@ def test_r26_a_manager_sends_their_own_link(client: Any) -> None:
     latest_access_token(alice["email"])
 
 
+# /core/operations/send-access-link/volunteer
 def test_manager_send_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     association, chloe, chloe_email = manager_with_member(client)
     bruno = new_client()
@@ -519,6 +547,7 @@ def test_manager_send_403_for_a_volunteer(client: Any, new_client: Callable[[], 
     assert_no_email_sent(chloe_email)
 
 
+# /core/operations/send-access-link/not-member
 def test_manager_send_404_when_the_user_is_not_a_member(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -534,6 +563,7 @@ def test_manager_send_404_when_the_user_is_not_a_member(
     assert email_count(outsider_email) == 1  # only the confirmation email
 
 
+# /core/operations/general/signed-out
 def test_manager_send_401_when_signed_out(client: Any, new_client: Callable[[], Any]) -> None:
     association, chloe, _ = manager_with_member(client)
 
@@ -542,6 +572,7 @@ def test_manager_send_401_when_signed_out(client: Any, new_client: Callable[[], 
     assert response.status_code == 401
 
 
+# /core/operations/send-access-link/not-sent
 def test_manager_send_503_when_the_email_cannot_be_sent(
     client: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -555,3 +586,15 @@ def test_manager_send_503_when_the_email_cannot_be_sent(
     assert "error" in response.json()
     monkeypatch.undo()
     assert_no_email_sent(chloe_email)
+
+
+# /core/model/accesslink/token
+def test_access_links_of_two_users_differ(client: Any) -> None:
+    sign_up(client, "Alice")
+    association = create_association(client)
+    chloe, david = unique_email("Chloé"), unique_email("David")
+    for name, email in (("Chloé", chloe), ("David", david)):
+        assert add_member(client, association["id"], name, email).status_code == 201
+        assert ask_for_link(client, email).status_code == 204
+
+    assert latest_access_token(chloe) != latest_access_token(david)

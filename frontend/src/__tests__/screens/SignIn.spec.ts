@@ -12,6 +12,7 @@ afterEach(() => {
 })
 
 describe('Sign in', () => {
+  // /core/ui/access/signed-out /core/ui/sign-in/form
   it('is shown at / when signed out', async () => {
     mockApi({ 'GET /api/session': signedOut })
 
@@ -23,6 +24,7 @@ describe('Sign in', () => {
     expect(pageText(wrapper)).toContain('No account yet? Create an account')
   })
 
+  // /core/ui/sign-in/sign-in /core/ui/sign-in/signed-in
   it('signs in with POST /api/session and shows My associations', async () => {
     let signedIn = false
     const calls = mockApi({
@@ -47,6 +49,7 @@ describe('Sign in', () => {
     expect(pageText(wrapper)).toContain('My associations')
   })
 
+  // /core/ui/sign-in/wrong
   it('shows "Wrong email or password." on wrong credentials', async () => {
     mockApi({
       'GET /api/session': signedOut,
@@ -61,6 +64,7 @@ describe('Sign in', () => {
     expect(pageText(wrapper)).toContain('Wrong email or password.')
   })
 
+  // /core/ui/sign-in/create
   it('"Create an account" leads to /signup', async () => {
     mockApi({ 'GET /api/session': signedOut })
     const wrapper = await mountApp('/')
@@ -71,6 +75,7 @@ describe('Sign in', () => {
     expect(field(wrapper, 'Display name').exists()).toBe(true)
   })
 
+  // /core/ui/sign-in/forgot
   it('"Forgot your password?" leads to /forgot-password', async () => {
     mockApi({ 'GET /api/session': signedOut })
     const wrapper = await mountApp('/')
@@ -82,6 +87,7 @@ describe('Sign in', () => {
     expect(field(wrapper, 'Email').exists()).toBe(true)
   })
 
+  // /core/ui/sign-in/link
   it('"Sign in with an email link" leads to /sign-in-link', async () => {
     mockApi({ 'GET /api/session': signedOut })
     const wrapper = await mountApp('/')
@@ -93,6 +99,7 @@ describe('Sign in', () => {
     expect(field(wrapper, 'Email').exists()).toBe(true)
   })
 
+  // /core/ui/access/signed-out
   it('is shown on an association page when signed out', async () => {
     mockApi({ 'GET /api/session': signedOut })
 

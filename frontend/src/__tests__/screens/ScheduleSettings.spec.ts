@@ -99,6 +99,7 @@ afterEach(() => {
 })
 
 describe('Schedule settings', () => {
+  // /core/ui/header/location
   it('the header shows the association name, then Schedule settings', async () => {
     const { mounting } = mountSettings('manager')
     const text = header(await mounting).text()
@@ -107,6 +108,7 @@ describe('Schedule settings', () => {
     expect(text.indexOf('Schedule settings')).toBeGreaterThan(text.indexOf(garden.name))
   })
 
+  // /planning/ui/schedule-settings/french
   it('in French, the screen is "Réglages du planning"', async () => {
     localStorage.setItem('gilda.locale', 'fr')
     const { mounting } = mountSettings('manager')
@@ -114,6 +116,7 @@ describe('Schedule settings', () => {
     expect(header(await mounting).text()).toContain('Réglages du planning')
   })
 
+  // /core/ui/header/title
   it('shows no back link', async () => {
     const { mounting } = mountSettings('manager')
 
@@ -123,6 +126,7 @@ describe('Schedule settings', () => {
     expect(text).not.toContain('←')
   })
 
+  // /planning/ui/schedule-settings
   it('no longer opens at /association/{slug}/opening', async () => {
     const api = planningApi({ me: 'u-alice', role: 'manager', members: [] })
     mockApi({ 'GET /api/session': signedInAsAlice, ...api.routes })
@@ -131,6 +135,7 @@ describe('Schedule settings', () => {
     expect(hasControl(wrapper, 'Add a slot')).toBe(false)
   })
 
+  // /planning/ui/schedule-settings/period /planning/ui/schedule-settings/closures /planning/ui/schedule-settings/slots
   it('shows Planning period, then Closures, then Slots', async () => {
     const { mounting } = mountSettings('manager')
     const wrapper = await mounting
@@ -142,6 +147,7 @@ describe('Schedule settings', () => {
     expect(sections).toEqual(['Planning period', 'Closures', 'Slots'])
   })
 
+  // /planning/ui/schedule-settings/slots
   it('lists the slots, with their day and times', async () => {
     const { mounting } = mountSettings('manager')
     const wrapper = await mounting
@@ -150,6 +156,7 @@ describe('Schedule settings', () => {
     expect(item(wrapper, 'Saturday').text()).toContain('10:00–13:00')
   })
 
+  // /planning/ui/schedule-settings/closures
   it('lists the closures, with their dates and label', async () => {
     const { mounting } = mountSettings('manager')
     const wrapper = await mounting
@@ -161,6 +168,7 @@ describe('Schedule settings', () => {
   })
 
   describe('as a manager', () => {
+    // /ui/forms/dialog
     it('shows no form until one is opened', async () => {
       const { mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -171,6 +179,7 @@ describe('Schedule settings', () => {
       expect(showsField(wrapper, 'Day')).toBe(false)
     })
 
+    // /planning/ui/schedule-settings/add-slot /ui/forms/create
     it('"Add a slot" opens the dialog "Add a slot"', async () => {
       const { mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -185,6 +194,7 @@ describe('Schedule settings', () => {
       expect(showsControl(open, 'Add slot')).toBe(true)
     })
 
+    // /planning/ui/schedule-settings/add-slot /ui/forms/success
     it('adds a slot with POST and closes the dialog', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -200,6 +210,7 @@ describe('Schedule settings', () => {
       expect(item(wrapper, 'Friday').text()).toContain('16:00–19:00')
     })
 
+    // /planning/ui/schedule-settings/exists /ui/forms/failure
     it('an existing slot keeps the dialog open, with its message', async () => {
       const { mounting } = mountSettings('manager', undefined, [], {
         [`POST ${base}/slots`]: { status: 409, body: { error: 'Slot exists' } },
@@ -212,13 +223,65 @@ describe('Schedule settings', () => {
       expect(dialog(wrapper).text()).toContain('This slot already exists.')
     })
 
+    // /planning/ui/schedule-settings/invalid /ui/forms/failure
+    it('a slot refused for its order keeps the dialog open, with its message', async () => {
+      const { mounting } = mountSettings('manager', undefined, [], {
+        [`POST ${base}/slots`]: { status: 400, body: { error: 'Order' } },
+      })
+      const wrapper = await mounting
+
+      await addSlot(wrapper, 'thursday', '13:00', '10:00')
+
+      expect(titleOf(dialog(wrapper))).toBe('Add a slot')
+      expect(dialog(wrapper).text()).toContain(
+        'Check the dates and times: the start comes before the end.',
+      )
+    })
+
+    // /planning/ui/schedule-settings/invalid /ui/forms/failure
+    it('a closure refused for its order keeps the dialog open, with its message', async () => {
+      const { mounting } = mountSettings('manager', undefined, [], {
+        [`POST ${base}/closures`]: { status: 400, body: { error: 'Order' } },
+      })
+      const wrapper = await mounting
+
+      await press(wrapper, 'Add a closure')
+      await fill(dialog(wrapper), 'From', '2027-02-19')
+      await fill(dialog(wrapper), 'To', '2027-02-15')
+      await press(dialog(wrapper), 'Add closure')
+
+      expect(titleOf(dialog(wrapper))).toBe('Add a closure')
+      expect(dialog(wrapper).text()).toContain(
+        'Check the dates and times: the start comes before the end.',
+      )
+    })
+
+    // /planning/ui/schedule-settings/invalid /ui/forms/failure
+    it('a period refused for its order keeps the dialog open, with its message', async () => {
+      const { mounting } = mountSettings('manager', null, [], {
+        [`PUT ${base}/planning-period`]: { status: 400, body: { error: 'Order' } },
+      })
+      const wrapper = await mounting
+
+      await press(wrapper, 'Edit the period')
+      await fill(dialog(wrapper), 'From', '2026-12-20')
+      await fill(dialog(wrapper), 'To', '2026-11-30')
+      await press(dialog(wrapper), 'Save')
+
+      expect(titleOf(dialog(wrapper))).toBe('Planning period')
+      expect(dialog(wrapper).text()).toContain(
+        'Check the dates and times: the start comes before the end.',
+      )
+    })
+
     describe('Add a slot defaults', () => {
       /** The current value of the field `label` in the open dialog. */
       function valueOf(wrapper: VueWrapper, label: string) {
         return (field(dialog(wrapper), label).element as HTMLInputElement).value
       }
 
-      it('R17: opens with From and To at 09:00', async () => {
+      // /planning/ui/schedule-settings/defaults
+      it('opens with From and To at 09:00', async () => {
         const wrapper = await mountSettings('manager').mounting
         await press(wrapper, 'Add a slot')
 
@@ -226,7 +289,8 @@ describe('Schedule settings', () => {
         expect(valueOf(wrapper, 'To')).toBe('09:00')
       })
 
-      it('R17: changing From sets To to the same time', async () => {
+      // /planning/ui/schedule-settings/defaults
+      it('changing From sets To to the same time', async () => {
         const wrapper = await mountSettings('manager').mounting
         await press(wrapper, 'Add a slot')
 
@@ -235,7 +299,8 @@ describe('Schedule settings', () => {
         expect(valueOf(wrapper, 'To')).toBe('14:00')
       })
 
-      it('R17: once To is changed, changing From leaves To as it is', async () => {
+      // /planning/ui/schedule-settings/defaults
+      it('once To is changed, changing From leaves To as it is', async () => {
         const wrapper = await mountSettings('manager').mounting
         await press(wrapper, 'Add a slot')
 
@@ -246,7 +311,8 @@ describe('Schedule settings', () => {
         expect(valueOf(wrapper, 'To')).toBe('12:00')
       })
 
-      it('R18: after a slot is added, the next dialog opens with its Day, and From and To at its end', async () => {
+      // /planning/ui/schedule-settings/next-slot
+      it('after a slot is added, the next dialog opens with its Day, and From and To at its end', async () => {
         const wrapper = await mountSettings('manager').mounting
 
         await addSlot(wrapper, 'friday', '16:00', '19:00')
@@ -257,7 +323,8 @@ describe('Schedule settings', () => {
         expect(valueOf(wrapper, 'To')).toBe('19:00')
       })
 
-      it('R18: in the next dialog, To follows From again', async () => {
+      // /planning/ui/schedule-settings/next-slot
+      it('in the next dialog, To follows From again', async () => {
         const wrapper = await mountSettings('manager').mounting
 
         await addSlot(wrapper, 'friday', '09:00', '13:00')
@@ -274,6 +341,7 @@ describe('Schedule settings', () => {
         return (field(dialog(wrapper), label).element as HTMLInputElement).value
       }
 
+      // /planning/ui/schedule-settings/edit-slot /ui/forms/edit /ui/forms/icon-names
       it('a slot\'s edit icon opens the dialog "Edit the slot", filled with the slot', async () => {
         const wrapper = await mountSettings('manager').mounting
 
@@ -287,6 +355,7 @@ describe('Schedule settings', () => {
         expect(showsControl(open, 'Save')).toBe(true)
       })
 
+      // /planning/ui/schedule-settings/edit-slot
       it('Save edits the slot with PUT and closes the dialog', async () => {
         const { calls, mounting } = mountSettings('manager')
         const wrapper = await mounting
@@ -306,6 +375,7 @@ describe('Schedule settings', () => {
         expect(wrapper.findAll('li').some((li) => li.text().includes('Thursday'))).toBe(false)
       })
 
+      // /planning/ui/schedule-settings/edit-exists /ui/forms/failure
       it('an existing slot keeps the dialog open, with its message', async () => {
         const { mounting } = mountSettings('manager', undefined, [], {
           [`PUT ${base}/slots/s-thu`]: { status: 409, body: { error: 'Slot exists' } },
@@ -320,6 +390,7 @@ describe('Schedule settings', () => {
         expect(dialog(wrapper).text()).toContain('This slot already exists.')
       })
 
+      // /planning/ui/schedule-settings/edit-slot
       it('changing From leaves To as it is', async () => {
         const wrapper = await mountSettings('manager').mounting
 
@@ -329,7 +400,8 @@ describe('Schedule settings', () => {
         expect(valueOf(wrapper, 'To')).toBe('13:00')
       })
 
-      it('R18: after a slot is edited, Add a slot still opens as in R17', async () => {
+      // /planning/ui/schedule-settings/defaults
+      it('after a slot is edited, Add a slot still opens with its defaults', async () => {
         const wrapper = await mountSettings('manager').mounting
 
         await press(item(wrapper, 'Thursday'), 'Edit the slot')
@@ -342,6 +414,7 @@ describe('Schedule settings', () => {
       })
     })
 
+    // /planning/ui/schedule-settings/delete-slot /ui/forms/delete
     it('a slot\'s delete icon asks "Delete the slot Thursday 10:00–13:00?"', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -352,6 +425,7 @@ describe('Schedule settings', () => {
       expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
     })
 
+    // /planning/ui/schedule-settings/delete-slot
     it('Delete deletes the slot with DELETE', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -368,6 +442,7 @@ describe('Schedule settings', () => {
       expect(wrapper.findAll('li').some((li) => li.text().includes('Thursday'))).toBe(false)
     })
 
+    // /ui/forms/close
     it('Cancel keeps the slot', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -380,6 +455,7 @@ describe('Schedule settings', () => {
       expect(item(wrapper, 'Thursday').exists()).toBe(true)
     })
 
+    // /planning/ui/schedule-settings/add-closure
     it('"Add a closure" opens the dialog "Add a closure"', async () => {
       const { mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -394,6 +470,7 @@ describe('Schedule settings', () => {
       expect(showsControl(open, 'Add closure')).toBe(true)
     })
 
+    // /planning/ui/schedule-settings/add-closure
     it('adds a closure with POST and closes the dialog', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -415,6 +492,7 @@ describe('Schedule settings', () => {
       )
     })
 
+    // /planning/ui/schedule-settings/add-closure
     it('adds a closure without label', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -431,6 +509,7 @@ describe('Schedule settings', () => {
       expect(pageText(wrapper)).toContain('Mon 1 Mar 2027')
     })
 
+    // /planning/ui/schedule-settings/edit-closure
     it('a closure\'s edit icon opens the dialog "Edit the closure", filled with the closure', async () => {
       const wrapper = await mountSettings('manager').mounting
 
@@ -445,6 +524,7 @@ describe('Schedule settings', () => {
       expect(showsControl(open, 'Save')).toBe(true)
     })
 
+    // /planning/ui/schedule-settings/edit-closure
     it('Save edits the closure with PUT and closes the dialog', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -465,6 +545,7 @@ describe('Schedule settings', () => {
       )
     })
 
+    // /planning/ui/schedule-settings/edit-closure
     it('Save with the label emptied removes it', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -479,6 +560,7 @@ describe('Schedule settings', () => {
       expect(pageText(wrapper)).not.toContain('Fête du quartier')
     })
 
+    // /planning/ui/schedule-settings/delete-closure
     it('a closure\'s delete icon asks "Delete the closure "Fête du quartier"?"', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -489,6 +571,7 @@ describe('Schedule settings', () => {
       expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
     })
 
+    // /planning/ui/schedule-settings/delete-closure
     it('without a label, it asks "Delete the closure of Sat 14 Nov 2026?"', async () => {
       const { mounting } = mountSettings('manager', undefined, [], {}, [
         { id: 'c-fete', first: '2026-11-14', last: '2026-11-14', label: null },
@@ -500,6 +583,7 @@ describe('Schedule settings', () => {
       expect(dialog(wrapper).text()).toContain('Delete the closure of Sat 14 Nov 2026?')
     })
 
+    // /planning/ui/schedule-settings/delete-closure
     it('Delete deletes the closure with DELETE', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -518,6 +602,7 @@ describe('Schedule settings', () => {
   })
 
   describe('Forms', () => {
+    // /ui/forms/close
     it('Cancel closes the dialog, changing nothing', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -530,6 +615,7 @@ describe('Schedule settings', () => {
       expect(calls.some((c) => c.method === 'POST')).toBe(false)
     })
 
+    // /ui/forms/close
     it('the close button closes the dialog, changing nothing', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -542,6 +628,7 @@ describe('Schedule settings', () => {
       expect(calls.some((c) => c.method === 'POST')).toBe(false)
     })
 
+    // /ui/forms/close
     it('Escape closes the dialog, changing nothing', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -554,6 +641,7 @@ describe('Schedule settings', () => {
       expect(calls.some((c) => c.method === 'POST')).toBe(false)
     })
 
+    // /ui/forms/dialog
     it('a dialog opened again starts afresh', async () => {
       const { mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -568,6 +656,7 @@ describe('Schedule settings', () => {
   })
 
   describe('planning period, as a manager', () => {
+    // /planning/ui/schedule-settings/edit-period
     it('"Edit the period" opens the dialog "Planning period"', async () => {
       const { mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -581,6 +670,7 @@ describe('Schedule settings', () => {
       expect(showsControl(open, 'Save')).toBe(true)
     })
 
+    // /planning/ui/schedule-settings/edit-period
     it('sets the planning period with PUT and closes the dialog', async () => {
       const { calls, mounting } = mountSettings('manager', null)
       const wrapper = await mounting
@@ -599,6 +689,7 @@ describe('Schedule settings', () => {
       expect(pageText(wrapper)).toContain('Mon 30 Nov 2026 – Sun 20 Dec 2026')
     })
 
+    // /planning/ui/schedule-settings/clear-period
     it('offers its delete icon only when a period is set', async () => {
       const withPeriod = await mountSettings('manager').mounting
       expect(hasControl(withPeriod, 'Clear the period')).toBe(true)
@@ -609,6 +700,7 @@ describe('Schedule settings', () => {
       expect(hasControl(without, 'Edit the period')).toBe(true)
     })
 
+    // /planning/ui/schedule-settings/clear-period
     it('its delete icon asks "Clear the planning period?"', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -619,6 +711,7 @@ describe('Schedule settings', () => {
       expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
     })
 
+    // /planning/ui/schedule-settings/clear-period
     it('Clear clears the planning period with DELETE', async () => {
       const { calls, mounting } = mountSettings('manager')
       const wrapper = await mounting
@@ -640,6 +733,7 @@ describe('Schedule settings', () => {
   })
 
   describe('planning period, as a volunteer', () => {
+    // /planning/ui/schedule-settings/volunteer /planning/ui/schedule-settings/period
     it('shows the period, without its icons', async () => {
       const { mounting } = mountSettings('volunteer')
       const wrapper = await mounting
@@ -650,6 +744,7 @@ describe('Schedule settings', () => {
       expect(hasControl(wrapper, 'Clear the period')).toBe(false)
     })
 
+    // /planning/ui/schedule-settings/period
     it('shows "None" when there is no period', async () => {
       const { mounting } = mountSettings('volunteer', null)
       const wrapper = await mounting
@@ -658,6 +753,7 @@ describe('Schedule settings', () => {
     })
   })
 
+  // /planning/ui/schedule-settings/volunteer /ui/forms/managers
   it('a volunteer sees the lists, without the add buttons and the delete icons', async () => {
     const { mounting } = mountSettings('volunteer')
     const wrapper = await mounting
@@ -670,6 +766,7 @@ describe('Schedule settings', () => {
     expect(hasControl(wrapper, 'Add a closure')).toBe(false)
   })
 
+  // /planning/ui/schedule-settings/volunteer
   it('a volunteer sees no edit icons on slots and closures', async () => {
     const { mounting } = mountSettings('volunteer')
     const wrapper = await mounting
@@ -678,6 +775,7 @@ describe('Schedule settings', () => {
     expect(hasControl(wrapper, 'Edit the closure')).toBe(false)
   })
 
+  // Not in the specification: no preference selector on the slots.
   it.each(['manager', 'volunteer'] as const)(
     'a %s sees no preference selector on the slots',
     async (role) => {
@@ -697,6 +795,7 @@ describe('Schedule settings', () => {
       { user_id: 'u-chloe', slot_id: 's-sat', value: 'preferred' },
     ]
 
+    // /planning/ui/schedule-settings/preferences
     it('a manager sees one row per member and one column per slot', async () => {
       const { mounting } = mountSettings('manager', null, set)
       const wrapper = await mounting
@@ -715,6 +814,7 @@ describe('Schedule settings', () => {
       expect(shown(grid.cell('Chloé', 1))).toBe('Preferred')
     })
 
+    // design.md
     it('each cell is marked with its value', async () => {
       const { mounting } = mountSettings('manager', null, set)
       const grid = memberPreferences(await mounting)
@@ -724,6 +824,7 @@ describe('Schedule settings', () => {
       expect(preferenceOf(grid.cell('Chloé', 0))).toBeNull()
     })
 
+    // /planning/ui/schedule-settings/set-preference
     it("a cell saves another member's preference at once with PUT", async () => {
       const { calls, mounting } = mountSettings('manager', null, set)
       const wrapper = await mounting
@@ -738,6 +839,7 @@ describe('Schedule settings', () => {
       })
     })
 
+    // /planning/ui/schedule-settings/set-preference
     it('a cell set to "—" deletes the preference with DELETE', async () => {
       const { calls, mounting } = mountSettings('manager', null, set)
       const wrapper = await mounting
@@ -754,6 +856,7 @@ describe('Schedule settings', () => {
       })
     })
 
+    // /planning/ui/schedule-settings/preferences
     it('in French, "Préférences des membres"', async () => {
       localStorage.setItem('gilda.locale', 'fr')
       const { mounting } = mountSettings('manager', null, set)
@@ -761,6 +864,7 @@ describe('Schedule settings', () => {
       expect(pageText(await mounting)).toContain('Préférences des membres')
     })
 
+    // /planning/ui/schedule-settings/preferences
     it('is not shown to a volunteer', async () => {
       const { mounting } = mountSettings('volunteer', null, set)
       const wrapper = await mounting

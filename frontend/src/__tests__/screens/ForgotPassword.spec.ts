@@ -11,6 +11,7 @@ afterEach(() => {
 })
 
 describe('Forgot password', () => {
+  // /core/ui/access/signed-out /core/ui/forgot-password/form
   it('is shown signed out, without Sign in', async () => {
     mockApi({ 'GET /api/session': signedOut })
 
@@ -21,6 +22,7 @@ describe('Forgot password', () => {
     expect(showsField(wrapper, 'Password')).toBe(false)
   })
 
+  // /core/ui/forgot-password/send
   it('asks for a reset link and says where it was sent, instead of the form', async () => {
     const calls = mockApi({
       'GET /api/session': signedOut,
@@ -42,6 +44,7 @@ describe('Forgot password', () => {
     expect(showsField(wrapper, 'Email')).toBe(false)
   })
 
+  // /core/ui/forgot-password/form
   it('"Back to Sign in" leads to Sign in', async () => {
     mockApi({ 'GET /api/session': signedOut })
     const wrapper = await mountApp('/forgot-password')

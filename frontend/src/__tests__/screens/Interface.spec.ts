@@ -41,6 +41,7 @@ afterEach(() => {
 })
 
 describe('Interface language', () => {
+  // /ui/language/default
   it('opens in French when the browser prefers French', async () => {
     browserPrefers('fr-FR', 'fr', 'en')
 
@@ -51,6 +52,7 @@ describe('Interface language', () => {
     expect(item(wrapper, repairCafe.name).text().toLowerCase()).toContain('bénévole')
   })
 
+  // /ui/language/default
   it('opens in English when the browser prefers another language', async () => {
     browserPrefers('de-DE', 'de')
 
@@ -59,6 +61,7 @@ describe('Interface language', () => {
     expect(text).toContain('My associations')
   })
 
+  // /core/ui/header/language
   it('a choice made with the language selector wins over the browser', async () => {
     browserPrefers('fr-FR', 'fr')
     const first = await mountApp('/')
@@ -92,6 +95,7 @@ describe("An email the user triggers is in the interface's language", () => {
     return calls.filter((call) => call.method === 'POST')
   }
 
+  // /ui/language/emails
   it('in French, the sign-up and resend requests ask for French', async () => {
     browserPrefers('en-GB', 'en')
 
@@ -101,6 +105,7 @@ describe("An email the user triggers is in the interface's language", () => {
     for (const call of posts) expect(headersOf(call).get('Accept-Language')).toBe('fr')
   })
 
+  // /ui/language/emails
   it('in English, the sign-up and resend requests ask for English', async () => {
     browserPrefers('fr-FR', 'fr')
 
@@ -110,6 +115,7 @@ describe("An email the user triggers is in the interface's language", () => {
     for (const call of posts) expect(headersOf(call).get('Accept-Language')).toBe('en')
   })
 
+  // /ui/language/emails
   it('follows the browser preference when no choice was made', async () => {
     browserPrefers('fr-FR', 'fr')
     const calls = mockApi({
@@ -129,6 +135,7 @@ describe("An email the user triggers is in the interface's language", () => {
 })
 
 describe('Header', () => {
+  // /core/ui/header/menu
   it('signed in, the display name opens a menu with the language selector, "Revoke my sign-in link", "Delete my account" and Sign out', async () => {
     const wrapper = await mountApp('/')
     const top = header(wrapper)
@@ -147,6 +154,7 @@ describe('Header', () => {
     expect(showsControl(header(wrapper), 'Sign out')).toBe(true)
   })
 
+  // /core/ui/header/revoke
   it('"Revoke my sign-in link" asks for confirmation before calling the API', async () => {
     const calls = mockApi({
       'GET /api/session': signedInAsAlice,
@@ -166,6 +174,7 @@ describe('Header', () => {
     expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
   })
 
+  // /core/ui/header/revoke /core/ui/header/revoked
   it('Confirm revokes the link with DELETE and says so', async () => {
     const calls = mockApi({
       'GET /api/session': signedInAsAlice,
@@ -183,6 +192,7 @@ describe('Header', () => {
     expect(pageText(wrapper)).toContain('My associations')
   })
 
+  // /core/ui/header/this-session
   it('Confirm leads to Sign in when this session was opened with the link', async () => {
     let revoked = false
     mockApi({
@@ -203,6 +213,7 @@ describe('Header', () => {
     expect(showsField(wrapper, 'Password')).toBe(true)
   })
 
+  // /core/ui/header/delete
   it('"Delete my account" asks for confirmation before calling the API', async () => {
     const calls = mockApi({
       'GET /api/session': signedInAsAlice,
@@ -223,7 +234,8 @@ describe('Header', () => {
     expect(pageText(wrapper)).toContain('My associations')
   })
 
-  it('confirming deletes the account with DELETE (R29) and leads to Sign in', async () => {
+  // /core/ui/header/delete
+  it('confirming deletes the account with DELETE and leads to Sign in', async () => {
     let deleted = false
     const calls = mockApi({
       'GET /api/session': () => (deleted ? signedOut : signedInAsAlice),
@@ -245,6 +257,7 @@ describe('Header', () => {
     expect(header(wrapper).text()).not.toContain('Alice')
   })
 
+  // /core/ui/header/language
   it('the language selector switches between English and French', async () => {
     const wrapper = await mountApp('/')
 
@@ -254,6 +267,7 @@ describe('Header', () => {
     expect(pageText(wrapper)).toContain('Mes associations')
   })
 
+  // /core/ui/header/signed-out
   it('signed out, the language selector stands alone', async () => {
     mockApi({ 'GET /api/session': signedOut })
 

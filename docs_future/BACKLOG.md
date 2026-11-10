@@ -7,7 +7,6 @@
 
 ## Quality
 
-- Spec: `GET /api/associations` and My associations sit in the core pages though R12–R14 are planning's; move them to a home page once other modules add their part.
 - Cleanup: purge expired sessions (Advanced Alchemy's delete_expired) and expired email confirmation and password reset tokens regularly, so their tables stay small.
 - API: drop `has_account` from members, which no screen uses since the access link.
 - Association: refuse a name made only of spaces, at creation and on rename.
@@ -18,8 +17,9 @@
 - Backend tests: report to Advanced Alchemy that its Litestar lifespan disposes only the first config's engine per process, then drop the workaround in the new_client fixture.
 - Accessibility: audit the screens with a screen reader and axe (e.g. in the e2e tests); the Schedule's occurrence labels, for one, cannot say that a registration is cancelled.
 - Sessions: ask Litestar for a way to renew the session ID (e.g. on `set_session`), then drop the `SessionBackend` subclass.
-- Spec: separate invariants (data model) from post-conditions (API), with no sentence mixing both, starting with R8, R23, R28 and R33.
-- Traceability: try named markers on data model rules, with a generated spec-to-tests index, to judge it for Dev43.
+- Frontend tests: under Node 26, Node's built-in `localStorage` hides jsdom's and every Vitest test fails; make `make test-frontend` work there (e.g. `--no-experimental-webstorage` in the Makefile or the Vitest config).
+- Frontend tests: a Schedule settings test checks that the slots have no preference selector, which the spec does not state; specify it or drop the test.
+- Frontend tests: cover the order refusal message in the Edit the slot, Edit the closure and Edit the absence dialogs, as for the Add dialogs and the period.
 
 ## Specification
 

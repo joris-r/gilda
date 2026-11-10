@@ -19,6 +19,7 @@ def create_share_link(planning: Planning) -> str:
 # Share link
 
 
+# /planning/operations/general/member /core/operations/general/signed-out
 @pytest.mark.parametrize("method", ["GET", "POST", "DELETE"])
 def test_share_link_401_when_signed_out(client: Any, method: str) -> None:
     response = client.request(method, f"/api/associations/{UNKNOWN_ID}/share-link")
@@ -27,6 +28,7 @@ def test_share_link_401_when_signed_out(client: Any, method: str) -> None:
     assert "error" in response.json()
 
 
+# /planning/operations/general/member /core/operations/general/unknown-association
 @pytest.mark.parametrize("method", ["GET", "POST", "DELETE"])
 def test_share_link_404_when_not_a_member(
     client: Any, new_client: Callable[[], Any], method: str
@@ -42,6 +44,9 @@ def test_share_link_404_when_not_a_member(
     assert "error" in response.json()
 
 
+# /planning/operations/create-share-link/volunteer
+# /planning/operations/get-share-link/volunteer
+# /planning/operations/revoke-share-link/volunteer
 @pytest.mark.parametrize("method", ["GET", "POST", "DELETE"])
 def test_share_link_403_for_a_volunteer(
     client: Any, new_client: Callable[[], Any], method: str
@@ -54,6 +59,7 @@ def test_share_link_403_for_a_volunteer(
     assert "error" in response.json()
 
 
+# /planning/operations/get-share-link/link
 def test_get_share_link_is_null_when_there_is_none(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -65,6 +71,7 @@ def test_get_share_link_is_null_when_there_is_none(
     assert response.json() is None
 
 
+# /planning/operations/create-share-link/created /planning/operations/get-share-link/link
 def test_post_share_link_creates_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
 
@@ -76,6 +83,7 @@ def test_post_share_link_creates_it(client: Any, new_client: Callable[[], Any]) 
     assert client.get(planning.path("share-link")).json() == {"token": token}
 
 
+# /planning/operations/create-share-link/created /planning/model/sharelink/token
 def test_share_links_of_two_associations_differ(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     other = Planning(new_client(), new_client)
@@ -83,7 +91,8 @@ def test_share_links_of_two_associations_differ(client: Any, new_client: Callabl
     assert create_share_link(planning) != create_share_link(other)
 
 
-def test_r33_creating_a_share_link_replaces_the_previous_one(
+# /planning/operations/create-share-link/created /planning/model/sharelink/single
+def test_creating_a_share_link_replaces_the_previous_one(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
@@ -97,7 +106,8 @@ def test_r33_creating_a_share_link_replaces_the_previous_one(
     assert new_client().get(f"/api/shared/{token}").status_code == 200
 
 
-def test_r33_revoking_the_share_link_deletes_it(client: Any, new_client: Callable[[], Any]) -> None:
+# /planning/operations/revoke-share-link/revoked
+def test_revoking_the_share_link_deletes_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     token = create_share_link(planning)
 
@@ -109,6 +119,7 @@ def test_r33_revoking_the_share_link_deletes_it(client: Any, new_client: Callabl
     assert new_client().get(f"/api/shared/{token}/schedule").status_code == 404
 
 
+# /planning/operations/revoke-share-link/revoked
 def test_delete_share_link_204_when_there_is_none(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -120,6 +131,8 @@ def test_delete_share_link_204_when_there_is_none(
 # Shared schedule
 
 
+# /planning/operations/get-shared-association/unknown
+# /planning/operations/get-shared-schedule/unknown
 @pytest.mark.parametrize("path", ["", "/schedule"])
 def test_shared_schedule_404_for_an_unknown_token(client: Any, path: str) -> None:
     response = client.get(f"/api/shared/unknown-token{path}")
@@ -128,6 +141,7 @@ def test_shared_schedule_404_for_an_unknown_token(client: Any, path: str) -> Non
     assert "error" in response.json()
 
 
+# /planning/operations/get-shared-association/shared
 def test_get_shared_returns_the_association_signed_out(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -145,6 +159,7 @@ def test_get_shared_returns_the_association_signed_out(
     }
 
 
+# /planning/operations/get-shared-association/shared
 def test_get_shared_planning_period_is_null_when_there_is_none(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -156,6 +171,8 @@ def test_get_shared_planning_period_is_null_when_there_is_none(
     assert response.json()["planning_period"] is None
 
 
+# /planning/operations/get-shared-association/shared
+# /planning/operations/get-shared-schedule/schedule
 def test_get_shared_works_signed_in_as_a_non_member(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -180,6 +197,7 @@ def _filled(planning: Planning) -> None:
     planning.add_closure(day_of_week("saturday", 2), day_of_week("saturday", 2), "Fête")
 
 
+# /planning/operations/get-shared-schedule/schedule
 def test_shared_schedule_returns_what_the_members_schedule_returns(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -194,6 +212,7 @@ def test_shared_schedule_returns_what_the_members_schedule_returns(
     assert response.json() == planning.schedule(planning.bruno_client, first, last)
 
 
+# /planning/operations/get-shared-schedule/schedule
 def test_shared_schedule_without_from_and_to_returns_the_default_range(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -208,6 +227,7 @@ def test_shared_schedule_without_from_and_to_returns_the_default_range(
     assert response.json() == planning.bruno_client.get(planning.path("schedule")).json()
 
 
+# /planning/operations/get-shared-schedule/schedule
 def test_shared_schedule_400_when_only_one_of_from_and_to_is_given(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -222,6 +242,7 @@ def test_shared_schedule_400_when_only_one_of_from_and_to_is_given(
     assert "error" in response.json()
 
 
+# /planning/operations/get-shared-schedule/schedule
 def test_shared_schedule_shows_only_its_association(
     client: Any, new_client: Callable[[], Any]
 ) -> None:

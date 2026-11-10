@@ -9,6 +9,7 @@ UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 PERIOD = {"first": "2026-11-02", "last": "2026-11-25"}
 
 
+# /planning/operations/general/member /core/operations/general/signed-out
 @pytest.mark.parametrize(("method", "body"), [("GET", None), ("PUT", PERIOD), ("DELETE", None)])
 def test_planning_period_401_when_signed_out(
     client: Any, method: str, body: dict[str, str] | None
@@ -19,6 +20,7 @@ def test_planning_period_401_when_signed_out(
     assert "error" in response.json()
 
 
+# /planning/operations/general/member /core/operations/general/unknown-association
 @pytest.mark.parametrize(("method", "body"), [("GET", None), ("PUT", PERIOD), ("DELETE", None)])
 def test_planning_period_404_when_not_a_member(
     client: Any, new_client: Callable[[], Any], method: str, body: dict[str, str] | None
@@ -36,6 +38,7 @@ def test_planning_period_404_when_not_a_member(
     assert "error" in response.json()
 
 
+# /planning/operations/set-planning-period/set /planning/operations/get-planning-period/period
 def test_put_api_planning_period_sets_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
 
@@ -46,6 +49,7 @@ def test_put_api_planning_period_sets_it(client: Any, new_client: Callable[[], A
     assert planning.bruno_client.get(planning.path("planning-period")).json() == PERIOD
 
 
+# /planning/operations/set-planning-period/set /planning/model/planning-period/single
 def test_put_api_planning_period_replaces_the_previous_one(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -59,6 +63,7 @@ def test_put_api_planning_period_replaces_the_previous_one(
     assert client.get(planning.path("planning-period")).json() == later
 
 
+# /planning/operations/set-planning-period/set /planning/model/planning-period/order
 def test_put_api_planning_period_accepts_a_single_day(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -71,6 +76,7 @@ def test_put_api_planning_period_accepts_a_single_day(
     assert response.json() == day
 
 
+# /planning/operations/get-planning-period/period
 def test_get_api_planning_period_null_when_there_is_none(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -82,6 +88,7 @@ def test_get_api_planning_period_null_when_there_is_none(
     assert response.json() is None
 
 
+# /planning/operations/clear-planning-period/cleared
 def test_delete_api_planning_period_removes_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     client.put(planning.path("planning-period"), json=PERIOD)
@@ -92,6 +99,7 @@ def test_delete_api_planning_period_removes_it(client: Any, new_client: Callable
     assert client.get(planning.path("planning-period")).json() is None
 
 
+# /core/operations/general/malformed /planning/operations/set-planning-period/order
 @pytest.mark.parametrize(
     "body",
     [
@@ -112,6 +120,8 @@ def test_put_api_planning_period_400_when_a_field_is_missing_or_invalid(
     assert "error" in response.json()
 
 
+# /planning/operations/set-planning-period/volunteer
+# /planning/operations/clear-planning-period/volunteer
 def test_planning_period_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     client.put(planning.path("planning-period"), json=PERIOD)

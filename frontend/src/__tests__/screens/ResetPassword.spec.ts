@@ -12,6 +12,7 @@ afterEach(() => {
 })
 
 describe('Reset password', () => {
+  // /core/ui/access/signed-out /core/ui/reset-password/form
   it('is shown signed out, without Sign in', async () => {
     mockApi({ 'GET /api/session': signedOut })
 
@@ -22,6 +23,7 @@ describe('Reset password', () => {
     expect(pageText(wrapper)).not.toContain('No account yet?')
   })
 
+  // /core/ui/reset-password/reset /core/ui/reset-password/set
   it('sets the password with the link token and leads to My associations, signed in', async () => {
     let reset = false
     const calls = mockApi({
@@ -47,6 +49,7 @@ describe('Reset password', () => {
     expect(pageText(wrapper)).toContain('Alice')
   })
 
+  // /core/ui/reset-password/invalid
   it('says the link is no longer valid for an unknown, expired or used token', async () => {
     mockApi({
       'GET /api/session': signedOut,

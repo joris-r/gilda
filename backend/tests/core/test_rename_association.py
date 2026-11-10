@@ -32,6 +32,7 @@ def manager_and_volunteer(
 # PATCH /api/associations/{id}
 
 
+# /core/operations/general/signed-out
 def test_patch_api_association_401_when_signed_out(client: Any) -> None:
     response = client.patch(f"/api/associations/{UNKNOWN_ID}", json={"name": NEW_NAME})
 
@@ -39,6 +40,7 @@ def test_patch_api_association_401_when_signed_out(client: Any) -> None:
     assert "error" in response.json()
 
 
+# /core/operations/update-association/renamed /core/operations/update-association/answer
 def test_patch_api_association_renames_it(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client, OLD_NAME)
@@ -56,6 +58,7 @@ def test_patch_api_association_renames_it(client: Any) -> None:
     assert [a["name"] for a in client.get("/api/associations").json()] == [NEW_NAME]
 
 
+# /core/operations/update-association/renamed
 def test_patch_api_association_keeps_its_members(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -70,6 +73,7 @@ def test_patch_api_association_keeps_its_members(
     assert [a["name"] for a in bruno.get("/api/associations").json()] == [NEW_NAME]
 
 
+# /core/operations/update-association/renamed
 def test_patch_api_association_by_any_manager(client: Any, new_client: Callable[[], Any]) -> None:
     association, bruno, bruno_user, _ = manager_and_volunteer(client, new_client)
     promoted = client.patch(
@@ -84,6 +88,7 @@ def test_patch_api_association_by_any_manager(client: Any, new_client: Callable[
     assert client.get(f"/api/associations/{association['id']}").json()["name"] == NEW_NAME
 
 
+# /core/operations/update-association/volunteer
 def test_patch_api_association_403_for_a_volunteer(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -96,6 +101,7 @@ def test_patch_api_association_403_for_a_volunteer(
     assert client.get(f"/api/associations/{association['id']}").json()["name"] == OLD_NAME
 
 
+# /core/operations/general/unknown-association
 def test_patch_api_association_404_when_it_does_not_exist(client: Any) -> None:
     sign_up(client, "Alice")
 
@@ -105,6 +111,7 @@ def test_patch_api_association_404_when_it_does_not_exist(client: Any) -> None:
     assert "error" in response.json()
 
 
+# /core/operations/general/unknown-association
 def test_patch_api_association_404_when_not_a_member(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -120,6 +127,8 @@ def test_patch_api_association_404_when_not_a_member(
     assert client.get(f"/api/associations/{association['id']}").json()["name"] == OLD_NAME
 
 
+# /core/operations/general/malformed /core/model/association/name
+# /core/operations/update-association/neither /core/operations/general/refused
 @pytest.mark.parametrize("body", [{}, {"name": ""}])
 def test_patch_api_association_400_when_the_name_is_missing_or_empty(
     client: Any, body: dict[str, str]
@@ -134,6 +143,7 @@ def test_patch_api_association_400_when_the_name_is_missing_or_empty(
     assert client.get(f"/api/associations/{association['id']}").json()["name"] == OLD_NAME
 
 
+# /core/operations/update-association/renamed
 def test_patch_api_association_accepts_the_name_of_another_association(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client, OLD_NAME)
@@ -145,6 +155,7 @@ def test_patch_api_association_accepts_the_name_of_another_association(client: A
     assert [a["name"] for a in client.get("/api/associations").json()] == [NEW_NAME, NEW_NAME]
 
 
+# /core/operations/update-association/silent
 def test_patch_api_association_members_are_not_told(
     client: Any, new_client: Callable[[], Any]
 ) -> None:

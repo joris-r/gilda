@@ -31,6 +31,7 @@ def manager_and_volunteer(
 # Signed-in user required
 
 
+# /core/operations/general/signed-out
 @pytest.mark.parametrize(
     ("method", "path", "body"),
     [
@@ -60,6 +61,7 @@ def test_associations_401_when_signed_out(
 # POST /api/associations
 
 
+# /core/operations/create-association/created
 def test_post_api_associations_makes_the_signed_in_user_its_manager(client: Any) -> None:
     sign_up(client, "Alice")
 
@@ -79,6 +81,7 @@ def test_post_api_associations_makes_the_signed_in_user_its_manager(client: Any)
     uuid.UUID(body["id"])
 
 
+# /core/operations/general/malformed
 @pytest.mark.parametrize("name", [{}, {"name": ""}])
 def test_post_api_associations_400_when_the_name_is_missing_or_empty(
     client: Any, name: dict[str, str]
@@ -95,6 +98,7 @@ def test_post_api_associations_400_when_the_name_is_missing_or_empty(
 # GET /api/associations
 
 
+# /home/operations/list-my-associations/listed
 def test_get_api_associations_lists_the_users_associations_with_their_role(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -126,6 +130,7 @@ def test_get_api_associations_lists_the_users_associations_with_their_role(
     ]
 
 
+# /home/operations/list-my-associations/listed
 def test_get_api_associations_omits_associations_of_others(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -140,6 +145,7 @@ def test_get_api_associations_omits_associations_of_others(
 # GET /api/associations/{id}
 
 
+# /core/operations/get-association/detail /core/model/association/timezone
 def test_get_api_association_shows_its_members(client: Any, new_client: Callable[[], Any]) -> None:
     alice_email = unique_email("Alice")
     alice = sign_up(client, "Alice", alice_email)
@@ -179,6 +185,7 @@ def test_get_api_association_shows_its_members(client: Any, new_client: Callable
     ]
 
 
+# /core/operations/get-association/detail
 def test_get_api_association_role_is_the_signed_in_users(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -187,6 +194,7 @@ def test_get_api_association_role_is_the_signed_in_users(
     assert bruno.get(f"/api/associations/{association['id']}").json()["role"] == "volunteer"
 
 
+# /core/operations/general/unknown-association
 def test_get_api_association_404_when_it_does_not_exist(client: Any) -> None:
     sign_up(client, "Alice")
 
@@ -196,6 +204,7 @@ def test_get_api_association_404_when_it_does_not_exist(client: Any) -> None:
     assert "error" in response.json()
 
 
+# /core/operations/general/unknown-association
 def test_get_api_association_404_when_not_a_member(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -212,6 +221,7 @@ def test_get_api_association_404_when_not_a_member(
 # POST /api/associations/{id}/members
 
 
+# /core/operations/add-member/new-user
 def test_post_api_members_creates_a_user_without_password(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client)
@@ -233,6 +243,7 @@ def test_post_api_members_creates_a_user_without_password(client: Any) -> None:
     uuid.UUID(body["user_id"])
 
 
+# /core/operations/add-member/new-user
 def test_post_api_members_can_add_a_manager(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client)
@@ -243,7 +254,8 @@ def test_post_api_members_can_add_a_manager(client: Any) -> None:
     assert response.json()["role"] == "manager"
 
 
-def test_r3_adding_an_existing_user_keeps_their_display_name(
+# /core/operations/add-member/existing-user
+def test_adding_an_existing_user_keeps_their_display_name(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     sign_up(client, "Alice")
@@ -265,7 +277,8 @@ def test_r3_adding_an_existing_user_keeps_their_display_name(
     }
 
 
-def test_r3_a_user_added_to_two_associations_is_one_user(client: Any) -> None:
+# /core/operations/add-member/existing-user
+def test_a_user_added_to_two_associations_is_one_user(client: Any) -> None:
     sign_up(client, "Alice")
     first = create_association(client, "Jardin partagé des Lilas")
     second = create_association(client, "Repair Café Belleville")
@@ -278,6 +291,7 @@ def test_r3_a_user_added_to_two_associations_is_one_user(client: Any) -> None:
     assert in_second["display_name"] == "Chloé"
 
 
+# /core/operations/add-member/already /core/model/membership/single
 def test_post_api_members_409_when_already_a_member(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client)
@@ -290,6 +304,7 @@ def test_post_api_members_409_when_already_a_member(client: Any) -> None:
     assert "error" in response.json()
 
 
+# /core/operations/add-member/volunteer
 def test_post_api_members_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     association, _, bruno = manager_and_volunteer(client, new_client)
 
@@ -299,6 +314,7 @@ def test_post_api_members_403_for_a_volunteer(client: Any, new_client: Callable[
     assert "error" in response.json()
 
 
+# /core/operations/general/malformed
 @pytest.mark.parametrize(
     "body",
     [
@@ -324,6 +340,7 @@ def test_post_api_members_400_when_a_field_is_missing_empty_or_invalid(
 # PATCH /api/associations/{id}/members/{user_id}
 
 
+# /core/operations/change-role/changed
 def test_patch_api_member_changes_the_role(client: Any, new_client: Callable[[], Any]) -> None:
     association, bruno_user, bruno = manager_and_volunteer(client, new_client)
 
@@ -345,7 +362,8 @@ def test_patch_api_member_changes_the_role(client: Any, new_client: Callable[[],
     assert bruno.get(f"/api/associations/{association['id']}").json()["role"] == "manager"
 
 
-def test_r1_the_last_manager_cannot_be_demoted(client: Any) -> None:
+# /core/operations/change-role/last-manager /core/model/membership/manager
+def test_the_last_manager_cannot_be_demoted(client: Any) -> None:
     alice = sign_up(client, "Alice")
     association = create_association(client)
 
@@ -359,7 +377,8 @@ def test_r1_the_last_manager_cannot_be_demoted(client: Any) -> None:
     assert client.get(f"/api/associations/{association['id']}").json()["role"] == "manager"
 
 
-def test_r1_a_manager_can_be_demoted_when_another_remains(
+# /core/operations/change-role/changed
+def test_a_manager_can_be_demoted_when_another_remains(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     alice = sign_up(client, "Alice")
@@ -375,6 +394,7 @@ def test_r1_a_manager_can_be_demoted_when_another_remains(
     assert response.json()["role"] == "volunteer"
 
 
+# /core/operations/change-role/not-member
 def test_patch_api_member_404_when_the_user_is_not_a_member(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client)
@@ -388,6 +408,7 @@ def test_patch_api_member_404_when_the_user_is_not_a_member(client: Any) -> None
     assert "error" in response.json()
 
 
+# /core/operations/change-role/volunteer
 def test_patch_api_member_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     association, bruno_user, bruno = manager_and_volunteer(client, new_client)
 
@@ -400,6 +421,7 @@ def test_patch_api_member_403_for_a_volunteer(client: Any, new_client: Callable[
     assert "error" in response.json()
 
 
+# /core/operations/general/malformed
 def test_patch_api_member_400_when_the_role_is_invalid(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -417,6 +439,7 @@ def test_patch_api_member_400_when_the_role_is_invalid(
 # DELETE /api/associations/{id}/members/{user_id}
 
 
+# /core/operations/remove-member/removed
 def test_delete_api_member_removes_the_member(client: Any, new_client: Callable[[], Any]) -> None:
     association, bruno_user, bruno = manager_and_volunteer(client, new_client)
 
@@ -429,6 +452,7 @@ def test_delete_api_member_removes_the_member(client: Any, new_client: Callable[
     assert bruno.get("/api/associations").json() == []
 
 
+# /core/operations/remove-member/removed /core/operations/add-member/existing-user
 def test_delete_api_member_lets_the_user_be_added_again(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -441,7 +465,8 @@ def test_delete_api_member_lets_the_user_be_added_again(
     assert response.json()["user_id"] == bruno_user["id"]
 
 
-def test_r1_the_last_manager_cannot_be_removed(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/remove-member/last-manager /core/model/membership/manager
+def test_the_last_manager_cannot_be_removed(client: Any, new_client: Callable[[], Any]) -> None:
     alice = sign_up(client, "Alice")
     association = create_association(client)
     add_member(client, association["id"], "Bruno", unique_email("Bruno"))
@@ -453,6 +478,7 @@ def test_r1_the_last_manager_cannot_be_removed(client: Any, new_client: Callable
     assert client.get(f"/api/associations/{association['id']}").json()["role"] == "manager"
 
 
+# /core/operations/remove-member/removed
 def test_delete_api_member_a_manager_may_remove_themself_when_another_remains(
     client: Any,
 ) -> None:
@@ -466,6 +492,7 @@ def test_delete_api_member_a_manager_may_remove_themself_when_another_remains(
     assert client.get(f"/api/associations/{association['id']}").status_code == 404
 
 
+# /core/operations/remove-member/removed
 def test_delete_api_member_a_manager_removes_another_manager(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client)
@@ -476,6 +503,7 @@ def test_delete_api_member_a_manager_removes_another_manager(client: Any) -> Non
     assert response.status_code == 204
 
 
+# /core/operations/remove-member/volunteer
 def test_delete_api_member_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     association, bruno_user, bruno = manager_and_volunteer(client, new_client)
 
@@ -486,6 +514,7 @@ def test_delete_api_member_403_for_a_volunteer(client: Any, new_client: Callable
     assert bruno.get(f"/api/associations/{association['id']}").status_code == 200
 
 
+# /core/operations/remove-member/not-member
 def test_delete_api_member_404_when_the_user_is_not_a_member(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client)
@@ -496,6 +525,7 @@ def test_delete_api_member_404_when_the_user_is_not_a_member(client: Any) -> Non
     assert "error" in response.json()
 
 
+# /core/operations/general/unknown-association
 def test_delete_api_member_404_when_not_a_member_of_the_association(
     client: Any, new_client: Callable[[], Any]
 ) -> None:

@@ -11,6 +11,7 @@ afterEach(() => {
 })
 
 describe('Sign-in link', () => {
+  // /core/ui/access/signed-out /core/ui/sign-in-link/form
   it('is shown signed out, without Sign in', async () => {
     mockApi({ 'GET /api/session': signedOut })
 
@@ -21,6 +22,7 @@ describe('Sign-in link', () => {
     expect(showsField(wrapper, 'Password')).toBe(false)
   })
 
+  // /core/ui/sign-in-link/send
   it('asks for the link and says where it was sent, instead of the form', async () => {
     const calls = mockApi({
       'GET /api/session': signedOut,
@@ -42,6 +44,7 @@ describe('Sign-in link', () => {
     expect(showsField(wrapper, 'Email')).toBe(false)
   })
 
+  // /core/ui/sign-in-link/form
   it('"Back to Sign in" leads to Sign in', async () => {
     mockApi({ 'GET /api/session': signedOut })
     const wrapper = await mountApp('/sign-in-link')

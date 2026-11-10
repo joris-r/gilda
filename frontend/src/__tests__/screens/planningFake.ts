@@ -77,7 +77,7 @@ function shift(date: string, days: number) {
 const mondayOf = (date: string) =>
   shift(date, -((new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7))
 
-/** The range of R32, from the current date in Paris. */
+/** The default range, from the current date in Paris. */
 function defaultRange(period: PlanningPeriod | null) {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date())
   const from = shift(mondayOf(today), -7)
@@ -108,7 +108,7 @@ export function planningApi(options: {
   note?: string
   memberAbsences?: MemberAbsence[]
   notes?: Note[]
-  /** The range the schedule returns when asked for none, in place of R32's. */
+  /** The range the schedule returns when asked for none, in place of the default range. */
   scheduleRange?: { from: string; to: string }
   /** The token of the association's share link; none by default. */
   shareLink?: string | null
@@ -273,7 +273,7 @@ export function planningApi(options: {
     return { status: 204 }
   }
 
-  /** Serves Shared schedule for `token` only (R33). */
+  /** Serves Shared schedule for `token` only. */
   function setShareLink(token: string | null) {
     const unknown: Reply = { status: 404, body: { error: 'Unknown share link' } }
     if (shareLink !== null) {

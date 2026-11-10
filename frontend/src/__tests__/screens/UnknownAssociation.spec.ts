@@ -34,12 +34,14 @@ describe('A screen of an association whose slug is unknown', () => {
       return mountApp(path)
     }
 
+    // /core/ui/unknown-association/shown
     it('says so', async () => {
       const wrapper = await mountUnknown()
 
       expect(pageText(wrapper)).toContain(MESSAGE)
     })
 
+    // /core/ui/unknown-association/shown
     it('has a way to My associations', async () => {
       const wrapper = await mountUnknown()
       const way = wrapper
@@ -54,6 +56,7 @@ describe('A screen of an association whose slug is unknown', () => {
     })
   })
 
+  // /core/ui/unknown-association/shown
   it('does not show for an association the user is a member of', async () => {
     mockApi({
       'GET /api/session': signedInAsAlice,

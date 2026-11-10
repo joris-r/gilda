@@ -129,6 +129,7 @@ afterEach(() => {
 })
 
 describe('Schedule', () => {
+  // /core/ui/header/location
   it('the header shows the association name alone', async () => {
     const { mounting } = mountSchedule()
     const text = header(await mounting).text()
@@ -138,6 +139,7 @@ describe('Schedule', () => {
     expect(text).not.toContain('Members')
   })
 
+  // /planning/ui/schedule/links
   it('"My availability", "Members" and "Schedule settings" lead to those screens', async () => {
     const { mounting } = mountSchedule()
     const wrapper = await mounting
@@ -147,6 +149,7 @@ describe('Schedule', () => {
     expect(control(wrapper, 'Schedule settings').attributes('href')).toBe(`${path}/settings`)
   })
 
+  // /planning/ui/schedule/weeks
   it('week headings show only the week number', async () => {
     const { mounting } = mountSchedule()
     const text = pageText(await mounting)
@@ -155,6 +158,7 @@ describe('Schedule', () => {
     expect(text).not.toContain('26 Oct – 1 Nov')
   })
 
+  // /planning/ui/schedule
   it('no longer opens at /associations/{slug}', async () => {
     const { mounting } = mountSchedule('volunteer', {}, `/associations/${garden.slug}`)
     const text = pageText(await mounting)
@@ -162,6 +166,7 @@ describe('Schedule', () => {
     expect(text).not.toContain('Week 44')
   })
 
+  // /planning/ui/schedule
   it('no longer opens at /association/{slug}/schedule', async () => {
     const { mounting } = mountSchedule('volunteer', {}, `${path}/schedule`)
     const text = pageText(await mounting)
@@ -169,7 +174,8 @@ describe('Schedule', () => {
     expect(text).not.toContain('Week 44')
   })
 
-  it('opens on the weeks of R32, in one request', async () => {
+  // /planning/ui/schedule/weeks
+  it('opens on the default weeks, in one request', async () => {
     const { api, mounting } = mountSchedule()
     const wrapper = await mounting
 
@@ -180,6 +186,7 @@ describe('Schedule', () => {
     expect(text).not.toContain('Week 49')
   })
 
+  // /planning/ui/schedule/more
   it('"More weeks", at the end, adds four more', async () => {
     const { api, mounting } = mountSchedule()
     const wrapper = await mounting
@@ -193,6 +200,7 @@ describe('Schedule', () => {
     expect(text.indexOf('Week 52')).toBeLessThan(text.indexOf('More weeks'))
   })
 
+  // /planning/ui/schedule/today
   it("a line marked with today's date separates the past weeks from the current week", async () => {
     const { mounting } = mountSchedule()
     const text = pageText(await mounting)
@@ -202,7 +210,8 @@ describe('Schedule', () => {
     expect(line).toBeLessThan(text.indexOf('Week 44'))
   })
 
-  describe('R11', () => {
+  describe('today', () => {
+    // /planning/model/time-zone/today /planning/ui/schedule/today
     it("after midnight in Paris, today is Paris's date", async () => {
       vi.setSystemTime(new Date('2026-10-29T23:30:00Z'))
       const { mounting } = mountSchedule('volunteer', { registrations: [] })
@@ -213,6 +222,7 @@ describe('Schedule', () => {
       expect(hasControl(wrapper, 'Sign up')).toBe(false)
     })
 
+    // /planning/model/time-zone/today /planning/ui/schedule/today
     it('before midnight in Paris, today is still that day', async () => {
       vi.setSystemTime(new Date('2026-10-29T22:30:00Z'))
       const { mounting } = mountSchedule('volunteer', { registrations: [] })
@@ -223,6 +233,7 @@ describe('Schedule', () => {
       expect(hasControl(wrapper, 'Sign up')).toBe(true)
     })
 
+    // /planning/model/time-zone/today /planning/ui/schedule/today
     it('in summer time, today follows Paris too', async () => {
       vi.setSystemTime(new Date('2026-07-01T22:30:00Z'))
       const { mounting } = mountSchedule('volunteer', {
@@ -234,6 +245,7 @@ describe('Schedule', () => {
     })
   })
 
+  // design.md
   it('each week has one column per weekday on which an occurrence falls', async () => {
     const { mounting } = mountSchedule()
     const wrapper = await mounting
@@ -244,6 +256,7 @@ describe('Schedule', () => {
       expect(hasDay(wrapper, other)).toBe(false)
   })
 
+  // design.md
   it('time runs from the earliest start to the latest end, rounded to whole hours', async () => {
     const { mounting } = mountSchedule('volunteer', {
       occurrences: [
@@ -260,6 +273,7 @@ describe('Schedule', () => {
     expect(texts).not.toContain('18h')
   })
 
+  // /planning/ui/schedule/occurrence
   it("an occurrence shows its registration's display name, and no times", async () => {
     const { mounting } = mountSchedule()
     const wrapper = await mounting
@@ -270,12 +284,14 @@ describe('Schedule', () => {
     expect(occurrence.text()).not.toContain('10–13')
   })
 
+  // /planning/ui/schedule/occurrence
   it('a proposed registration shows "?"', async () => {
     const { mounting } = mountSchedule()
 
     expect(slotItem(await mounting, 'Sat 31 Oct', '10–13').text()).toMatch(/Alice\s*\?/)
   })
 
+  // /planning/ui/schedule/occurrence
   it('an occurrence without registration is empty', async () => {
     const { mounting } = mountSchedule()
 
@@ -286,6 +302,7 @@ describe('Schedule', () => {
     ).toBe('')
   })
 
+  // /planning/ui/occurrence-menu/title
   it('the menu of an occurrence is titled with its day and times', async () => {
     const { mounting } = mountSchedule()
     const wrapper = await mounting
@@ -294,6 +311,7 @@ describe('Schedule', () => {
     expect(menu(wrapper).text()).toContain('Thu 19 Nov · 10–13')
   })
 
+  // /planning/ui/schedule/occurrence
   it('a cancelled registration shows its name struck', async () => {
     const { mounting } = mountSchedule()
 
@@ -304,6 +322,7 @@ describe('Schedule', () => {
     ).toBe('Bruno')
   })
 
+  // /planning/ui/schedule/obsolete
   it('an obsolete registration is placed on its day, marked "obsolete"', async () => {
     const { mounting } = mountSchedule()
     const wrapper = await mounting
@@ -314,6 +333,7 @@ describe('Schedule', () => {
     expect(slotItem(wrapper, 'Thu 12 Nov', '10–13').text()).not.toContain('obsolete')
   })
 
+  // /planning/ui/schedule/closed
   it('a day covered by a closure shows "Closed" and its label', async () => {
     const { mounting } = mountSchedule()
     const text = day(await mounting, 'Sat 14 Nov').text()
@@ -322,9 +342,17 @@ describe('Schedule', () => {
     expect(text).toContain('Fête du quartier')
   })
 
+  // /planning/ui/schedule/empty
+  it('says "No openings in these weeks." when the shown weeks hold no occurrence', async () => {
+    const { mounting } = mountSchedule('volunteer', { occurrences: [], registrations: [] })
+
+    expect(pageText(await mounting)).toContain('No openings in these weeks.')
+  })
+
   describe('planning period', () => {
     const period = { first: '2026-11-04', last: '2026-11-18' }
 
+    // /planning/ui/schedule/period-lines
     it('a line marked with the first date sits just before the week that holds it', async () => {
       const { mounting } = mountSchedule('volunteer', { planningPeriod: period })
       const text = pageText(await mounting)
@@ -334,6 +362,7 @@ describe('Schedule', () => {
       expect(line).toBeLessThan(text.indexOf('Week 45'))
     })
 
+    // /planning/ui/schedule/period-lines
     it('a line marked with the last date sits just after the week that holds it', async () => {
       const { mounting } = mountSchedule('volunteer', { planningPeriod: period })
       const text = pageText(await mounting)
@@ -343,6 +372,7 @@ describe('Schedule', () => {
       expect(line).toBeLessThan(text.indexOf('Week 48'))
     })
 
+    // /planning/ui/schedule/period-lines
     it('the today line comes first when the first line falls at the same place', async () => {
       const { mounting } = mountSchedule('volunteer', {
         planningPeriod: { first: '2026-10-26', last: '2026-11-18' },
@@ -356,7 +386,8 @@ describe('Schedule', () => {
       expect(first).toBeLessThan(text.indexOf('Week 44'))
     })
 
-    it('R32: the schedule opens on all the weeks the range of the reply covers', async () => {
+    // /planning/ui/schedule/weeks
+    it('the schedule opens on all the weeks the range of the reply covers', async () => {
       const { api, mounting } = mountSchedule('volunteer', {
         planningPeriod: { first: '2026-11-04', last: '2026-11-25' },
         scheduleRange: { from: '2026-10-19', to: '2026-12-06' },
@@ -373,6 +404,7 @@ describe('Schedule', () => {
       expect(api.scheduleRequests).toContainEqual({ from: '2026-12-07', to: '2027-01-03' })
     })
 
+    // /planning/ui/schedule/period-lines
     it('shows no line without a period', async () => {
       const { mounting } = mountSchedule()
       const text = pageText(await mounting)
@@ -381,6 +413,7 @@ describe('Schedule', () => {
       expect(text).not.toContain('Planning end')
     })
 
+    // /planning/ui/schedule/menu
     it('an occurrence after the last date keeps its menu', async () => {
       const { calls, mounting } = mountSchedule('volunteer', { planningPeriod: period })
       const wrapper = await mounting
@@ -397,6 +430,7 @@ describe('Schedule', () => {
   })
 
   describe('menu', () => {
+    // /planning/ui/occurrence-menu/free /planning/ui/occurrence-menu/sign-up
     it('a free occurrence offers "Sign up", which registers me', async () => {
       const { calls, mounting } = mountSchedule()
       const wrapper = await mounting
@@ -412,6 +446,23 @@ describe('Schedule', () => {
       expect(slotItem(wrapper, 'Thu 19 Nov', '10–13').text()).toContain('Alice')
     })
 
+    // /planning/ui/occurrence-menu/taken
+    it('"Sign up" on an occurrence taken in the meantime says so', async () => {
+      const { api, mounting } = mountSchedule()
+      const wrapper = await mounting
+      mockApi({
+        'GET /api/session': signedInAsAlice,
+        ...api.routes,
+        [`POST ${registrationsPath}`]: { status: 409, body: { error: 'taken' } },
+      })
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      await press(wrapper, 'Sign up')
+
+      expect(pageText(wrapper)).toContain('Someone took this slot in the meantime.')
+    })
+
+    // /planning/ui/occurrence-menu/free
     it('an occurrence with a cancelled registration offers "Sign up"', async () => {
       const { mounting } = mountSchedule()
       const wrapper = await mounting
@@ -421,6 +472,7 @@ describe('Schedule', () => {
       expect(hasControl(wrapper, 'Sign up')).toBe(true)
     })
 
+    // /planning/ui/schedule/menu
     it('opens on no occurrence before today', async () => {
       const { mounting } = mountSchedule('manager')
       const wrapper = await mounting
@@ -431,6 +483,7 @@ describe('Schedule', () => {
       expect(hasControl(wrapper, 'Cancel registration…')).toBe(false)
     })
 
+    // /planning/ui/occurrence-menu/free /planning/ui/occurrence-menu/cancel
     it("offers a volunteer nothing on another member's registration", async () => {
       const { mounting } = mountSchedule()
       const wrapper = await mounting
@@ -441,6 +494,7 @@ describe('Schedule', () => {
       expect(hasControl(wrapper, 'Cancel registration…')).toBe(false)
     })
 
+    // /planning/ui/occurrence-menu/confirm /planning/ui/occurrence-menu/confirm-registration
     it('my proposed registration offers "Confirm", which confirms it', async () => {
       const { calls, mounting } = mountSchedule()
       const wrapper = await mounting
@@ -456,6 +510,7 @@ describe('Schedule', () => {
       expect(slotItem(wrapper, 'Sat 31 Oct', '10–13').text()).not.toMatch(/Alice\s*\?/)
     })
 
+    // /planning/ui/occurrence-menu/confirm
     it('my confirmed registration offers no "Confirm"', async () => {
       const { mounting } = mountSchedule()
       const wrapper = await mounting
@@ -466,6 +521,7 @@ describe('Schedule', () => {
       expect(hasControl(wrapper, 'Cancel registration…')).toBe(true)
     })
 
+    // /planning/ui/occurrence-menu/cancel-registration
     it('"Cancel registration…" asks before cancelling', async () => {
       const { calls, mounting } = mountSchedule()
       const wrapper = await mounting
@@ -477,6 +533,7 @@ describe('Schedule', () => {
       expect(calls.some((c) => c.method === 'PATCH')).toBe(false)
     })
 
+    // /planning/ui/occurrence-menu/cancel-registration /planning/ui/schedule/occurrence
     it('"Yes, cancel" cancels the registration, whose name shows struck', async () => {
       const { calls, mounting } = mountSchedule()
       const wrapper = await mounting
@@ -493,6 +550,7 @@ describe('Schedule', () => {
       expect(slotItem(wrapper, 'Thu 5 Nov', '10–13').find('s').text()).toBe('Alice')
     })
 
+    // /planning/ui/occurrence-menu/cancel-registration
     it('"Keep it" leaves the registration', async () => {
       const { calls, mounting } = mountSchedule()
       const wrapper = await mounting
@@ -505,6 +563,7 @@ describe('Schedule', () => {
       expect(slotItem(wrapper, 'Thu 5 Nov', '10–13').find('s').exists()).toBe(false)
     })
 
+    // /planning/ui/occurrence-menu/cancel /planning/ui/occurrence-menu/confirm
     it('my obsolete registration can be cancelled, not confirmed', async () => {
       const { mounting } = mountSchedule()
       const wrapper = await mounting
@@ -517,6 +576,7 @@ describe('Schedule', () => {
   })
 
   describe('menu, for a manager', () => {
+    // /planning/ui/occurrence-menu/free /planning/ui/occurrence-menu/propose
     it('a free occurrence lists the members, each proposing it to that member', async () => {
       const { calls, mounting } = mountSchedule('manager')
       const wrapper = await mounting
@@ -534,6 +594,7 @@ describe('Schedule', () => {
       expect(slotItem(wrapper, 'Thu 19 Nov', '10–13').text()).toMatch(/Bruno\s*\?/)
     })
 
+    // /planning/ui/occurrence-menu/cancel /planning/ui/occurrence-menu/cancel-registration
     it("cancels another member's registration, after asking", async () => {
       const { calls, mounting } = mountSchedule('manager')
       const wrapper = await mounting
@@ -550,6 +611,7 @@ describe('Schedule', () => {
       expect(slotItem(wrapper, 'Thu 29 Oct', '10–13').find('s').text()).toBe('Chloé')
     })
 
+    // /planning/ui/occurrence-menu/confirm /planning/ui/occurrence-menu/confirm-registration
     it('another member\'s proposed registration offers "Confirm", which confirms it', async () => {
       const { calls, mounting } = mountSchedule('manager', {
         registrations: [registration('r-bruno', bruno, 'proposed', '2026-11-19')],
@@ -590,6 +652,7 @@ describe('Schedule', () => {
         .filter((b) => /^(Alice|Bruno|Chloé)( \(\d+\))?$/.test(b.text().trim()))
     }
 
+    // design.md
     it("each member's name is marked with their preference for the occurrence's slot", async () => {
       const { mounting } = mountSchedule('manager', { preferences })
       const wrapper = await mounting
@@ -600,6 +663,7 @@ describe('Schedule', () => {
       expect(preferenceOf(control(menu(wrapper), 'Chloé'))).toBeNull()
     })
 
+    // design.md
     it('on another slot, the names follow that slot', async () => {
       const { mounting } = mountSchedule('manager', { preferences })
       const wrapper = await mounting
@@ -610,6 +674,7 @@ describe('Schedule', () => {
       expect(preferenceOf(control(menu(wrapper), 'Chloé'))).toBe('preferred')
     })
 
+    // /planning/ui/occurrence-menu/count
     it('each name is followed by the registration count, in parentheses', async () => {
       const { mounting } = mountSchedule('manager', {
         preferences,
@@ -624,6 +689,7 @@ describe('Schedule', () => {
       expect(hasControl(menu(wrapper), 'Chloé (2)')).toBe(true)
     })
 
+    // /planning/ui/occurrence-menu/count
     it('without a planning period, no count is shown', async () => {
       const { mounting } = mountSchedule('manager', { preferences })
       const wrapper = await mounting
@@ -636,6 +702,7 @@ describe('Schedule', () => {
       ])
     })
 
+    // /planning/ui/occurrence-menu/free
     it('the actions are unchanged', async () => {
       const { calls, mounting } = mountSchedule('manager', {
         preferences,
@@ -655,6 +722,7 @@ describe('Schedule', () => {
       })
     })
 
+    // /planning/ui/occurrence-menu/count
     it('a volunteer does not load the registration counts', async () => {
       const { calls, mounting } = mountSchedule('volunteer', { planningPeriod })
       const wrapper = await mounting
@@ -673,6 +741,7 @@ describe('Schedule', () => {
       last: '2026-11-19',
     }
 
+    // /planning/ui/occurrence-menu/absent
     it('a member with an absence covering the date is marked absent', async () => {
       const { mounting } = mountSchedule('manager', { memberAbsences: [brunoAway] })
       const wrapper = await mounting
@@ -683,6 +752,7 @@ describe('Schedule', () => {
       expect(isAbsent(control(menu(wrapper), 'Chloé'))).toBe(false)
     })
 
+    // /planning/ui/occurrence-menu/absent
     it('an absence covers the dates from its first to its last', async () => {
       const { mounting } = mountSchedule('manager', {
         memberAbsences: [
@@ -700,6 +770,7 @@ describe('Schedule', () => {
       expect(isAbsent(control(menu(wrapper), 'Alice'))).toBe(false)
     })
 
+    // /planning/ui/occurrence-menu/absent /planning/ui/occurrence-menu/propose
     it('an absent member keeps no preference colour, and can still be proposed the occurrence', async () => {
       const { calls, mounting } = mountSchedule('manager', {
         memberAbsences: [brunoAway],
@@ -726,6 +797,7 @@ describe('Schedule', () => {
       return wrapper.find('[role="dialog"]').text()
     }
 
+    // /planning/ui/occurrence-menu/absent /planning/ui/occurrence-menu/icon
     it("hovering an absent member's absence icon shows the absence", async () => {
       const { mounting } = mountSchedule('manager', { memberAbsences: [brunoAway] })
       const wrapper = await mounting
@@ -735,6 +807,19 @@ describe('Schedule', () => {
       expect(control(wrapper, absence).text()).not.toContain('Bruno')
     })
 
+    // /planning/ui/occurrence-menu/absent-day
+    it('the absence icon of a one-day absence shows its date', async () => {
+      const oneDay = { ...brunoAway, first: '2026-11-19', last: '2026-11-19' }
+      const { mounting } = mountSchedule('manager', { memberAbsences: [oneDay] })
+      const wrapper = await mounting
+
+      await open(slotItem(wrapper, 'Thu 19 Nov', '10–13'))
+      expect(control(wrapper, 'Absent Thu 19 Nov 2026').attributes('title')).toBe(
+        'Absent Thu 19 Nov 2026',
+      )
+    })
+
+    // /planning/ui/occurrence-menu/absent
     it('a member who is not absent has no absence icon', async () => {
       const { mounting } = mountSchedule('manager', {
         memberAbsences: [
@@ -747,6 +832,7 @@ describe('Schedule', () => {
       expect(hasControl(wrapper, 'Absent Fri 20 Nov 2026 – Wed 25 Nov 2026')).toBe(false)
     })
 
+    // /planning/ui/occurrence-menu/note /planning/ui/occurrence-menu/icon
     it("hovering a member's note icon shows the note", async () => {
       const { mounting } = mountSchedule('manager', {
         notes: [{ user_id: 'u-bruno', text: note }],
@@ -758,6 +844,7 @@ describe('Schedule', () => {
       expect(control(wrapper, note).text()).not.toContain('Bruno')
     })
 
+    // /planning/ui/occurrence-menu/note
     it('a member with an empty note has no note icon', async () => {
       const withoutNotes = mountSchedule('manager')
       const without = await withoutNotes.mounting
@@ -773,6 +860,7 @@ describe('Schedule', () => {
       expect(wrapper.findAll('button').length).toBe(buttons)
     })
 
+    // /planning/ui/occurrence-menu/icon
     it('the texts of the icons are not shown before a click', async () => {
       const { mounting } = mountSchedule('manager', {
         memberAbsences: [brunoAway],
@@ -785,6 +873,7 @@ describe('Schedule', () => {
       expect(menuText(wrapper)).not.toContain(absence)
     })
 
+    // /planning/ui/occurrence-menu/icon
     it('clicking a note icon shows the note under the names, and proposes nothing', async () => {
       const { calls, mounting } = mountSchedule('manager', {
         notes: [{ user_id: 'u-bruno', text: note }],
@@ -799,6 +888,7 @@ describe('Schedule', () => {
       expect(calls.some((c) => c.method === 'POST')).toBe(false)
     })
 
+    // /planning/ui/occurrence-menu/icon
     it('clicking an absence icon shows the absence under the names, and proposes nothing', async () => {
       const { calls, mounting } = mountSchedule('manager', { memberAbsences: [brunoAway] })
       const wrapper = await mounting
@@ -810,6 +900,7 @@ describe('Schedule', () => {
       expect(calls.some((c) => c.method === 'POST')).toBe(false)
     })
 
+    // /planning/ui/occurrence-menu/icon
     it('clicking the icon whose text is shown hides it', async () => {
       const { mounting } = mountSchedule('manager', {
         notes: [{ user_id: 'u-bruno', text: note }],
@@ -823,6 +914,7 @@ describe('Schedule', () => {
       expect(menuText(wrapper)).not.toContain(note)
     })
 
+    // /planning/ui/occurrence-menu/icon
     it('clicking another icon shows its text in place of the text shown', async () => {
       const { mounting } = mountSchedule('manager', {
         memberAbsences: [brunoAway],
@@ -838,6 +930,7 @@ describe('Schedule', () => {
       expect(menuText(wrapper)).not.toContain(note)
     })
 
+    // /planning/ui/occurrence-menu/absent
     it('the absence icon in French', async () => {
       localStorage.setItem('gilda.locale', 'fr')
       const { mounting } = mountSchedule('manager', { memberAbsences: [brunoAway] })
@@ -848,6 +941,7 @@ describe('Schedule', () => {
       expect(control(wrapper, french).attributes('title')).toBe(french)
     })
 
+    // /planning/ui/occurrence-menu/free
     it('a volunteer does not load the absences and notes of the members', async () => {
       const { calls, mounting } = mountSchedule('volunteer')
       const wrapper = await mounting
@@ -859,7 +953,7 @@ describe('Schedule', () => {
     })
   })
 
-  describe('R27', () => {
+  describe('order of the names', () => {
     const planningPeriod = { first: '2026-11-02', last: '2026-11-25' }
 
     /** The display names of the menu's buttons proposing the occurrence, in order. */
@@ -877,6 +971,7 @@ describe('Schedule', () => {
         .map((t) => t.replace(/ \(\d+\)$/, ''))
     }
 
+    // /planning/ui/occurrence-menu/order
     it('Preferred, then Possible, then none stated', async () => {
       const names = await namesOn({
         preferences: [
@@ -887,6 +982,7 @@ describe('Schedule', () => {
       expect(names).toEqual(['Chloé', 'Alice', 'Bruno'])
     })
 
+    // /planning/ui/occurrence-menu/order
     it('none stated, then Unavailable', async () => {
       const names = await namesOn({
         preferences: [
@@ -897,6 +993,7 @@ describe('Schedule', () => {
       expect(names).toEqual(['Chloé', 'Bruno', 'Alice'])
     })
 
+    // /planning/ui/occurrence-menu/order /planning/model/occurrence/slot
     it("follows the preferences for the occurrence's slot", async () => {
       const names = await namesOn(
         {
@@ -911,6 +1008,7 @@ describe('Schedule', () => {
       expect(names).toEqual(['Chloé', 'Alice', 'Bruno'])
     })
 
+    // /planning/ui/occurrence-menu/order
     it('absent members come last, whatever their preference', async () => {
       const names = await namesOn({
         preferences: [
@@ -924,6 +1022,7 @@ describe('Schedule', () => {
       expect(names).toEqual(['Chloé', 'Alice', 'Bruno'])
     })
 
+    // /planning/ui/occurrence-menu/order
     it('then by fewest registrations', async () => {
       const names = await namesOn({
         planningPeriod,
@@ -936,6 +1035,7 @@ describe('Schedule', () => {
       expect(names).toEqual(['Bruno', 'Chloé', 'Alice'])
     })
 
+    // /planning/ui/occurrence-menu/order
     it('the preference comes before the registrations', async () => {
       const names = await namesOn({
         planningPeriod,
@@ -949,6 +1049,7 @@ describe('Schedule', () => {
       expect(names).toEqual(['Chloé', 'Alice', 'Bruno'])
     })
 
+    // /planning/ui/occurrence-menu/order
     it('absent members are sorted by fewest registrations too', async () => {
       const names = await namesOn({
         planningPeriod,
@@ -965,11 +1066,13 @@ describe('Schedule', () => {
       expect(names).toEqual(['Alice', 'Chloé', 'Bruno'])
     })
 
+    // /planning/ui/occurrence-menu/order
     it('then by display name', async () => {
       const names = await namesOn({ members: [chloe, bruno, alice] })
       expect(names).toEqual(['Alice', 'Bruno', 'Chloé'])
     })
 
+    // /planning/ui/occurrence-menu/order
     it('then by display name, with equal registrations', async () => {
       const names = await namesOn({
         members: [chloe, bruno, alice],

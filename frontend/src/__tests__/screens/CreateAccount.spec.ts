@@ -18,6 +18,7 @@ async function fillTheForm(wrapper: Parameters<typeof fill>[0]) {
 }
 
 describe('Create an account', () => {
+  // /core/ui/access/signed-out /core/ui/create-an-account/form
   it('is shown at /signup', async () => {
     mockApi({ 'GET /api/session': signedOut })
 
@@ -27,6 +28,7 @@ describe('Create an account', () => {
     expect(text).toContain('Already have an account? Sign in')
   })
 
+  // /core/ui/create-an-account/check-email /core/ui/create-an-account/create
   it('creates the account with POST /api/accounts but does not sign in', async () => {
     const calls = mockApi({
       'GET /api/session': signedOut,
@@ -46,6 +48,7 @@ describe('Create an account', () => {
     expect(pageText(wrapper)).toContain('alice@example.org')
   })
 
+  // /core/ui/create-an-account/resend
   it('offers to resend the confirmation email', async () => {
     const calls = mockApi({
       'GET /api/session': signedOut,
@@ -66,6 +69,7 @@ describe('Create an account', () => {
     expect(pageText(wrapper)).toContain('Email sent.')
   })
 
+  // /core/ui/create-an-account/exists
   it('says so when the email already has an account', async () => {
     mockApi({
       'GET /api/session': signedOut,
@@ -81,7 +85,8 @@ describe('Create an account', () => {
     )
   })
 
-  it('says so when the email was not invited (R19)', async () => {
+  // /core/ui/create-an-account/not-invited
+  it('says so when the email was not invited', async () => {
     mockApi({
       'GET /api/session': signedOut,
       'POST /api/accounts': { status: 403, body: { error: 'Not invited' } },
@@ -96,6 +101,7 @@ describe('Create an account', () => {
     )
   })
 
+  // /core/ui/create-an-account/not-sent
   it('says so when the confirmation email cannot be sent', async () => {
     mockApi({
       'GET /api/session': signedOut,
@@ -109,6 +115,7 @@ describe('Create an account', () => {
     expect(pageText(wrapper)).toContain("We couldn't send the confirmation email. Try again later.")
   })
 
+  // /core/ui/create-an-account/form
   it('"Sign in" leads to Sign in', async () => {
     mockApi({ 'GET /api/session': signedOut })
     const wrapper = await mountApp('/signup')

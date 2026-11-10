@@ -33,6 +33,7 @@ const myAssociations = {
 }
 
 describe('My associations', () => {
+  // /home/ui/my-associations/list
   it('lists my associations with my role in each', async () => {
     mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
 
@@ -43,6 +44,7 @@ describe('My associations', () => {
     expect(item(wrapper, repairCafe.name).text().toLowerCase()).toContain('volunteer')
   })
 
+  // /home/ui/my-associations/none
   it('says when I am in no association', async () => {
     mockApi({
       'GET /api/session': signedInAsAlice,
@@ -54,6 +56,7 @@ describe('My associations', () => {
     expect(text).toContain('You are not a member of any association yet.')
   })
 
+  // /core/ui/header/menu
   it('shows my display name, not my email', async () => {
     mockApi({
       'GET /api/session': signedInAsAlice,
@@ -66,6 +69,7 @@ describe('My associations', () => {
     expect(text).not.toContain(alice.email)
   })
 
+  // /home/ui/my-associations/list
   it('leads from a name to the association Schedule', async () => {
     const api = planningApi({
       me: 'u-alice',
@@ -85,6 +89,7 @@ describe('My associations', () => {
     expect(hasControl(wrapper, 'Schedule settings')).toBe(true)
   })
 
+  // /home/ui/my-associations/new
   it('"New association", below the list, leads to /association/new', async () => {
     mockApi({
       'GET /api/session': signedInAsAlice,
@@ -103,6 +108,7 @@ describe('My associations', () => {
     expect(wrapper.vm.$route.path).toBe('/association/new')
   })
 
+  // /home/ui/my-associations/new
   it('shows no form and no "Create an association"', async () => {
     mockApi({
       'GET /api/session': signedInAsAlice,
@@ -114,6 +120,7 @@ describe('My associations', () => {
     expect(hasControl(wrapper, 'Create an association')).toBe(false)
   })
 
+  // /core/ui/header/sign-out
   it('Sign out calls DELETE /api/session and shows Sign in', async () => {
     let signedIn = true
     const calls = mockApi({
@@ -135,6 +142,7 @@ describe('My associations', () => {
 })
 
 describe('New association', () => {
+  // /core/ui/header/location
   it('the header shows My associations, leading to /, then New association', async () => {
     mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
     const wrapper = await mountApp('/association/new')
@@ -144,6 +152,7 @@ describe('New association', () => {
     expect(control(header(wrapper), 'My associations').attributes('href')).toBe('/')
   })
 
+  // /core/ui/new-association/form
   it('shows Name, Association identifier with its prefix, and Create association', async () => {
     mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
     const wrapper = await mountApp('/association/new')
@@ -159,7 +168,8 @@ describe('New association', () => {
     return (field(wrapper, 'Association identifier').element as HTMLInputElement).value
   }
 
-  describe('R35', () => {
+  describe('Association identifier from Name', () => {
+    // /core/ui/new-association/follows /core/model/association/derived
     it.each([
       ['Repair Café Belleville', 'repair-cafe-belleville'],
       ["L'Atelier  d'à côté !", 'l-atelier-d-a-cote'],
@@ -176,6 +186,7 @@ describe('New association', () => {
       expect(identifier(wrapper)).toBe(slug)
     })
 
+    // /core/ui/new-association/follows /core/model/association/derived
     it('Association identifier follows Name as it changes', async () => {
       mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
       const wrapper = await mountApp('/association/new')
@@ -186,6 +197,7 @@ describe('New association', () => {
       expect(identifier(wrapper)).toBe('repair-cafe')
     })
 
+    // /core/ui/new-association/follows
     it('Association identifier no longer follows Name once the user edits it', async () => {
       mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
       const wrapper = await mountApp('/association/new')
@@ -198,6 +210,7 @@ describe('New association', () => {
     })
   })
 
+  // /core/ui/new-association/enabled
   it('Create association is enabled only when both fields are not empty', async () => {
     mockApi({ 'GET /api/session': signedInAsAlice, 'GET /api/associations': myAssociations })
     const wrapper = await mountApp('/association/new')
@@ -214,6 +227,7 @@ describe('New association', () => {
     expect(isDisabled()).toBe(true)
   })
 
+  // /core/ui/new-association/create /core/ui/new-association/created
   it('sends the identifier the user edited and opens the Schedule at it', async () => {
     const edited = { ...repairCafe, slug: 'mon-atelier' }
     const calls = mockApi({
@@ -238,6 +252,7 @@ describe('New association', () => {
     expect(wrapper.vm.$route.path).toBe('/association/mon-atelier')
   })
 
+  // /core/ui/new-association/malformed /core/ui/new-association/taken
   it.each([
     [
       400,
@@ -260,6 +275,7 @@ describe('New association', () => {
     expect(identifier(wrapper)).toBe(repairCafe.slug)
   })
 
+  // /core/ui/new-association/create /core/ui/new-association/created
   it('creates an association with POST /api/associations and opens its Schedule', async () => {
     const calls = mockApi({
       'GET /api/session': signedInAsAlice,
@@ -285,6 +301,7 @@ describe('New association', () => {
     expect(header(wrapper).text()).toContain(repairCafe.name)
   })
 
+  // /core/ui/new-association/cancel
   it('Cancel leads to My associations, creating nothing', async () => {
     const calls = mockApi({
       'GET /api/session': signedInAsAlice,
@@ -299,6 +316,7 @@ describe('New association', () => {
     expect(calls.some((c) => c.method === 'POST')).toBe(false)
   })
 
+  // /core/ui/access/signed-out
   it('signed out, shows Sign in', async () => {
     mockApi({ 'GET /api/session': signedOut })
     const wrapper = await mountApp('/association/new')

@@ -14,9 +14,10 @@ about them.
   their email.
 - `email_verified_at: timestamp`, null until the email is confirmed.
 - `deleted_at: timestamp`, null until the user deletes their account.
-- `superuser: boolean`, not stored: true when `email` equals the
-  `SUPERUSER_EMAIL` environment variable, ignoring case; always false
-  when that variable is unset.
+- `superuser: boolean`, not stored.
+  - [superuser] True when `email` equals the `SUPERUSER_EMAIL`
+    environment variable, ignoring case; always false when that
+    variable is unset.
 
 ## EmailVerificationToken
 
@@ -48,7 +49,7 @@ A user's lasting sign-in link.
   - [token] Unique.
 - `user: /core/model/user`
 - [single] At most one per user.
-- [lasting] It does not expire.
+- [lasting] It does not expire (not testable).
 
 ## Association
 

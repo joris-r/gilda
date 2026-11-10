@@ -84,6 +84,7 @@ afterEach(() => {
 })
 
 describe('My availability', () => {
+  // /core/ui/header/location
   it('the header shows the association name, then My availability', async () => {
     const text = header(await mountAvailability().mounting).text()
 
@@ -91,12 +92,14 @@ describe('My availability', () => {
     expect(text.indexOf('My availability')).toBeGreaterThan(text.indexOf(garden.name))
   })
 
+  // /planning/ui/my-availability/french
   it('in French, the screen is "Mes disponibilités"', async () => {
     localStorage.setItem('gilda.locale', 'fr')
 
     expect(header(await mountAvailability().mounting).text()).toContain('Mes disponibilités')
   })
 
+  // /planning/ui/my-availability/preferences /planning/ui/my-availability/absences /planning/ui/my-availability/note
   it('shows My preferences, then Absences, then Note for the managers', async () => {
     const wrapper = await mountAvailability().mounting
 
@@ -107,6 +110,7 @@ describe('My availability', () => {
     expect(sections).toEqual(['My preferences', 'Absences', 'Note for the managers'])
   })
 
+  // /planning/ui/my-availability/french
   it('in French, the sections and "Ajouter une absence"', async () => {
     localStorage.setItem('gilda.locale', 'fr')
     const wrapper = await mountAvailability().mounting
@@ -119,6 +123,7 @@ describe('My availability', () => {
   })
 
   describe('My preferences', () => {
+    // /planning/ui/my-availability/preferences /planning/ui/my-availability/own
     it.each(['manager', 'volunteer'] as const)(
       'a %s sees each slot, with their own preference, "—" when none',
       async (role) => {
@@ -136,6 +141,7 @@ describe('My availability', () => {
       },
     )
 
+    // /planning/ui/my-availability/own
     it("a manager sees no other member's preferences", async () => {
       const wrapper = await mountAvailability({
         role: 'manager',
@@ -146,6 +152,7 @@ describe('My availability', () => {
       expect(pageText(wrapper)).not.toContain('Bruno')
     })
 
+    // /planning/ui/my-availability/preferences
     it('offers "—", Preferred, Possible and Unavailable', async () => {
       const wrapper = await mountAvailability().mounting
 
@@ -155,6 +162,7 @@ describe('My availability', () => {
       expect(options).toEqual(['—', 'Preferred', 'Possible', 'Unavailable'])
     })
 
+    // /planning/ui/my-availability/set
     it('choosing a value saves it at once with PUT', async () => {
       const { calls, mounting } = mountAvailability()
       const wrapper = await mounting
@@ -169,6 +177,7 @@ describe('My availability', () => {
       })
     })
 
+    // /planning/ui/my-availability/set
     it('choosing "—" deletes it with DELETE', async () => {
       const { calls, mounting } = mountAvailability({
         preferences: [{ user_id: 'u-alice', slot_id: 's-thu', value: 'preferred' }],
@@ -187,6 +196,7 @@ describe('My availability', () => {
       })
     })
 
+    // design.md
     it('the selector is marked with its value, unmarked for "—"', async () => {
       const wrapper = await mountAvailability({
         preferences: [{ user_id: 'u-alice', slot_id: 's-thu', value: 'unavailable' }],
@@ -201,6 +211,7 @@ describe('My availability', () => {
       expect(preferenceOf(preferenceSelector(wrapper, 'Saturday'))).toBe('preferred')
     })
 
+    // /planning/ui/my-availability/french
     it('in French, the values', async () => {
       localStorage.setItem('gilda.locale', 'fr')
       const wrapper = await mountAvailability().mounting
@@ -212,6 +223,7 @@ describe('My availability', () => {
       expect(options).toEqual(['—', 'Préféré', 'Possible', 'Indisponible'])
     })
 
+    // /planning/ui/my-availability/none
     it('with no slot, shows "None"', async () => {
       const wrapper = await mountAvailability({ slots: [] }).mounting
 
@@ -220,18 +232,21 @@ describe('My availability', () => {
   })
 
   describe('Absences', () => {
+    // /planning/ui/my-availability/absences
     it('lists the absences, with their dates', async () => {
       const wrapper = await mountAvailability().mounting
 
       expect(section(wrapper, 'Absences').text()).toContain('Mon 9 Nov 2026 – Sun 15 Nov 2026')
     })
 
+    // /planning/ui/my-availability/none
     it('with no absence, shows "None"', async () => {
       const wrapper = await mountAvailability({ absences: [] }).mounting
 
       expect(section(wrapper, 'Absences').text()).toContain('None')
     })
 
+    // /planning/ui/my-availability/absences
     it('lists those ending today on; earlier ones do not show', async () => {
       const wrapper = await mountAvailability({
         absences: [
@@ -247,6 +262,7 @@ describe('My availability', () => {
       expect(text).toContain('Mon 9 Nov 2026 – Sun 15 Nov 2026')
     })
 
+    // /planning/ui/my-availability/own
     it.each(['manager', 'volunteer'] as const)(
       'a %s sees "Add an absence" and the edit and delete icons',
       async (role) => {
@@ -258,6 +274,7 @@ describe('My availability', () => {
       },
     )
 
+    // /planning/ui/my-availability/add-absence
     it('"Add an absence" opens the dialog "Add an absence"', async () => {
       const wrapper = await mountAvailability().mounting
 
@@ -270,6 +287,7 @@ describe('My availability', () => {
       expect(showsControl(open, 'Add absence')).toBe(true)
     })
 
+    // /planning/ui/my-availability/add-absence
     it('adds an absence with POST and closes the dialog', async () => {
       const { calls, mounting } = mountAvailability({ absences: [] })
       const wrapper = await mounting
@@ -288,6 +306,25 @@ describe('My availability', () => {
       expect(section(wrapper, 'Absences').text()).toContain('Mon 21 Dec 2026 – Sun 3 Jan 2027')
     })
 
+    // /planning/ui/my-availability/invalid
+    it('an absence refused for its order keeps the dialog open, with its message', async () => {
+      const { mounting } = mountAvailability({ absences: [] })
+      const wrapper = await mounting
+      mockApi({
+        'GET /api/session': signedInAsAlice,
+        [`POST ${base}/absences`]: { status: 400, body: { error: 'Order' } },
+      })
+
+      await press(wrapper, 'Add an absence')
+      await fill(dialog(wrapper), 'From', '2027-01-03')
+      await fill(dialog(wrapper), 'To', '2026-12-21')
+      await press(dialog(wrapper), 'Add absence')
+
+      expect(dialogs(wrapper)).toHaveLength(1)
+      expect(dialog(wrapper).text()).toContain('Check the dates: the start comes before the end.')
+    })
+
+    // /planning/ui/my-availability/edit-absence
     it('the edit icon opens "Edit the absence", filled with it, and Save saves it with PUT', async () => {
       const { calls, mounting } = mountAvailability()
       const wrapper = await mounting
@@ -311,6 +348,7 @@ describe('My availability', () => {
       expect(section(wrapper, 'Absences').text()).toContain('Mon 9 Nov 2026 – Fri 20 Nov 2026')
     })
 
+    // /planning/ui/my-availability/delete-absence
     it('the delete icon asks "Delete the absence of Mon 9 Nov 2026 – Sun 15 Nov 2026?"', async () => {
       const { calls, mounting } = mountAvailability()
       const wrapper = await mounting
@@ -323,6 +361,7 @@ describe('My availability', () => {
       expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
     })
 
+    // /planning/ui/my-availability/delete-absence
     it('Delete deletes the absence with DELETE', async () => {
       const { calls, mounting } = mountAvailability()
       const wrapper = await mounting
@@ -341,6 +380,7 @@ describe('My availability', () => {
   })
 
   describe('Note for the managers', () => {
+    // /planning/ui/my-availability/note
     it('shows the note', async () => {
       const wrapper = await mountAvailability({
         note: 'Always group my registrations in pairs.',
@@ -351,12 +391,14 @@ describe('My availability', () => {
       )
     })
 
+    // /planning/ui/my-availability/none
     it('with an empty note, shows "None"', async () => {
       const wrapper = await mountAvailability().mounting
 
       expect(section(wrapper, 'Note for the managers').text()).toContain('None')
     })
 
+    // /planning/ui/my-availability/edit-note
     it('the edit icon opens "Note for the managers", filled with the note', async () => {
       const wrapper = await mountAvailability({ note: 'Mornings only.' }).mounting
 
@@ -370,6 +412,7 @@ describe('My availability', () => {
       expect(showsControl(open, 'Save')).toBe(true)
     })
 
+    // /planning/ui/my-availability/edit-note
     it('Save saves the note with PUT and shows it', async () => {
       const { calls, mounting } = mountAvailability()
       const wrapper = await mounting

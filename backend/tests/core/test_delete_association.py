@@ -28,6 +28,7 @@ def manager_and_volunteer(
 # DELETE /api/associations/{id}
 
 
+# /core/operations/general/signed-out
 def test_delete_api_association_401_when_signed_out(client: Any) -> None:
     response = client.delete(f"/api/associations/{UNKNOWN_ID}")
 
@@ -35,6 +36,7 @@ def test_delete_api_association_401_when_signed_out(client: Any) -> None:
     assert "error" in response.json()
 
 
+# /core/operations/delete-association/deleted
 def test_delete_api_association_deletes_it(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client)
@@ -46,6 +48,7 @@ def test_delete_api_association_deletes_it(client: Any) -> None:
     assert client.get("/api/associations").json() == []
 
 
+# /core/operations/delete-association/deleted
 def test_delete_api_association_by_any_manager(client: Any, new_client: Callable[[], Any]) -> None:
     association, bruno, bruno_user, _ = manager_and_volunteer(client, new_client)
     promoted = client.patch(
@@ -59,6 +62,7 @@ def test_delete_api_association_by_any_manager(client: Any, new_client: Callable
     assert client.get(f"/api/associations/{association['id']}").status_code == 404
 
 
+# /core/operations/delete-association/volunteer
 def test_delete_api_association_403_for_a_volunteer(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -71,6 +75,7 @@ def test_delete_api_association_403_for_a_volunteer(
     assert client.get(f"/api/associations/{association['id']}").status_code == 200
 
 
+# /core/operations/general/unknown-association
 def test_delete_api_association_404_when_it_does_not_exist(client: Any) -> None:
     sign_up(client, "Alice")
 
@@ -80,6 +85,7 @@ def test_delete_api_association_404_when_it_does_not_exist(client: Any) -> None:
     assert "error" in response.json()
 
 
+# /core/operations/general/unknown-association
 def test_delete_api_association_404_when_not_a_member(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -95,10 +101,11 @@ def test_delete_api_association_404_when_not_a_member(
     assert client.get(f"/api/associations/{association['id']}").status_code == 200
 
 
-# R34
+# What members keep
 
 
-def test_r34_members_stay_users_in_their_other_associations(
+# /core/operations/delete-association/silent
+def test_members_stay_users_in_their_other_associations(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     association, bruno, _, bruno_email = manager_and_volunteer(client, new_client)
@@ -112,7 +119,8 @@ def test_r34_members_stay_users_in_their_other_associations(
     assert client.get(f"/api/associations/{other['id']}").status_code == 200
 
 
-def test_r34_a_member_left_in_no_association_stays_a_user(
+# /core/operations/delete-association/silent
+def test_a_member_left_in_no_association_stays_a_user(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     association, bruno, _, _ = manager_and_volunteer(client, new_client)
@@ -123,7 +131,8 @@ def test_r34_a_member_left_in_no_association_stays_a_user(
     assert bruno.get("/api/associations").json() == []
 
 
-def test_r34_an_added_user_can_be_added_to_another_association_afterwards(
+# /core/operations/delete-association/silent /core/operations/add-member/existing-user
+def test_an_added_user_can_be_added_to_another_association_afterwards(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     association, _, bruno_user, bruno_email = manager_and_volunteer(client, new_client)
@@ -136,7 +145,8 @@ def test_r34_an_added_user_can_be_added_to_another_association_afterwards(
     assert response.json()["user_id"] == bruno_user["id"]
 
 
-def test_r34_members_are_not_told(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/delete-association/silent
+def test_members_are_not_told(client: Any, new_client: Callable[[], Any]) -> None:
     association, _, _, bruno_email = manager_and_volunteer(client, new_client)
     before = email_count(bruno_email)
 

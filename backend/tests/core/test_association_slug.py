@@ -46,6 +46,7 @@ def patch(client: Any, association: dict[str, Any], slug: str) -> Any:
 # POST /api/associations
 
 
+# /core/operations/create-association/created
 def test_post_api_associations_returns_the_slug(client: Any) -> None:
     sign_up(client, "Alice")
     slug = unique_slug()
@@ -56,6 +57,7 @@ def test_post_api_associations_returns_the_slug(client: Any) -> None:
     assert response.json()["slug"] == slug
 
 
+# /core/operations/general/malformed
 def test_post_api_associations_400_when_the_slug_is_missing(client: Any) -> None:
     sign_up(client, "Alice")
 
@@ -65,6 +67,7 @@ def test_post_api_associations_400_when_the_slug_is_missing(client: Any) -> None
     assert "error" in response.json()
 
 
+# /core/operations/create-association/malformed-slug /core/model/association/slug-format
 @pytest.mark.parametrize("slug", MALFORMED)
 def test_post_api_associations_400_when_the_slug_is_malformed(client: Any, slug: str) -> None:
     sign_up(client, "Alice")
@@ -76,6 +79,7 @@ def test_post_api_associations_400_when_the_slug_is_malformed(client: Any, slug:
     assert client.get("/api/associations").json() == []
 
 
+# /core/operations/create-association/created /core/model/association/slug-format
 def test_post_api_associations_accepts_a_slug_of_50_characters(client: Any) -> None:
     sign_up(client, "Alice")
     slug = unique_slug().ljust(50, "x")
@@ -86,6 +90,7 @@ def test_post_api_associations_accepts_a_slug_of_50_characters(client: Any) -> N
     assert response.json()["slug"] == slug
 
 
+# /core/operations/create-association/created /core/model/association/slug-format
 @pytest.mark.parametrize("slug", WELL_FORMED)
 def test_post_api_associations_accepts_a_well_formed_slug(client: Any, slug: str) -> None:
     sign_up(client, "Alice")
@@ -94,6 +99,7 @@ def test_post_api_associations_accepts_a_well_formed_slug(client: Any, slug: str
     assert post(client, slug).status_code in (201, 409)
 
 
+# /core/operations/create-association/taken /core/model/association/slug-unique
 def test_post_api_associations_409_when_the_slug_is_taken(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -110,6 +116,7 @@ def test_post_api_associations_409_when_the_slug_is_taken(
     assert other.get("/api/associations").json() == []
 
 
+# /core/operations/create-association/taken /core/model/association/slug-unique
 def test_post_api_associations_409_when_the_slug_is_new(client: Any) -> None:
     sign_up(client, "Alice")
 
@@ -120,6 +127,7 @@ def test_post_api_associations_409_when_the_slug_is_new(client: Any) -> None:
     assert client.get("/api/associations").json() == []
 
 
+# /core/operations/create-association/created /core/operations/delete-association/deleted
 def test_post_api_associations_accepts_the_slug_of_a_deleted_association(client: Any) -> None:
     sign_up(client, "Alice")
     slug = unique_slug()
@@ -133,6 +141,7 @@ def test_post_api_associations_accepts_the_slug_of_a_deleted_association(client:
 # GET /api/associations and GET /api/associations/{id}
 
 
+# /home/operations/list-my-associations/listed
 def test_get_api_associations_shows_the_slug(client: Any) -> None:
     sign_up(client, "Alice")
     slug = unique_slug()
@@ -141,6 +150,7 @@ def test_get_api_associations_shows_the_slug(client: Any) -> None:
     assert [a["slug"] for a in client.get("/api/associations").json()] == [slug]
 
 
+# /core/operations/get-association/detail
 def test_get_api_association_shows_the_slug(client: Any) -> None:
     sign_up(client, "Alice")
     slug = unique_slug()
@@ -152,6 +162,7 @@ def test_get_api_association_shows_the_slug(client: Any) -> None:
 # GET /api/associations/by-slug/{slug}
 
 
+# /core/operations/get-association/by-slug
 def test_get_by_slug_returns_what_get_by_id_returns(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -164,6 +175,7 @@ def test_get_by_slug_returns_what_get_by_id_returns(
         assert response.json() == member.get(f"/api/associations/{association['id']}").json()
 
 
+# /core/operations/general/signed-out
 def test_get_by_slug_401_when_signed_out(client: Any) -> None:
     response = client.get(f"/api/associations/by-slug/{unique_slug()}")
 
@@ -171,6 +183,7 @@ def test_get_by_slug_401_when_signed_out(client: Any) -> None:
     assert "error" in response.json()
 
 
+# /core/operations/general/unknown-association
 def test_get_by_slug_404_when_no_association_has_it(client: Any) -> None:
     sign_up(client, "Alice")
 
@@ -180,6 +193,7 @@ def test_get_by_slug_404_when_no_association_has_it(client: Any) -> None:
     assert "error" in response.json()
 
 
+# /core/operations/general/unknown-association
 def test_get_by_slug_404_when_not_a_member(client: Any, new_client: Callable[[], Any]) -> None:
     sign_up(client, "Alice")
     association = create_association(client, NAME)
@@ -195,6 +209,7 @@ def test_get_by_slug_404_when_not_a_member(client: Any, new_client: Callable[[],
 # PATCH /api/associations/{id}
 
 
+# /core/operations/update-association/new-slug /core/operations/update-association/answer
 def test_patch_api_association_changes_the_slug(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client, NAME)
@@ -212,6 +227,7 @@ def test_patch_api_association_changes_the_slug(client: Any) -> None:
     assert client.get(f"/api/associations/by-slug/{slug}").json()["id"] == association["id"]
 
 
+# /core/operations/update-association/renamed /core/operations/update-association/new-slug
 def test_patch_api_association_changes_the_name_and_the_slug(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client, NAME)
@@ -227,6 +243,7 @@ def test_patch_api_association_changes_the_name_and_the_slug(client: Any) -> Non
     assert response.json()["slug"] == slug
 
 
+# /core/operations/update-association/renamed
 def test_patch_api_association_changing_the_name_leaves_the_slug_unchanged(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client, NAME)
@@ -241,6 +258,7 @@ def test_patch_api_association_changing_the_name_leaves_the_slug_unchanged(clien
     assert found.json()["name"] == "Jardin des Lilas"
 
 
+# /core/operations/update-association/new-slug
 def test_patch_api_association_accepts_its_own_slug(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client, NAME)
@@ -251,6 +269,7 @@ def test_patch_api_association_accepts_its_own_slug(client: Any) -> None:
     assert response.json()["slug"] == association["slug"]
 
 
+# /core/operations/update-association/volunteer
 def test_patch_api_association_slug_403_for_a_volunteer(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -263,6 +282,7 @@ def test_patch_api_association_slug_403_for_a_volunteer(
     assert slug_of(client, association) == association["slug"]
 
 
+# /core/operations/update-association/malformed-slug
 @pytest.mark.parametrize("slug", MALFORMED)
 def test_patch_api_association_400_when_the_slug_is_malformed(client: Any, slug: str) -> None:
     sign_up(client, "Alice")
@@ -275,6 +295,7 @@ def test_patch_api_association_400_when_the_slug_is_malformed(client: Any, slug:
     assert slug_of(client, association) == association["slug"]
 
 
+# /core/operations/update-association/malformed-slug /core/operations/general/refused
 def test_patch_api_association_400_changes_no_name_when_the_slug_is_malformed(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client, NAME)
@@ -288,6 +309,7 @@ def test_patch_api_association_400_changes_no_name_when_the_slug_is_malformed(cl
     assert client.get(f"/api/associations/{association['id']}").json()["name"] == NAME
 
 
+# /core/operations/update-association/taken
 def test_patch_api_association_409_when_the_slug_is_taken_by_another(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client, NAME)
@@ -300,6 +322,7 @@ def test_patch_api_association_409_when_the_slug_is_taken_by_another(client: Any
     assert slug_of(client, association) == association["slug"]
 
 
+# /core/operations/update-association/taken
 def test_patch_api_association_409_when_the_slug_is_new(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client, NAME)
@@ -310,6 +333,7 @@ def test_patch_api_association_409_when_the_slug_is_new(client: Any) -> None:
     assert "error" in response.json()
 
 
+# /core/operations/update-association/silent
 def test_patch_api_association_slug_members_are_not_told(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -321,10 +345,11 @@ def test_patch_api_association_slug_members_are_not_told(
     assert email_count(bruno_email) == before
 
 
-# R36
+# Former slugs
 
 
-def test_r36_the_former_slug_no_longer_leads_to_the_association(client: Any) -> None:
+# /core/operations/update-association/new-slug
+def test_the_former_slug_no_longer_leads_to_the_association(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client, NAME)
 
@@ -333,7 +358,8 @@ def test_r36_the_former_slug_no_longer_leads_to_the_association(client: Any) -> 
     assert client.get(f"/api/associations/by-slug/{association['slug']}").status_code == 404
 
 
-def test_r36_another_association_can_take_the_former_slug(client: Any) -> None:
+# /core/operations/update-association/new-slug
+def test_another_association_can_take_the_former_slug(client: Any) -> None:
     sign_up(client, "Alice")
     association = create_association(client, NAME)
     assert patch(client, association, unique_slug()).status_code == 200
@@ -343,3 +369,15 @@ def test_r36_another_association_can_take_the_former_slug(client: Any) -> None:
     assert response.status_code == 201
     found = client.get(f"/api/associations/by-slug/{association['slug']}")
     assert found.json()["id"] == response.json()["id"]
+
+
+# /core/operations/update-association/neither
+def test_patch_api_association_400_when_neither_a_name_nor_a_slug_is_given(client: Any) -> None:
+    sign_up(client, "Alice")
+    association = create_association(client, "Jardin partagé des Lilas")
+
+    response = client.patch(f"/api/associations/{association['id']}", json={})
+
+    assert response.status_code == 400
+    after = client.get(f"/api/associations/{association['id']}").json()
+    assert (after["name"], after["slug"]) == ("Jardin partagé des Lilas", association["slug"])

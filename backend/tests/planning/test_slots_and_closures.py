@@ -12,6 +12,7 @@ UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 # Signed-in member required
 
 
+# /planning/operations/general/member /core/operations/general/signed-out
 @pytest.mark.parametrize(
     ("method", "rest", "body"),
     [
@@ -45,6 +46,7 @@ def test_planning_401_when_signed_out(
     assert "error" in response.json()
 
 
+# /planning/operations/general/member /core/operations/general/unknown-association
 @pytest.mark.parametrize(
     ("method", "rest", "body"),
     [
@@ -72,6 +74,7 @@ def test_planning_404_when_not_a_member(
 # Slots
 
 
+# /planning/operations/add-slot/added
 def test_post_api_slots_creates_a_slot(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
 
@@ -85,6 +88,7 @@ def test_post_api_slots_creates_a_slot(client: Any, new_client: Callable[[], Any
     uuid.UUID(body["id"])
 
 
+# /planning/operations/list-slots/listed
 def test_get_api_slots_lists_them_by_weekday_then_start(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -103,6 +107,7 @@ def test_get_api_slots_lists_them_by_weekday_then_start(
     ]
 
 
+# /planning/operations/add-slot/added
 def test_slots_are_kept_to_the_minute(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
 
@@ -111,6 +116,7 @@ def test_slots_are_kept_to_the_minute(client: Any, new_client: Callable[[], Any]
     assert (slot["start"], slot["end"]) == ("18:30", "20:15")
 
 
+# /planning/operations/delete-slot/deleted
 def test_delete_api_slot_removes_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -121,6 +127,7 @@ def test_delete_api_slot_removes_it(client: Any, new_client: Callable[[], Any]) 
     assert client.get(planning.path("slots")).json() == []
 
 
+# /planning/operations/add-slot/exists
 def test_post_api_slots_409_when_the_association_already_has_that_slot(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -135,6 +142,7 @@ def test_post_api_slots_409_when_the_association_already_has_that_slot(
     assert "error" in response.json()
 
 
+# /planning/operations/add-slot/added /planning/model/slot/single
 def test_the_same_slot_in_two_associations(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     planning.add_slot("thursday", "10:00", "13:00")
@@ -148,6 +156,7 @@ def test_the_same_slot_in_two_associations(client: Any, new_client: Callable[[],
     assert response.status_code == 201
 
 
+# /core/operations/general/malformed /planning/operations/add-slot/order /planning/model/slot/order
 @pytest.mark.parametrize(
     "body",
     [
@@ -170,6 +179,7 @@ def test_post_api_slots_400_when_a_field_is_missing_or_invalid(
     assert "error" in response.json()
 
 
+# /planning/operations/edit-slot/edited
 def test_put_api_slot_edits_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -185,6 +195,7 @@ def test_put_api_slot_edits_it(client: Any, new_client: Callable[[], Any]) -> No
     assert client.get(planning.path("slots")).json() == [edited]
 
 
+# /planning/operations/edit-slot/edited
 def test_put_api_slot_to_its_own_values(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -198,6 +209,7 @@ def test_put_api_slot_to_its_own_values(client: Any, new_client: Callable[[], An
     assert response.json() == slot
 
 
+# /planning/operations/edit-slot/exists
 def test_put_api_slot_409_when_the_association_already_has_that_slot(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -218,6 +230,7 @@ def test_put_api_slot_409_when_the_association_already_has_that_slot(
     ]
 
 
+# /core/operations/general/malformed /planning/operations/edit-slot/order
 @pytest.mark.parametrize(
     "body",
     [
@@ -239,6 +252,7 @@ def test_put_api_slot_400_when_a_field_is_missing_or_invalid(
     assert "error" in response.json()
 
 
+# /planning/operations/edit-slot/volunteer
 def test_put_api_slot_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -252,6 +266,7 @@ def test_put_api_slot_403_for_a_volunteer(client: Any, new_client: Callable[[], 
     assert client.get(planning.path("slots")).json() == [slot]
 
 
+# /planning/operations/add-slot/volunteer /planning/operations/delete-slot/volunteer
 def test_slots_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -269,6 +284,7 @@ def test_slots_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -
 # Closures
 
 
+# /planning/operations/add-closure/added
 def test_post_api_closures_creates_a_closure(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
 
@@ -288,6 +304,7 @@ def test_post_api_closures_creates_a_closure(client: Any, new_client: Callable[[
     uuid.UUID(body["id"])
 
 
+# /planning/operations/add-closure/no-label
 @pytest.mark.parametrize(
     "body",
     [
@@ -306,6 +323,7 @@ def test_post_api_closures_label_is_optional(
     assert response.json()["label"] is None
 
 
+# /planning/operations/list-closures/listed
 def test_get_api_closures_lists_them_by_first_date(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -319,6 +337,7 @@ def test_get_api_closures_lists_them_by_first_date(
     assert [c["first"] for c in response.json()] == ["2026-11-14", "2026-12-24"]
 
 
+# /planning/operations/delete-closure/deleted
 def test_delete_api_closure_removes_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     closure = planning.add_closure("2026-11-14", "2026-11-14")
@@ -329,6 +348,9 @@ def test_delete_api_closure_removes_it(client: Any, new_client: Callable[[], Any
     assert client.get(planning.path("closures")).json() == []
 
 
+# /core/operations/general/malformed
+# /planning/operations/add-closure/order
+# /planning/model/closure/order
 @pytest.mark.parametrize(
     "body",
     [
@@ -349,6 +371,7 @@ def test_post_api_closures_400_when_a_field_is_missing_or_invalid(
     assert "error" in response.json()
 
 
+# /planning/operations/add-closure/volunteer /planning/operations/delete-closure/volunteer
 def test_closures_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     closure = planning.add_closure("2026-11-14", "2026-11-14")
@@ -363,6 +386,7 @@ def test_closures_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]
     assert len(client.get(planning.path("closures")).json()) == 1
 
 
+# /planning/operations/edit-closure/edited
 def test_put_api_closure_edits_it(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
@@ -383,6 +407,7 @@ def test_put_api_closure_edits_it(client: Any, new_client: Callable[[], Any]) ->
     assert client.get(planning.path("closures")).json() == [edited]
 
 
+# /planning/operations/edit-closure/edited /planning/operations/add-closure/no-label
 @pytest.mark.parametrize(
     "body",
     [
@@ -402,6 +427,7 @@ def test_put_api_closure_label_is_optional(
     assert response.json()["label"] is None
 
 
+# /core/operations/general/malformed /planning/operations/edit-closure/order
 @pytest.mark.parametrize(
     "body",
     [
@@ -422,6 +448,7 @@ def test_put_api_closure_400_when_a_field_is_missing_or_invalid(
     assert "error" in response.json()
 
 
+# /planning/operations/edit-closure/volunteer
 def test_put_api_closure_403_for_a_volunteer(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     closure = planning.add_closure("2026-11-14", "2026-11-14")
@@ -433,3 +460,37 @@ def test_put_api_closure_403_for_a_volunteer(client: Any, new_client: Callable[[
 
     assert response.status_code == 403
     assert client.get(planning.path("closures")).json() == [closure]
+
+
+# /planning/operations/edit-slot/unknown /planning/operations/delete-slot/unknown
+def test_slot_404_when_not_of_this_association(client: Any, new_client: Callable[[], Any]) -> None:
+    planning = Planning(client, new_client)
+    other = create_association(client, "Atelier vélo")
+    foreign = client.post(
+        f"/api/associations/{other['id']}/slots",
+        json={"weekday": "thursday", "start": "10:00", "end": "13:00"},
+    ).json()
+    body = {"weekday": "friday", "start": "10:00", "end": "13:00"}
+
+    for slot_id in (foreign["id"], UNKNOWN_ID):
+        assert client.put(planning.path(f"slots/{slot_id}"), json=body).status_code == 404
+        assert client.delete(planning.path(f"slots/{slot_id}")).status_code == 404
+    assert client.get(f"/api/associations/{other['id']}/slots").json() == [foreign]
+
+
+# /planning/operations/edit-closure/unknown /planning/operations/delete-closure/unknown
+def test_closure_404_when_not_of_this_association(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    planning = Planning(client, new_client)
+    other = create_association(client, "Atelier vélo")
+    foreign = client.post(
+        f"/api/associations/{other['id']}/closures",
+        json={"first": "2026-12-24", "last": "2026-12-26"},
+    ).json()
+    body = {"first": "2026-12-25", "last": "2026-12-25"}
+
+    for closure_id in (foreign["id"], UNKNOWN_ID):
+        assert client.put(planning.path(f"closures/{closure_id}"), json=body).status_code == 404
+        assert client.delete(planning.path(f"closures/{closure_id}")).status_code == 404
+    assert client.get(f"/api/associations/{other['id']}/closures").json() == [foreign]

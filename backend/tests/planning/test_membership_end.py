@@ -60,14 +60,15 @@ def registration_on(planning: Planning, day: str) -> dict[str, Any] | None:
 
 
 def rejoin(planning: Planning) -> None:
-    """Adds Bruno back after his removal; he is the same user (R3)."""
+    """Adds Bruno back after his removal; he is the same user."""
     response = add_member(planning.alice_client, planning.id, "Bruno", planning.bruno["email"])
     assert response.status_code == 201
     assert response.json()["user_id"] == planning.bruno["id"]
 
 
+# /planning/operations/remove-member/planning /planning/operations/delete-account/planning
 @ENDINGS
-def test_r28_upcoming_registrations_become_cancelled(
+def test_upcoming_registrations_become_cancelled(
     client: Any, new_client: Callable[[], Any], end: Callable[[Planning], None]
 ) -> None:
     planning = Planning(client, new_client)
@@ -88,7 +89,8 @@ def test_r28_upcoming_registrations_become_cancelled(
         assert registration["status"] == "cancelled"
 
 
-def test_r28_the_freed_occurrence_can_be_registered_again(
+# /planning/operations/remove-member/planning /planning/operations/register/self
+def test_the_freed_occurrence_can_be_registered_again(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
@@ -102,8 +104,9 @@ def test_r28_the_freed_occurrence_can_be_registered_again(
     assert response.status_code == 201
 
 
+# /planning/operations/remove-member/planning /planning/operations/delete-account/planning
 @ENDINGS
-def test_r28_past_registrations_stay_with_the_display_name(
+def test_past_registrations_stay_with_the_display_name(
     client: Any, new_client: Callable[[], Any], end: Callable[[Planning], None]
 ) -> None:
     planning = Planning(client, new_client)
@@ -123,7 +126,8 @@ def test_r28_past_registrations_stay_with_the_display_name(
     }
 
 
-def test_r28_registrations_of_other_members_and_associations_stay(
+# /planning/operations/remove-member/planning
+def test_registrations_of_other_members_and_associations_stay(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
@@ -150,7 +154,11 @@ def test_r28_registrations_of_other_members_and_associations_stay(
     assert in_other["status"] == "proposed"
 
 
-def test_r28_preferences_absences_and_note_are_deleted(
+# /planning/operations/remove-member/planning
+# /planning/model/absence/member
+# /planning/model/note/member
+# /planning/model/preference/member
+def test_preferences_absences_and_note_are_deleted(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
@@ -173,7 +181,8 @@ def test_r28_preferences_absences_and_note_are_deleted(
     assert bruno.get(planning.path("note")).json() == {"text": ""}
 
 
-def test_r28_account_deletion_deletes_preferences_absences_and_note(
+# /planning/operations/delete-account/planning
+def test_account_deletion_deletes_preferences_absences_and_note(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
@@ -194,9 +203,8 @@ def test_r28_account_deletion_deletes_preferences_absences_and_note(
     assert planning.bruno["id"] not in [n["user_id"] for n in notes]
 
 
-def test_r28_preferences_of_the_other_members_stay(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
+# /planning/operations/remove-member/planning
+def test_preferences_of_the_other_members_stay(client: Any, new_client: Callable[[], Any]) -> None:
     planning = Planning(client, new_client)
     slot = planning.add_slot("thursday", *THURSDAY)
     chloe_path = f"preferences/{slot['id']}/{planning.chloe['id']}"

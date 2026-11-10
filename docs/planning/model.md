@@ -112,4 +112,4 @@ An association's read-only link to its Schedule.
 - `token: string`, random.
   - [token] Unique.
 - [single] At most one per association.
-- [lasting] It does not expire.
+- [lasting] It does not expire (not testable).

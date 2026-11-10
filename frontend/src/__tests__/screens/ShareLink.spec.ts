@@ -107,6 +107,7 @@ afterEach(() => {
 })
 
 describe('Schedule settings: Share link', () => {
+  // /planning/ui/schedule-settings/share-link
   it('a manager sees the link', async () => {
     const { mounting } = mount(settingsPath, { shareLink: 'tok-1' })
     const section = shareSection(pageText(await mounting))
@@ -114,6 +115,7 @@ describe('Schedule settings: Share link', () => {
     expect(section).toContain('/shared/tok-1')
   })
 
+  // /planning/ui/schedule-settings/share-link
   it('shows "None" without a link', async () => {
     const { mounting } = mount(settingsPath)
     const section = shareSection(pageText(await mounting))
@@ -122,6 +124,7 @@ describe('Schedule settings: Share link', () => {
     expect(section).not.toContain('/shared/')
   })
 
+  // /planning/ui/schedule-settings/share-link
   it('in French, "Lien de partage"', async () => {
     localStorage.setItem('gilda.locale', 'fr')
     const { mounting } = mount(settingsPath)
@@ -129,6 +132,7 @@ describe('Schedule settings: Share link', () => {
     expect(pageText(await mounting)).toContain('Lien de partage')
   })
 
+  // /planning/ui/schedule-settings/share-link
   it('is not shown to a volunteer, who does not load it', async () => {
     const { calls, mounting } = mount(settingsPath, { role: 'volunteer' })
     const wrapper = await mounting
@@ -138,6 +142,7 @@ describe('Schedule settings: Share link', () => {
     expect(calls.some((c) => c.path === `${base}/share-link`)).toBe(false)
   })
 
+  // /planning/ui/schedule-settings/create-link
   it('"Create a share link" creates it with POST and shows it', async () => {
     const { calls, mounting } = mount(settingsPath)
     const wrapper = await mounting
@@ -149,6 +154,7 @@ describe('Schedule settings: Share link', () => {
     expect(shareSection(pageText(wrapper))).toContain('/shared/share-new-')
   })
 
+  // /planning/ui/schedule-settings/create-link
   it('with a link, "Create a share link" first asks "Replace the share link?"', async () => {
     const { calls, mounting } = mount(settingsPath, { shareLink: 'tok-1' })
     const wrapper = await mounting
@@ -161,7 +167,8 @@ describe('Schedule settings: Share link', () => {
     expect(calls.some((c) => c.method === 'POST')).toBe(false)
   })
 
-  it('R33: Replace replaces the link with POST', async () => {
+  // /planning/ui/schedule-settings/create-link
+  it('Replace replaces the link with POST', async () => {
     const { calls, mounting } = mount(settingsPath, { shareLink: 'tok-1' })
     const wrapper = await mounting
 
@@ -175,6 +182,7 @@ describe('Schedule settings: Share link', () => {
     expect(section).not.toContain('/shared/tok-1')
   })
 
+  // /ui/forms/close
   it('Cancel keeps the link', async () => {
     const { calls, mounting } = mount(settingsPath, { shareLink: 'tok-1' })
     const wrapper = await mounting
@@ -186,6 +194,7 @@ describe('Schedule settings: Share link', () => {
     expect(shareSection(pageText(wrapper))).toContain('/shared/tok-1')
   })
 
+  // /planning/ui/schedule-settings/copy
   it('"Copy" copies the link and shows "Link copied."', async () => {
     const writeText = vi.fn(async () => {})
     vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
@@ -198,6 +207,7 @@ describe('Schedule settings: Share link', () => {
     expect(pageText(wrapper)).toContain('Link copied.')
   })
 
+  // /planning/ui/schedule-settings/share-link
   it('offers "Copy" and its delete icon only with a link', async () => {
     const { mounting } = mount(settingsPath)
     const wrapper = await mounting
@@ -206,6 +216,7 @@ describe('Schedule settings: Share link', () => {
     expect(hasControl(wrapper, 'Revoke the share link')).toBe(false)
   })
 
+  // /planning/ui/schedule-settings/revoke-link
   it('its delete icon asks "Revoke the share link?"', async () => {
     const { calls, mounting } = mount(settingsPath, { shareLink: 'tok-1' })
     const wrapper = await mounting
@@ -218,7 +229,8 @@ describe('Schedule settings: Share link', () => {
     expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
   })
 
-  it('R33: Revoke revokes the link with DELETE', async () => {
+  // /planning/ui/schedule-settings/revoke-link
+  it('Revoke revokes the link with DELETE', async () => {
     const { calls, mounting } = mount(settingsPath, { shareLink: 'tok-1' })
     const wrapper = await mounting
 
@@ -236,6 +248,7 @@ describe('Schedule settings: Share link', () => {
 describe('Shared schedule', () => {
   const sharedPath = '/shared/tok-1'
 
+  // /planning/ui/shared-schedule/shown
   it('shows the Schedule signed out', async () => {
     const { mounting } = mount(sharedPath, { shareLink: 'tok-1', session: signedOut })
     const wrapper = await mounting
@@ -246,7 +259,8 @@ describe('Shared schedule', () => {
     expect(day(wrapper, 'Sat 14 Nov').text()).toContain('Fête du quartier')
   })
 
-  it('opens on the weeks of R32, read with the token', async () => {
+  // /planning/ui/shared-schedule/shown /planning/ui/schedule/weeks
+  it('opens on the default weeks, read with the token', async () => {
     const { api, calls, mounting } = mount(sharedPath, { shareLink: 'tok-1', session: signedOut })
     const text = pageText(await mounting)
 
@@ -256,19 +270,21 @@ describe('Shared schedule', () => {
     expect(text).not.toContain('Week 42')
   })
 
+  // /planning/ui/shared-schedule/shown /planning/ui/schedule/more
   it('"More weeks" adds four more', async () => {
     const { api, mounting } = mount(sharedPath, { shareLink: 'tok-1', session: signedOut })
     const wrapper = await mounting
 
     await press(wrapper, 'More weeks')
 
-    // R32 runs to Sun 6 Dec, the week after the planning period's end.
+    // The default range runs to Sun 6 Dec, the week after the planning period's end.
     expect(api.scheduleRequests.some((r) => r.from === '2026-12-07' && r.to === '2027-01-03')).toBe(
       true,
     )
     expect(pageText(wrapper)).toContain('Week 53')
   })
 
+  // /planning/ui/shared-schedule/shown /planning/ui/schedule/today /planning/ui/schedule/period-lines
   it('shows the today and planning period lines', async () => {
     const { mounting } = mount(sharedPath, { shareLink: 'tok-1', session: signedOut })
     const text = pageText(await mounting)
@@ -278,6 +294,7 @@ describe('Shared schedule', () => {
     expect(text).toContain('Planning end · Wednesday 25 November 2026')
   })
 
+  // /planning/ui/shared-schedule/shown
   it('has no links to the other screens', async () => {
     const { mounting } = mount(sharedPath, { shareLink: 'tok-1', session: signedOut })
     const wrapper = await mounting
@@ -287,6 +304,7 @@ describe('Shared schedule', () => {
     expect(hasControl(wrapper, 'Schedule settings')).toBe(false)
   })
 
+  // /planning/ui/shared-schedule/shown
   it('clicking an occurrence opens no menu', async () => {
     const { calls, mounting } = mount(sharedPath, { shareLink: 'tok-1', session: signedOut })
     const wrapper = await mounting
@@ -298,6 +316,7 @@ describe('Shared schedule', () => {
     expect(calls.some((c) => c.method !== 'GET')).toBe(false)
   })
 
+  // /core/ui/header/shared
   it.each([
     ['signed out', signedOut],
     ['signed in', signedInAsAlice],
@@ -315,12 +334,14 @@ describe('Shared schedule', () => {
     },
   )
 
+  // /planning/ui/shared-schedule/shown
   it('signed in, shows the Schedule too', async () => {
     const { mounting } = mount(sharedPath, { shareLink: 'tok-1' })
 
     expect(slotItem(await mounting, 'Thu 29 Oct', '10–13').text()).toContain('Chloé')
   })
 
+  // /planning/ui/shared-schedule/invalid
   it('an unknown link shows "This link is no longer valid."', async () => {
     const { mounting } = mount('/shared/unknown', { session: signedOut })
     const text = pageText(await mounting)
@@ -329,7 +350,8 @@ describe('Shared schedule', () => {
     expect(text).not.toContain('Week 44')
   })
 
-  it('R33: a revoked link shows "This link is no longer valid."', async () => {
+  // /planning/ui/shared-schedule/invalid
+  it('a revoked link shows "This link is no longer valid."', async () => {
     mockApi({
       'GET /api/session': signedOut,
       'GET /api/shared/tok-1': { status: 404, body: { error: 'Unknown share link' } },

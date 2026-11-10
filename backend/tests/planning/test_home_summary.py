@@ -64,6 +64,10 @@ def upcoming_dates(planning: Planning) -> list[str]:
 # GET /api/associations
 
 
+# /home/operations/list-my-associations/listed
+# /home/operations/list-my-associations/upcoming
+# /home/operations/list-my-associations/obsolete
+# /home/operations/list-my-associations/period
 def test_get_api_associations_example(planning: Planning) -> None:
     set_period(planning, -2, 21)
     mine = confirmed(planning, 1)
@@ -98,6 +102,7 @@ def test_get_api_associations_example(planning: Planning) -> None:
     ]
 
 
+# /home/operations/list-my-associations/listed
 def test_registrations_are_shown_as_post_returns_them(planning: Planning) -> None:
     registration = proposed(planning, 3)
 
@@ -114,6 +119,7 @@ def test_registrations_are_shown_as_post_returns_them(planning: Planning) -> Non
     ]
 
 
+# /home/operations/list-my-associations/listed
 def test_only_the_signed_in_users_registrations(planning: Planning) -> None:
     planning.registered(planning.chloe_client, planning.chloe, day(2), "10:00", "13:00")
     planning.registered(planning.alice_client, planning.chloe, day(3), "10:00", "13:00")
@@ -125,7 +131,10 @@ def test_only_the_signed_in_users_registrations(planning: Planning) -> None:
     assert entry["planning_period"]["registrations"] == 0
 
 
-def test_r12_r13_obsolete_registrations_are_neither_upcoming_nor_counted(
+# /home/operations/list-my-associations/upcoming
+# /home/operations/list-my-associations/period
+# /planning/model/registration/obsolete
+def test_obsolete_registrations_are_neither_upcoming_nor_counted(
     planning: Planning,
 ) -> None:
     set_period(planning, 0, 10)
@@ -144,7 +153,8 @@ def obsolete_dates(planning: Planning) -> list[str]:
     return [r["date"] for r in summary(planning, planning.bruno_client)["obsolete"]]
 
 
-def test_r31_a_removed_slot_makes_its_registrations_obsolete(planning: Planning) -> None:
+# /home/operations/list-my-associations/obsolete /planning/model/registration/obsolete
+def test_obsolete_a_removed_slot_makes_its_registrations_obsolete(planning: Planning) -> None:
     slot = planning.add_slot(WEEKDAYS[(TODAY + timedelta(days=2)).weekday()], "14:00", "16:00")
     registration = confirmed(planning, 2, "14:00", "16:00")
     assert planning.alice_client.delete(planning.path(f"slots/{slot['id']}")).status_code == 204
@@ -152,7 +162,8 @@ def test_r31_a_removed_slot_makes_its_registrations_obsolete(planning: Planning)
     assert summary(planning, planning.bruno_client)["obsolete"] == [registration]
 
 
-def test_r31_a_closure_makes_its_registrations_obsolete(planning: Planning) -> None:
+# /home/operations/list-my-associations/obsolete /planning/model/registration/obsolete
+def test_obsolete_a_closure_makes_its_registrations_obsolete(planning: Planning) -> None:
     confirmed(planning, 3)
     proposed(planning, 4)
     confirmed(planning, 6)
@@ -162,7 +173,8 @@ def test_r31_a_closure_makes_its_registrations_obsolete(planning: Planning) -> N
     assert upcoming_dates(planning) == [day(6)]
 
 
-def test_r31_an_edited_slot_makes_its_registrations_obsolete(planning: Planning) -> None:
+# /home/operations/list-my-associations/obsolete /planning/model/registration/obsolete
+def test_obsolete_an_edited_slot_makes_its_registrations_obsolete(planning: Planning) -> None:
     slot = planning.add_slot(WEEKDAYS[(TODAY + timedelta(days=2)).weekday()], "14:00", "16:00")
     confirmed(planning, 2, "14:00", "16:00")
     response = planning.alice_client.put(
@@ -176,7 +188,8 @@ def test_r31_an_edited_slot_makes_its_registrations_obsolete(planning: Planning)
     assert [(r["date"], r["start"]) for r in obsolete] == [(day(2), "14:00")]
 
 
-def test_r31_whatever_their_date(planning: Planning) -> None:
+# /home/operations/list-my-associations/obsolete
+def test_obsolete_whatever_their_date(planning: Planning) -> None:
     set_period(planning, 0, 10)
     confirmed(planning, 60)
     planning.add_closure(day(60), day(60))
@@ -184,7 +197,8 @@ def test_r31_whatever_their_date(planning: Planning) -> None:
     assert obsolete_dates(planning) == [day(60)]
 
 
-def test_r31_sorted_by_date_then_start(planning: Planning) -> None:
+# /home/operations/list-my-associations/obsolete
+def test_obsolete_sorted_by_date_then_start(planning: Planning) -> None:
     planning.add_slot(WEEKDAYS[(TODAY + timedelta(days=2)).weekday()], "08:00", "09:00")
     confirmed(planning, 2)
     proposed(planning, 1)
@@ -200,7 +214,8 @@ def test_r31_sorted_by_date_then_start(planning: Planning) -> None:
     ]
 
 
-def test_r31_today_is_included_and_earlier_dates_are_not(
+# /home/operations/list-my-associations/obsolete
+def test_obsolete_today_is_included_and_earlier_dates_are_not(
     planning: Planning, clock: time_machine.Traveller
 ) -> None:
     confirmed(planning, 1)
@@ -212,7 +227,8 @@ def test_r31_today_is_included_and_earlier_dates_are_not(
     assert obsolete_dates(planning) == [day(2)]
 
 
-def test_r31_cancelled_registrations_are_not_listed(planning: Planning) -> None:
+# /home/operations/list-my-associations/obsolete
+def test_obsolete_cancelled_registrations_are_not_listed(planning: Planning) -> None:
     registration = confirmed(planning, 2)
     planning.add_closure(day(2), day(2))
     assert planning.set_status(planning.bruno_client, registration, "cancelled").status_code == 200
@@ -220,21 +236,24 @@ def test_r31_cancelled_registrations_are_not_listed(planning: Planning) -> None:
     assert obsolete_dates(planning) == []
 
 
-def test_r31_only_the_signed_in_users_registrations(planning: Planning) -> None:
+# /home/operations/list-my-associations/obsolete
+def test_obsolete_only_the_signed_in_users_registrations(planning: Planning) -> None:
     planning.registered(planning.chloe_client, planning.chloe, day(2), "10:00", "13:00")
     planning.add_closure(day(2), day(2))
 
     assert obsolete_dates(planning) == []
 
 
-def test_r12_cancelled_registrations_are_not_shown(planning: Planning) -> None:
+# /home/operations/list-my-associations/upcoming
+def test_upcoming_cancelled_registrations_are_not_shown(planning: Planning) -> None:
     registration = confirmed(planning, 2)
     assert planning.set_status(planning.bruno_client, registration, "cancelled").status_code == 200
 
     assert upcoming_dates(planning) == []
 
 
-def test_r12_sorted_by_date_then_start(planning: Planning) -> None:
+# /home/operations/list-my-associations/upcoming
+def test_upcoming_sorted_by_date_then_start(planning: Planning) -> None:
     planning.add_slot(WEEKDAYS[(TODAY + timedelta(days=2)).weekday()], "08:00", "09:00")
     confirmed(planning, 2)
     proposed(planning, 1)
@@ -249,14 +268,16 @@ def test_r12_sorted_by_date_then_start(planning: Planning) -> None:
     ]
 
 
-def test_r12_today_is_included(planning: Planning) -> None:
+# /home/operations/list-my-associations/upcoming
+def test_upcoming_today_is_included(planning: Planning) -> None:
     confirmed(planning, 0)
     proposed(planning, 1)
 
     assert upcoming_dates(planning) == [day(0), day(1)]
 
 
-def test_r12_registrations_before_today_are_not_shown(
+# /home/operations/list-my-associations/upcoming
+def test_upcoming_registrations_before_today_are_not_shown(
     planning: Planning, clock: time_machine.Traveller
 ) -> None:
     confirmed(planning, 1)
@@ -268,20 +289,23 @@ def test_r12_registrations_before_today_are_not_shown(
     assert upcoming_dates(planning) == [day(3)]
 
 
-def test_r12_every_proposed_one_shows_whatever_its_date(planning: Planning) -> None:
+# /home/operations/list-my-associations/upcoming
+def test_upcoming_every_proposed_one_shows_whatever_its_date(planning: Planning) -> None:
     set_period(planning, 0, 10)
     proposed(planning, 60)
 
     assert upcoming_dates(planning) == [day(60)]
 
 
-def test_r12_every_proposed_one_shows_without_period(planning: Planning) -> None:
+# /home/operations/list-my-associations/upcoming
+def test_upcoming_every_proposed_one_shows_without_period(planning: Planning) -> None:
     proposed(planning, 60)
 
     assert upcoming_dates(planning) == [day(60)]
 
 
-def test_r12_confirmed_ones_up_to_the_periods_last_date(planning: Planning) -> None:
+# /home/operations/list-my-associations/upcoming
+def test_upcoming_confirmed_ones_up_to_the_periods_last_date(planning: Planning) -> None:
     set_period(planning, 5, 40)
     confirmed(planning, 40)
     confirmed(planning, 41)
@@ -289,7 +313,8 @@ def test_r12_confirmed_ones_up_to_the_periods_last_date(planning: Planning) -> N
     assert upcoming_dates(planning) == [day(40)]
 
 
-def test_r12_a_period_ending_before_27_days_after_today_confirmed_ones_up_to_27_days(
+# /home/operations/list-my-associations/upcoming
+def test_upcoming_a_period_ending_before_27_days_after_today_confirmed_ones_up_to_27_days(
     planning: Planning,
 ) -> None:
     set_period(planning, 0, 10)
@@ -300,7 +325,8 @@ def test_r12_a_period_ending_before_27_days_after_today_confirmed_ones_up_to_27_
     assert upcoming_dates(planning) == [day(11), day(27)]
 
 
-def test_r12_a_period_ending_today_confirmed_ones_up_to_27_days_after_today(
+# /home/operations/list-my-associations/upcoming
+def test_upcoming_a_period_ending_today_confirmed_ones_up_to_27_days_after_today(
     planning: Planning,
 ) -> None:
     set_period(planning, -5, 0)
@@ -311,7 +337,8 @@ def test_r12_a_period_ending_today_confirmed_ones_up_to_27_days_after_today(
     assert upcoming_dates(planning) == [day(1), day(27)]
 
 
-def test_r12_without_period_confirmed_ones_up_to_27_days_after_today(
+# /home/operations/list-my-associations/upcoming
+def test_upcoming_without_period_confirmed_ones_up_to_27_days_after_today(
     planning: Planning,
 ) -> None:
     confirmed(planning, 27)
@@ -320,7 +347,8 @@ def test_r12_without_period_confirmed_ones_up_to_27_days_after_today(
     assert upcoming_dates(planning) == [day(27)]
 
 
-def test_r12_after_the_period_ended_confirmed_ones_up_to_27_days_after_today(
+# /home/operations/list-my-associations/upcoming
+def test_upcoming_after_the_period_ended_confirmed_ones_up_to_27_days_after_today(
     planning: Planning,
 ) -> None:
     set_period(planning, -10, -1)
@@ -330,13 +358,15 @@ def test_r12_after_the_period_ended_confirmed_ones_up_to_27_days_after_today(
     assert upcoming_dates(planning) == [day(27)]
 
 
-def test_r13_planning_period_is_null_without_period(planning: Planning) -> None:
+# /home/operations/list-my-associations/period
+def test_period_planning_period_is_null_without_period(planning: Planning) -> None:
     confirmed(planning, 1)
 
     assert summary(planning, planning.bruno_client)["planning_period"] is None
 
 
-def test_r13_counts_confirmed_and_proposed_within_the_period_both_dates_included(
+# /home/operations/list-my-associations/period /planning/model/registration/count
+def test_period_counts_confirmed_and_proposed_within_the_period_both_dates_included(
     planning: Planning,
 ) -> None:
     set_period(planning, 2, 6)
@@ -355,7 +385,8 @@ def test_r13_counts_confirmed_and_proposed_within_the_period_both_dates_included
     }
 
 
-def test_r13_counts_registrations_of_the_period_before_today(
+# /home/operations/list-my-associations/period /planning/model/registration/count
+def test_period_counts_registrations_of_the_period_before_today(
     planning: Planning, clock: time_machine.Traveller
 ) -> None:
     set_period(planning, 1, 10)

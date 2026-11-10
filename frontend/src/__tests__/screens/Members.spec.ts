@@ -68,6 +68,7 @@ function shownMembers(wrapper: VueWrapper, names: string[]) {
 }
 
 describe('Members', () => {
+  // /core/ui/header/location
   it('the header shows the association name, then Members', async () => {
     const { mounting } = mountAs('manager', [alice, bruno])
     const text = header(await mounting).text()
@@ -76,6 +77,7 @@ describe('Members', () => {
     expect(text.indexOf('Members')).toBeGreaterThan(text.indexOf(garden.name))
   })
 
+  // /core/ui/header/association-link
   it("the association's name leads to its Schedule", async () => {
     const { mounting } = mountAs('manager', [alice, bruno])
     const wrapper = await mounting
@@ -85,6 +87,7 @@ describe('Members', () => {
     )
   })
 
+  // /core/ui/header/title
   it('shows no back link', async () => {
     const { mounting } = mountAs('manager', [alice, bruno])
 
@@ -94,6 +97,7 @@ describe('Members', () => {
     expect(text).not.toContain('←')
   })
 
+  // /core/ui/members/list
   it('shows its members with email and role', async () => {
     const { mounting } = mountAs('manager', [alice, bruno])
     const wrapper = await mounting
@@ -103,6 +107,7 @@ describe('Members', () => {
     expect(line.text().toLowerCase()).toContain('volunteer')
   })
 
+  // /core/ui/members/list
   it('lists managers first, then by display name', async () => {
     const { mounting } = mountAs('manager', [chloe, zoe, bruno, alice])
     const wrapper = await mounting
@@ -114,6 +119,7 @@ describe('Members', () => {
     expect(names).toEqual(['Alice', 'Zoé', 'Bruno', 'Chloé'])
   })
 
+  // /core/ui/members/not-joined
   it('marks a member without a password as "not joined yet"', async () => {
     const { mounting } = mountAs('manager', [alice, chloe])
     const wrapper = await mounting
@@ -122,6 +128,7 @@ describe('Members', () => {
     expect(item(wrapper, 'Alice').text()).not.toContain('not joined yet')
   })
 
+  // /core/ui/members/not-joined
   it('marks a member with a password but an unconfirmed email as "not joined yet"', async () => {
     const brunoPending = member('u-bruno', 'Bruno', 'volunteer', true, false)
     const { mounting } = mountAs('manager', [alice, brunoPending])
@@ -130,6 +137,7 @@ describe('Members', () => {
     expect(item(wrapper, 'Bruno').text()).toContain('not joined yet')
   })
 
+  // /core/ui/members/not-joined
   it('does not mark a member without a password whose email is confirmed', async () => {
     const chloeByLink = member('u-chloe', 'Chloé', 'volunteer', false, true, true)
     const { mounting } = mountAs('manager', [alice, chloeByLink])
@@ -146,6 +154,7 @@ describe('Members', () => {
     const names = ['Alice', 'Bruno', 'Chloé', 'David', 'Emma', 'Fanny', 'Zoé']
     const seven = [alice, zoe, bruno, chloe, david, emma, fanny]
 
+    // /core/ui/members/first-five
     it('shows the first 5 members and "Show all 7 members"', async () => {
       const { mounting } = mountAs('manager', seven)
       const wrapper = await mounting
@@ -154,6 +163,7 @@ describe('Members', () => {
       expect(showsControl(wrapper, 'Show all 7 members')).toBe(true)
     })
 
+    // /core/ui/members/first-five
     it('"Show all 7 members" shows the others', async () => {
       const { mounting } = mountAs('manager', seven)
       const wrapper = await mounting
@@ -171,6 +181,7 @@ describe('Members', () => {
       ])
     })
 
+    // /core/ui/members/first-five
     it('with 5 members, shows them all, without the link', async () => {
       const { mounting } = mountAs('manager', [alice, zoe, bruno, chloe, david])
       const wrapper = await mounting
@@ -181,6 +192,7 @@ describe('Members', () => {
   })
 
   describe('as a manager', () => {
+    // /core/ui/members/manager
     it('offers an edit icon on each member, and Add a member', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -190,6 +202,7 @@ describe('Members', () => {
       expect(showsControl(wrapper, 'Add a member')).toBe(true)
     })
 
+    // /ui/forms/dialog
     it('shows no form and no line action until one is opened', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -202,6 +215,7 @@ describe('Members', () => {
       expect(hasControl(item(wrapper, 'Bruno'), 'Remove from the association')).toBe(false)
     })
 
+    // /core/ui/members/add /ui/forms/create
     it('"Add a member" opens the dialog "Add a member", Role at Volunteer', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -216,6 +230,7 @@ describe('Members', () => {
       expect(showsControl(open, 'Add member')).toBe(true)
     })
 
+    // /core/ui/members/add /core/ui/members/added /ui/forms/success
     it('adds a member with POST, closes the dialog and says so', async () => {
       let members = [alice]
       const { calls, mounting } = mountAs('manager', [], {
@@ -244,6 +259,7 @@ describe('Members', () => {
       expect(item(wrapper, 'chloé@example.org').exists()).toBe(true)
     })
 
+    // /core/ui/members/add
     it('can add a manager', async () => {
       const { calls, mounting } = mountAs('manager', [alice], {
         [`POST ${membersPath}`]: { status: 201, body: zoe },
@@ -260,6 +276,7 @@ describe('Members', () => {
       expect(calls.find((c) => c.method === 'POST')?.body).toMatchObject({ role: 'manager' })
     })
 
+    // /core/ui/members/already /ui/forms/failure
     it('says in the dialog when the person is already a member', async () => {
       const { mounting } = mountAs('manager', [alice, chloe], {
         [`POST ${membersPath}`]: { status: 409, body: { error: 'Already a member' } },
@@ -277,6 +294,7 @@ describe('Members', () => {
   })
 
   describe('the edit dialog', () => {
+    // /core/ui/members/edit /ui/forms/edit /ui/forms/icon-names
     it('"Edit Bruno" opens the dialog "Bruno", with his email and role', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -291,6 +309,7 @@ describe('Members', () => {
       expect(showsControl(open, 'Send link')).toBe(true)
     })
 
+    // /core/ui/members/save /core/ui/members/changed
     it('Save with another role changes it with PATCH and says so', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno], {
         [`PATCH ${membersPath}/u-bruno`]: { status: 200, body: { ...bruno, role: 'manager' } },
@@ -311,6 +330,7 @@ describe('Members', () => {
       expect(item(wrapper, 'Bruno').text().toLowerCase()).toContain('manager')
     })
 
+    // /core/ui/members/same-role
     it('Save with the same role closes the dialog and changes nothing', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -322,6 +342,7 @@ describe('Members', () => {
       expect(dialogs(wrapper)).toHaveLength(0)
     })
 
+    // /ui/forms/close
     it('Cancel closes the dialog and leaves the role unchanged', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -335,6 +356,7 @@ describe('Members', () => {
       expect(item(wrapper, 'Bruno').text().toLowerCase()).toContain('volunteer')
     })
 
+    // /core/ui/members/last-manager /ui/forms/failure
     it('demoting the last manager says, in the dialog, that an association keeps one', async () => {
       const { mounting } = mountAs('manager', [alice, bruno], {
         [`PATCH ${membersPath}/u-alice`]: { status: 409, body: { error: 'Last manager' } },
@@ -353,6 +375,7 @@ describe('Members', () => {
   describe('Revoke link', () => {
     const brunoWithLink = member('u-bruno', 'Bruno', 'volunteer', true, true, true)
 
+    // /core/ui/members/revoke-link
     it('shows only for a member with an access link', async () => {
       const { mounting } = mountAs('manager', [alice, brunoWithLink])
       const wrapper = await mounting
@@ -365,6 +388,7 @@ describe('Members', () => {
       expect(hasControl(dialog(wrapper), 'Revoke link')).toBe(false)
     })
 
+    // /core/ui/members/revoke-link /ui/forms/confirmation
     it('asks for confirmation before calling the API', async () => {
       const { calls, mounting } = mountAs('manager', [alice, brunoWithLink])
       const wrapper = await mounting
@@ -377,6 +401,7 @@ describe('Members', () => {
       expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
     })
 
+    // /core/ui/members/revoke-link /ui/forms/nested
     it('Revoke revokes it with DELETE, closes both dialogs and says so', async () => {
       let members = [alice, brunoWithLink]
       const { calls, mounting } = mountAs('manager', [], {
@@ -404,6 +429,7 @@ describe('Members', () => {
       expect(hasControl(dialog(wrapper), 'Revoke link')).toBe(false)
     })
 
+    // /ui/forms/close
     it('Cancel leaves the link', async () => {
       const { calls, mounting } = mountAs('manager', [alice, brunoWithLink])
       const wrapper = await mounting
@@ -421,6 +447,7 @@ describe('Members', () => {
   describe('Send link', () => {
     const chloeWithLink = member('u-chloe', 'Chloé', 'volunteer', false, false, true)
 
+    // /core/ui/members/send-link
     it('shows in the dialog of each member', async () => {
       const { mounting } = mountAs('manager', [alice, chloe])
       const wrapper = await mounting
@@ -433,6 +460,7 @@ describe('Members', () => {
       expect(hasControl(dialog(wrapper), 'Send link')).toBe(true)
     })
 
+    // /core/ui/members/send-link /ui/forms/confirmation
     it('asks for confirmation before calling the API', async () => {
       const { calls, mounting } = mountAs('manager', [alice, chloe])
       const wrapper = await mounting
@@ -445,7 +473,8 @@ describe('Members', () => {
       expect(calls.some((c) => c.path.endsWith('/access-link'))).toBe(false)
     })
 
-    it('Send sends the link with POST, closes both dialogs and says so (R26)', async () => {
+    // /core/ui/members/send-link /core/ui/members/sent /ui/forms/nested
+    it('Send sends the link with POST, closes both dialogs and says so', async () => {
       let members = [alice, chloe]
       const { calls, mounting } = mountAs('manager', [], {
         [`GET /api/associations/by-slug/${garden.slug}`]: () => associationAs('manager', members),
@@ -472,6 +501,7 @@ describe('Members', () => {
       expect(hasControl(dialog(wrapper), 'Revoke link')).toBe(true)
     })
 
+    // /core/ui/members/not-sent
     it('says when the email cannot be sent', async () => {
       const { mounting } = mountAs('manager', [alice, chloe], {
         [`POST ${membersPath}/u-chloe/access-link`]: {
@@ -492,6 +522,7 @@ describe('Members', () => {
   })
 
   describe('Remove from the association', () => {
+    // /core/ui/members/remove
     it('shows in the dialog of each member', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -504,6 +535,7 @@ describe('Members', () => {
       expect(hasControl(dialog(wrapper), 'Remove from the association')).toBe(true)
     })
 
+    // /core/ui/members/remove /ui/forms/confirmation
     it('asks for confirmation before calling the API', async () => {
       const { calls, mounting } = mountAs('manager', [alice, chloe])
       const wrapper = await mounting
@@ -518,7 +550,8 @@ describe('Members', () => {
       expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
     })
 
-    it('Remove removes the member with DELETE (R28), closes both dialogs and says so', async () => {
+    // /core/ui/members/remove /core/ui/members/removed /ui/forms/nested
+    it('Remove removes the member with DELETE, closes both dialogs and says so', async () => {
       let members = [alice, chloe]
       const { calls, mounting } = mountAs('manager', [], {
         [`GET /api/associations/by-slug/${garden.slug}`]: () => associationAs('manager', members),
@@ -543,6 +576,7 @@ describe('Members', () => {
       expect(pageText(wrapper)).not.toContain('chloé@example.org')
     })
 
+    // /ui/forms/close
     it('Cancel leaves the member', async () => {
       const { calls, mounting } = mountAs('manager', [alice, chloe])
       const wrapper = await mounting
@@ -555,6 +589,7 @@ describe('Members', () => {
       expect(titleOf(dialog(wrapper))).toBe('Chloé')
     })
 
+    // /core/ui/members/remove-last-manager
     it('removing the last manager says an association keeps one, and changes nothing', async () => {
       const { mounting } = mountAs('manager', [alice, bruno], {
         [`DELETE ${membersPath}/u-alice`]: { status: 409, body: { error: 'Last manager' } },
@@ -571,6 +606,7 @@ describe('Members', () => {
       expect(item(wrapper, 'Alice').exists()).toBe(true)
     })
 
+    // /core/ui/members/themself
     it('a manager who removes themself is led to My associations', async () => {
       const { mounting } = mountAs('manager', [alice, zoe], {
         [`DELETE ${membersPath}/u-alice`]: { status: 204 },
@@ -614,6 +650,7 @@ describe('Members', () => {
       return field(open, 'Name').element as HTMLInputElement
     }
 
+    // /core/ui/members/manager
     it('shows below the members and above "Delete the association", for a manager', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -627,6 +664,7 @@ describe('Members', () => {
       expect(dialogs(wrapper)).toHaveLength(0)
     })
 
+    // /core/ui/members/rename
     it('opens the dialog with the current name, before calling the API', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -641,6 +679,7 @@ describe('Members', () => {
       expect(renames(calls)).toHaveLength(0)
     })
 
+    // /core/ui/members/rename
     it('Save is enabled only when Name is not empty', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -656,6 +695,7 @@ describe('Members', () => {
       expect(isDisabled()).toBe(false)
     })
 
+    // /core/ui/members/rename
     it('submitting an empty Name does not rename', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
       const wrapper = await mounting
@@ -668,6 +708,7 @@ describe('Members', () => {
       expect(renames(calls)).toHaveLength(0)
     })
 
+    // /core/ui/members/renamed
     it('Save with another name changes it, updates the header and says so', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
       const wrapper = await mounting
@@ -687,6 +728,7 @@ describe('Members', () => {
       expect(wrapper.vm.$route.path).toBe(path)
     })
 
+    // /core/ui/members/same-name
     it('Save with the same name closes the dialog and changes nothing', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
       const wrapper = await mounting
@@ -699,6 +741,7 @@ describe('Members', () => {
       expect(pageText(wrapper)).not.toContain('The association is now')
     })
 
+    // /ui/forms/close
     it('Cancel closes the dialog, changes nothing and forgets the typed name', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
       const wrapper = await mounting
@@ -715,6 +758,7 @@ describe('Members', () => {
       expect(nameInput(dialog(wrapper)).value).toBe(garden.name)
     })
 
+    // /core/ui/members/rename
     it('reopening after a rename shows the new name', async () => {
       const { mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
       const wrapper = await mounting
@@ -727,6 +771,7 @@ describe('Members', () => {
       expect(nameInput(dialog(wrapper)).value).toBe(newName)
     })
 
+    // /core/ui/members/delete
     it('after a rename, "Delete the association" asks for the new name', async () => {
       const { mounting } = mountAs('manager', [alice, bruno], renamingRoutes())
       const wrapper = await mounting
@@ -745,6 +790,7 @@ describe('Members', () => {
       expect(control(open, 'Delete').attributes('disabled')).toBeUndefined()
     })
 
+    // /ui/forms/failure
     it('when the API refuses, keeps the dialog and the old name', async () => {
       const { mounting } = mountAs('manager', [alice, bruno], {
         [`PATCH ${associationPath}`]: { status: 403, body: { error: 'Managers only' } },
@@ -760,6 +806,20 @@ describe('Members', () => {
       expect(header(wrapper).text()).toContain(garden.name)
       expect(pageText(wrapper)).not.toContain('The association is now')
     })
+
+    // /ui/errors/generic /ui/forms/failure
+    it('a rename that fails says "Something went wrong. Try again." in the dialog', async () => {
+      const { mounting } = mountAs('manager', [alice, bruno], {
+        [`PATCH ${associationPath}`]: { status: 500, body: { error: 'Server error' } },
+      })
+      const wrapper = await mounting
+
+      await press(wrapper, 'Rename the association')
+      await fill(dialog(wrapper), 'Name', newName)
+      await press(dialog(wrapper), 'Save')
+
+      expect(dialog(wrapper).text()).toContain('Something went wrong. Try again.')
+    })
   })
 
   describe('Change the association identifier', () => {
@@ -771,7 +831,7 @@ describe('Members', () => {
       return calls.filter((c) => c.method === 'PATCH' && c.path === associationPath)
     }
 
-    /** A backend that keeps the new slug: the former one no longer answers (R36). */
+    /** A backend that keeps the new slug: the former one no longer answers. */
     function slugRoutes(): Record<string, Route> {
       let slug = garden.slug
       const read =
@@ -794,6 +854,7 @@ describe('Members', () => {
       return field(open, 'Association identifier').element as HTMLInputElement
     }
 
+    // /core/ui/members/manager
     it('shows between "Rename the association" and "Delete the association", for a manager', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -808,6 +869,7 @@ describe('Members', () => {
       )
     })
 
+    // /core/ui/members/volunteer
     it('a volunteer does not see it', async () => {
       const { mounting } = mountAs('volunteer', [alice, bruno])
       const wrapper = await mounting
@@ -815,6 +877,7 @@ describe('Members', () => {
       expect(showsControl(wrapper, 'Change the association identifier')).toBe(false)
     })
 
+    // /core/ui/members/change-slug
     it('opens the dialog with the current slug and its prefix, before calling the API', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -830,6 +893,7 @@ describe('Members', () => {
       expect(changes(calls)).toHaveLength(0)
     })
 
+    // /core/ui/members/change-slug
     it('Save is enabled only when Association identifier is not empty', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -845,6 +909,7 @@ describe('Members', () => {
       expect(isDisabled()).toBe(false)
     })
 
+    // /core/ui/members/slug-changed
     it('Save with another slug changes it, moves to the new URL and says so', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno], slugRoutes())
       const wrapper = await mounting
@@ -863,6 +928,7 @@ describe('Members', () => {
       expect(pageText(wrapper)).not.toContain('This association does not exist')
     })
 
+    // /core/ui/members/slug-changed /core/ui/header/association-link
     it("the header's name then leads to the Schedule at the new slug", async () => {
       const { mounting } = mountAs('manager', [alice, bruno], slugRoutes())
       const wrapper = await mounting
@@ -878,6 +944,7 @@ describe('Members', () => {
       )
     })
 
+    // /core/ui/members/same-slug
     it('Save with the same slug closes the dialog and changes nothing', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno], slugRoutes())
       const wrapper = await mounting
@@ -891,6 +958,7 @@ describe('Members', () => {
       expect(pageText(wrapper)).not.toContain('The association identifier is now')
     })
 
+    // /ui/forms/close
     it('Cancel closes the dialog, changing nothing', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno], slugRoutes())
       const wrapper = await mounting
@@ -905,6 +973,7 @@ describe('Members', () => {
       expect(wrapper.vm.$route.path).toBe(path)
     })
 
+    // /core/ui/members/refused
     it.each([
       [
         400,
@@ -944,6 +1013,7 @@ describe('Members', () => {
       return calls.filter((c) => c.method === 'DELETE' && c.path === associationPath)
     }
 
+    // /core/ui/members/manager
     it('shows below the members, for a manager', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -954,6 +1024,7 @@ describe('Members', () => {
       expect(dialogs(wrapper)).toHaveLength(0)
     })
 
+    // /core/ui/members/delete
     it('asks for confirmation, with the name to type, before calling the API', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -970,6 +1041,7 @@ describe('Members', () => {
       expect(deletions(calls)).toHaveLength(0)
     })
 
+    // /core/ui/members/delete
     it('Delete is enabled only when the field holds exactly the name', async () => {
       const { mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -987,6 +1059,7 @@ describe('Members', () => {
       expect(isDisabled()).toBe(false)
     })
 
+    // /core/ui/members/delete
     it('submitting without the exact name does not delete', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno], {
         [`DELETE ${associationPath}`]: { status: 204 },
@@ -1002,7 +1075,8 @@ describe('Members', () => {
       expect(wrapper.vm.$route.path).toBe(path)
     })
 
-    it('Delete deletes it with DELETE (R34), leads to My associations and says so', async () => {
+    // /core/ui/members/delete
+    it('Delete deletes it with DELETE, leads to My associations and says so', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno], {
         [`DELETE ${associationPath}`]: { status: 204 },
         'GET /api/associations': { status: 200, body: [remaining] },
@@ -1021,6 +1095,7 @@ describe('Members', () => {
       expect(item(wrapper, repairCafe.name).exists()).toBe(true)
     })
 
+    // /ui/forms/close
     it('Cancel closes the dialog, changes nothing and forgets the typed name', async () => {
       const { calls, mounting } = mountAs('manager', [alice, bruno])
       const wrapper = await mounting
@@ -1037,6 +1112,7 @@ describe('Members', () => {
       expect(control(dialog(wrapper), 'Delete').attributes('disabled')).toBeDefined()
     })
 
+    // /ui/forms/failure
     it('when the API refuses, stays on Members and does not say it is deleted', async () => {
       const { mounting } = mountAs('manager', [alice, bruno], {
         [`DELETE ${associationPath}`]: { status: 403, body: { error: 'Managers only' } },
@@ -1055,6 +1131,7 @@ describe('Members', () => {
   })
 
   describe('as a volunteer', () => {
+    // /core/ui/members/volunteer
     it('shows no "Delete the association"', async () => {
       const { mounting } = mountAs('volunteer', [zoe, bruno])
       const wrapper = await mounting
@@ -1062,6 +1139,7 @@ describe('Members', () => {
       expect(hasControl(wrapper, 'Delete the association')).toBe(false)
     })
 
+    // /core/ui/members/volunteer
     it('shows no "Rename the association"', async () => {
       const { mounting } = mountAs('volunteer', [zoe, bruno])
       const wrapper = await mounting
@@ -1069,6 +1147,7 @@ describe('Members', () => {
       expect(hasControl(wrapper, 'Rename the association')).toBe(false)
     })
 
+    // /core/ui/members/volunteer /ui/forms/managers
     it('shows members and roles without Add a member or the edit icons', async () => {
       const brunoWithLink = member('u-bruno', 'Bruno', 'volunteer', true, true, true)
       const { mounting } = mountAs('volunteer', [zoe, brunoWithLink, alice])
