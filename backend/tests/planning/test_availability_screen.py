@@ -97,6 +97,7 @@ def other_user(new_client: Callable[[], Any]) -> Any:
 
 
 class TestMyPreferences:
+    # /planning/ui/my-availability/preferences
     def test_lists_each_slot_with_its_selector(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -109,6 +110,7 @@ class TestMyPreferences:
             ("Saturday 10:00–13:00", "—"),
         ]
 
+    # /planning/ui/my-availability/preferences
     def test_slots_are_listed_by_weekday_then_start(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -125,6 +127,7 @@ class TestMyPreferences:
             "Saturday 10:00–13:00",
         ]
 
+    # /planning/ui/my-availability/preferences
     def test_the_selector_offers_none_preferred_possible_and_unavailable(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -138,6 +141,8 @@ class TestMyPreferences:
             "Unavailable",
         ]
 
+    # /planning/ui/my-availability/preferences
+    # /planning/ui/my-availability/own
     def test_each_selector_shows_the_members_own_preference(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -157,6 +162,8 @@ class TestMyPreferences:
             ("Saturday 10:00–13:00", "Unavailable"),
         ]
 
+    # /planning/ui/my-availability/preferences
+    # /planning/ui/my-availability/own
     def test_a_manager_sees_their_own_preferences_too(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -167,6 +174,7 @@ class TestMyPreferences:
 
         assert preferences_shown(client, planning.slug) == [("Thursday 10:00–13:00", "Possible")]
 
+    # /planning/ui/my-availability/none
     def test_without_a_slot_shows_none(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -174,6 +182,7 @@ class TestMyPreferences:
 
         assert collapsed(section_of(page, "My preferences")) == "My preferences None"
 
+    # /planning/ui/my-availability/preferences
     def test_shows_only_the_slots_of_its_association(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -184,6 +193,9 @@ class TestMyPreferences:
 
         assert preferences_shown(client, planning.slug) == [("Thursday 10:00–13:00", "—")]
 
+    # /core/ui/header/language
+    # /planning/ui/my-availability/preferences
+    # /planning/ui/my-availability/french
     def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         thursday = planning.add_slot("thursday", "10:00", "13:00")
@@ -196,6 +208,9 @@ class TestMyPreferences:
         labels = selector_labels(planning.bruno_client, planning.slug, "Mes préférences")
         assert labels == ["—", "Préféré", "Possible", "Indisponible"]
 
+    # /core/ui/header/language
+    # /planning/ui/my-availability/none
+    # /planning/ui/my-availability/french
     def test_without_a_slot_shows_none_in_french(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -206,6 +221,7 @@ class TestMyPreferences:
 
         assert collapsed(section_of(page, "Mes préférences")) == "Mes préférences Aucun"
 
+    # /core/ui/access/signed-out
     def test_signed_out_shows_sign_in(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -217,6 +233,8 @@ class TestMyPreferences:
 
 
 class TestMyAvailabilityHeader:
+    # /core/ui/header/location
+    # /core/ui/header/menu
     def test_shows_the_association_name_then_my_availability(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -228,6 +246,7 @@ class TestMyAvailabilityHeader:
         assert header.index("My availability") > header.index(NAME)
         assert "Bruno" in header
 
+    # /core/ui/header/association-link
     def test_the_association_name_leads_to_its_schedule(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -239,6 +258,7 @@ class TestMyAvailabilityHeader:
             rf'<a[^>]*href="/association/{planning.slug}"[^>]*>\s*{NAME}\s*</a>', header
         )
 
+    # /core/ui/header/title
     def test_the_location_stands_for_the_title(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -249,6 +269,8 @@ class TestMyAvailabilityHeader:
         assert "My availability" not in main
         assert NAME not in main
 
+    # /core/ui/header/location
+    # /planning/ui/my-availability/french
     def test_in_french_the_screen_is_mes_disponibilites(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -261,6 +283,7 @@ class TestMyAvailabilityHeader:
 
 
 class TestUnknownAssociation:
+    # /core/ui/unknown-association/shown
     def test_an_unknown_slug_says_so_with_a_way_to_my_associations(self, client: Any) -> None:
         sign_up(client, "Alice")
 
@@ -272,6 +295,7 @@ class TestUnknownAssociation:
         assert re.search(r'<a[^>]*href="/"[^>]*>\s*My associations\s*</a>', main)
         assert "Page not found" not in response.text
 
+    # /core/ui/unknown-association/shown
     def test_an_association_of_others_says_so(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -285,6 +309,7 @@ class TestUnknownAssociation:
         assert NAME not in response.text
         assert "Thursday" not in response.text
 
+    # /core/ui/unknown-association/shown
     def test_a_deleted_association_says_so(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -296,6 +321,8 @@ class TestUnknownAssociation:
         assert response.status_code == 200
         assert UNKNOWN in html.unescape(response.text)
 
+    # /core/ui/header/language
+    # /core/ui/unknown-association/shown
     def test_follows_the_language(self, client: Any) -> None:
         sign_up(client, "Alice")
         client.cookies.set("language", "fr")
@@ -306,6 +333,8 @@ class TestUnknownAssociation:
 
 
 class TestChoosingAPreference:
+    # /planning/ui/my-availability/set
+    # /planning/operations/set-preference/set
     @pytest.mark.parametrize(
         ("value", "label"),
         [("preferred", "Preferred"), ("possible", "Possible"), ("unavailable", "Unavailable")],
@@ -323,6 +352,7 @@ class TestChoosingAPreference:
         ]
         assert stored(planning) == {("Bruno", THU, value)}
 
+    # /planning/operations/set-preference/set
     def test_replaces_the_previous_one(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         thursday = planning.add_slot("thursday", "10:00", "13:00")
@@ -332,6 +362,8 @@ class TestChoosingAPreference:
 
         assert stored(planning) == {("Bruno", THU, "unavailable")}
 
+    # /planning/ui/my-availability/set
+    # /planning/operations/delete-preference/deleted
     def test_none_deletes_it(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         thursday = planning.add_slot("thursday", "10:00", "13:00")
@@ -344,6 +376,7 @@ class TestChoosingAPreference:
         ]
         assert stored(planning) == set()
 
+    # /planning/operations/delete-preference/deleted
     def test_none_without_a_preference_changes_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -354,6 +387,8 @@ class TestChoosingAPreference:
 
         assert stored(planning) == set()
 
+    # /planning/ui/my-availability/own
+    # /planning/operations/set-preference/set
     def test_sets_only_the_members_own_preference_on_that_slot(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -372,6 +407,8 @@ class TestChoosingAPreference:
             planning.bruno_client, planning.slug
         )
 
+    # /planning/ui/my-availability/own
+    # /planning/operations/set-preference/set
     def test_a_manager_sets_their_own(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         thursday = planning.add_slot("thursday", "10:00", "13:00")
@@ -380,6 +417,8 @@ class TestChoosingAPreference:
 
         assert stored(planning) == {("Alice", THU, "possible")}
 
+    # /ui/errors/generic
+    # /core/operations/general/refused
     @pytest.mark.parametrize("body", [{"value": "maybe"}, {"value": None}, {}])
     def test_a_missing_or_invalid_value_shows_the_generic_error_and_changes_nothing(
         self, client: Any, new_client: Callable[[], Any], body: dict[str, Any]
@@ -395,6 +434,8 @@ class TestChoosingAPreference:
         assert GENERIC in shown(response)
         assert stored(planning) == {("Bruno", THU, "preferred")}
 
+    # /ui/errors/generic
+    # /planning/operations/set-preference/unknown
     def test_an_unknown_slot_shows_the_generic_error(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -406,6 +447,8 @@ class TestChoosingAPreference:
         assert GENERIC in text
         assert stored(planning) == set()
 
+    # /ui/errors/generic
+    # /planning/operations/set-preference/unknown
     def test_a_slot_of_another_association_shows_the_generic_error_and_sets_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -418,6 +461,8 @@ class TestChoosingAPreference:
         assert GENERIC in text
         assert preferences_stored(client, other["slug"]) == set()
 
+    # /planning/operations/general/member
+    # /core/operations/general/unknown-association
     def test_a_non_member_sets_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         thursday = planning.add_slot("thursday", "10:00", "13:00")
@@ -426,6 +471,8 @@ class TestChoosingAPreference:
 
         assert stored(planning) == set()
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_sets_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -501,6 +548,7 @@ def other_associations_absence(alice_client: Any) -> tuple[dict[str, Any], dict[
 
 
 class TestAbsences:
+    # /planning/ui/my-availability/absences
     def test_lists_them_by_first_date_with_their_dates(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -510,6 +558,7 @@ class TestAbsences:
 
         assert absences_shown(planning.bruno_client, planning.slug) == [NOV, DEC]
 
+    # /planning/ui/my-availability/absences
     def test_an_absence_of_one_day_shows_one_date(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -518,6 +567,7 @@ class TestAbsences:
 
         assert absences_shown(planning.bruno_client, planning.slug) == ["Mon 9 Nov 2037"]
 
+    # /planning/ui/my-availability/none
     def test_without_an_absence_shows_none(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -526,6 +576,8 @@ class TestAbsences:
         assert absences_shown(planning.bruno_client, planning.slug) == []
         assert "None" in availability_section(planning.bruno_client, planning.slug, "Absences")
 
+    # /planning/ui/my-availability/absences
+    # /planning/ui/my-availability/own
     def test_lists_only_the_members_own(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
@@ -535,12 +587,15 @@ class TestAbsences:
         assert absences_shown(planning.chloe_client, planning.slug) == [DEC]
         assert absences_shown(client, planning.slug) == []
 
+    # /planning/ui/my-availability/absences
+    # /planning/ui/my-availability/own
     def test_a_manager_sees_their_own(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         add_absence(client, planning, "2037-11-09", "2037-11-15")
 
         assert absences_shown(client, planning.slug) == [NOV]
 
+    # /planning/ui/my-availability/absences
     def test_shows_only_the_absences_of_its_association(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -551,6 +606,7 @@ class TestAbsences:
         assert absences_shown(client, planning.slug) == [DEC]
         assert absences_shown(client, other["slug"]) == [NOV]
 
+    # /planning/ui/my-availability/absences
     def test_lists_them_from_those_ending_today_on(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -569,6 +625,9 @@ class TestAbsences:
         assert shown_lines[1] == NOV
         assert shown_lines[0].startswith(f"{week_ago:%a} {week_ago.day} {week_ago:%b %Y} – ")
 
+    # /core/ui/header/language
+    # /planning/ui/my-availability/absences
+    # /planning/ui/my-availability/french
     def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         add_absence(client, planning, "2037-11-09", "2037-11-15")
@@ -578,6 +637,8 @@ class TestAbsences:
         main = html.unescape(part(availability_page(client, planning.slug), "main"))
         assert "Ajouter une absence" in main
 
+    # /core/ui/header/language
+    # /planning/ui/my-availability/none
     def test_without_an_absence_shows_none_in_french(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -588,6 +649,9 @@ class TestAbsences:
 
 
 class TestAbsencesDialogs:
+    # /planning/ui/my-availability/add-absence
+    # /planning/ui/my-availability/own
+    # /ui/forms/create
     @pytest.mark.parametrize("who", ["manager", "volunteer"])
     def test_shows_add_an_absence(
         self, client: Any, new_client: Callable[[], Any], who: str
@@ -599,6 +663,8 @@ class TestAbsencesDialogs:
 
         assert re.search(r"<button[^>]*>\s*\+\s*Add an absence\s*</button>", section)
 
+    # /planning/ui/my-availability/add-absence
+    # /ui/forms/dialog
     def test_the_add_an_absence_dialog_has_its_title_fields_and_buttons(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -613,6 +679,10 @@ class TestAbsencesDialogs:
         assert re.search(r"<button[^>]*>\s*Add absence\s*</button>", form)
         assert re.search(r"<button[^>]*>\s*Cancel\s*</button>", form)
 
+    # /planning/ui/my-availability/edit-absence
+    # /planning/ui/my-availability/delete-absence
+    # /planning/ui/my-availability/own
+    # /ui/forms/icon-names
     @pytest.mark.parametrize("who", ["manager", "volunteer"])
     def test_each_absence_has_its_edit_and_delete_icons(
         self, client: Any, new_client: Callable[[], Any], who: str
@@ -627,6 +697,7 @@ class TestAbsencesDialogs:
         assert len(re.findall(r'<button[^>]*aria-label="Edit the absence"', section)) == 2
         assert len(re.findall(r'<button[^>]*aria-label="Delete the absence"', section)) == 2
 
+    # /planning/ui/my-availability/edit-absence
     def test_the_edit_dialog_is_edit_the_absence_with_save(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -640,6 +711,8 @@ class TestAbsencesDialogs:
         assert re.search(r"<label[^>]*>\s*To\b", form)
         assert re.search(r"<button[^>]*>\s*Save\s*</button>", form)
 
+    # /planning/ui/my-availability/delete-absence
+    # /ui/forms/confirmation
     @pytest.mark.parametrize(
         ("first", "last", "question"),
         [
@@ -658,6 +731,10 @@ class TestAbsencesDialogs:
         assert question in main
         assert re.search(r"<button[^>]*>\s*Delete\s*</button>", main)
 
+    # /core/ui/header/language
+    # /planning/ui/my-availability/add-absence
+    # /planning/ui/my-availability/delete-absence
+    # /ui/forms/icon-names
     def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         add_absence(client, planning, "2037-11-09", "2037-11-15")
@@ -671,6 +748,10 @@ class TestAbsencesDialogs:
 
 
 class TestAddingAnAbsence:
+    # /planning/ui/my-availability/add-absence
+    # /planning/operations/add-absence/added
+    # /planning/ui/my-availability/absences
+    # /ui/forms/success
     def test_adds_it_and_the_list_shows_it_at_once(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -685,6 +766,7 @@ class TestAddingAnAbsence:
         assert absences_shown(planning.bruno_client, planning.slug) == [NOV, DEC]
         assert (planning.bruno["id"], "2037-11-09", "2037-11-15") in absences_stored(planning)
 
+    # /planning/operations/add-absence/added
     def test_accepts_a_single_day(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -693,6 +775,8 @@ class TestAddingAnAbsence:
         assert GENERIC not in text
         assert absences_stored(planning) == {(planning.alice["id"], "2037-11-09", "2037-11-09")}
 
+    # /planning/operations/add-absence/added
+    # /planning/ui/my-availability/own
     def test_adds_only_the_members_own(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -702,6 +786,9 @@ class TestAddingAnAbsence:
         assert absences_stored(planning) == {(planning.chloe["id"], "2037-11-09", "2037-11-15")}
         assert absences_shown(planning.bruno_client, planning.slug) == []
 
+    # /ui/errors/generic
+    # /planning/operations/add-absence/order
+    # /planning/model/absence/order
     @pytest.mark.parametrize(
         "body",
         [
@@ -723,6 +810,9 @@ class TestAddingAnAbsence:
         assert GENERIC in text
         assert absences_stored(planning) == set()
 
+    # /planning/operations/general/member
+    # /core/operations/general/unknown-association
+    # /planning/model/absence/member
     def test_a_non_member_adds_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -730,6 +820,8 @@ class TestAddingAnAbsence:
 
         assert absences_stored(planning) == set()
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_adds_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -742,6 +834,9 @@ class TestAddingAnAbsence:
 
 
 class TestEditingAnAbsence:
+    # /planning/ui/my-availability/edit-absence
+    # /planning/operations/edit-absence/edited
+    # /ui/forms/success
     def test_saves_it_and_the_list_shows_it_at_once(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -757,6 +852,8 @@ class TestEditingAnAbsence:
         assert absences_shown(bruno, planning.slug) == [edited]
         assert absences_stored(planning) == {(planning.bruno["id"], "2037-11-10", "2037-11-20")}
 
+    # /planning/operations/edit-absence/edited
+    # /planning/ui/my-availability/absences
     def test_the_list_stays_by_first_date(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         bruno = planning.bruno_client
@@ -767,6 +864,9 @@ class TestEditingAnAbsence:
 
         assert absences_shown(bruno, planning.slug) == ["Mon 2 Nov 2037 – Tue 3 Nov 2037", NOV]
 
+    # /ui/errors/generic
+    # /planning/operations/edit-absence/order
+    # /planning/model/absence/order
     @pytest.mark.parametrize(
         "body",
         [
@@ -787,6 +887,8 @@ class TestEditingAnAbsence:
         assert GENERIC in text
         assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
 
+    # /ui/errors/generic
+    # /planning/operations/edit-absence/unknown
     @pytest.mark.parametrize("absence_id", [UNKNOWN_ID, "not-an-id"])
     def test_an_unknown_absence_shows_the_generic_error(
         self, client: Any, new_client: Callable[[], Any], absence_id: str
@@ -798,6 +900,8 @@ class TestEditingAnAbsence:
         assert GENERIC in shown(response)
         assert absences_stored(planning) == set()
 
+    # /ui/errors/generic
+    # /planning/operations/edit-absence/unknown
     @pytest.mark.parametrize("who", ["manager", "volunteer"])
     def test_another_members_absence_shows_the_generic_error_and_changes_nothing(
         self, client: Any, new_client: Callable[[], Any], who: str
@@ -811,6 +915,8 @@ class TestEditingAnAbsence:
         assert GENERIC in shown(response)
         assert absences_stored(planning) == {(planning.bruno["id"], "2037-11-09", "2037-11-15")}
 
+    # /ui/errors/generic
+    # /planning/operations/edit-absence/unknown
     def test_an_absence_of_another_association_shows_the_generic_error_and_changes_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -823,6 +929,8 @@ class TestEditingAnAbsence:
         assert absences_shown(client, planning.slug) == []
         assert absences_shown(client, other["slug"]) == [NOV]
 
+    # /planning/operations/general/member
+    # /core/operations/general/unknown-association
     def test_a_non_member_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         absence = add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
@@ -832,6 +940,8 @@ class TestEditingAnAbsence:
 
         assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_changes_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -847,6 +957,9 @@ class TestEditingAnAbsence:
 
 
 class TestDeletingAnAbsence:
+    # /planning/ui/my-availability/delete-absence
+    # /planning/operations/delete-absence/deleted
+    # /ui/forms/success
     def test_deletes_it_and_the_list_leaves_it_out_at_once(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -863,6 +976,8 @@ class TestDeletingAnAbsence:
         assert absences_shown(bruno, planning.slug) == [DEC]
         assert absences_stored(planning) == {(planning.bruno["id"], "2037-12-21", "2038-01-03")}
 
+    # /planning/operations/delete-absence/deleted
+    # /planning/ui/my-availability/none
     def test_deleting_the_last_one_shows_none(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -874,6 +989,8 @@ class TestDeletingAnAbsence:
         assert "None" in text
         assert "None" in availability_section(planning.bruno_client, planning.slug, "Absences")
 
+    # /ui/errors/generic
+    # /planning/operations/delete-absence/unknown
     @pytest.mark.parametrize("absence_id", [UNKNOWN_ID, "not-an-id"])
     def test_an_unknown_absence_shows_the_generic_error(
         self, client: Any, new_client: Callable[[], Any], absence_id: str
@@ -886,6 +1003,8 @@ class TestDeletingAnAbsence:
         assert GENERIC in text
         assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
 
+    # /ui/errors/generic
+    # /planning/operations/delete-absence/unknown
     @pytest.mark.parametrize("who", ["manager", "volunteer"])
     def test_another_members_absence_shows_the_generic_error_and_is_kept(
         self, client: Any, new_client: Callable[[], Any], who: str
@@ -899,6 +1018,8 @@ class TestDeletingAnAbsence:
         assert GENERIC in text
         assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
 
+    # /ui/errors/generic
+    # /planning/operations/delete-absence/unknown
     def test_an_absence_of_another_association_is_kept(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -910,6 +1031,8 @@ class TestDeletingAnAbsence:
         assert GENERIC in text
         assert absences_shown(client, other["slug"]) == [NOV]
 
+    # /planning/operations/general/member
+    # /core/operations/general/unknown-association
     def test_a_non_member_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         absence = add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
@@ -918,6 +1041,8 @@ class TestDeletingAnAbsence:
 
         assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_deletes_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -931,12 +1056,14 @@ class TestDeletingAnAbsence:
 
 
 class TestNoteForTheManagers:
+    # /planning/ui/my-availability/note
     def test_shows_the_note(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         write_note(planning.bruno_client, planning, NOTE)
 
         assert note_shown(planning.bruno_client, planning.slug) == f"Note for the managers {NOTE}"
 
+    # /planning/ui/my-availability/note
     def test_shows_each_line_of_a_note_of_several(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -947,6 +1074,8 @@ class TestNoteForTheManagers:
 
         assert shown_text == "Note for the managers Mornings only. Never on Sundays."
 
+    # /planning/ui/my-availability/note
+    # /planning/ui/my-availability/none
     @pytest.mark.parametrize("text", [None, ""])
     def test_without_a_note_shows_none(
         self, client: Any, new_client: Callable[[], Any], text: str | None
@@ -957,6 +1086,8 @@ class TestNoteForTheManagers:
 
         assert note_shown(planning.bruno_client, planning.slug) == "Note for the managers None"
 
+    # /planning/ui/my-availability/note
+    # /planning/ui/my-availability/own
     def test_shows_only_the_members_own(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         write_note(planning.bruno_client, planning, NOTE)
@@ -965,6 +1096,7 @@ class TestNoteForTheManagers:
         assert note_shown(planning.chloe_client, planning.slug) == "Note for the managers None"
         assert note_shown(client, planning.slug) == "Note for the managers Mornings only."
 
+    # /planning/ui/my-availability/note
     def test_shows_only_the_note_of_its_association(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -974,6 +1106,7 @@ class TestNoteForTheManagers:
 
         assert note_shown(client, other["slug"]) == "Note for the managers None"
 
+    # /planning/ui/my-availability/note
     def test_escapes_the_note(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         write_note(client, planning, "<b>Pairs</b>")
@@ -983,6 +1116,9 @@ class TestNoteForTheManagers:
         assert "<b>Pairs</b>" not in page
         assert note_shown(client, planning.slug) == "Note for the managers <b>Pairs</b>"
 
+    # /core/ui/header/language
+    # /planning/ui/my-availability/french
+    # /planning/ui/my-availability/none
     def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         client.cookies.set("language", "fr")
@@ -993,6 +1129,9 @@ class TestNoteForTheManagers:
 
 
 class TestNoteDialog:
+    # /planning/ui/my-availability/edit-note
+    # /planning/ui/my-availability/own
+    # /ui/forms/icon-names
     @pytest.mark.parametrize("who", ["manager", "volunteer"])
     def test_has_its_edit_icon(self, client: Any, new_client: Callable[[], Any], who: str) -> None:
         planning = Planning(client, new_client)
@@ -1002,6 +1141,8 @@ class TestNoteDialog:
 
         assert len(re.findall(r'<button[^>]*aria-label="Edit the note"', section)) == 1
 
+    # /planning/ui/my-availability/edit-note
+    # /ui/forms/dialog
     def test_the_dialog_is_note_for_the_managers_with_a_multi_line_text_and_save(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1015,6 +1156,9 @@ class TestNoteDialog:
         assert re.search(r"<button[^>]*>\s*Save\s*</button>", form)
         assert re.search(r"<button[^>]*>\s*Cancel\s*</button>", form)
 
+    # /core/ui/header/language
+    # /planning/ui/my-availability/french
+    # /planning/ui/my-availability/edit-note
     def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         client.cookies.set("language", "fr")
@@ -1027,6 +1171,9 @@ class TestNoteDialog:
 
 
 class TestSavingTheNote:
+    # /planning/ui/my-availability/edit-note
+    # /planning/operations/set-note/set
+    # /ui/forms/success
     def test_saves_it_and_the_screen_shows_it_at_once(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1039,6 +1186,7 @@ class TestSavingTheNote:
         assert note_shown(planning.bruno_client, planning.slug) == f"Note for the managers {NOTE}"
         assert notes_stored(planning)[planning.bruno["id"]] == NOTE
 
+    # /planning/operations/set-note/set
     def test_keeps_its_lines(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -1047,6 +1195,8 @@ class TestSavingTheNote:
         stored_text = notes_stored(planning)[planning.bruno["id"]]
         assert stored_text == "Mornings only.\nNever on Sundays."
 
+    # /planning/operations/set-note/set
+    # /planning/model/note/single
     def test_replaces_the_previous_one(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         write_note(planning.bruno_client, planning, NOTE)
@@ -1058,6 +1208,8 @@ class TestSavingTheNote:
         )
         assert notes_stored(planning)[planning.bruno["id"]] == "Mornings only."
 
+    # /planning/operations/set-note/set
+    # /planning/ui/my-availability/none
     def test_an_empty_text_empties_it_and_shows_none(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1070,6 +1222,8 @@ class TestSavingTheNote:
         assert note_shown(planning.bruno_client, planning.slug) == "Note for the managers None"
         assert notes_stored(planning)[planning.bruno["id"]] == ""
 
+    # /planning/operations/set-note/set
+    # /planning/ui/my-availability/own
     def test_saves_only_the_members_own(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -1081,6 +1235,8 @@ class TestSavingTheNote:
             planning.chloe["id"]: "",
         }
 
+    # /ui/errors/generic
+    # /core/operations/general/refused
     @pytest.mark.parametrize("body", [{}, {"text": None}, {"text": 3}])
     def test_a_missing_or_invalid_text_shows_the_generic_error_and_changes_nothing(
         self, client: Any, new_client: Callable[[], Any], body: dict[str, Any]
@@ -1094,6 +1250,9 @@ class TestSavingTheNote:
         assert GENERIC in text
         assert notes_stored(planning)[planning.bruno["id"]] == NOTE
 
+    # /planning/operations/general/member
+    # /core/operations/general/unknown-association
+    # /planning/model/note/member
     def test_a_non_member_saves_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -1101,6 +1260,8 @@ class TestSavingTheNote:
 
         assert set(notes_stored(planning).values()) == {""}
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_saves_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:

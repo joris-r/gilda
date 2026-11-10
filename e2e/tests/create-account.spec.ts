@@ -15,6 +15,8 @@ async function submitSignUp(page: Page, displayName: string, email: string) {
 }
 
 test.describe('Create an account', () => {
+  // /core/ui/sign-in/create
+  // /core/ui/create-an-account/form
   test('Sign in leads to it, and it leads back to Sign in', async ({ page }) => {
     await page.goto('/')
 
@@ -25,6 +27,7 @@ test.describe('Create an account', () => {
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
   })
 
+  // /core/ui/create-an-account/check-email
   test('success replaces the form with the message', async ({ page }) => {
     const email = uniqueEmail('Alice')
     await page.goto('/signup')
@@ -35,6 +38,9 @@ test.describe('Create an account', () => {
     await expect(page.getByRole('button', { name: 'Create account' })).toBeHidden()
   })
 
+  // /core/ui/create-an-account/resend
+  // /core/operations/resend-confirmation/resent
+  // /core/ui/confirm-email/confirmed
   test('Resend the email shows "Email sent." and the new link works', async ({ page }) => {
     const email = uniqueEmail('Alice')
     await page.goto('/signup')
@@ -50,6 +56,8 @@ test.describe('Create an account', () => {
     await expect(page.getByText('My associations')).toBeVisible()
   })
 
+  // /core/ui/create-an-account/exists
+  // /ui/errors/kept
   test('a refused account keeps the form and what was typed', async ({ page, request }) => {
     const email = uniqueEmail('Alice')
     await request.post('/signup', {
@@ -67,6 +75,7 @@ test.describe('Create an account', () => {
     await expect(page.getByLabel('Email', { exact: true })).toHaveValue(email)
   })
 
+  // /core/operations/create-account/short-password
   test('the browser refuses a password of fewer than 8 characters', async ({ page }) => {
     const email = uniqueEmail('Alice')
     await page.goto('/signup')
@@ -80,6 +89,8 @@ test.describe('Create an account', () => {
 })
 
 test.describe('Confirm email', () => {
+  // /core/ui/confirm-email/confirmed
+  // /core/operations/confirm-email/confirmed
   test('the link signs in and leads to My associations', async ({ page }) => {
     const email = uniqueEmail('Alice')
     await page.goto('/signup')
@@ -93,6 +104,7 @@ test.describe('Confirm email', () => {
     await expect(page).toHaveURL(/\/$/)
   })
 
+  // /core/ui/confirm-email/invalid
   test('an unknown link shows the message and a way to Create an account', async ({ page }) => {
     await page.goto('/verify-email?token=unknown-token')
 
@@ -104,12 +116,15 @@ test.describe('Confirm email', () => {
 })
 
 test.describe('Generic error message', () => {
+  // /ui/errors/generic
   test('is hidden until an action fails', async ({ page }) => {
     await page.goto('/')
 
     await expect(page.getByText(GENERIC)).toBeHidden()
   })
 
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('Sign in, when the server fails: shown, and what was typed stays', async ({ page }) => {
     const email = uniqueEmail('Alice')
     await page.route('**/sign-in', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -123,6 +138,7 @@ test.describe('Generic error message', () => {
     await expect(page.getByLabel('Email', { exact: true })).toHaveValue(email)
   })
 
+  // /ui/errors/generic
   test('Sign in, on the way to the server: shown', async ({ page }) => {
     await page.route('**/sign-in', (route) => route.abort())
     await page.goto('/')
@@ -134,6 +150,8 @@ test.describe('Generic error message', () => {
     await expect(page.getByText(GENERIC)).toBeVisible()
   })
 
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('Create an account, when the server fails: shown', async ({ page }) => {
     const email = uniqueEmail('Alice')
     await page.route('**/signup', (route) =>
@@ -149,6 +167,8 @@ test.describe('Generic error message', () => {
     await expect(page.getByLabel('Email', { exact: true })).toHaveValue(email)
   })
 
+  // /ui/errors/generic
+  // /core/ui/sign-in/wrong
   test('leaves when the next try gets its own answer', async ({ page }) => {
     await page.route('**/sign-in', (route) => route.fulfill({ status: 500, body: 'failure' }))
     await page.goto('/')
@@ -166,6 +186,8 @@ test.describe('Generic error message', () => {
 })
 
 test.describe('Not found', () => {
+  // /ui/not-found/status
+  // /ui/not-found/shown
   test('shows the page, and its link leads to the home page', async ({ page }) => {
     const response = await page.goto('/nothing-here')
 
@@ -176,6 +198,7 @@ test.describe('Not found', () => {
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
   })
 
+  // /core/ui/header/language
   test('the language selector works on it', async ({ page }) => {
     await page.goto('/nothing-here')
 

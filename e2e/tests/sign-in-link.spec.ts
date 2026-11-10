@@ -14,6 +14,8 @@ async function askForLink(request: APIRequestContext, email: string) {
 }
 
 test.describe('Sign-in link', () => {
+  // /core/ui/sign-in/link
+  // /core/ui/sign-in-link/form
   test('Sign in leads to it, and it leads back to Sign in', async ({ page }) => {
     await page.goto('/')
 
@@ -24,6 +26,7 @@ test.describe('Sign-in link', () => {
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
   })
 
+  // /core/ui/sign-in-link/send
   test('submitting replaces the form with the message', async ({ page }) => {
     const email = uniqueEmail('Nobody')
     await page.goto('/sign-in-link')
@@ -38,6 +41,7 @@ test.describe('Sign-in link', () => {
     await expect(page.getByRole('link', { name: 'Back to Sign in' })).toBeVisible()
   })
 
+  // /core/operations/request-access-link/malformed
   test('the browser refuses an invalid email', async ({ page }) => {
     await page.goto('/sign-in-link')
 
@@ -48,6 +52,8 @@ test.describe('Sign-in link', () => {
     await expect(page.getByText('is known here')).toBeHidden()
   })
 
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error message, and what was typed stays', async ({
     page,
   }) => {
@@ -68,6 +74,8 @@ test.describe('Sign-in link', () => {
 })
 
 test.describe('Access link', () => {
+  // /core/ui/access-link/signed-in
+  // /core/operations/sign-in-by-access-link/signed-in
   test('the link leads to My associations, signed in, and stays usable', async ({
     page,
     request,
@@ -88,6 +96,7 @@ test.describe('Access link', () => {
     await expect(page.locator('header').getByText('My associations')).toBeVisible()
   })
 
+  // /core/ui/access-link/invalid
   test('an unknown link shows the message and a way to Sign-in link', async ({ page }) => {
     await page.goto('/access?token=unknown-token')
 
@@ -97,6 +106,7 @@ test.describe('Access link', () => {
     await expect(page.getByRole('heading', { name: 'Sign in with an email link' })).toBeVisible()
   })
 
+  // /ui/errors/generic
   test('when the server fails: the generic error message', async ({ page }) => {
     await page.route('**/access*', (route) =>
       route.request().method() === 'POST'

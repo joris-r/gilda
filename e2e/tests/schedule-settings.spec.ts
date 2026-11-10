@@ -73,6 +73,8 @@ async function askToDelete(page: Page, text: string, question: string) {
 }
 
 test.describe('Schedule settings: Add a slot', () => {
+  // /planning/ui/schedule-settings/add-slot
+  // /ui/forms/dialog
   test('opens the dialog "Add a slot", with Day, From and To', async ({ page, request }) => {
     await openSettings(page, request)
 
@@ -85,7 +87,8 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
   })
 
-  test('R17: opens with From and To at 09:00', async ({ page, request }) => {
+  // /planning/ui/schedule-settings/defaults
+  test('opens with From and To at 09:00', async ({ page, request }) => {
     await openSettings(page, request)
 
     const dialog = await openAdd(page)
@@ -94,7 +97,8 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(to(dialog)).toHaveValue('09:00')
   })
 
-  test('R17: changing From sets To to the same time', async ({ page, request }) => {
+  // /planning/ui/schedule-settings/defaults
+  test('changing From sets To to the same time', async ({ page, request }) => {
     await openSettings(page, request)
     const dialog = await openAdd(page)
 
@@ -103,7 +107,8 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(to(dialog)).toHaveValue('14:00')
   })
 
-  test('R17: once To is changed, changing From leaves To as it is', async ({ page, request }) => {
+  // /planning/ui/schedule-settings/defaults
+  test('once To is changed, changing From leaves To as it is', async ({ page, request }) => {
     await openSettings(page, request)
     const dialog = await openAdd(page)
 
@@ -114,6 +119,9 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(to(dialog)).toHaveValue('12:00')
   })
 
+  // /planning/ui/schedule-settings/add-slot
+  // /planning/operations/add-slot/added
+  // /planning/ui/schedule-settings/slots
   test('adding closes the dialog and shows the slot', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']])
 
@@ -125,7 +133,8 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(line(page, 'Friday')).toContainText('16:00–19:00')
   })
 
-  test('R18: after a slot is added, the next dialog opens with its Day, and From and To at its end', async ({
+  // /planning/ui/schedule-settings/next-slot
+  test('after a slot is added, the next dialog opens with its Day, and From and To at its end', async ({
     page,
     request,
   }) => {
@@ -139,7 +148,8 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(to(dialog)).toHaveValue('19:00')
   })
 
-  test('R18: in the next dialog, To follows From again', async ({ page, request }) => {
+  // /planning/ui/schedule-settings/next-slot
+  test('in the next dialog, To follows From again', async ({ page, request }) => {
     await openSettings(page, request)
     await addSlot(page, 'Friday', '09:00', '13:00')
 
@@ -149,7 +159,8 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(to(dialog)).toHaveValue('15:00')
   })
 
-  test('R18: the slot added last sets the next dialog', async ({ page, request }) => {
+  // /planning/ui/schedule-settings/next-slot
+  test('the slot added last sets the next dialog', async ({ page, request }) => {
     await openSettings(page, request)
     await addSlot(page, 'Friday', '09:00', '13:00')
     await addSlot(page, 'Saturday', '14:00', '17:30')
@@ -161,7 +172,9 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(to(dialog)).toHaveValue('17:30')
   })
 
-  test('R18: after a slot is edited, Add a slot still opens as in R17', async ({ page, request }) => {
+  // /planning/ui/schedule-settings/next-slot
+  // /planning/ui/schedule-settings/defaults
+  test('after a slot is edited, Add a slot still opens with From and To at 09:00', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']])
     const edit = await openEdit(page, 'Thursday')
     await day(edit).selectOption({ label: 'Friday' })
@@ -175,6 +188,7 @@ test.describe('Schedule settings: Add a slot', () => {
   })
 
   for (const way of ['Cancel', 'the close button', 'Escape']) {
+    // /ui/forms/close
     test(`${way} closes it, changing nothing`, async ({ page, request }) => {
       await openSettings(page, request)
       const dialog = await openAdd(page)
@@ -192,7 +206,9 @@ test.describe('Schedule settings: Add a slot', () => {
     })
   }
 
-  test('R17: opened again after Cancel, it opens with From and To at 09:00', async ({ page, request }) => {
+  // /planning/ui/schedule-settings/defaults
+  // /ui/forms/close
+  test('opened again after Cancel, it opens with From and To at 09:00', async ({ page, request }) => {
     await openSettings(page, request)
     let dialog = await openAdd(page)
     await from(dialog).fill('16:00')
@@ -205,6 +221,9 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(to(dialog)).toHaveValue('09:00')
   })
 
+  // /planning/ui/schedule-settings/exists
+  // /ui/forms/failure
+  // /planning/operations/add-slot/exists
   test('a slot the association already has: the dialog stays open, with its message', async ({
     page,
     request,
@@ -223,6 +242,9 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(line(page, 'Thursday')).toHaveCount(1)
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error in the dialog, and what was typed stays', async ({
     page,
     request,
@@ -244,6 +266,7 @@ test.describe('Schedule settings: Add a slot', () => {
 })
 
 test.describe('Schedule settings: Edit the slot', () => {
+  // /planning/ui/schedule-settings/edit-slot
   test('opens the dialog "Edit the slot", filled with the slot', async ({ page, request }) => {
     await openSettings(page, request, [
       ['thursday', '10:00', '13:00'],
@@ -259,6 +282,7 @@ test.describe('Schedule settings: Edit the slot', () => {
     await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
   })
 
+  // /planning/ui/schedule-settings/edit-slot
   test('changing From leaves To as it is', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']])
     const dialog = await openEdit(page, 'Thursday')
@@ -268,6 +292,9 @@ test.describe('Schedule settings: Edit the slot', () => {
     await expect(to(dialog)).toHaveValue('13:00')
   })
 
+  // /planning/ui/schedule-settings/edit-slot
+  // /planning/operations/edit-slot/edited
+  // /ui/forms/success
   test('Save closes the dialog and shows the slot edited', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']])
 
@@ -283,6 +310,7 @@ test.describe('Schedule settings: Edit the slot', () => {
     await expect(line(page, 'Friday')).toContainText('10:00–14:00')
   })
 
+  // /planning/ui/schedule-settings/edit-slot
   test('opened again after a Save, it is filled with the slot edited', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']])
     let dialog = await openEdit(page, 'Thursday')
@@ -296,6 +324,9 @@ test.describe('Schedule settings: Edit the slot', () => {
     await expect(to(dialog)).toHaveValue('14:00')
   })
 
+  // /planning/ui/schedule-settings/edit-exists
+  // /ui/forms/failure
+  // /planning/operations/edit-slot/exists
   test('as another slot of the association: the dialog stays open, with its message', async ({
     page,
     request,
@@ -314,6 +345,7 @@ test.describe('Schedule settings: Edit the slot', () => {
     await expect(line(page, 'Saturday')).toHaveCount(1)
   })
 
+  // /ui/forms/close
   test('Cancel closes it, changing nothing', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']])
 
@@ -326,6 +358,7 @@ test.describe('Schedule settings: Edit the slot', () => {
     await expect(line(page, 'Thursday')).toContainText('10:00–13:00')
   })
 
+  // /ui/forms/close
   test('opened again after Cancel, it is filled with the slot', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']])
     let dialog = await openEdit(page, 'Thursday')
@@ -337,6 +370,9 @@ test.describe('Schedule settings: Edit the slot', () => {
     await expect(to(dialog)).toHaveValue('13:00')
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error in the dialog', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']])
     await page.route('**/edit', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -351,6 +387,9 @@ test.describe('Schedule settings: Edit the slot', () => {
 })
 
 test.describe('Schedule settings: Delete the slot', () => {
+  // /planning/ui/schedule-settings/delete-slot
+  // /planning/operations/delete-slot/deleted
+  // /ui/forms/delete
   test('Delete removes the slot', async ({ page, request }) => {
     await openSettings(page, request, [
       ['thursday', '10:00', '13:00'],
@@ -368,6 +407,7 @@ test.describe('Schedule settings: Delete the slot', () => {
   })
 
   for (const way of ['Cancel', 'Escape']) {
+    // /ui/forms/cancel
     test(`${way} keeps the slot`, async ({ page, request }) => {
       await openSettings(page, request, [['thursday', '10:00', '13:00']])
 
@@ -381,6 +421,8 @@ test.describe('Schedule settings: Delete the slot', () => {
     })
   }
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']])
     await page.route('**/delete', (route) => route.abort())
@@ -442,6 +484,7 @@ async function askToDeleteClosure(page: Page, text: string, question: string) {
 }
 
 test.describe('Schedule settings: Planning period', () => {
+  // /planning/ui/schedule-settings/edit-period
   test('the edit icon opens the dialog "Planning period", with From and To', async ({ page, request }) => {
     await openSettings(page, request)
 
@@ -453,6 +496,8 @@ test.describe('Schedule settings: Planning period', () => {
     await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
   })
 
+  // /planning/ui/schedule-settings/edit-period
+  // /ui/forms/edit
   test('the dialog opens filled with the period', async ({ page, request }) => {
     await openSettings(page, request, [], { period: ['2026-11-02', '2026-11-25'] })
 
@@ -462,6 +507,10 @@ test.describe('Schedule settings: Planning period', () => {
     await expect(to(dialog)).toHaveValue('2026-11-25')
   })
 
+  // /planning/ui/schedule-settings/edit-period
+  // /planning/operations/set-planning-period/set
+  // /planning/ui/schedule-settings/period
+  // /planning/ui/schedule-settings/clear-period
   test('Save closes the dialog and shows the period, with its delete icon', async ({ page, request }) => {
     await openSettings(page, request)
     await expect(page.getByRole('button', { name: 'Clear the period' })).toHaveCount(0)
@@ -478,6 +527,8 @@ test.describe('Schedule settings: Planning period', () => {
     await expect(period(page)).toBeVisible()
   })
 
+  // /planning/ui/schedule-settings/edit-period
+  // /planning/operations/set-planning-period/set
   test('opened again after a Save, it is filled with the period saved', async ({ page, request }) => {
     await openSettings(page, request, [], { period: ['2026-11-02', '2026-11-25'] })
     let dialog = await openPeriod(page)
@@ -492,6 +543,7 @@ test.describe('Schedule settings: Planning period', () => {
   })
 
   for (const way of ['Cancel', 'the close button', 'Escape']) {
+    // /ui/forms/close
     test(`${way} closes it, changing nothing`, async ({ page, request }) => {
       await openSettings(page, request, [], { period: ['2026-11-02', '2026-11-25'] })
       const dialog = await openPeriod(page)
@@ -507,6 +559,7 @@ test.describe('Schedule settings: Planning period', () => {
     })
   }
 
+  // /ui/forms/close
   test('opened again after Cancel, it is filled with the period', async ({ page, request }) => {
     await openSettings(page, request, [], { period: ['2026-11-02', '2026-11-25'] })
     let dialog = await openPeriod(page)
@@ -518,6 +571,9 @@ test.describe('Schedule settings: Planning period', () => {
     await expect(to(dialog)).toHaveValue('2026-11-25')
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error in the dialog, and what was typed stays', async ({
     page,
     request,
@@ -535,6 +591,8 @@ test.describe('Schedule settings: Planning period', () => {
     await expect(to(dialog)).toHaveValue('2026-11-25')
   })
 
+  // /planning/ui/schedule-settings/clear-period
+  // /planning/operations/clear-planning-period/cleared
   test('Clear removes the period and its delete icon', async ({ page, request }) => {
     await openSettings(page, request, [], { period: ['2026-11-02', '2026-11-25'] })
 
@@ -549,6 +607,7 @@ test.describe('Schedule settings: Planning period', () => {
   })
 
   for (const way of ['Cancel', 'Escape']) {
+    // /ui/forms/cancel
     test(`${way} keeps the period`, async ({ page, request }) => {
       await openSettings(page, request, [], { period: ['2026-11-02', '2026-11-25'] })
 
@@ -562,6 +621,8 @@ test.describe('Schedule settings: Planning period', () => {
     })
   }
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('when Clear fails: the generic error in the confirmation', async ({ page, request }) => {
     await openSettings(page, request, [], { period: ['2026-11-02', '2026-11-25'] })
     await page.route('**/period/clear', (route) => route.abort())
@@ -574,6 +635,7 @@ test.describe('Schedule settings: Planning period', () => {
 })
 
 test.describe('Schedule settings: Add a closure', () => {
+  // /planning/ui/schedule-settings/add-closure
   test('opens the dialog "Add a closure", with From, To and Label', async ({ page, request }) => {
     await openSettings(page, request)
 
@@ -586,6 +648,9 @@ test.describe('Schedule settings: Add a closure', () => {
     await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
   })
 
+  // /planning/ui/schedule-settings/add-closure
+  // /planning/operations/add-closure/added
+  // /planning/ui/schedule-settings/closures
   test('adding closes the dialog and shows the closure', async ({ page, request }) => {
     await openSettings(page, request, [], { closures: [['2026-12-24', '2027-01-01', "Fêtes de fin d'année"]] })
 
@@ -602,6 +667,8 @@ test.describe('Schedule settings: Add a closure', () => {
     await expect(line(page, 'Fête du quartier')).toContainText('Sat 14 Nov 2026')
   })
 
+  // /planning/operations/add-closure/no-label
+  // /planning/ui/schedule-settings/closures
   test('without a label, the closure shows its dates', async ({ page, request }) => {
     await openSettings(page, request)
 
@@ -615,6 +682,7 @@ test.describe('Schedule settings: Add a closure', () => {
   })
 
   for (const way of ['Cancel', 'the close button', 'Escape']) {
+    // /ui/forms/close
     test(`${way} closes it, changing nothing`, async ({ page, request }) => {
       await openSettings(page, request)
       const dialog = await openAddClosure(page)
@@ -632,6 +700,7 @@ test.describe('Schedule settings: Add a closure', () => {
     })
   }
 
+  // /ui/forms/close
   test('opened again after Cancel, its fields are empty', async ({ page, request }) => {
     await openSettings(page, request)
     let dialog = await openAddClosure(page)
@@ -646,6 +715,7 @@ test.describe('Schedule settings: Add a closure', () => {
     await expect(label(dialog)).toHaveValue('')
   })
 
+  // /planning/ui/schedule-settings/add-closure
   test('opened again after adding, its fields are empty', async ({ page, request }) => {
     await openSettings(page, request)
     let dialog = await openAddClosure(page)
@@ -661,6 +731,9 @@ test.describe('Schedule settings: Add a closure', () => {
     await expect(label(dialog)).toHaveValue('')
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error in the dialog, and what was typed stays', async ({
     page,
     request,
@@ -681,6 +754,7 @@ test.describe('Schedule settings: Add a closure', () => {
 })
 
 test.describe('Schedule settings: Edit the closure', () => {
+  // /planning/ui/schedule-settings/edit-closure
   test('opens the dialog "Edit the closure", filled with the closure', async ({ page, request }) => {
     await openSettings(page, request, [], {
       closures: [FETE, ['2026-12-24', '2027-01-01', "Fêtes de fin d'année"]],
@@ -695,6 +769,7 @@ test.describe('Schedule settings: Edit the closure', () => {
     await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
   })
 
+  // /planning/ui/schedule-settings/edit-closure
   test('a closure without a label opens with an empty Label', async ({ page, request }) => {
     await openSettings(page, request, [], { closures: [['2026-11-14', '2026-11-14']] })
 
@@ -703,6 +778,8 @@ test.describe('Schedule settings: Edit the closure', () => {
     await expect(label(dialog)).toHaveValue('')
   })
 
+  // /planning/ui/schedule-settings/edit-closure
+  // /planning/operations/edit-closure/edited
   test('Save closes the dialog and shows the closure edited', async ({ page, request }) => {
     await openSettings(page, request, [], { closures: [FETE] })
 
@@ -718,6 +795,7 @@ test.describe('Schedule settings: Edit the closure', () => {
     await expect(line(page, 'Fête élargie')).toContainText('Sat 14 Nov 2026 – Sun 15 Nov 2026')
   })
 
+  // /planning/ui/schedule-settings/edit-closure
   test('opened again after a Save, it is filled with the closure edited', async ({ page, request }) => {
     await openSettings(page, request, [], { closures: [FETE] })
     let dialog = await openEditClosure(page, 'Fête du quartier')
@@ -730,6 +808,7 @@ test.describe('Schedule settings: Edit the closure', () => {
     await expect(label(dialog)).toHaveValue('Fête élargie')
   })
 
+  // /ui/forms/close
   test('Cancel closes it, changing nothing', async ({ page, request }) => {
     await openSettings(page, request, [], { closures: [FETE] })
 
@@ -742,6 +821,7 @@ test.describe('Schedule settings: Edit the closure', () => {
     await expect(line(page, 'Fête du quartier')).toHaveCount(1)
   })
 
+  // /ui/forms/close
   test('opened again after Cancel, it is filled with the closure', async ({ page, request }) => {
     await openSettings(page, request, [], { closures: [FETE] })
     let dialog = await openEditClosure(page, 'Fête du quartier')
@@ -753,6 +833,9 @@ test.describe('Schedule settings: Edit the closure', () => {
     await expect(label(dialog)).toHaveValue('Fête du quartier')
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error in the dialog', async ({ page, request }) => {
     await openSettings(page, request, [], { closures: [FETE] })
     await page.route('**/edit', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -767,6 +850,8 @@ test.describe('Schedule settings: Edit the closure', () => {
 })
 
 test.describe('Schedule settings: Delete the closure', () => {
+  // /planning/ui/schedule-settings/delete-closure
+  // /planning/operations/delete-closure/deleted
   test('Delete removes the closure', async ({ page, request }) => {
     await openSettings(page, request, [], {
       closures: [FETE, ['2026-12-24', '2027-01-01', "Fêtes de fin d'année"]],
@@ -782,12 +867,14 @@ test.describe('Schedule settings: Delete the closure', () => {
     await expect(line(page, 'Fête du quartier')).toHaveCount(0)
   })
 
+  // /planning/ui/schedule-settings/delete-closure
   test('asks with the label, quotes included', async ({ page, request }) => {
     await openSettings(page, request, [], { closures: [['2026-12-24', '2027-01-01', "Fêtes de fin d'année"]] })
 
     await askToDeleteClosure(page, "Fêtes de fin d'année", 'Delete the closure "Fêtes de fin d\'année"?')
   })
 
+  // /planning/ui/schedule-settings/delete-closure
   test('without a label, asks with the dates', async ({ page, request }) => {
     await openSettings(page, request, [], { closures: [['2026-11-14', '2026-11-14']] })
 
@@ -795,6 +882,7 @@ test.describe('Schedule settings: Delete the closure', () => {
   })
 
   for (const way of ['Cancel', 'Escape']) {
+    // /ui/forms/cancel
     test(`${way} keeps the closure`, async ({ page, request }) => {
       await openSettings(page, request, [], { closures: [FETE] })
 
@@ -808,6 +896,8 @@ test.describe('Schedule settings: Delete the closure', () => {
     })
   }
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
     await openSettings(page, request, [], { closures: [FETE] })
     await page.route('**/delete', (route) => route.abort())
@@ -830,6 +920,7 @@ function cell(page: Page, member: string, column: number) {
 }
 
 test.describe("Schedule settings: Members' preferences", () => {
+  // /planning/ui/schedule-settings/preferences
   test('a selector per member and slot, showing "—"', async ({ page, request }) => {
     await openSettings(
       page,
@@ -846,6 +937,8 @@ test.describe("Schedule settings: Members' preferences", () => {
     await expect(cell(page, 'Bruno', 1)).toHaveValue('')
   })
 
+  // /planning/ui/schedule-settings/set-preference
+  // /planning/operations/set-preference/set
   test('choosing a value saves it at once', async ({ page, request }) => {
     await openSettings(
       page,
@@ -867,6 +960,8 @@ test.describe("Schedule settings: Members' preferences", () => {
     await expect(cell(page, 'Alice', 1)).toHaveValue('')
   })
 
+  // /planning/ui/schedule-settings/set-preference
+  // /planning/operations/delete-preference/deleted
   test('"—" deletes it', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']], { members: ['Bruno'] })
     await cell(page, 'Bruno', 0).selectOption({ label: 'Possible' })
@@ -883,6 +978,7 @@ test.describe("Schedule settings: Members' preferences", () => {
     }).toPass()
   })
 
+  // /planning/ui/schedule-settings/preferences
   test('a slot added shows its column at once', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']], { members: ['Bruno'] })
 
@@ -892,6 +988,8 @@ test.describe("Schedule settings: Members' preferences", () => {
     await expect(preferences(page).getByRole('row').filter({ hasText: 'Bruno' }).getByRole('combobox')).toHaveCount(2)
   })
 
+  // /planning/ui/schedule-settings/preferences
+  // /planning/operations/delete-slot/deleted
   test('a slot deleted leaves its column at once', async ({ page, request }) => {
     await openSettings(
       page,
@@ -911,6 +1009,7 @@ test.describe("Schedule settings: Members' preferences", () => {
     await expect(preferences(page).getByRole('row').filter({ hasText: 'Bruno' }).getByRole('combobox')).toHaveCount(1)
   })
 
+  // /ui/errors/generic
   test('when the server fails: the generic error', async ({ page, request }) => {
     await openSettings(page, request, [['thursday', '10:00', '13:00']], { members: ['Bruno'] })
     await page.route('**/settings/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -958,6 +1057,9 @@ async function askToRevoke(page: Page) {
 }
 
 test.describe('Schedule settings: Share link', () => {
+  // /planning/ui/schedule-settings/create-link
+  // /planning/operations/create-share-link/created
+  // /planning/ui/schedule-settings/share-link
   test('without a link, "Create a share link" creates it at once and shows it', async ({ page, request }) => {
     await openSettings(page, request)
     await expect(shareLink(page)).toHaveCount(0)
@@ -972,6 +1074,7 @@ test.describe('Schedule settings: Share link', () => {
     expect(await shownLink(page)).toBe(link)
   })
 
+  // /planning/ui/schedule-settings/copy
   test('"Copy" copies the link and shows "Link copied."', async ({ page, request, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     await openSettings(page, request)
@@ -983,6 +1086,7 @@ test.describe('Schedule settings: Share link', () => {
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(link)
   })
 
+  // /planning/ui/shared-schedule/shown
   test('the link opens the Shared schedule', async ({ page, request, browser }) => {
     await openSettings(page, request)
     const link = await createLink(page)
@@ -995,6 +1099,9 @@ test.describe('Schedule settings: Share link', () => {
     await visitor.close()
   })
 
+  // /planning/ui/schedule-settings/create-link
+  // /planning/operations/create-share-link/created
+  // /planning/ui/shared-schedule/invalid
   test('with a link, "Create a share link" asks first; "Replace" shows a new link', async ({ page, request, browser }) => {
     await openSettings(page, request)
     const previous = await createLink(page)
@@ -1011,6 +1118,7 @@ test.describe('Schedule settings: Share link', () => {
   })
 
   for (const way of ['Cancel', 'Escape']) {
+    // /ui/forms/cancel
     test(`${way} keeps the link instead of replacing it`, async ({ page, request }) => {
       await openSettings(page, request)
       const link = await createLink(page)
@@ -1025,6 +1133,10 @@ test.describe('Schedule settings: Share link', () => {
     })
   }
 
+  // /planning/ui/schedule-settings/revoke-link
+  // /planning/operations/revoke-share-link/revoked
+  // /planning/ui/schedule-settings/share-link
+  // /planning/ui/shared-schedule/invalid
   test('the delete icon asks first; "Revoke" shows None', async ({ page, request, browser }) => {
     await openSettings(page, request)
     const link = await createLink(page)
@@ -1042,6 +1154,7 @@ test.describe('Schedule settings: Share link', () => {
     await visitor.close()
   })
 
+  // /planning/ui/schedule-settings/create-link
   test('after Revoke, "Create a share link" creates a new one at once', async ({ page, request }) => {
     await openSettings(page, request)
     await createLink(page)
@@ -1056,6 +1169,7 @@ test.describe('Schedule settings: Share link', () => {
   })
 
   for (const way of ['Cancel', 'Escape']) {
+    // /ui/forms/cancel
     test(`${way} keeps the link instead of revoking it`, async ({ page, request }) => {
       await openSettings(page, request)
       const link = await createLink(page)
@@ -1070,6 +1184,7 @@ test.describe('Schedule settings: Share link', () => {
     })
   }
 
+  // /ui/errors/generic
   test('when Create fails: the generic error', async ({ page, request }) => {
     await openSettings(page, request)
     await page.route('**/settings/share-link', (route) => route.abort())
@@ -1080,6 +1195,8 @@ test.describe('Schedule settings: Share link', () => {
     await expect(shareLink(page)).toHaveCount(0)
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('when Replace fails: the generic error in the confirmation', async ({ page, request }) => {
     await openSettings(page, request)
     await createLink(page)
@@ -1091,6 +1208,8 @@ test.describe('Schedule settings: Share link', () => {
     await expect(confirmation.getByText(GENERIC)).toBeVisible()
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('when Revoke fails: the generic error in the confirmation', async ({ page, request }) => {
     await openSettings(page, request)
     await createLink(page)

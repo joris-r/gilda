@@ -80,6 +80,7 @@ function occurrence(page: Page, dayLabel: string, times: string) {
 }
 
 test.describe('Scenarios', () => {
+  // /scenarios/a-volunteer-becomes-manager
   test('a volunteer becomes manager', async ({ page }) => {
     const association = `Jardin partagé ${Date.now()}`
     const bruno = uniqueEmail('Bruno')
@@ -127,6 +128,7 @@ test.describe('Scenarios', () => {
     })
   })
 
+  // /scenarios/the-schedule-is-filled
   test('the schedule is filled', async ({ page }) => {
     const association = `Jardin partagé ${Date.now()}`
     const chloe = uniqueEmail('Chloe')
@@ -218,6 +220,7 @@ test.describe('Scenarios', () => {
     })
   })
 
+  // /scenarios/a-forgotten-password
   test('a forgotten password', async ({ page }) => {
     const alice = uniqueEmail('Alice')
     const newPassword = 'battery staple'
@@ -250,6 +253,7 @@ test.describe('Scenarios', () => {
     })
   })
 
+  // /scenarios/a-volunteer-signs-in-by-link
   test('a volunteer signs in by link', async ({ page }) => {
     const association = `Jardin partagé ${Date.now()}`
     const alice = uniqueEmail('Alice')
@@ -308,6 +312,7 @@ test.describe('Scenarios', () => {
     })
   })
 
+  // /scenarios/the-schedule-is-shared
   test('the schedule is shared', async ({ page, context }) => {
     const association = `Jardin partagé ${Date.now()}`
     const alice = uniqueEmail('Alice')

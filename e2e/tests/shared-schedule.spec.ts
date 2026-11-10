@@ -51,6 +51,9 @@ function dayGroup(page: Page, weeksAhead: number) {
 }
 
 test.describe('Shared schedule', () => {
+  // /planning/ui/shared-schedule/shown
+  // /planning/operations/get-shared-schedule/schedule
+  // /planning/ui/schedule/weeks
   test('signed out, it shows the Schedule with the registrations', async ({ page, request, browser }) => {
     const link = await shareSchedule(page, request)
 
@@ -60,6 +63,7 @@ test.describe('Shared schedule', () => {
     await expect(dayGroup(visitor, 1).getByRole('listitem')).toHaveText('Alice')
   })
 
+  // /planning/ui/shared-schedule/shown
   test('signed in, it shows the same', async ({ page, request }) => {
     const link = await shareSchedule(page, request)
 
@@ -70,6 +74,7 @@ test.describe('Shared schedule', () => {
     await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText('Alice')
   })
 
+  // /core/ui/header/shared
   test('the header shows the association name leading nowhere, and the language selector alone', async ({
     page,
     request,
@@ -85,6 +90,7 @@ test.describe('Shared schedule', () => {
     await expect(header.getByRole('combobox')).toBeVisible()
   })
 
+  // /core/ui/header/shared
   test('signed in, the header has no menu of the user', async ({ page, request }) => {
     const link = await shareSchedule(page, request)
 
@@ -96,6 +102,7 @@ test.describe('Shared schedule', () => {
     await expect(page.getByText('Sign out', { exact: true })).toHaveCount(0)
   })
 
+  // /planning/ui/shared-schedule/shown
   test('it has no links to the other screens', async ({ page, request, browser }) => {
     const link = await shareSchedule(page, request)
 
@@ -107,6 +114,7 @@ test.describe('Shared schedule', () => {
     }
   })
 
+  // /planning/ui/shared-schedule/shown
   test('clicking an occurrence opens no menu', async ({ page, request, browser }) => {
     const link = await shareSchedule(page, request)
     const visitor = await openSignedOut(link, browser)
@@ -121,6 +129,7 @@ test.describe('Shared schedule', () => {
     expect(requests.filter((url) => url.includes('/menu'))).toEqual([])
   })
 
+  // /planning/ui/schedule/more
   test('"More weeks", at the end, adds four more each time', async ({ page, request, browser }) => {
     const link = await shareSchedule(page, request)
     const visitor = await openSignedOut(link, browser)
@@ -134,6 +143,7 @@ test.describe('Shared schedule', () => {
     await expect(dayGroup(visitor, 1).getByRole('listitem')).toHaveText('Alice')
   })
 
+  // /ui/errors/generic
   test('"More weeks" when the server fails: the generic error', async ({ page, request, browser }) => {
     const link = await shareSchedule(page, request)
     const visitor = await openSignedOut(link, browser)
@@ -145,6 +155,8 @@ test.describe('Shared schedule', () => {
     await expect(weekHeadings(visitor)).toHaveCount(6)
   })
 
+  // /core/ui/header/shared
+  // /core/ui/header/language
   test('the language selector switches it to French', async ({ page, request, browser }) => {
     const link = await shareSchedule(page, request)
     const visitor = await openSignedOut(link, browser)
@@ -155,6 +167,7 @@ test.describe('Shared schedule', () => {
     await expect(visitor.getByRole('button', { name: 'Plus de semaines' })).toBeVisible()
   })
 
+  // /planning/ui/shared-schedule/invalid
   test('an unknown link says "This link is no longer valid."', async ({ browser, baseURL }) => {
     const visitor = await openSignedOut(`${baseURL}/shared/unknown-token`, browser)
 

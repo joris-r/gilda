@@ -75,6 +75,8 @@ def shows_the_schedule(token: str, as_client: Any) -> bool:
 
 
 class TestShareLink:
+    # /planning/ui/schedule-settings/share-link
+    # /planning/ui/schedule-settings/create-link
     def test_without_a_link_shows_none_and_create_a_share_link(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -87,6 +89,9 @@ class TestShareLink:
         assert "/shared/" not in section
         assert share_link_shown(client, planning.slug) is None
 
+    # /planning/ui/schedule-settings/share-link
+    # /planning/ui/schedule-settings/copy
+    # /planning/ui/schedule-settings/revoke-link
     def test_shows_the_link_with_copy_and_its_delete_icon(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -100,6 +105,8 @@ class TestShareLink:
         assert re.search(r"<button[^>]*>\s*Copy\s*</button>", section)
         assert 'aria-label="Revoke the share link"' in section
 
+    # /planning/ui/schedule-settings/share-link
+    # /planning/ui/shared-schedule/shown
     def test_the_link_shown_opens_the_shared_schedule(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -109,6 +116,7 @@ class TestShareLink:
 
         assert shows_the_schedule(token, new_client())
 
+    # /planning/model/sharelink/token
     def test_the_links_of_two_associations_differ(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -117,6 +125,7 @@ class TestShareLink:
 
         assert shared_token(planning) != shared_token(other)
 
+    # /planning/ui/schedule-settings/create-link
     def test_with_a_link_create_asks_to_replace_it(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -128,6 +137,7 @@ class TestShareLink:
         assert REPLACE in main
         assert re.search(r"<button[^>]*>\s*Replace\s*</button>", main)
 
+    # /planning/ui/schedule-settings/revoke-link
     def test_its_delete_icon_asks_to_revoke_it(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -139,6 +149,8 @@ class TestShareLink:
         assert REVOKE in main
         assert re.search(r"<button[^>]*>\s*Revoke\s*</button>", main)
 
+    # /planning/ui/schedule-settings/share-link
+    # /core/ui/header/language
     def test_in_french_it_is_lien_de_partage(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -150,6 +162,7 @@ class TestShareLink:
         assert "Aucun" in section
         assert "Créer un lien de partage" in section
 
+    # /planning/ui/schedule-settings/share-link
     def test_comes_after_slots_and_before_members_preferences(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -163,6 +176,8 @@ class TestShareLink:
         assert headings.index("Slots") < headings.index("Share link")
         assert headings.index("Share link") < headings.index("Members' preferences")
 
+    # /planning/ui/schedule-settings/share-link
+    # /planning/ui/schedule-settings/volunteer
     def test_a_volunteer_does_not_see_it(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         token = shared_token(planning)
@@ -176,6 +191,8 @@ class TestShareLink:
 
 
 class TestCreatingAShareLink:
+    # /planning/ui/schedule-settings/create-link
+    # /planning/operations/create-share-link/created
     def test_creates_it_and_the_screen_shows_it_at_once(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -189,9 +206,10 @@ class TestCreatingAShareLink:
         assert f"/shared/{token}" in text
         assert shows_the_schedule(token, new_client())
 
-    def test_r33_replaces_the_previous_link(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
+    # /planning/operations/create-share-link/created
+    # /planning/ui/shared-schedule/invalid
+    # /planning/model/sharelink/single
+    def test_replaces_the_previous_link(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         previous = shared_token(planning)
 
@@ -204,6 +222,7 @@ class TestCreatingAShareLink:
         assert shows_the_schedule(token, new_client())
         assert not shows_the_schedule(previous, new_client())
 
+    # /planning/operations/create-share-link/volunteer
     def test_a_volunteer_creates_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -212,6 +231,7 @@ class TestCreatingAShareLink:
         assert "/shared/" not in response.text
         assert share_link_shown(client, planning.slug) is None
 
+    # /planning/operations/create-share-link/volunteer
     def test_a_volunteer_replaces_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         token = shared_token(planning)
@@ -221,6 +241,7 @@ class TestCreatingAShareLink:
         assert share_link_shown(client, planning.slug) == token
         assert shows_the_schedule(token, new_client())
 
+    # /planning/operations/general/member
     def test_a_non_member_creates_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -229,6 +250,7 @@ class TestCreatingAShareLink:
         assert "/shared/" not in response.text
         assert share_link_shown(client, planning.slug) is None
 
+    # /core/ui/access/action
     def test_signed_out_leads_to_sign_in_and_creates_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -241,7 +263,11 @@ class TestCreatingAShareLink:
 
 
 class TestRevokingTheShareLink:
-    def test_r33_revokes_it_and_the_screen_shows_none_at_once(
+    # /planning/ui/schedule-settings/revoke-link
+    # /planning/ui/schedule-settings/share-link
+    # /planning/operations/revoke-share-link/revoked
+    # /planning/ui/shared-schedule/invalid
+    def test_revokes_it_and_the_screen_shows_none_at_once(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
@@ -255,6 +281,7 @@ class TestRevokingTheShareLink:
         assert share_link_shown(client, planning.slug) is None
         assert not shows_the_schedule(token, new_client())
 
+    # /planning/operations/create-share-link/created
     def test_a_link_created_after_revoking_works(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -266,6 +293,7 @@ class TestRevokingTheShareLink:
 
         assert shows_the_schedule(token, new_client())
 
+    # /planning/operations/revoke-share-link/volunteer
     def test_a_volunteer_revokes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         token = shared_token(planning)
@@ -275,6 +303,7 @@ class TestRevokingTheShareLink:
         assert share_link_shown(client, planning.slug) == token
         assert shows_the_schedule(token, new_client())
 
+    # /planning/operations/general/member
     def test_a_non_member_revokes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         token = shared_token(planning)
@@ -283,6 +312,7 @@ class TestRevokingTheShareLink:
 
         assert shows_the_schedule(token, new_client())
 
+    # /core/ui/access/action
     def test_signed_out_leads_to_sign_in_and_revokes_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -326,6 +356,8 @@ def shared_entries(as_client: Any, token: str) -> Any:
 
 
 class TestSharedSchedule:
+    # /planning/ui/shared-schedule/shown
+    # /planning/operations/get-shared-schedule/schedule
     def test_signed_out_shows_the_schedule_as_a_member_sees_it(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -341,6 +373,8 @@ class TestSharedSchedule:
         assert day_in(entries, day_of_week("thursday", 2)) == "[~~Chloé~~]"
         assert day_in(entries, day_of_week("saturday", 2)) == "Closed"
 
+    # /planning/ui/shared-schedule/shown
+    # /planning/operations/get-shared-schedule/schedule
     def test_works_signed_in_as_a_non_member(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -352,6 +386,8 @@ class TestSharedSchedule:
 
         assert entries == schedule_shown(planning.bruno_client, planning.slug)
 
+    # /planning/ui/shared-schedule/shown
+    # /planning/operations/get-shared-schedule/schedule
     def test_works_signed_in_as_a_member(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         filled(planning)
@@ -361,6 +397,8 @@ class TestSharedSchedule:
 
         assert entries == schedule_shown(planning.bruno_client, planning.slug)
 
+    # /planning/operations/get-shared-schedule/schedule
+    # /planning/ui/schedule/empty
     def test_shows_only_its_association(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         other = Planning(new_client(), new_client)
@@ -371,6 +409,7 @@ class TestSharedSchedule:
 
         assert "No openings in these weeks." in main
 
+    # /planning/ui/shared-schedule/shown
     def test_without_the_links_to_the_other_screens_and_with_no_menu(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -385,6 +424,8 @@ class TestSharedSchedule:
             for screen in ("My availability", "Members", "Schedule settings", "Sign up"):
                 assert screen not in main
 
+    # /planning/ui/shared-schedule/shown
+    # /planning/ui/schedule/weeks
     def test_more_weeks_is_at_the_end(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
@@ -396,6 +437,8 @@ class TestSharedSchedule:
         assert button
         assert main.rfind("</section>") < button.start()
 
+    # /planning/ui/shared-schedule/shown
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
@@ -411,6 +454,7 @@ class TestSharedSchedule:
 
 
 class TestSharedScheduleHeader:
+    # /core/ui/header/shared
     def test_shows_the_association_name_leading_nowhere_and_the_language_selector(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -424,6 +468,7 @@ class TestSharedScheduleHeader:
         assert "English" in header
         assert "Français" in header
 
+    # /core/ui/header/shared
     def test_signed_in_it_shows_the_same_without_the_users_menu(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -442,6 +487,8 @@ class TestSharedScheduleHeader:
 
 
 class TestSharedScheduleNoLongerValid:
+    # /planning/ui/shared-schedule/invalid
+    # /planning/operations/get-shared-schedule/unknown
     @pytest.mark.parametrize("token", ["unknown-token", "Hq3v"])
     def test_an_unknown_link_says_so(self, client: Any, token: str) -> None:
         page = html.unescape(shared(client, token))
@@ -450,6 +497,8 @@ class TestSharedScheduleNoLongerValid:
         assert "Page not found" not in page
         assert "Week" not in page
 
+    # /planning/ui/shared-schedule/invalid
+    # /planning/operations/create-share-link/created
     def test_a_replaced_link_says_so(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
@@ -458,6 +507,8 @@ class TestSharedScheduleNoLongerValid:
 
         assert not shows_the_schedule(previous, new_client())
 
+    # /planning/ui/shared-schedule/invalid
+    # /planning/operations/revoke-share-link/revoked
     def test_a_revoked_link_says_so(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
@@ -469,6 +520,8 @@ class TestSharedScheduleNoLongerValid:
         assert INVALID in page
         assert NAME not in page
 
+    # /planning/ui/shared-schedule/invalid
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
 
@@ -476,6 +529,8 @@ class TestSharedScheduleNoLongerValid:
 
 
 class TestSharedMoreWeeks:
+    # /planning/ui/shared-schedule/shown
+    # /planning/ui/schedule/more
     def test_adds_the_four_weeks_that_follow(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -494,6 +549,7 @@ class TestSharedMoreWeeks:
         assert day_in(entries, late) == "[Bruno]"
         assert re.search(r"<button[^>]*>\s*More weeks\s*</button>", text)
 
+    # /planning/ui/shared-schedule/shown
     def test_the_weeks_added_open_no_menu(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
@@ -505,6 +561,8 @@ class TestSharedMoreWeeks:
 
         assert f"/association/{planning.slug}" not in text
 
+    # /planning/ui/shared-schedule/shown
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
@@ -520,6 +578,7 @@ class TestSharedMoreWeeks:
         assert headings and all(h.startswith("Semaine ") for h in headings)
         assert "Plus de semaines" in text
 
+    # /ui/errors/generic
     @pytest.mark.parametrize(
         "body",
         [
@@ -540,6 +599,8 @@ class TestSharedMoreWeeks:
         assert GENERIC in text
         assert "Week" not in text
 
+    # /planning/operations/get-shared-schedule/unknown
+    # /planning/operations/revoke-share-link/revoked
     def test_a_revoked_link_shows_none_of_the_weeks(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:

@@ -25,6 +25,8 @@ def part(page: str, tag: str) -> str:
 
 
 class TestHeader:
+    # /core/ui/header/location
+    # /core/ui/header/menu
     def test_signed_in_shows_my_associations_the_user_and_sign_out(self, client: Any) -> None:
         sign_up(client, "Alice")
 
@@ -35,6 +37,8 @@ class TestHeader:
         assert "Sign out" in page
         assert 'type="password"' not in page
 
+    # /core/ui/header/location
+    # /core/ui/header/title
     def test_header_location_shows_my_associations_in_place_of_a_title(self, client: Any) -> None:
         sign_up(client, "Alice")
 
@@ -43,6 +47,7 @@ class TestHeader:
         assert "My associations" in part(page, "header")
         assert "My associations" not in part(page, "main")
 
+    # /core/ui/header/menu
     def test_the_menu_has_the_language_selector_revoke_delete_my_account_and_sign_out(
         self, client: Any
     ) -> None:
@@ -55,6 +60,7 @@ class TestHeader:
         assert "Delete my account" in page
         assert "Sign out" in page
 
+    # /core/ui/header/revoke
     def test_revoke_my_sign_in_link_asks_for_confirmation(self, client: Any) -> None:
         sign_up(client, "Alice")
 
@@ -63,6 +69,9 @@ class TestHeader:
         assert "Revoke your sign-in link? Sessions opened with it are signed out." in page
         assert re.search(r"<button[^>]*>\s*Confirm\s*</button>", page)
 
+    # /core/ui/header/location
+    # /core/ui/header/menu
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         sign_up(client, "Alice")
         client.cookies.set("language", "fr")
@@ -74,6 +83,7 @@ class TestHeader:
         assert "Révoquer mon lien de connexion" in page
         assert "Supprimer mon compte" in page
 
+    # /core/ui/header/menu
     def test_escapes_the_display_name(self, client: Any) -> None:
         sign_up(client, "<b>Alice</b>", unique_email("Alice"))
 
@@ -82,6 +92,8 @@ class TestHeader:
         assert "<b>Alice</b>" not in page
         assert "&lt;b&gt;Alice&lt;/b&gt;" in page
 
+    # /core/ui/header/sign-out
+    # /core/operations/sign-out/signed-out
     def test_sign_out_leads_to_sign_in(self, client: Any, new_client: Callable[[], Any]) -> None:
         sign_up(client, "Alice")
         session = client.cookies["session"]
@@ -97,6 +109,8 @@ class TestHeader:
 
 
 class TestNotFound:
+    # /ui/not-found/status
+    # /ui/not-found/shown
     @pytest.mark.parametrize(
         "path",
         [
@@ -114,6 +128,8 @@ class TestNotFound:
         assert response.headers["content-type"].startswith("text/html")
         assert re.search(r"<h1[^>]*>\s*Page not found\s*</h1>", response.text)
 
+    # /ui/not-found/status
+    # /ui/not-found/shown
     @pytest.mark.parametrize(
         "path",
         [
@@ -149,17 +165,22 @@ class TestNotFound:
         assert response.status_code == 404
         assert "Page not found" in response.text
 
+    # /ui/not-found/shown
     def test_leads_to_the_home_page(self, client: Any) -> None:
         page = client.get("/nothing-here").text
 
         assert re.search(r'<a[^>]*href="/"[^>]*>\s*Back to the home page\s*</a>', page)
 
+    # /core/ui/header/signed-out
     def test_has_the_signed_out_header(self, client: Any) -> None:
         page = client.get("/nothing-here").text
 
         assert "English" in page
         assert "Français" in page
 
+    # /ui/not-found/status
+    # /ui/not-found/shown
+    # /ui/not-found/header
     def test_signed_in_shows_the_same_and_stays_signed_in(self, client: Any) -> None:
         sign_up(client, "Alice")
 
@@ -170,17 +191,23 @@ class TestNotFound:
         assert "Sign out" not in response.text
         assert signed_in_as(client) == "Alice"
 
+    # /ui/not-found/shown
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
 
         assert "Page introuvable" in client.get("/nothing-here").text
 
+    # /ui/not-found/shown
+    # /ui/language/default
     def test_follows_the_browser_language(self, client: Any) -> None:
         page = client.get("/nothing-here", headers={"Accept-Language": "fr"}).text
 
         assert "Page introuvable" in page
         assert "Retour à la page d'accueil" in html.unescape(page)
 
+    # /ui/not-found/status
+    # /ui/not-found/shown
     @pytest.mark.parametrize(
         ("method", "path"),
         [
@@ -240,6 +267,7 @@ class TestNotFound:
         assert response.headers["content-type"].startswith("text/html")
         assert re.search(r"<h1[^>]*>\s*Page not found\s*</h1>", response.text)
 
+    # /ui/not-found/status
     def test_a_former_json_api_creation_creates_nothing(self, client: Any) -> None:
         sign_up(client, "Alice")
         slug = unique_slug()
@@ -249,6 +277,7 @@ class TestNotFound:
         assert response.status_code == 404
         assert names_listed(client) == []
 
+    # /ui/not-found/status
     def test_a_former_json_api_write_changes_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:

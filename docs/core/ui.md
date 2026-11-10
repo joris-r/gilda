@@ -88,6 +88,8 @@ At `/access?token=<token>`, opened from the access link.
 - [invalid] /core/operations/sign-in-by-access-link/invalid: "This
   link is no longer valid.", with a way to `/sign-in-link` to request
   a new one.
+- [fetched] Fetching the link without running the page signs no one
+  in.
 
 ## Forgot password
 

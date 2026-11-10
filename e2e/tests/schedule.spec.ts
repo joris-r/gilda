@@ -48,6 +48,7 @@ test.describe('Schedule', () => {
     ['Members', 'members'],
     ['Schedule settings', 'settings'],
   ]) {
+    // /planning/ui/schedule/links
     test(`"${screen}" leads to that screen`, async ({ page, request }) => {
       const slug = await openSchedule(page, request)
 
@@ -58,6 +59,7 @@ test.describe('Schedule', () => {
     })
   }
 
+  // /planning/ui/schedule/occurrence
   test('each day is a group named by its day, holding its occurrences', async ({ page, request }) => {
     await openSchedule(page, request)
 
@@ -67,12 +69,15 @@ test.describe('Schedule', () => {
     await expect(day.getByRole('listitem')).toHaveText('Alice')
   })
 
+  // /planning/ui/schedule/weeks
+  // /planning/operations/get-schedule/default
   test('opens on six weeks', async ({ page, request }) => {
     await openSchedule(page, request)
 
     await expect(weekHeadings(page)).toHaveCount(6)
   })
 
+  // /planning/ui/schedule/more
   test('"More weeks", at the end, adds four more', async ({ page, request }) => {
     await openSchedule(page, request)
     const last = await weekHeadings(page).last().textContent()
@@ -84,6 +89,7 @@ test.describe('Schedule', () => {
     await expect(page.getByRole('group', { name: dayOfWeek(4, 8).label, exact: true })).toBeVisible()
   })
 
+  // /planning/ui/schedule/more
   test('"More weeks" adds four more each time', async ({ page, request }) => {
     await openSchedule(page, request)
 
@@ -95,6 +101,7 @@ test.describe('Schedule', () => {
     await expect(page.getByRole('group', { name: dayOfWeek(4, 12).label, exact: true })).toBeVisible()
   })
 
+  // /planning/ui/schedule/more
   test('the weeks added keep the occurrences shown', async ({ page, request }) => {
     await openSchedule(page, request)
 
@@ -105,6 +112,7 @@ test.describe('Schedule', () => {
     await expect(day.getByRole('listitem')).toHaveText('Alice')
   })
 
+  // /ui/errors/generic
   test('"More weeks" when the server fails: the generic error', async ({ page, request }) => {
     await openSchedule(page, request)
     await page.route('**/weeks', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -125,6 +133,9 @@ function menuTitle(page: Page, weeksAhead: number) {
 }
 
 test.describe('Schedule menu', () => {
+  // /planning/ui/schedule/menu
+  // /planning/ui/occurrence-menu/title
+  // /planning/ui/occurrence-menu/free
   test('clicking an occurrence from today on opens its menu, titled with its day and times', async ({ page, request }) => {
     await openSchedule(page, request)
 
@@ -134,6 +145,7 @@ test.describe('Schedule menu', () => {
     await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
   })
 
+  // /planning/ui/schedule/menu
   test('clicking an occurrence before today opens nothing', async ({ page, request }) => {
     await openSchedule(page, request)
 
@@ -143,6 +155,7 @@ test.describe('Schedule menu', () => {
     await expect(page.getByRole('button', { name: 'Sign up' })).toBeHidden()
   })
 
+  // /planning/ui/occurrence-menu/escape
   test('Escape closes the menu', async ({ page, request }) => {
     await openSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
@@ -153,6 +166,9 @@ test.describe('Schedule menu', () => {
     await expect(menuTitle(page, 2)).toBeHidden()
   })
 
+  // /planning/ui/occurrence-menu/sign-up
+  // /planning/ui/occurrence-menu/closes
+  // /planning/operations/register/self
   test('"Sign up" closes the menu and the occurrence shows the user', async ({ page, request }) => {
     await openSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
@@ -165,6 +181,7 @@ test.describe('Schedule menu', () => {
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('Alice')
   })
 
+  // /planning/ui/occurrence-menu/closes
   test('"Sign up" keeps the weeks shown', async ({ page, request }) => {
     await openSchedule(page, request)
     await page.getByRole('button', { name: 'More weeks' }).click()
@@ -177,6 +194,7 @@ test.describe('Schedule menu', () => {
     await expect(weekHeadings(page)).toHaveCount(10)
   })
 
+  // /ui/errors/generic
   test('"Sign up" when the server fails: the generic error, and the menu stays', async ({ page, request }) => {
     await openSchedule(page, request)
     await page.route('**/sign-up', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -189,6 +207,8 @@ test.describe('Schedule menu', () => {
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('')
   })
 
+  // /planning/ui/occurrence-menu/cancel
+  // /planning/ui/occurrence-menu/cancel-registration
   test('"Cancel registration…" asks first; "Keep it" changes nothing', async ({ page, request }) => {
     await openSchedule(page, request)
     await dayGroup(page, 1).getByRole('listitem').click()
@@ -204,6 +224,9 @@ test.describe('Schedule menu', () => {
     await expect(page.getByRole('button', { name: 'Cancel registration…' })).toBeVisible()
   })
 
+  // /planning/ui/occurrence-menu/cancel-registration
+  // /planning/operations/change-registration/cancel
+  // /planning/ui/occurrence-menu/free
   test('"Yes, cancel" cancels the registration and closes the dialog', async ({ page, request }) => {
     await openSchedule(page, request)
     await dayGroup(page, 1).getByRole('listitem').click()
@@ -245,6 +268,10 @@ function absenceText() {
 }
 
 test.describe("Schedule menu: the manager's part", () => {
+  // /planning/ui/occurrence-menu/propose
+  // /planning/operations/register/proposed
+  // /planning/ui/schedule/occurrence
+  // /planning/ui/occurrence-menu/closes
   test('a name proposes the occurrence to that member and closes the menu', async ({ page, request }) => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
@@ -257,6 +284,7 @@ test.describe("Schedule menu: the manager's part", () => {
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)
   })
 
+  // /ui/errors/generic
   test('proposing when the server fails: the generic error, and the menu stays', async ({ page, request }) => {
     await openManagersSchedule(page, request)
     await page.route('**/propose', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -269,6 +297,9 @@ test.describe("Schedule menu: the manager's part", () => {
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('')
   })
 
+  // /planning/ui/occurrence-menu/icon
+  // /planning/ui/occurrence-menu/note
+  // /planning/ui/occurrence-menu/absent
   test('hovering an icon shows its text', async ({ page, request }) => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
@@ -280,6 +311,8 @@ test.describe("Schedule menu: the manager's part", () => {
     )
   })
 
+  // /planning/ui/occurrence-menu/icon
+  // /planning/ui/occurrence-menu/note
   test('clicking an icon shows its text under the names, and proposes nothing', async ({ page, request }) => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
@@ -291,6 +324,7 @@ test.describe("Schedule menu: the manager's part", () => {
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('')
   })
 
+  // /planning/ui/occurrence-menu/icon
   test('clicking the icon again hides its text', async ({ page, request }) => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
@@ -304,6 +338,8 @@ test.describe("Schedule menu: the manager's part", () => {
     await expect(menuTitle(page, 2)).toBeVisible()
   })
 
+  // /planning/ui/occurrence-menu/icon
+  // /planning/ui/occurrence-menu/absent
   test('clicking another icon shows its text in place of the one shown', async ({ page, request }) => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
@@ -315,6 +351,7 @@ test.describe("Schedule menu: the manager's part", () => {
     await expect(page.getByText(NOTE, { exact: true })).toBeHidden()
   })
 
+  // /planning/ui/occurrence-menu/icon-reset
   test('the text shown leaves when the menu opens on another occurrence', async ({ page, request }) => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()

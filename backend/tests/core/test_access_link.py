@@ -82,6 +82,7 @@ def assert_no_email_sent(email: str) -> None:
 
 
 class TestSignInLinkForm:
+    # /core/ui/sign-in-link/form
     def test_shows_the_form(self, client: Any) -> None:
         response = client.get("/sign-in-link")
 
@@ -91,16 +92,19 @@ class TestSignInLinkForm:
         assert "Email" in response.text
         assert "Send me a link" in response.text
 
+    # /core/ui/sign-in-link/form
     def test_links_back_to_sign_in(self, client: Any) -> None:
         page = client.get("/sign-in-link").text
 
         assert re.search(r'<a[^>]*href="/"[^>]*>\s*Back to Sign in\s*</a>', page)
 
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
 
         assert heading(client.get("/sign-in-link")) == "Se connecter par un lien envoyé par e-mail"
 
+    # /core/ui/header/signed-out
     def test_has_the_signed_out_language_selector(self, client: Any) -> None:
         response = client.get("/sign-in-link")
 
@@ -110,6 +114,7 @@ class TestSignInLinkForm:
 
 
 class TestSignInLinkSubmit:
+    # /core/ui/sign-in-link/send
     def test_shows_the_message_for_a_known_email(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -117,11 +122,15 @@ class TestSignInLinkSubmit:
 
         assert link_sent(chloe_email) in shown(ask_for_link(new_client(), chloe_email))
 
+    # /core/ui/sign-in-link/send
+    # /core/operations/request-access-link/answer
     def test_shows_the_same_for_an_unknown_email(self, client: Any) -> None:
         email = unique_email("Nobody")
 
         assert link_sent(email) in shown(ask_for_link(client, email))
 
+    # /core/ui/sign-in-link/send
+    # /core/operations/request-access-link/answer
     def test_shows_the_same_when_the_email_cannot_be_sent(
         self, client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -130,6 +139,8 @@ class TestSignInLinkSubmit:
 
         assert link_sent(chloe_email) in shown(ask_for_link(new_client(), chloe_email))
 
+    # /core/ui/sign-in-link/send
+    # /core/ui/header/language
     def test_the_message_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
         email = unique_email("Nobody")
@@ -138,17 +149,21 @@ class TestSignInLinkSubmit:
 
         assert f"Si {email} est connu ici, un lien de connexion lui a été envoyé." in text
 
+    # /core/ui/sign-in-link/form
     def test_the_message_leaves_a_way_back_to_sign_in(self, client: Any) -> None:
         text = shown(ask_for_link(client, unique_email("Nobody")))
 
         assert re.search(r'<a[^>]*href="/"[^>]*>\s*Back to Sign in\s*</a>', text)
 
+    # /core/operations/request-access-link/malformed
+    # /ui/errors/generic
     @pytest.mark.parametrize("signals", [{}, {"email": ""}, {"email": "not-an-email"}])
     def test_a_missing_or_invalid_email_shows_the_generic_error_message(
         self, client: Any, signals: dict[str, str]
     ) -> None:
         assert GENERIC in shown(client.post("/sign-in-link", json=signals))
 
+    # /ui/errors/generic
     def test_a_body_that_is_not_json_shows_the_generic_error_message(self, client: Any) -> None:
         response = client.post(
             "/sign-in-link", content=b"{not json", headers={"content-type": "application/json"}
@@ -157,7 +172,23 @@ class TestSignInLinkSubmit:
         assert GENERIC in shown(response)
 
 
-class TestR24:
+class TestRequestAccessLink:
+    # /core/model/accesslink/token
+    def test_the_links_of_two_users_differ(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        alice = unique_email("Alice")
+        bruno = unique_email("Bruno")
+        sign_up(client, "Alice", alice)
+        sign_up(new_client(), "Bruno", bruno)
+        browser = new_client()
+
+        ask_for_link(browser, alice)
+        ask_for_link(browser, bruno)
+
+        assert latest_access_token(alice) != latest_access_token(bruno)
+
+    # /core/operations/request-access-link/sent
     def test_sends_the_access_link_to_a_user_with_a_password(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -171,6 +202,7 @@ class TestR24:
         assert normalized(sent["Text"]).startswith(normalized(ENGLISH["Text"]))
         assert re.search(r"/access\?token=[\w-]+", sent["Text"])
 
+    # /core/operations/request-access-link/sent
     def test_sends_the_access_link_to_a_member_without_a_password(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -180,6 +212,8 @@ class TestR24:
 
         latest_access_token(chloe_email)  # raises if no access link was sent
 
+    # /core/operations/request-access-link/sent
+    # /ui/language/default
     @pytest.mark.parametrize("accept_language", ["fr", "fr-FR,fr;q=0.9,en;q=0.8"])
     def test_in_french_when_the_browser_prefers_french(
         self, client: Any, new_client: Callable[[], Any], accept_language: str
@@ -193,7 +227,9 @@ class TestR24:
         assert normalized(sent["Text"]).startswith(normalized(FRENCH["Text"]))
         assert re.search(r"/access\?token=[\w-]+", sent["Text"])
 
-    def test_r20_the_language_cookie_wins_over_the_browser(
+    # /core/operations/request-access-link/sent
+    # /core/ui/header/language
+    def test_the_language_cookie_wins_over_the_browser(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         _, _, chloe_email = manager_with_member(client)
@@ -204,6 +240,8 @@ class TestR24:
 
         assert latest_email(chloe_email)["Subject"] == FRENCH["Subject"]
 
+    # /core/operations/request-access-link/sent
+    # /ui/language/default
     def test_in_english_otherwise(self, client: Any, new_client: Callable[[], Any]) -> None:
         _, _, chloe_email = manager_with_member(client)
 
@@ -211,6 +249,8 @@ class TestR24:
 
         assert latest_email(chloe_email)["Subject"] == ENGLISH["Subject"]
 
+    # /core/operations/request-access-link/sent
+    # /core/model/user/email
     def test_ignores_the_case_of_the_email(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -220,6 +260,7 @@ class TestR24:
 
         latest_access_token(chloe_email)
 
+    # /core/operations/request-access-link/ignored
     def test_sends_nothing_to_an_unknown_email(self, client: Any) -> None:
         email = unique_email("Nobody")
 
@@ -228,7 +269,9 @@ class TestR24:
         assert_no_email_sent(email)
 
 
-def test_r25_a_new_request_sends_the_same_link(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/request-access-link/same
+# /core/model/accesslink/single
+def test_a_new_request_sends_the_same_link(client: Any, new_client: Callable[[], Any]) -> None:
     _, _, chloe_email = manager_with_member(client)
     browser = new_client()
     ask_for_link(browser, chloe_email)
@@ -249,6 +292,8 @@ class TestAccessLink:
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
 
+    # /core/operations/sign-in-by-access-link/signed-in
+    # /core/ui/access-link/fetched
     def test_fetching_the_link_signs_no_one_in(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -268,6 +313,8 @@ class TestAccessLink:
         assert response.status_code == 200
         assert "<script>alert(1)</script>" not in html.unescape(response.text)
 
+    # /core/ui/access-link/signed-in
+    # /core/operations/sign-in-by-access-link/signed-in
     def test_signs_a_member_without_a_password_in_and_leads_to_my_associations(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -282,6 +329,7 @@ class TestAccessLink:
         assert signed_in_as(browser) == "Chloé"
         assert heading(browser.get("/")) == "My associations"
 
+    # /core/operations/sign-in-by-access-link/signed-in
     def test_signs_a_user_with_a_password_in(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -294,6 +342,7 @@ class TestAccessLink:
 
         assert signed_in_as(browser) == "Alice"
 
+    # /core/operations/sign-in-by-access-link/signed-in
     def test_signs_in_as_the_links_user_from_another_users_session(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -304,6 +353,8 @@ class TestAccessLink:
 
         assert signed_in_as(client) == "Chloé"
 
+    # /core/operations/sign-in-by-access-link/signed-in
+    # /core/ui/members/not-joined
     def test_confirms_the_email(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, _, chloe_email = manager_with_member(client)
         browser = new_client()
@@ -314,6 +365,8 @@ class TestAccessLink:
         line = member_line(client, association["slug"], chloe_email)
         assert line.startswith(f"Chloé {chloe_email} ")
 
+    # /core/operations/sign-in-by-access-link/signed-in
+    # /core/operations/sign-in/signed-in
     def test_lets_a_user_with_an_unconfirmed_email_sign_in_with_their_password(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -327,6 +380,7 @@ class TestAccessLink:
         assert "window.location" in shown(sign_in(browser, email))
         assert signed_in_as(browser) == "Bruno"
 
+    # /core/operations/sign-in-by-access-link/signed-in
     def test_stays_usable(self, client: Any, new_client: Callable[[], Any]) -> None:
         _, _, chloe_email = manager_with_member(client)
         ask_for_link(new_client(), chloe_email)
@@ -340,7 +394,8 @@ class TestAccessLink:
         assert signs_in(second, token)
         assert signed_in_as(second) == "Chloé"
 
-    def test_r16_replaces_a_session_id_planted_in_the_browser(
+    # /core/operations/sign-in/new-session
+    def test_replaces_a_session_id_planted_in_the_browser(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         _, _, chloe_email = manager_with_member(client)
@@ -359,14 +414,21 @@ class TestAccessLink:
 
 
 class TestAccessLinkInvalid:
+    # /core/ui/access-link/invalid
+    # /core/operations/sign-in-by-access-link/invalid
     def test_unknown_token(self, client: Any) -> None:
         assert_invalid_link(shown(open_link(client, "unknown-token")))
         assert signed_in_as(client) is None
 
+    # /core/ui/access-link/invalid
+    # /core/operations/sign-in-by-access-link/invalid
     @pytest.mark.parametrize("signals", [{}, {"token": ""}])
     def test_no_token(self, client: Any, signals: dict[str, str]) -> None:
         assert_invalid_link(shown(client.post("/access", json=signals)))
 
+    # /core/ui/access-link/invalid
+    # /core/operations/sign-in-by-access-link/invalid
+    # /core/operations/revoke-my-access-link/revoked
     def test_revoked_link(self, client: Any, new_client: Callable[[], Any]) -> None:
         email = unique_email("Alice")
         sign_up(client, "Alice", email)
@@ -379,6 +441,8 @@ class TestAccessLinkInvalid:
         assert_invalid_link(shown(open_link(browser, token)))
         assert signed_in_as(browser) is None
 
+    # /core/ui/access-link/invalid
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
 
@@ -388,9 +452,9 @@ class TestAccessLinkInvalid:
 # Revoke my sign-in link
 
 
-def test_r23_revoking_the_link_makes_it_unusable(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
+# /core/operations/revoke-my-access-link/revoked
+# /core/operations/sign-in-by-access-link/invalid
+def test_revoking_the_link_makes_it_unusable(client: Any, new_client: Callable[[], Any]) -> None:
     _, _, chloe_email = manager_with_member(client)
     chloe = new_client()
     ask_for_link(chloe, chloe_email)
@@ -402,7 +466,8 @@ def test_r23_revoking_the_link_makes_it_unusable(
     assert not signs_in(new_client(), token)
 
 
-def test_r23_revoking_the_link_signs_out_the_sessions_it_opened(
+# /core/operations/revoke-my-access-link/revoked
+def test_revoking_the_link_signs_out_the_sessions_it_opened(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     _, _, chloe_email = manager_with_member(client)
@@ -419,7 +484,8 @@ def test_r23_revoking_the_link_signs_out_the_sessions_it_opened(
     assert signed_in_as(laptop) is None
 
 
-def test_r23_revoking_the_link_keeps_password_sessions_signed_in(
+# /core/operations/revoke-my-access-link/revoked
+def test_revoking_the_link_keeps_password_sessions_signed_in(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -435,7 +501,9 @@ def test_r23_revoking_the_link_keeps_password_sessions_signed_in(
     assert signed_in_as(phone) is None
 
 
-def test_r25_after_revoking_a_new_request_sends_a_new_link(
+# /core/operations/request-access-link/sent
+# /core/operations/revoke-my-access-link/revoked
+def test_after_revoking_a_new_request_sends_a_new_link(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -452,6 +520,7 @@ def test_r25_after_revoking_a_new_request_sends_a_new_link(
     assert signs_in(new_client(), new_token)
 
 
+# /core/ui/header/revoked
 def test_revoke_my_sign_in_link_shows_it_is_revoked(client: Any) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
@@ -463,6 +532,8 @@ def test_revoke_my_sign_in_link_shows_it_is_revoked(client: Any) -> None:
     assert "window.location" not in page
 
 
+# /core/ui/header/revoked
+# /core/ui/header/language
 def test_revoke_my_sign_in_link_follows_the_language(client: Any) -> None:
     sign_up(client, "Alice")
     client.cookies.set("language", "fr")
@@ -470,12 +541,14 @@ def test_revoke_my_sign_in_link_follows_the_language(client: Any) -> None:
     assert "Votre lien de connexion est révoqué." in shown(revoke_my_link(client))
 
 
+# /core/ui/header/revoked
 def test_revoke_my_sign_in_link_shows_the_same_without_a_link(client: Any) -> None:
     sign_up(client, "Alice")
 
     assert "Your sign-in link is revoked." in shown(revoke_my_link(client))
 
 
+# /core/ui/header/this-session
 def test_revoke_my_sign_in_link_leads_to_sign_in_from_a_session_opened_with_it(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
@@ -491,6 +564,7 @@ def test_revoke_my_sign_in_link_leads_to_sign_in_from_a_session_opened_with_it(
     assert 'type="password"' in chloe.get("/").text
 
 
+# /core/ui/access/action
 def test_revoke_my_sign_in_link_when_already_signed_out_leads_to_sign_in(client: Any) -> None:
     page = shown(revoke_my_link(client))
 

@@ -7,6 +7,10 @@ from tests.core.conftest import rename_association, shown
 from tests.planning.conftest import Planning, part, shared_page, shared_token, text_of
 
 
+# /core/ui/members/renamed
+# /core/operations/update-association/renamed
+# /core/ui/header/shared
+# /planning/ui/shared-schedule/shown
 def test_rename_the_association_share_link_keeps_working_and_shows_the_new_name(
     client: Any, new_client: Callable[[], Any]
 ) -> None:

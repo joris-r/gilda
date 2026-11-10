@@ -179,7 +179,7 @@ class Planning:
     ) -> dict[str, Any]:
         """Registers `user` on the occurrence by their display name in its menu on the Schedule,
         signed in on `as_client`: confirmed for the user signed in there, proposed by a manager
-        otherwise (R5)."""
+        otherwise."""
         weeks = {"from": day, "to": day}
 
         def register() -> None:
@@ -469,7 +469,7 @@ def day_shown(as_client: Any, slug: str, day: str) -> str:
 
 
 def opened_weeks() -> dict[str, str]:
-    """The weeks the Schedule opens on without a planning period (R32), as its actions get
+    """The weeks the Schedule opens on without a planning period, as its actions get
     them."""
     return {"from": day_of_week("monday", -1), "to": day_of_week("sunday", 4)}
 

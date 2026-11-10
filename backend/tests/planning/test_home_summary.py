@@ -134,6 +134,12 @@ def other_user(new_client: Callable[[], Any]) -> Any:
 
 
 class TestMyAssociations:
+    # /home/ui/my-associations/obsolete
+    # /home/ui/my-associations/upcoming
+    # /home/ui/my-associations/registration
+    # /home/ui/my-associations/no-registration
+    # /home/ui/my-associations/no-upcoming
+    # /home/ui/my-associations/dates
     def test_example(self, planning: Planning) -> None:
         set_period(planning, -2, 21)
         confirmed(planning, 1)
@@ -161,6 +167,11 @@ class TestMyAssociations:
         assert "No upcoming registration." in atelier.text
         assert "Choose your slots" not in atelier.text
 
+    # /home/ui/my-associations/obsolete
+    # /home/ui/my-associations/upcoming
+    # /home/ui/my-associations/no-registration
+    # /home/ui/my-associations/no-upcoming
+    # /core/ui/header/language
     def test_in_french(self, planning: Planning) -> None:
         confirmed(planning, 1)
         proposed(planning, 10)
@@ -182,6 +193,9 @@ class TestMyAssociations:
         assert "Choisir mes créneaux" in repair_cafe
         assert "Aucune inscription à venir." in entry(planning.bruno_client, "Atelier vélo").text
 
+    # /home/operations/list-my-associations/upcoming
+    # /home/operations/list-my-associations/obsolete
+    # /home/ui/my-associations/no-upcoming
     def test_shows_only_the_signed_in_users_registrations(self, planning: Planning) -> None:
         planning.registered(planning.chloe_client, planning.chloe, day(2), "10:00", "13:00")
         planning.registered(planning.alice_client, planning.chloe, day(3), "10:00", "13:00")
@@ -190,6 +204,8 @@ class TestMyAssociations:
         assert bruno_lines(planning) == []
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
+    # /home/ui/my-associations/upcoming
+    # /home/ui/my-associations/registration
     def test_a_confirmed_registration_has_no_mark_and_no_action(self, planning: Planning) -> None:
         confirmed(planning, 1)
 
@@ -211,7 +227,8 @@ class TestMyAssociations:
         assert entry(client).lines[0].endswith(" <b>Alice</b>")
 
 
-class TestR31:
+class TestObsolete:
+    # /home/ui/my-associations/obsolete
     def test_obsolete_registrations_come_first(self, planning: Planning) -> None:
         confirmed(planning, 1)
         confirmed(planning, 5)
@@ -219,6 +236,8 @@ class TestR31:
 
         assert bruno_lines(planning) == [obsolete_line(5), confirmed_line(1)]
 
+    # /home/operations/list-my-associations/obsolete
+    # /planning/model/registration/obsolete
     def test_a_removed_slot_makes_its_registrations_obsolete(self, planning: Planning) -> None:
         slot = slot_on(2, planning, "14:00", "16:00")
         confirmed(planning, 2, "14:00", "16:00")
@@ -226,6 +245,9 @@ class TestR31:
 
         assert obsolete(planning) == [obsolete_line(2, "14:00", "16:00")]
 
+    # /home/operations/list-my-associations/obsolete
+    # /home/operations/list-my-associations/upcoming
+    # /planning/model/registration/obsolete
     def test_a_closure_makes_its_registrations_obsolete(self, planning: Planning) -> None:
         confirmed(planning, 3)
         proposed(planning, 4)
@@ -235,12 +257,16 @@ class TestR31:
         assert obsolete(planning) == [obsolete_line(3), obsolete_line(4)]
         assert upcoming(planning) == [confirmed_line(6)]
 
+    # /home/ui/my-associations/obsolete
+    # /home/operations/list-my-associations/upcoming
     def test_a_proposed_one_has_ok_but_not_confirm(self, planning: Planning) -> None:
         proposed(planning, 4)
         planning.add_closure(day(4), day(4))
 
         assert bruno_lines(planning) == [obsolete_line(4)]
 
+    # /home/operations/list-my-associations/obsolete
+    # /planning/model/registration/obsolete
     def test_an_edited_slot_makes_its_registrations_obsolete(self, planning: Planning) -> None:
         slot = slot_on(2, planning, "14:00", "16:00")
         confirmed(planning, 2, "14:00", "16:00")
@@ -248,6 +274,7 @@ class TestR31:
 
         assert obsolete(planning) == [obsolete_line(2, "14:00", "16:00")]
 
+    # /home/operations/list-my-associations/obsolete
     def test_whatever_their_date(self, planning: Planning) -> None:
         set_period(planning, 0, 10)
         confirmed(planning, 60)
@@ -255,6 +282,7 @@ class TestR31:
 
         assert obsolete(planning) == [obsolete_line(60)]
 
+    # /home/operations/list-my-associations/obsolete
     def test_sorted_by_date_then_start(self, planning: Planning) -> None:
         slot_on(2, planning, "08:00", "09:00")
         confirmed(planning, 2)
@@ -268,6 +296,7 @@ class TestR31:
             obsolete_line(2),
         ]
 
+    # /home/operations/list-my-associations/obsolete
     def test_today_is_included_and_earlier_dates_are_not(
         self, planning: Planning, clock: time_machine.Traveller
     ) -> None:
@@ -279,6 +308,9 @@ class TestR31:
 
         assert obsolete(planning) == [obsolete_line(2)]
 
+    # /home/operations/list-my-associations/obsolete
+    # /planning/model/registration/obsolete
+    # /home/ui/my-associations/no-upcoming
     def test_cancelled_registrations_are_not_listed(self, planning: Planning) -> None:
         registration = confirmed(planning, 2)
         planning.add_closure(day(2), day(2))
@@ -287,6 +319,7 @@ class TestR31:
         assert bruno_lines(planning) == []
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
+    # /home/operations/list-my-associations/obsolete
     def test_only_the_signed_in_users_registrations(self, planning: Planning) -> None:
         planning.registered(planning.chloe_client, planning.chloe, day(2), "10:00", "13:00")
         planning.add_closure(day(2), day(2))
@@ -294,6 +327,7 @@ class TestR31:
         assert bruno_lines(planning) == []
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
+    # /home/ui/my-associations/no-upcoming
     def test_with_only_obsolete_ones_no_upcoming_registration(self, planning: Planning) -> None:
         confirmed(planning, 2)
         planning.add_closure(day(2), day(2))
@@ -301,7 +335,8 @@ class TestR31:
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
 
-class TestR12:
+class TestUpcoming:
+    # /home/operations/list-my-associations/upcoming
     def test_obsolete_registrations_are_not_upcoming(self, planning: Planning) -> None:
         slot = slot_on(2, planning, "14:00", "16:00")
         confirmed(planning, 2, "14:00", "16:00")
@@ -310,6 +345,8 @@ class TestR12:
         assert upcoming(planning) == []
         assert obsolete(planning) == [obsolete_line(2, "14:00", "16:00")]
 
+    # /home/operations/list-my-associations/upcoming
+    # /home/ui/my-associations/no-upcoming
     def test_cancelled_registrations_are_not_shown(self, planning: Planning) -> None:
         registration = confirmed(planning, 2)
         planning.cancel(planning.bruno_client, registration)
@@ -317,6 +354,7 @@ class TestR12:
         assert bruno_lines(planning) == []
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
+    # /home/operations/list-my-associations/upcoming
     def test_sorted_by_date_then_start(self, planning: Planning) -> None:
         slot_on(2, planning, "08:00", "09:00")
         confirmed(planning, 2)
@@ -329,12 +367,14 @@ class TestR12:
             confirmed_line(2),
         ]
 
+    # /home/operations/list-my-associations/upcoming
     def test_today_is_included(self, planning: Planning) -> None:
         confirmed(planning, 0)
         proposed(planning, 1)
 
         assert upcoming(planning) == [confirmed_line(0), proposed_line(1)]
 
+    # /home/operations/list-my-associations/upcoming
     def test_registrations_before_today_are_not_shown(
         self, planning: Planning, clock: time_machine.Traveller
     ) -> None:
@@ -346,17 +386,20 @@ class TestR12:
 
         assert upcoming(planning) == [confirmed_line(3)]
 
+    # /home/operations/list-my-associations/upcoming
     def test_every_proposed_one_shows_whatever_its_date(self, planning: Planning) -> None:
         set_period(planning, 0, 10)
         proposed(planning, 60)
 
         assert upcoming(planning) == [proposed_line(60)]
 
+    # /home/operations/list-my-associations/upcoming
     def test_every_proposed_one_shows_without_period(self, planning: Planning) -> None:
         proposed(planning, 60)
 
         assert upcoming(planning) == [proposed_line(60)]
 
+    # /home/operations/list-my-associations/upcoming
     def test_confirmed_ones_up_to_the_periods_last_date(self, planning: Planning) -> None:
         set_period(planning, 5, 40)
         confirmed(planning, 40)
@@ -364,6 +407,7 @@ class TestR12:
 
         assert upcoming(planning) == [confirmed_line(40)]
 
+    # /home/operations/list-my-associations/upcoming
     def test_a_period_ending_before_27_days_after_today_confirmed_ones_up_to_27_days(
         self, planning: Planning
     ) -> None:
@@ -374,6 +418,7 @@ class TestR12:
 
         assert upcoming(planning) == [confirmed_line(11), confirmed_line(27)]
 
+    # /home/operations/list-my-associations/upcoming
     def test_a_period_ending_today_confirmed_ones_up_to_27_days_after_today(
         self, planning: Planning
     ) -> None:
@@ -384,6 +429,8 @@ class TestR12:
 
         assert upcoming(planning) == [confirmed_line(1), confirmed_line(27)]
 
+    # /home/operations/list-my-associations/upcoming
+    # /home/ui/my-associations/no-upcoming
     def test_without_period_confirmed_ones_up_to_27_days_after_today(
         self, planning: Planning
     ) -> None:
@@ -393,6 +440,7 @@ class TestR12:
         assert upcoming(planning) == [confirmed_line(27)]
         assert "No upcoming registration." not in entry(planning.bruno_client).text
 
+    # /home/operations/list-my-associations/upcoming
     def test_after_the_period_ended_confirmed_ones_up_to_27_days_after_today(
         self, planning: Planning
     ) -> None:
@@ -402,6 +450,8 @@ class TestR12:
 
         assert upcoming(planning) == [confirmed_line(27)]
 
+    # /home/operations/list-my-associations/upcoming
+    # /home/ui/my-associations/no-upcoming
     def test_with_only_later_confirmed_ones_no_upcoming_registration(
         self, planning: Planning
     ) -> None:
@@ -410,7 +460,9 @@ class TestR12:
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
 
-class TestR13R14:
+class TestNoRegistrationYet:
+    # /home/ui/my-associations/no-registration
+    # /home/ui/my-associations/no-upcoming
     def test_reminds_when_the_user_has_no_registration_in_the_period(
         self, planning: Planning
     ) -> None:
@@ -419,6 +471,9 @@ class TestR13R14:
         assert reminds(planning)
         assert "No upcoming registration." not in entry(planning.bruno_client).text
 
+    # /home/ui/my-associations/no-registration
+    # /home/operations/list-my-associations/period
+    # /home/operations/list-my-associations/upcoming
     def test_reminds_alongside_registrations_outside_the_period(self, planning: Planning) -> None:
         set_period(planning, 2, 10)
         confirmed(planning, 1)
@@ -427,9 +482,12 @@ class TestR13R14:
         assert reminds(planning)
         assert upcoming(planning) == [confirmed_line(1), proposed_line(26)]
 
+    # /home/ui/my-associations/no-registration
+    # /home/operations/list-my-associations/period
+    # /planning/model/registration/count
     @pytest.mark.parametrize("offset", [2, 4, 6])
     @pytest.mark.parametrize("register", [confirmed, proposed])
-    def test_r13_a_confirmed_or_proposed_one_within_the_period_both_dates_included(
+    def test_a_confirmed_or_proposed_one_within_the_period_both_dates_included(
         self, planning: Planning, offset: int, register: Callable[[Planning, int], Any]
     ) -> None:
         set_period(planning, 2, 6)
@@ -438,13 +496,19 @@ class TestR13R14:
         assert not reminds(planning)
         assert len(bruno_lines(planning)) == 1
 
-    def test_r13_a_cancelled_one_does_not_count(self, planning: Planning) -> None:
+    # /home/ui/my-associations/no-registration
+    # /home/operations/list-my-associations/period
+    # /planning/model/registration/count
+    def test_a_cancelled_one_does_not_count(self, planning: Planning) -> None:
         set_period(planning, 2, 6)
         planning.cancel(planning.bruno_client, confirmed(planning, 3))
 
         assert reminds(planning)
 
-    def test_r13_an_obsolete_one_does_not_count(self, planning: Planning) -> None:
+    # /home/ui/my-associations/no-registration
+    # /home/operations/list-my-associations/period
+    # /planning/model/registration/count
+    def test_an_obsolete_one_does_not_count(self, planning: Planning) -> None:
         set_period(planning, 0, 10)
         slot = slot_on(2, planning, "14:00", "16:00")
         confirmed(planning, 2, "14:00", "16:00")
@@ -452,13 +516,20 @@ class TestR13R14:
 
         assert reminds(planning)
 
-    def test_r13_another_members_registration_does_not_count(self, planning: Planning) -> None:
+    # /home/ui/my-associations/no-registration
+    # /home/operations/list-my-associations/period
+    # /planning/model/registration/count
+    def test_another_members_registration_does_not_count(self, planning: Planning) -> None:
         set_period(planning, 0, 10)
         planning.registered(planning.chloe_client, planning.chloe, day(2), "10:00", "13:00")
 
         assert reminds(planning)
 
-    def test_r13_registrations_of_the_period_before_today_count(
+    # /home/ui/my-associations/no-registration
+    # /home/operations/list-my-associations/period
+    # /planning/model/registration/count
+    # /home/ui/my-associations/no-upcoming
+    def test_registrations_of_the_period_before_today_count(
         self, planning: Planning, clock: time_machine.Traveller
     ) -> None:
         set_period(planning, 1, 10)
@@ -469,14 +540,17 @@ class TestR13R14:
         assert not reminds(planning)
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
-    def test_r14_a_period_ending_today_reminds(
+    # /home/ui/my-associations/no-registration
+    def test_a_period_ending_today_reminds(
         self, planning: Planning, clock: time_machine.Traveller
     ) -> None:
         set_period(planning, -5, 0)
 
         assert reminds(planning)
 
-    def test_r14_a_period_ended_no_longer_reminds(
+    # /home/ui/my-associations/no-registration
+    # /home/ui/my-associations/no-upcoming
+    def test_a_period_ended_no_longer_reminds(
         self, planning: Planning, clock: time_machine.Traveller
     ) -> None:
         set_period(planning, -5, -1)
@@ -484,7 +558,10 @@ class TestR13R14:
         assert not reminds(planning)
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
-    def test_r14_after_midnight_in_paris_a_period_that_ended_yesterday_no_longer_reminds(
+    # /home/ui/my-associations/no-registration
+    # /planning/model/time-zone/today
+    # /home/ui/my-associations/no-upcoming
+    def test_after_midnight_in_paris_a_period_that_ended_yesterday_no_longer_reminds(
         self, planning: Planning, clock: time_machine.Traveller
     ) -> None:
         set_period(planning, -5, 0)
@@ -495,14 +572,15 @@ class TestR13R14:
         assert not reminds(planning)
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
-    def test_r14_without_period_no_reminder(self, planning: Planning) -> None:
+    # /home/ui/my-associations/no-registration
+    # /home/ui/my-associations/no-upcoming
+    def test_without_period_no_reminder(self, planning: Planning) -> None:
         assert not reminds(planning)
         assert "Choose your slots" not in entry(planning.bruno_client).text
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
-    def test_r14_choose_your_slots_leads_to_the_associations_schedule(
-        self, planning: Planning
-    ) -> None:
+    # /home/ui/my-associations/choose
+    def test_choose_your_slots_leads_to_the_associations_schedule(self, planning: Planning) -> None:
         set_period(planning, 2, 25)
 
         page = planning.bruno_client.get("/").text
@@ -510,6 +588,8 @@ class TestR13R14:
         link = rf'<a[^>]*href="/association/{planning.slug}"[^>]*>\s*Choose your slots\s*</a>'
         assert re.search(link, page)
 
+    # /home/ui/my-associations/dates
+    # /core/ui/header/language
     @pytest.mark.parametrize(
         ("first", "last", "english", "french"),
         [
@@ -529,7 +609,9 @@ class TestR13R14:
 
 
 class TestConfirm:
-    def test_r7_confirms_and_answers_the_association_as_it_now_is(self, planning: Planning) -> None:
+    # /home/ui/my-associations/confirm
+    # /planning/operations/change-registration/confirm
+    def test_confirms_and_answers_the_association_as_it_now_is(self, planning: Planning) -> None:
         confirmed(planning, 1)
         registration = proposed(planning, 10)
 
@@ -539,7 +621,9 @@ class TestConfirm:
         assert listed(text) == [entry(planning.bruno_client)]
         assert bruno_lines(planning) == [confirmed_line(1), confirmed_line(10)]
 
-    def test_r7_a_confirmed_registration_shows_the_generic_error(self, planning: Planning) -> None:
+    # /planning/operations/change-registration/other
+    # /ui/errors/generic
+    def test_a_confirmed_registration_shows_the_generic_error(self, planning: Planning) -> None:
         registration = confirmed(planning, 1)
 
         text = shown(confirm_on_summary(planning.bruno_client, planning.slug, registration["id"]))
@@ -547,7 +631,9 @@ class TestConfirm:
         assert GENERIC in text
         assert bruno_lines(planning) == [confirmed_line(1)]
 
-    def test_r7_a_cancelled_registration_shows_the_generic_error(self, planning: Planning) -> None:
+    # /planning/operations/change-registration/other
+    # /ui/errors/generic
+    def test_a_cancelled_registration_shows_the_generic_error(self, planning: Planning) -> None:
         registration = proposed(planning, 1)
         planning.cancel(planning.bruno_client, registration)
 
@@ -556,7 +642,9 @@ class TestConfirm:
         assert GENERIC in text
         assert bruno_lines(planning) == []
 
-    def test_r7_an_obsolete_registration_shows_the_generic_error(self, planning: Planning) -> None:
+    # /planning/operations/change-registration/other
+    # /ui/errors/generic
+    def test_an_obsolete_registration_shows_the_generic_error(self, planning: Planning) -> None:
         registration = proposed(planning, 1)
         planning.add_closure(day(1), day(1))
 
@@ -565,7 +653,9 @@ class TestConfirm:
         assert GENERIC in text
         assert bruno_lines(planning) == [obsolete_line(1)]
 
-    def test_r7_another_volunteer_does_not_confirm(self, planning: Planning) -> None:
+    # /planning/operations/change-registration/forbidden
+    # /ui/errors/generic
+    def test_another_volunteer_does_not_confirm(self, planning: Planning) -> None:
         registration = proposed(planning, 1)
 
         text = shown(confirm_on_summary(planning.chloe_client, planning.slug, registration["id"]))
@@ -573,6 +663,8 @@ class TestConfirm:
         assert GENERIC in text
         assert bruno_lines(planning) == [proposed_line(1)]
 
+    # /planning/operations/change-registration/unknown
+    # /ui/errors/generic
     @pytest.mark.parametrize("registration_id", [UNKNOWN_ID, "not-an-id"])
     def test_an_unknown_registration_shows_the_generic_error(
         self, planning: Planning, registration_id: str
@@ -581,6 +673,8 @@ class TestConfirm:
 
         assert GENERIC in text
 
+    # /planning/operations/change-registration/unknown
+    # /ui/errors/generic
     def test_a_registration_of_another_association_shows_the_generic_error(
         self, planning: Planning
     ) -> None:
@@ -592,6 +686,7 @@ class TestConfirm:
         assert GENERIC in text
         assert bruno_lines(planning) == [proposed_line(1)]
 
+    # /core/ui/access/action
     def test_signed_out_leads_to_sign_in_and_changes_nothing(
         self, planning: Planning, new_client: Callable[[], Any]
     ) -> None:
@@ -602,6 +697,7 @@ class TestConfirm:
         assert "window.location" in text
         assert bruno_lines(planning) == [proposed_line(1)]
 
+    # /planning/operations/general/member
     def test_a_non_member_changes_nothing(
         self, planning: Planning, new_client: Callable[[], Any]
     ) -> None:
@@ -613,7 +709,9 @@ class TestConfirm:
 
 
 class TestOk:
-    def test_r7_cancels_it_and_it_no_longer_shows(self, planning: Planning) -> None:
+    # /home/ui/my-associations/acknowledge
+    # /planning/operations/change-registration/cancel
+    def test_cancels_it_and_it_no_longer_shows(self, planning: Planning) -> None:
         confirmed(planning, 1)
         registration = confirmed(planning, 5)
         planning.add_closure(day(5), day(5))
@@ -624,7 +722,9 @@ class TestOk:
         assert listed(text) == [entry(planning.bruno_client)]
         assert bruno_lines(planning) == [confirmed_line(1)]
 
-    def test_r7_cancels_an_obsolete_proposed_one(self, planning: Planning) -> None:
+    # /home/ui/my-associations/acknowledge
+    # /planning/operations/change-registration/cancel
+    def test_cancels_an_obsolete_proposed_one(self, planning: Planning) -> None:
         registration = proposed(planning, 5)
         planning.add_closure(day(5), day(5))
 
@@ -633,7 +733,9 @@ class TestOk:
         assert GENERIC not in text
         assert bruno_lines(planning) == []
 
-    def test_r7_a_cancelled_registration_shows_the_generic_error(self, planning: Planning) -> None:
+    # /planning/operations/change-registration/other
+    # /ui/errors/generic
+    def test_a_cancelled_registration_shows_the_generic_error(self, planning: Planning) -> None:
         registration = confirmed(planning, 5)
         planning.add_closure(day(5), day(5))
         planning.cancel(planning.bruno_client, registration)
@@ -642,7 +744,9 @@ class TestOk:
 
         assert GENERIC in text
 
-    def test_r7_another_volunteer_does_not_cancel(self, planning: Planning) -> None:
+    # /planning/operations/change-registration/forbidden
+    # /ui/errors/generic
+    def test_another_volunteer_does_not_cancel(self, planning: Planning) -> None:
         registration = confirmed(planning, 5)
         planning.add_closure(day(5), day(5))
 
@@ -651,6 +755,8 @@ class TestOk:
         assert GENERIC in text
         assert bruno_lines(planning) == [obsolete_line(5)]
 
+    # /planning/operations/change-registration/unknown
+    # /ui/errors/generic
     @pytest.mark.parametrize("registration_id", [UNKNOWN_ID, "not-an-id"])
     def test_an_unknown_registration_shows_the_generic_error(
         self, planning: Planning, registration_id: str
@@ -659,6 +765,8 @@ class TestOk:
 
         assert GENERIC in text
 
+    # /planning/operations/change-registration/unknown
+    # /ui/errors/generic
     def test_a_registration_of_another_association_shows_the_generic_error(
         self, planning: Planning
     ) -> None:
@@ -671,6 +779,7 @@ class TestOk:
         assert GENERIC in text
         assert bruno_lines(planning) == [obsolete_line(5)]
 
+    # /core/ui/access/action
     def test_signed_out_leads_to_sign_in_and_changes_nothing(
         self, planning: Planning, new_client: Callable[[], Any]
     ) -> None:
@@ -682,6 +791,7 @@ class TestOk:
         assert "window.location" in text
         assert bruno_lines(planning) == [obsolete_line(5)]
 
+    # /planning/operations/general/member
     def test_a_non_member_changes_nothing(
         self, planning: Planning, new_client: Callable[[], Any]
     ) -> None:

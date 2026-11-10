@@ -20,6 +20,8 @@ async function submitNewPassword(page: Page, password: string) {
 }
 
 test.describe('Forgot password', () => {
+  // /core/ui/sign-in/forgot
+  // /core/ui/forgot-password/form
   test('Sign in leads to it, and it leads back to Sign in', async ({ page }) => {
     await page.goto('/')
 
@@ -30,6 +32,7 @@ test.describe('Forgot password', () => {
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
   })
 
+  // /core/ui/forgot-password/send
   test('submitting replaces the form with the message', async ({ page }) => {
     const email = uniqueEmail('Nobody')
     await page.goto('/forgot-password')
@@ -43,6 +46,8 @@ test.describe('Forgot password', () => {
     await expect(page.getByRole('button', { name: 'Send a reset link' })).toBeHidden()
   })
 
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error message, and what was typed stays', async ({
     page,
   }) => {
@@ -63,7 +68,9 @@ test.describe('Forgot password', () => {
 })
 
 test.describe('Reset password', () => {
-  test('R22: the link leads to My associations, signed in, with the new password', async ({
+  // /core/ui/reset-password/reset
+  // /core/operations/reset-password/reset
+  test('the link leads to My associations, signed in, with the new password', async ({
     page,
     request,
   }) => {
@@ -87,6 +94,7 @@ test.describe('Reset password', () => {
     await expect(page.getByText('My associations')).toBeVisible()
   })
 
+  // /core/ui/reset-password/invalid-on-open
   test('an invalid link, when the page opens, shows the message and a way to Forgot password', async ({
     page,
   }) => {
@@ -99,6 +107,8 @@ test.describe('Reset password', () => {
     await expect(page.getByRole('heading', { name: 'Forgot your password?' })).toBeVisible()
   })
 
+  // /core/ui/reset-password/invalid
+  // /core/operations/reset-password/invalid
   test('a link used up while the page is open, on submit, shows the message in place of the form', async ({
     page,
     request,
@@ -117,6 +127,7 @@ test.describe('Reset password', () => {
     await expect(page.getByRole('heading', { name: 'Forgot your password?' })).toBeVisible()
   })
 
+  // /core/operations/reset-password/short-password
   test('the browser refuses a password of fewer than 8 characters', async ({ page, request }) => {
     const token = await askForResetLink(request, uniqueEmail('Alice'))
     await page.goto(`/reset-password?token=${token}`)
@@ -127,6 +138,8 @@ test.describe('Reset password', () => {
     await expect(page.getByText('My associations')).toBeHidden()
   })
 
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error message, and what was typed stays', async ({
     page,
     request,

@@ -44,6 +44,8 @@ function openDelete(page: Page) {
 }
 
 test.describe('Members: Rename the association', () => {
+  // /core/ui/members/rename
+  // /ui/forms/dialog
   test('its dialog shows the name, with Save enabled only when Name is not empty', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -57,6 +59,9 @@ test.describe('Members: Rename the association', () => {
     await expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled()
   })
 
+  // /core/ui/members/renamed
+  // /core/operations/update-association/renamed
+  // /ui/forms/success
   test('Save with another name closes the dialog, says so and updates the header', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -74,6 +79,7 @@ test.describe('Members: Rename the association', () => {
     )
   })
 
+  // /core/ui/members/same-name
   test('Save with the same name closes the dialog and says nothing', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -84,6 +90,7 @@ test.describe('Members: Rename the association', () => {
     await expect(page.getByText(/is now/)).toHaveCount(0)
   })
 
+  // /ui/forms/close
   test('Cancel closes it, changing nothing', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -96,6 +103,9 @@ test.describe('Members: Rename the association', () => {
     await expect(page.locator('header').getByRole('link', { name: NAME })).toBeVisible()
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error in the dialog', async ({ page, request }) => {
     await openMembers(page, request)
     await page.route('**/rename', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -110,6 +120,7 @@ test.describe('Members: Rename the association', () => {
 })
 
 test.describe('Members: Change the association identifier', () => {
+  // /core/ui/members/change-slug
   test('its dialog shows the slug, with Save enabled only when it is not empty', async ({ page, request }) => {
     const slug = await openMembers(page, request)
 
@@ -123,6 +134,8 @@ test.describe('Members: Change the association identifier', () => {
     await expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled()
   })
 
+  // /core/ui/members/slug-changed
+  // /core/operations/update-association/new-slug
   test('Save with another slug moves the screen to its new URL and says so', async ({ page, request }) => {
     await openMembers(page, request)
     const slug = uniqueSlug()
@@ -137,6 +150,7 @@ test.describe('Members: Change the association identifier', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0)
   })
 
+  // /core/ui/members/same-slug
   test('Save with the same slug closes the dialog and says nothing', async ({ page, request }) => {
     const slug = await openMembers(page, request)
 
@@ -148,6 +162,9 @@ test.describe('Members: Change the association identifier', () => {
     await expect(page.getByText(/is now/)).toHaveCount(0)
   })
 
+  // /core/ui/members/refused
+  // /core/ui/new-association/malformed
+  // /ui/errors/kept
   test('a malformed slug shows its message in the dialog, keeping what was typed', async ({ page, request }) => {
     const slug = await openMembers(page, request)
 
@@ -160,6 +177,8 @@ test.describe('Members: Change the association identifier', () => {
     await expect(page).toHaveURL(new RegExp(`/association/${slug}/members$`))
   })
 
+  // /core/ui/members/refused
+  // /core/ui/new-association/taken
   test('a taken slug shows its message in the dialog', async ({ page, request }) => {
     await openMembers(page, request)
     const taken = uniqueSlug()
@@ -172,6 +191,7 @@ test.describe('Members: Change the association identifier', () => {
     await expect(dialog.getByText(TAKEN)).toBeVisible()
   })
 
+  // /ui/forms/close
   test('Cancel closes it, changing nothing', async ({ page, request }) => {
     const slug = await openMembers(page, request)
 
@@ -185,6 +205,9 @@ test.describe('Members: Change the association identifier', () => {
     await expect(page.locator('header').getByText('Members')).toBeVisible()
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error in the dialog', async ({ page, request }) => {
     await openMembers(page, request)
     await page.route('**/identifier', (route) => route.abort())
@@ -197,6 +220,7 @@ test.describe('Members: Change the association identifier', () => {
     await expect(dialog.getByLabel('Association identifier')).toHaveValue('jardin-des-lilas')
   })
 
+  // /core/ui/members/slug-changed
   test('the message follows the language', async ({ page, request }) => {
     await openMembers(page, request)
     await inFrench(page)
@@ -215,6 +239,7 @@ test.describe('Members: Change the association identifier', () => {
 })
 
 test.describe('Members: Delete the association', () => {
+  // /core/ui/members/delete
   test('Delete is enabled only when the field holds exactly the name', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -233,6 +258,9 @@ test.describe('Members: Delete the association', () => {
     await expect(deleteButton).toBeEnabled()
   })
 
+  // /core/ui/members/delete
+  // /core/operations/delete-association/deleted
+  // /core/ui/unknown-association/shown
   test('confirming deletes it, leads to My associations and says so', async ({ page, request }) => {
     const slug = await openMembers(page, request)
 
@@ -250,6 +278,7 @@ test.describe('Members: Delete the association', () => {
     ).toBeVisible()
   })
 
+  // /ui/forms/cancel
   test('Cancel changes nothing', async ({ page, request }) => {
     const slug = await openMembers(page, request)
 
@@ -262,6 +291,8 @@ test.describe('Members: Delete the association', () => {
     await expect(page.locator('header').getByText('Members')).toBeVisible()
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
     await openMembers(page, request)
     await page.route('**/delete', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -274,6 +305,7 @@ test.describe('Members: Delete the association', () => {
     await expect(confirmation).toContainText(CONFIRM_DELETE)
   })
 
+  // /core/ui/members/delete
   test('the message follows the language', async ({ page, request }) => {
     await openMembers(page, request)
     await inFrench(page)

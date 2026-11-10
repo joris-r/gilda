@@ -163,6 +163,7 @@ def with_volunteer(client: Any, new_client: Callable[[], Any]) -> tuple[dict[str
 
 
 class TestMembers:
+    # /core/ui/members/list
     def test_shows_each_member_with_email_and_role(self, client: Any) -> None:
         association = managed(client)
         chloe = unique_email("Chloe")
@@ -175,6 +176,7 @@ class TestMembers:
         assert "volunteer" in line.lower()
         assert "manager" in line_of(page, "Alice").lower()
 
+    # /core/ui/members/list
     def test_lists_managers_first_then_by_display_name(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -189,6 +191,7 @@ class TestMembers:
         ]
         assert names == ["Alice", "Zoé", "Bruno", "Chloé"]
 
+    # /core/ui/members/list
     def test_shows_all_its_members_and_only_theirs(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -205,6 +208,7 @@ class TestMembers:
         assert "Zoé" not in page
         assert "David" not in page
 
+    # /core/ui/members/list
     def test_escapes_the_display_name(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "<b>Chloé</b>", unique_email("Chloe"))
@@ -214,6 +218,11 @@ class TestMembers:
         assert "<b>Chloé</b>" not in page
         assert "&lt;b&gt;Chloé&lt;/b&gt;" in page
 
+    # /core/ui/members/list
+    # /core/ui/members/not-joined
+    # /core/ui/members/manager
+    # /core/ui/header/location
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -227,6 +236,7 @@ class TestMembers:
         assert "pas encore connecté·e" in line_of(page, "Chloé")
         assert "Ajouter un membre" in text_of(part(page, "main"))
 
+    # /core/ui/access/signed-out
     def test_signed_out_shows_sign_in(self, client: Any, new_client: Callable[[], Any]) -> None:
         association = managed(client)
 
@@ -238,6 +248,8 @@ class TestMembers:
 
 
 class TestMembersHeader:
+    # /core/ui/header/location
+    # /core/ui/header/menu
     def test_shows_the_association_name_then_members(self, client: Any) -> None:
         association = managed(client)
 
@@ -247,6 +259,7 @@ class TestMembersHeader:
         assert header.index("Members") > header.index(NAME)
         assert "Alice" in header
 
+    # /core/ui/header/association-link
     def test_the_association_name_leads_to_its_schedule(self, client: Any) -> None:
         association = managed(client)
 
@@ -256,6 +269,7 @@ class TestMembersHeader:
             rf'<a[^>]*href="/association/{association["slug"]}"[^>]*>\s*{NAME}\s*</a>', header
         )
 
+    # /core/ui/header/title
     def test_the_location_stands_for_the_title(self, client: Any) -> None:
         association = managed(client)
 
@@ -265,6 +279,8 @@ class TestMembersHeader:
         assert "Members" not in shown_in_main
         assert NAME not in shown_in_main
 
+    # /core/ui/header/location
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         association = managed(client)
         client.cookies.set("language", "fr")
@@ -275,6 +291,7 @@ class TestMembersHeader:
 
 
 class TestNotJoinedYet:
+    # /core/ui/members/not-joined
     def test_shows_on_a_member_added_who_has_no_account(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -284,6 +301,7 @@ class TestNotJoinedYet:
         assert NOT_JOINED in line_of(page, "Chloé")
         assert NOT_JOINED not in line_of(page, "Alice")
 
+    # /core/ui/members/not-joined
     def test_shows_on_a_member_whose_account_is_not_confirmed(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -294,6 +312,8 @@ class TestNotJoinedYet:
 
         assert NOT_JOINED in line_of(members_page(client, association["slug"]), "Bruno")
 
+    # /core/ui/members/not-joined
+    # /core/operations/confirm-email/confirmed
     def test_leaves_once_the_member_confirms_their_email(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -306,6 +326,8 @@ class TestNotJoinedYet:
 
         assert NOT_JOINED not in line_of(members_page(client, association["slug"]), "Bruno")
 
+    # /core/ui/members/not-joined
+    # /core/operations/sign-in-by-access-link/signed-in
     def test_leaves_once_the_member_signs_in_by_link(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -320,6 +342,7 @@ class TestNotJoinedYet:
 
 
 class TestShowAll:
+    # /core/ui/members/first-five
     @pytest.mark.parametrize(("count", "shows_the_link"), [(5, False), (6, True), (7, True)])
     def test_shows_beyond_5_members(self, client: Any, count: int, shows_the_link: bool) -> None:
         association = managed(client)
@@ -331,6 +354,8 @@ class TestShowAll:
         assert (f"Show all {count} members" in main) is shows_the_link
         assert ("Show all" in main) is shows_the_link
 
+    # /core/ui/members/first-five
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         association = managed(client)
         for n in range(6):
@@ -341,6 +366,8 @@ class TestShowAll:
 
 
 class TestAsAManager:
+    # /core/ui/members/manager
+    # /ui/forms/create
     def test_shows_add_a_member(self, client: Any) -> None:
         association = managed(client)
 
@@ -348,6 +375,8 @@ class TestAsAManager:
 
         assert re.search(r"<button[^>]*>\s*\+\s*Add a member\s*</button>", main)
 
+    # /core/ui/members/add
+    # /ui/forms/dialog
     def test_the_add_a_member_dialog_has_its_title_fields_and_buttons(self, client: Any) -> None:
         association = managed(client)
 
@@ -366,6 +395,8 @@ class TestAsAManager:
         assert re.search(r"<button[^>]*>\s*Add member\s*</button>", form)
         assert re.search(r"<button[^>]*>\s*Cancel\s*</button>", form)
 
+    # /core/ui/members/manager
+    # /ui/forms/icon-names
     def test_each_member_has_its_edit_icon(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -375,6 +406,8 @@ class TestAsAManager:
         assert re.search(r'<button[^>]*aria-label="Edit Chloé"', main)
         assert re.search(r'<button[^>]*aria-label="Edit Alice"', main)
 
+    # /core/ui/members/manager
+    # /core/ui/header/language
     def test_the_edit_icon_follows_the_language(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -386,6 +419,7 @@ class TestAsAManager:
 
 
 class TestAsAVolunteer:
+    # /core/ui/members/volunteer
     def test_shows_the_members_and_their_roles_without_add_a_member(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -399,6 +433,7 @@ class TestAsAVolunteer:
         assert "Add member" not in page
         assert "Edit Alice" not in page
 
+    # /core/ui/members/volunteer
     def test_shows_no_edit_dialog(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -408,6 +443,7 @@ class TestAsAVolunteer:
         assert "Remove from the association" not in page
         assert "Remove Alice from the association?" not in page
 
+    # /core/ui/members/volunteer
     def test_shows_no_association_actions(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -420,6 +456,7 @@ class TestAsAVolunteer:
 
 
 class TestUnknownAssociation:
+    # /core/ui/unknown-association/shown
     def test_an_unknown_slug_says_so_with_a_way_to_my_associations(self, client: Any) -> None:
         sign_up(client, "Alice")
 
@@ -430,6 +467,7 @@ class TestUnknownAssociation:
         assert re.search(r'<a[^>]*href="/"[^>]*>\s*My associations\s*</a>', main)
         assert "Page not found" not in response.text
 
+    # /core/ui/unknown-association/shown
     def test_an_association_of_others_says_so(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -444,11 +482,14 @@ class TestUnknownAssociation:
         assert NAME not in response.text
         assert "Chloé" not in response.text
 
+    # /core/ui/unknown-association/shown
     def test_does_not_show_for_an_association_of_the_user(self, client: Any) -> None:
         association = managed(client)
 
         assert UNKNOWN not in html.unescape(members_page(client, association["slug"]))
 
+    # /core/ui/unknown-association/shown
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         sign_up(client, "Alice")
         client.cookies.set("language", "fr")
@@ -459,6 +500,8 @@ class TestUnknownAssociation:
 
 
 class TestAddingAMember:
+    # /core/ui/members/added
+    # /core/operations/add-member/new-user
     def test_shows_the_member_added_and_says_so(self, client: Any) -> None:
         association = managed(client)
         email = unique_email("Chloe")
@@ -471,6 +514,7 @@ class TestAddingAMember:
         assert email in line_of(page, "Chloé")
         assert "volunteer" in line_of(page, "Chloé").lower()
 
+    # /core/operations/add-member/new-user
     def test_can_add_a_manager(self, client: Any) -> None:
         association = managed(client)
 
@@ -478,6 +522,8 @@ class TestAddingAMember:
 
         assert "manager" in line_of(members_page(client, association["slug"]), "Zoé").lower()
 
+    # /core/operations/add-member/new-user
+    # /core/operations/create-account/claimed
     def test_otherwise_a_new_user_without_a_password_is_created(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -491,7 +537,10 @@ class TestAddingAMember:
         assert email in shown(response)
         assert "An account already exists" not in shown(response)
 
-    def test_r3_an_existing_user_keeps_their_display_name(
+    # /core/operations/add-member/existing-user
+    # /core/ui/members/added
+    # /core/model/user/email
+    def test_an_existing_user_keeps_their_display_name(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association = managed(client)
@@ -506,7 +555,8 @@ class TestAddingAMember:
         assert NOT_JOINED not in line_of(page, "Bruno")
         assert "Someone else" not in page
 
-    def test_r3_a_user_added_to_two_associations_is_one_user(self, client: Any) -> None:
+    # /core/operations/add-member/existing-user
+    def test_a_user_added_to_two_associations_is_one_user(self, client: Any) -> None:
         sign_up(client, "Alice")
         first = create_association(client, NAME)
         second = create_association(client, "Repair Café Belleville")
@@ -519,6 +569,9 @@ class TestAddingAMember:
         assert email in line_of(page, "Chloé")
         assert "Chloé B." not in page
 
+    # /core/ui/members/already
+    # /core/operations/add-member/already
+    # /core/model/membership/single
     def test_an_existing_member_says_so_and_changes_nothing(self, client: Any) -> None:
         association = managed(client)
         email = unique_email("Chloe")
@@ -531,6 +584,9 @@ class TestAddingAMember:
         assert member_count(client, association) == 2
         assert "volunteer" in line_of(members_page(client, association["slug"]), "Chloé").lower()
 
+    # /core/ui/members/added
+    # /core/ui/members/already
+    # /core/ui/header/language
     def test_messages_follow_the_language(self, client: Any) -> None:
         association = managed(client)
         email = unique_email("Chloe")
@@ -541,6 +597,8 @@ class TestAddingAMember:
         assert "Chloé ajouté·e." in shown(add_on_screen(client, slug, "Chloé", email))
         assert "Chloé est déjà membre." in shown(add_on_screen(client, slug, "Chloé", email))
 
+    # /ui/errors/generic
+    # /core/operations/general/refused
     @pytest.mark.parametrize(
         "body",
         [
@@ -563,6 +621,7 @@ class TestAddingAMember:
         assert "added." not in text
         assert member_count(client, association) == 1
 
+    # /core/operations/add-member/volunteer
     def test_a_volunteer_adds_no_one(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -571,6 +630,7 @@ class TestAddingAMember:
         assert "Chloé added." not in html.unescape(response.text)
         assert member_count(client, association) == 2
 
+    # /core/operations/general/unknown-association
     def test_a_non_member_adds_no_one(self, client: Any, new_client: Callable[[], Any]) -> None:
         association = managed(client)
         other = new_client()
@@ -581,6 +641,8 @@ class TestAddingAMember:
         assert "Chloé added." not in html.unescape(response.text)
         assert member_count(client, association) == 1
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_adds_no_one(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -594,6 +656,9 @@ class TestAddingAMember:
 
 
 class TestChangingTheRole:
+    # /core/ui/members/changed
+    # /core/operations/change-role/changed
+    # /core/ui/members/save
     def test_another_role_changes_it_and_says_so(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -604,6 +669,8 @@ class TestChangingTheRole:
         assert "Chloé is now manager." in text
         assert "manager" in role_of(client, association, "Chloé")
 
+    # /core/ui/members/changed
+    # /ui/forms/success
     def test_the_list_shows_the_new_role_at_once(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -614,6 +681,8 @@ class TestChangingTheRole:
         listed = [line for line in map(text_of, re.findall(r"<li.*?</li>", text, re.DOTALL))]
         assert any("Chloé" in line and "manager" in line.lower() for line in listed), text
 
+    # /core/ui/members/changed
+    # /core/operations/change-role/changed
     def test_a_manager_becomes_volunteer_when_another_manager_remains(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Zoé", unique_email("Zoe"), "manager")
@@ -624,6 +693,9 @@ class TestChangingTheRole:
         assert "Zoé is now volunteer." in text
         assert "volunteer" in role_of(client, association, "Zoé")
 
+    # /core/ui/members/changed
+    # /core/operations/change-role/changed
+    # /core/ui/members/volunteer
     def test_a_manager_may_demote_themself_when_another_manager_remains(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Zoé", unique_email("Zoe"), "manager")
@@ -634,6 +706,8 @@ class TestChangingTheRole:
         assert "Alice is now volunteer." in text
         assert "Add a member" not in members_page(client, association["slug"])
 
+    # /core/operations/change-role/changed
+    # /core/ui/members/manager
     def test_the_member_promoted_can_manage_the_association(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -644,6 +718,7 @@ class TestChangingTheRole:
 
         assert "Add a member" in members_page(bruno, association["slug"])
 
+    # /core/ui/members/same-role
     def test_the_same_role_changes_nothing(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -655,6 +730,9 @@ class TestChangingTheRole:
         assert GENERIC not in text
         assert "volunteer" in role_of(client, association, "Chloé")
 
+    # /core/ui/members/last-manager
+    # /core/operations/change-role/last-manager
+    # /core/model/membership/manager
     def test_demoting_the_last_manager_says_so_and_changes_nothing(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -666,6 +744,9 @@ class TestChangingTheRole:
         assert "is now" not in text
         assert "manager" in role_of(client, association, "Alice")
 
+    # /core/ui/members/changed
+    # /core/ui/members/last-manager
+    # /core/ui/header/language
     def test_messages_follow_the_language(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -681,6 +762,8 @@ class TestChangingTheRole:
             change_role(client, slug, alice, "volunteer")
         )
 
+    # /ui/errors/generic
+    # /core/operations/general/refused
     @pytest.mark.parametrize("body", [{}, {"role": ""}, {"role": "president"}])
     def test_a_missing_or_invalid_role_shows_the_generic_error_and_changes_nothing(
         self, client: Any, body: dict[str, str]
@@ -695,6 +778,8 @@ class TestChangingTheRole:
         assert GENERIC in text
         assert "volunteer" in role_of(client, association, "Chloé")
 
+    # /ui/errors/generic
+    # /core/operations/change-role/not-member
     def test_a_user_who_is_not_a_member_shows_the_generic_error(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -706,6 +791,7 @@ class TestChangingTheRole:
         assert GENERIC in text
         assert "Zoé" not in members_page(client, association["slug"])
 
+    # /core/operations/change-role/volunteer
     def test_a_volunteer_changes_no_role(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -715,6 +801,7 @@ class TestChangingTheRole:
         assert "is now" not in html.unescape(response.text)
         assert "volunteer" in role_of(client, association, "Bruno")
 
+    # /core/operations/general/unknown-association
     def test_a_non_member_changes_no_role(self, client: Any, new_client: Callable[[], Any]) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -727,6 +814,8 @@ class TestChangingTheRole:
         assert "is now" not in html.unescape(response.text)
         assert "volunteer" in role_of(client, association, "Chloé")
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_changes_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -742,6 +831,8 @@ class TestChangingTheRole:
 
 
 class TestRemovingAMember:
+    # /core/ui/members/removed
+    # /core/operations/remove-member/removed
     def test_removes_the_member_and_says_so(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -756,6 +847,8 @@ class TestRemovingAMember:
         assert UNKNOWN in html.unescape(page.text)
         assert association["name"] not in bruno.get("/").text
 
+    # /core/ui/members/removed
+    # /ui/forms/success
     def test_the_list_leaves_out_the_member_at_once(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -768,6 +861,8 @@ class TestRemovingAMember:
         assert any("Alice" in line for line in listed), text
         assert not any("Bruno" in line for line in listed)
 
+    # /core/operations/remove-member/removed
+    # /core/operations/add-member/existing-user
     def test_the_user_can_be_added_again(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
         email = email_of(client, association, "Bruno")
@@ -778,6 +873,8 @@ class TestRemovingAMember:
         assert "Bruno added." in text
         assert UNKNOWN not in html.unescape(members_page(bruno, association["slug"]))
 
+    # /core/ui/members/removed
+    # /core/operations/remove-member/removed
     def test_a_manager_removes_another_manager(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Zoé", unique_email("Zoe"), "manager")
@@ -788,6 +885,9 @@ class TestRemovingAMember:
         assert "Zoé is removed." in text
         assert "Zoé" not in members_page(client, association["slug"])
 
+    # /core/ui/members/remove-last-manager
+    # /core/operations/remove-member/last-manager
+    # /core/model/membership/manager
     def test_removing_the_last_manager_says_so_and_changes_nothing(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -799,6 +899,8 @@ class TestRemovingAMember:
         assert "is removed." not in text
         assert "manager" in role_of(client, association, "Alice")
 
+    # /core/ui/members/themself
+    # /core/operations/remove-member/removed
     def test_a_manager_who_removes_themself_is_led_to_my_associations(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Zoé", unique_email("Zoe"), "manager")
@@ -810,6 +912,7 @@ class TestRemovingAMember:
         page = html.unescape(client.get(f"/association/{association['slug']}/members").text)
         assert UNKNOWN in page
 
+    # /core/ui/members/remove
     def test_the_confirmation_asks_with_the_member_name(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -820,6 +923,9 @@ class TestRemovingAMember:
             "Remove Chloé from the association? Their upcoming registrations are cancelled." in page
         )
 
+    # /core/ui/members/removed
+    # /core/ui/members/remove-last-manager
+    # /core/ui/header/language
     def test_messages_follow_the_language(self, client: Any) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -833,6 +939,8 @@ class TestRemovingAMember:
         )
         assert "Chloé est retiré·e." in shown(remove_member(client, slug, chloe))
 
+    # /ui/errors/generic
+    # /core/operations/remove-member/not-member
     def test_a_user_who_is_not_a_member_shows_the_generic_error(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -844,6 +952,7 @@ class TestRemovingAMember:
         assert GENERIC in text
         assert "is removed." not in text
 
+    # /core/operations/remove-member/volunteer
     def test_a_volunteer_removes_no_one(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -852,6 +961,7 @@ class TestRemovingAMember:
         assert "is removed." not in html.unescape(response.text)
         assert member_count(client, association) == 2
 
+    # /core/operations/general/unknown-association
     def test_a_non_member_removes_no_one(self, client: Any, new_client: Callable[[], Any]) -> None:
         association = managed(client)
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
@@ -863,6 +973,8 @@ class TestRemovingAMember:
         assert "is removed." not in html.unescape(response.text)
         assert member_count(client, association) == 2
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_removes_no_one(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -878,6 +990,8 @@ class TestRemovingAMember:
 
 
 class TestSignInLinkSection:
+    # /core/ui/members/edit
+    # /core/ui/members/send-link
     def test_the_edit_dialog_offers_send_link_with_its_confirmation(self, client: Any) -> None:
         association, _, _ = with_member(client)
 
@@ -888,6 +1002,7 @@ class TestSignInLinkSection:
         assert "Send Chloé's sign-in link by email?" in main
         assert re.search(r"<button[^>]*>\s*Send\s*</button>", main)
 
+    # /core/ui/members/revoke-link
     def test_revoke_link_shows_only_for_a_member_with_an_access_link(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -902,6 +1017,10 @@ class TestSignInLinkSection:
         assert re.search(r"<button[^>]*>\s*Revoke link\s*</button>", main)
         assert re.search(r"<button[^>]*>\s*Revoke\s*</button>", main)
 
+    # /core/ui/members/edit
+    # /core/ui/members/send-link
+    # /core/ui/members/revoke-link
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, _, _ = with_link(client, new_client)
         client.cookies.set("language", "fr")
@@ -912,6 +1031,7 @@ class TestSignInLinkSection:
         assert "Envoyer le lien de connexion de Chloé par e-mail ?" in main
         assert "Révoquer le lien de connexion de Chloé ?" in main
 
+    # /core/ui/members/volunteer
     def test_a_volunteer_sees_none(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -923,9 +1043,9 @@ class TestSignInLinkSection:
 
 
 class TestRevokingALink:
-    def test_r23_revokes_the_link_and_says_so(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
+    # /core/ui/members/revoke-link
+    # /core/operations/revoke-access-link/revoked
+    def test_revokes_the_link_and_says_so(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, chloe, token = with_link(client, new_client)
         phone = new_client()
         open_link(phone, token)
@@ -937,6 +1057,8 @@ class TestRevokingALink:
         assert not signs_in(new_client(), token)
         assert REVOKE_CHLOE not in html.unescape(members_page(client, association["slug"]))
 
+    # /core/ui/members/revoke-link
+    # /ui/forms/success
     def test_the_dialog_no_longer_offers_revoke_link_at_once(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -947,7 +1069,8 @@ class TestRevokingALink:
         assert "Chloé" in text
         assert REVOKE_CHLOE not in text
 
-    def test_r23_keeps_the_members_password_sessions_signed_in(
+    # /core/operations/revoke-access-link/revoked
+    def test_keeps_the_members_password_sessions_signed_in(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association, bruno = with_volunteer(client, new_client)
@@ -961,6 +1084,8 @@ class TestRevokingALink:
         assert signed_in_as(bruno) is not None
         assert not signs_in(new_client(), token)
 
+    # /core/ui/members/revoke-link
+    # /core/ui/header/language
     def test_the_message_follows_the_language(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -971,6 +1096,8 @@ class TestRevokingALink:
 
         assert "Le lien de connexion de Chloé est révoqué." in text
 
+    # /ui/errors/generic
+    # /core/operations/revoke-access-link/not-member
     def test_a_user_who_is_not_a_member_shows_the_generic_error(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -986,6 +1113,7 @@ class TestRevokingALink:
         assert "is revoked." not in text
         assert signs_in(new_client(), token)
 
+    # /core/operations/revoke-access-link/volunteer
     def test_a_volunteer_revokes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, chloe, token = with_link(client, new_client)
         bruno = new_client()
@@ -998,6 +1126,7 @@ class TestRevokingALink:
         assert "is revoked." not in html.unescape(response.text)
         assert signs_in(new_client(), token)
 
+    # /core/operations/general/unknown-association
     def test_a_non_member_revokes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, chloe, token = with_link(client, new_client)
         other = new_client()
@@ -1008,6 +1137,8 @@ class TestRevokingALink:
         assert "is revoked." not in html.unescape(response.text)
         assert signs_in(new_client(), token)
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_revokes_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1021,9 +1152,9 @@ class TestRevokingALink:
 
 
 class TestSendingALink:
-    def test_r26_sends_the_email_and_says_so(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
+    # /core/ui/members/sent
+    # /core/operations/send-access-link/sent
+    def test_sends_the_email_and_says_so(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, chloe, email = with_member(client)
 
         text = shown(send_member_link(client, association["slug"], chloe))
@@ -1034,6 +1165,8 @@ class TestSendingALink:
         assert signs_in(browser, latest_access_token(email))
         assert signed_in_as(browser) == "Chloé"
 
+    # /core/ui/members/revoke-link
+    # /ui/forms/success
     def test_the_dialog_offers_revoke_link_at_once(self, client: Any) -> None:
         association, chloe, _ = with_member(client)
 
@@ -1041,7 +1174,11 @@ class TestSendingALink:
 
         assert REVOKE_CHLOE in text
 
-    def test_r26_the_email_and_the_message_follow_the_managers_language(self, client: Any) -> None:
+    # /core/ui/members/sent
+    # /core/operations/send-access-link/sent
+    # /ui/language/default
+    # /ui/language/emails
+    def test_the_email_and_the_message_follow_the_managers_language(self, client: Any) -> None:
         association, chloe, email = with_member(client)
 
         response = send_member_link(
@@ -1054,9 +1191,9 @@ class TestSendingALink:
         assert "Le lien de connexion de Chloé est envoyé." in shown(response)
         assert latest_email(email)["Subject"] == LINK_SUBJECT["fr"]
 
-    def test_r20_r26_the_managers_language_cookie_wins_over_their_browser(
-        self, client: Any
-    ) -> None:
+    # /core/operations/send-access-link/sent
+    # /core/ui/header/language
+    def test_the_managers_language_cookie_wins_over_their_browser(self, client: Any) -> None:
         association, chloe, email = with_member(client)
         client.cookies.set("language", "fr")
 
@@ -1064,7 +1201,9 @@ class TestSendingALink:
 
         assert latest_email(email)["Subject"] == LINK_SUBJECT["fr"]
 
-    def test_r26_r25_sending_again_sends_the_same_link(
+    # /core/operations/send-access-link/sent
+    # /core/operations/request-access-link/same
+    def test_sending_again_sends_the_same_link(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association, chloe, first_token = with_link(client, new_client)
@@ -1076,7 +1215,9 @@ class TestSendingALink:
         assert email_count(email) == 2
         assert latest_access_token(email) == first_token
 
-    def test_r26_a_manager_sends_their_own_link(self, client: Any) -> None:
+    # /core/ui/members/sent
+    # /core/operations/send-access-link/sent
+    def test_a_manager_sends_their_own_link(self, client: Any) -> None:
         association, _, _ = with_member(client)
         alice = user_id(client, association, "Alice")
 
@@ -1085,6 +1226,8 @@ class TestSendingALink:
         assert "Alice's sign-in link is sent." in text
         latest_access_token(email_of(client, association, "Alice"))
 
+    # /core/ui/members/not-sent
+    # /core/operations/send-access-link/not-sent
     def test_when_the_email_cannot_be_sent_says_so(
         self, client: Any, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -1098,6 +1241,8 @@ class TestSendingALink:
         monkeypatch.undo()
         assert no_email_sent(email)
 
+    # /core/ui/members/not-sent
+    # /core/ui/header/language
     def test_when_the_email_cannot_be_sent_follows_the_language(
         self, client: Any, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -1109,6 +1254,8 @@ class TestSendingALink:
 
         assert "Le lien de connexion de Chloé n'a pas pu être envoyé. Réessayez plus tard." in text
 
+    # /ui/errors/generic
+    # /core/operations/send-access-link/not-member
     def test_a_user_who_is_not_a_member_shows_the_generic_error(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1123,6 +1270,7 @@ class TestSendingALink:
         assert "is sent." not in text
         assert no_email_sent(email, already=1)  # only the confirmation email
 
+    # /core/operations/send-access-link/volunteer
     def test_a_volunteer_sends_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
         chloe_email = unique_email("Chloe")
@@ -1135,6 +1283,7 @@ class TestSendingALink:
         assert "is sent." not in html.unescape(response.text)
         assert no_email_sent(chloe_email)
 
+    # /core/operations/general/unknown-association
     def test_a_non_member_sends_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, chloe, email = with_member(client)
         other = new_client()
@@ -1145,6 +1294,8 @@ class TestSendingALink:
         assert "is sent." not in html.unescape(response.text)
         assert no_email_sent(email)
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_sends_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1186,6 +1337,7 @@ def other_user(new_client: Callable[[], Any]) -> Any:
 
 
 class TestAssociationActions:
+    # /core/ui/members/manager
     def test_a_manager_sees_the_three_actions(self, client: Any) -> None:
         association = managed(client)
 
@@ -1195,6 +1347,7 @@ class TestAssociationActions:
         assert re.search(r"<button[^>]*>\s*Change the association identifier\s*</button>", main)
         assert re.search(r"<button[^>]*>\s*Delete the association\s*</button>", main)
 
+    # /core/ui/members/rename
     def test_rename_the_association_opens_its_dialog(self, client: Any) -> None:
         association = managed(client)
 
@@ -1203,6 +1356,7 @@ class TestAssociationActions:
         assert re.search(r"<h2[^>]*>\s*Rename the association\s*</h2>", main)
         assert re.search(r"<label[^>]*>\s*Name\b", main)
 
+    # /core/ui/members/change-slug
     def test_change_the_association_identifier_opens_its_dialog(self, client: Any) -> None:
         association = managed(client)
 
@@ -1212,6 +1366,7 @@ class TestAssociationActions:
         assert re.search(r"<label[^>]*>\s*Association identifier\b", main)
         assert "/association/" in text_of(main)
 
+    # /core/ui/members/delete
     def test_delete_the_association_asks_with_its_name(self, client: Any) -> None:
         association = managed(client)
 
@@ -1221,6 +1376,9 @@ class TestAssociationActions:
         assert "Type the association's name to confirm" in main
         assert re.search(r"<button[^>]*>\s*Delete\s*</button>", main)
 
+    # /core/ui/members/manager
+    # /core/ui/members/delete
+    # /core/ui/header/language
     def test_follow_the_language(self, client: Any) -> None:
         association = managed(client)
         client.cookies.set("language", "fr")
@@ -1235,6 +1393,8 @@ class TestAssociationActions:
 
 
 class TestRenamingTheAssociation:
+    # /core/ui/members/renamed
+    # /core/operations/update-association/renamed
     def test_another_name_changes_it_and_says_so(self, client: Any) -> None:
         association = managed(client)
 
@@ -1245,6 +1405,8 @@ class TestRenamingTheAssociation:
         assert NEW_NAME in text_of(part(members_page(client, association["slug"]), "header"))
         assert NEW_NAME in client.get("/").text
 
+    # /core/ui/members/renamed
+    # /core/ui/header/association-link
     def test_updates_the_header_at_once(self, client: Any) -> None:
         association = managed(client)
 
@@ -1253,6 +1415,7 @@ class TestRenamingTheAssociation:
         slug = association["slug"]
         assert re.search(rf'<a[^>]*href="/association/{slug}"[^>]*>\s*{NEW_NAME}\s*</a>', text)
 
+    # /core/operations/update-association/renamed
     def test_the_slug_stays_unchanged(self, client: Any) -> None:
         association = managed(client)
 
@@ -1261,6 +1424,7 @@ class TestRenamingTheAssociation:
         assert slug_of(client, association) == association["slug"]
         assert UNKNOWN not in html.unescape(members_page(client, association["slug"]))
 
+    # /core/ui/members/same-name
     def test_the_same_name_changes_nothing(self, client: Any) -> None:
         association = managed(client)
 
@@ -1270,6 +1434,8 @@ class TestRenamingTheAssociation:
         assert GENERIC not in text
         assert name_of(client, association) == NAME
 
+    # /core/ui/members/renamed
+    # /core/operations/update-association/renamed
     def test_accepts_the_name_of_another_association(self, client: Any) -> None:
         association = managed(client)
         create_association(client, NEW_NAME)
@@ -1279,6 +1445,7 @@ class TestRenamingTheAssociation:
         assert f"The association is now {NEW_NAME}." in text
         assert name_of(client, association) == NEW_NAME
 
+    # /core/ui/members/renamed
     def test_escapes_the_name(self, client: Any) -> None:
         association = managed(client)
 
@@ -1287,6 +1454,7 @@ class TestRenamingTheAssociation:
         assert "<b>Jardin</b>" not in response.text
         assert "<b>Jardin</b>" not in members_page(client, association["slug"])
 
+    # /core/operations/update-association/renamed
     def test_by_any_manager(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
         promoted(client, association, "Bruno")
@@ -1295,6 +1463,7 @@ class TestRenamingTheAssociation:
 
         assert name_of(client, association) == NEW_NAME
 
+    # /core/operations/update-association/silent
     def test_the_members_are_not_told(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, _ = with_volunteer(client, new_client)
         email = email_of(client, association, "Bruno")
@@ -1304,6 +1473,8 @@ class TestRenamingTheAssociation:
 
         assert no_email_sent(email, already=before)
 
+    # /core/ui/members/renamed
+    # /core/ui/header/language
     def test_the_message_follows_the_language(self, client: Any) -> None:
         association = managed(client)
         client.cookies.set("language", "fr")
@@ -1312,6 +1483,8 @@ class TestRenamingTheAssociation:
 
         assert f"L'association s'appelle désormais {NEW_NAME}." in text
 
+    # /ui/errors/generic
+    # /core/model/association/name
     @pytest.mark.parametrize("body", [{}, {"name": ""}])
     def test_a_missing_or_empty_name_shows_the_generic_error_and_changes_nothing(
         self, client: Any, body: dict[str, str]
@@ -1323,6 +1496,7 @@ class TestRenamingTheAssociation:
         assert GENERIC in text
         assert name_of(client, association) == NAME
 
+    # /core/operations/update-association/volunteer
     def test_a_volunteer_renames_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -1331,6 +1505,7 @@ class TestRenamingTheAssociation:
         assert "is now" not in html.unescape(response.text)
         assert name_of(client, association) == NAME
 
+    # /core/operations/general/unknown-association
     def test_a_non_member_renames_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association = managed(client)
 
@@ -1339,6 +1514,8 @@ class TestRenamingTheAssociation:
         assert "is now" not in html.unescape(response.text)
         assert name_of(client, association) == NAME
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_renames_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1352,6 +1529,8 @@ class TestRenamingTheAssociation:
 
 
 class TestChangingTheIdentifier:
+    # /core/ui/members/slug-changed
+    # /core/operations/update-association/new-slug
     def test_another_slug_changes_it_and_leads_to_its_new_url(self, client: Any) -> None:
         association = managed(client)
         slug = unique_slug()
@@ -1362,6 +1541,8 @@ class TestChangingTheIdentifier:
         assert slug_of(client, association) == slug
         assert NAME in members_page(client, slug)
 
+    # /core/model/association/slug-format
+    # /core/operations/update-association/new-slug
     def test_accepts_a_slug_of_50_characters(self, client: Any) -> None:
         association = managed(client)
         slug = unique_slug().ljust(50, "x")
@@ -1370,7 +1551,9 @@ class TestChangingTheIdentifier:
 
         assert slug_of(client, association) == slug
 
-    def test_r36_the_former_slug_no_longer_leads_to_the_association(self, client: Any) -> None:
+    # /core/operations/update-association/new-slug
+    # /core/ui/unknown-association/shown
+    def test_the_former_slug_no_longer_leads_to_the_association(self, client: Any) -> None:
         association = managed(client)
 
         shown(change_identifier(client, association["slug"], unique_slug()))
@@ -1378,7 +1561,8 @@ class TestChangingTheIdentifier:
         page = html.unescape(client.get(f"/association/{association['slug']}/members").text)
         assert UNKNOWN in page
 
-    def test_r36_another_association_can_take_the_former_slug(
+    # /core/operations/update-association/new-slug
+    def test_another_association_can_take_the_former_slug(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association = managed(client)
@@ -1390,6 +1574,7 @@ class TestChangingTheIdentifier:
 
         assert "Repair Café" in members_page(other, theirs["slug"])
 
+    # /core/ui/members/same-slug
     def test_the_same_slug_changes_nothing(self, client: Any) -> None:
         association = managed(client)
 
@@ -1400,6 +1585,9 @@ class TestChangingTheIdentifier:
         assert TAKEN_SLUG not in text
         assert slug_of(client, association) == association["slug"]
 
+    # /core/ui/members/refused
+    # /core/operations/update-association/malformed-slug
+    # /core/model/association/slug-format
     @pytest.mark.parametrize(
         "slug", ["Jardin", "jardin lilas", "jardin_lilas", "-jardin", "jardin-", "jardín", "a" * 51]
     )
@@ -1412,6 +1600,8 @@ class TestChangingTheIdentifier:
         assert "window.location" not in text
         assert slug_of(client, association) == association["slug"]
 
+    # /core/ui/members/refused
+    # /core/operations/update-association/taken
     def test_a_slug_taken_by_another_association_shows_its_message(self, client: Any) -> None:
         association = managed(client)
         other = create_association(client, "Repair Café", unique_slug())
@@ -1421,6 +1611,8 @@ class TestChangingTheIdentifier:
         assert TAKEN_SLUG in text
         assert slug_of(client, association) == association["slug"]
 
+    # /core/ui/members/refused
+    # /core/operations/update-association/taken
     def test_the_slug_new_shows_the_taken_message(self, client: Any) -> None:
         association = managed(client)
 
@@ -1429,6 +1621,8 @@ class TestChangingTheIdentifier:
         assert TAKEN_SLUG in text
         assert slug_of(client, association) == association["slug"]
 
+    # /core/ui/members/refused
+    # /core/ui/header/language
     def test_messages_follow_the_language(self, client: Any) -> None:
         association = managed(client)
         other = create_association(client, "Repair Café", unique_slug())
@@ -1442,6 +1636,8 @@ class TestChangingTheIdentifier:
             change_identifier(client, slug, other["slug"])
         )
 
+    # /ui/errors/generic
+    # /core/operations/general/refused
     def test_a_missing_slug_shows_the_generic_error(self, client: Any) -> None:
         association = managed(client)
 
@@ -1450,6 +1646,7 @@ class TestChangingTheIdentifier:
         assert GENERIC in text
         assert slug_of(client, association) == association["slug"]
 
+    # /core/operations/update-association/new-slug
     def test_by_any_manager(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
         promoted(client, association, "Bruno")
@@ -1459,6 +1656,7 @@ class TestChangingTheIdentifier:
 
         assert slug_of(client, association) == slug
 
+    # /core/operations/update-association/silent
     def test_the_members_are_not_told(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, _ = with_volunteer(client, new_client)
         email = email_of(client, association, "Bruno")
@@ -1468,6 +1666,7 @@ class TestChangingTheIdentifier:
 
         assert no_email_sent(email, already=before)
 
+    # /core/operations/update-association/volunteer
     def test_a_volunteer_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
         slug = unique_slug()
@@ -1477,6 +1676,7 @@ class TestChangingTheIdentifier:
         assert slug not in response.text
         assert slug_of(client, association) == association["slug"]
 
+    # /core/operations/general/unknown-association
     def test_a_non_member_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association = managed(client)
         slug = unique_slug()
@@ -1486,6 +1686,8 @@ class TestChangingTheIdentifier:
         assert slug not in response.text
         assert slug_of(client, association) == association["slug"]
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_changes_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1500,6 +1702,8 @@ class TestChangingTheIdentifier:
 
 
 class TestDeletingTheAssociation:
+    # /core/ui/members/delete
+    # /core/operations/delete-association/deleted
     def test_deletes_it_and_leads_to_my_associations(self, client: Any) -> None:
         association = managed(client)
 
@@ -1510,6 +1714,7 @@ class TestDeletingTheAssociation:
         page = html.unescape(client.get(f"/association/{association['slug']}/members").text)
         assert UNKNOWN in page
 
+    # /core/operations/delete-association/deleted
     def test_by_any_manager(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
         promoted(client, association, "Bruno")
@@ -1518,7 +1723,8 @@ class TestDeletingTheAssociation:
 
         assert names_listed(client) == []
 
-    def test_r34_members_stay_users_in_their_other_associations(
+    # /core/operations/delete-association/silent
+    def test_members_stay_users_in_their_other_associations(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association, bruno = with_volunteer(client, new_client)
@@ -1531,7 +1737,8 @@ class TestDeletingTheAssociation:
         assert names_listed(bruno) == [other["name"]]
         assert "Repair Café Belleville" in members_page(client, other["slug"])
 
-    def test_r34_a_member_left_in_no_association_stays_a_user(
+    # /core/operations/delete-association/silent
+    def test_a_member_left_in_no_association_stays_a_user(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         association, bruno = with_volunteer(client, new_client)
@@ -1541,7 +1748,9 @@ class TestDeletingTheAssociation:
         assert signed_in_as(bruno) is not None
         assert names_listed(bruno) == []
 
-    def test_r34_an_added_user_can_be_added_to_another_association_afterwards(
+    # /core/operations/delete-association/silent
+    # /core/operations/add-member/existing-user
+    def test_an_added_user_can_be_added_to_another_association_afterwards(
         self, client: Any
     ) -> None:
         association, chloe, email = with_member(client)
@@ -1553,7 +1762,8 @@ class TestDeletingTheAssociation:
         assert "Chloé added." in text
         assert user_id(client, other, "Chloé") == chloe
 
-    def test_r34_the_members_are_not_told(self, client: Any, new_client: Callable[[], Any]) -> None:
+    # /core/operations/delete-association/silent
+    def test_the_members_are_not_told(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, _ = with_volunteer(client, new_client)
         email = email_of(client, association, "Bruno")
         before = email_count(email)
@@ -1562,6 +1772,39 @@ class TestDeletingTheAssociation:
 
         assert no_email_sent(email, already=before)
 
+    # /core/ui/members/delete-refused
+    # /core/operations/delete-association/volunteer
+    def test_refused_shows_members_again_as_it_now_is(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, bruno = with_volunteer(client, new_client)
+        promoted(client, association, "Bruno")
+        assert "Delete the association" in html.unescape(members_page(bruno, association["slug"]))
+        member = user_id(client, association, "Bruno")
+        shown(change_role(client, association["slug"], member, "volunteer"))
+
+        text = shown(delete_association(bruno, association["slug"]))
+
+        assert f"window.location = '/association/{association['slug']}/members'" in text, text
+        page = html.unescape(members_page(bruno, association["slug"]))
+        assert UNKNOWN not in page
+        assert "Delete the association" not in page
+
+    # /core/ui/members/delete-refused
+    # /core/operations/general/unknown-association
+    def test_refused_once_deleted_shows_the_unknown_association(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, bruno = with_volunteer(client, new_client)
+        promoted(client, association, "Bruno")
+        shown(delete_association(client, association["slug"]))
+
+        text = shown(delete_association(bruno, association["slug"]))
+
+        assert f"window.location = '/association/{association['slug']}/members'" in text, text
+        assert UNKNOWN in html.unescape(members_page(bruno, association["slug"]))
+
+    # /core/operations/delete-association/volunteer
     def test_a_volunteer_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -1569,6 +1812,7 @@ class TestDeletingTheAssociation:
 
         assert UNKNOWN not in html.unescape(members_page(client, association["slug"]))
 
+    # /core/operations/general/unknown-association
     def test_a_non_member_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association = managed(client)
 
@@ -1576,6 +1820,8 @@ class TestDeletingTheAssociation:
 
         assert UNKNOWN not in html.unescape(members_page(client, association["slug"]))
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_deletes_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:

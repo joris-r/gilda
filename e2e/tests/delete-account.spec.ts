@@ -24,6 +24,7 @@ async function expectStillSignedIn(page: Page) {
 }
 
 test.describe('Header', () => {
+  // /core/ui/header/menu
   test('the display name opens the menu', async ({ page, request }) => {
     await signedIn(page, request)
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeHidden()
@@ -36,6 +37,7 @@ test.describe('Header', () => {
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
   })
 
+  // /core/ui/header/language
   test('the language selector of the menu switches the language', async ({ page, request }) => {
     await signedIn(page, request)
 
@@ -47,6 +49,8 @@ test.describe('Header', () => {
 })
 
 test.describe('Delete my account', () => {
+  // /core/ui/header/delete
+  // /core/operations/delete-account/deleted
   test('asks for confirmation, and confirming leads to Sign in', async ({ page, request }) => {
     const email = await signedIn(page, request)
 
@@ -60,6 +64,8 @@ test.describe('Delete my account', () => {
     await expect(page.getByText('Wrong email or password.')).toBeVisible()
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('on failure, the dialog stays open with its message', async ({ page, request }) => {
     await signedIn(page, request)
     await page.route('**/delete-account', (route) => route.abort())
@@ -73,6 +79,7 @@ test.describe('Delete my account', () => {
 })
 
 test.describe('Forms: a confirmation', () => {
+  // /ui/forms/cancel
   test('Cancel closes it, changing nothing', async ({ page, request }) => {
     await signedIn(page, request)
 
@@ -83,6 +90,7 @@ test.describe('Forms: a confirmation', () => {
     await expectStillSignedIn(page)
   })
 
+  // /ui/forms/cancel
   test('Escape closes it, changing nothing', async ({ page, request }) => {
     await signedIn(page, request)
 
@@ -93,6 +101,7 @@ test.describe('Forms: a confirmation', () => {
     await expectStillSignedIn(page)
   })
 
+  // /ui/forms/cancel
   test('Cancel after a failed try changes nothing, later either', async ({ page, request }) => {
     await signedIn(page, request)
     let failed = false
@@ -111,6 +120,8 @@ test.describe('Forms: a confirmation', () => {
     await expectStillSignedIn(page)
   })
 
+  // /ui/forms/confirmation
+  // /core/ui/header/delete
   test('it opens again after being closed', async ({ page, request }) => {
     await signedIn(page, request)
 

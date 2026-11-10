@@ -112,4 +112,4 @@ deployment follows the same steps, before the first start.
 
 ## Dev43
 
-The development process is Dev43: see `spec/`.
+The development process is Dev43: see `docs/`.

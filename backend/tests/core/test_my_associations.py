@@ -68,6 +68,8 @@ def new_association(client: Any) -> str:
 
 
 class TestMyAssociations:
+    # /home/ui/my-associations/list
+    # /home/operations/list-my-associations/listed
     def test_shows_each_association_with_the_users_role(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -84,6 +86,8 @@ class TestMyAssociations:
         assert "manager" in line_of(page, NAME).lower()
         assert "volunteer" in line_of(page, "Repair Café Belleville").lower()
 
+    # /home/ui/my-associations/list
+    # /core/ui/header/language
     def test_roles_follow_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         alice = sign_up(client, "Alice")
         create_association(client, NAME)
@@ -98,6 +102,7 @@ class TestMyAssociations:
         assert "responsable" in line_of(page, NAME).lower()
         assert "bénévole" in line_of(page, "Repair Café Belleville").lower()
 
+    # /home/operations/list-my-associations/listed
     def test_shows_only_the_users_associations(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -108,6 +113,7 @@ class TestMyAssociations:
 
         assert "Repair Café Belleville" not in my_associations(client)
 
+    # /home/ui/my-associations/list
     def test_each_name_leads_to_the_associations_schedule(self, client: Any) -> None:
         sign_up(client, "Alice")
         slug = unique_slug()
@@ -117,6 +123,7 @@ class TestMyAssociations:
 
         assert re.search(rf'<a[^>]*href="/association/{slug}"[^>]*>\s*{NAME}\s*</a>', page)
 
+    # /home/ui/my-associations/none
     def test_with_no_association_shows_the_message(self, client: Any) -> None:
         sign_up(client, "Alice")
 
@@ -124,12 +131,16 @@ class TestMyAssociations:
 
         assert "You are not a member of any association yet." in part(page, "main")
 
+    # /home/ui/my-associations/none
     def test_with_an_association_does_not_show_the_message(self, client: Any) -> None:
         sign_up(client, "Alice")
         create_association(client, NAME)
 
         assert "You are not a member of any association yet." not in my_associations(client)
 
+    # /home/ui/my-associations/none
+    # /home/ui/my-associations/new
+    # /core/ui/header/language
     def test_the_message_and_new_association_follow_the_language(self, client: Any) -> None:
         sign_up(client, "Alice")
         client.cookies.set("language", "fr")
@@ -139,6 +150,7 @@ class TestMyAssociations:
         assert FR_NONE in page
         assert "Nouvelle association" in page
 
+    # /home/ui/my-associations/new
     @pytest.mark.parametrize("with_association", [False, True])
     def test_new_association_leads_to_its_screen(self, client: Any, with_association: bool) -> None:
         sign_up(client, "Alice")
@@ -162,6 +174,7 @@ class TestMyAssociations:
 
 
 class TestNewAssociationScreen:
+    # /core/ui/new-association/form
     def test_shows_the_form(self, client: Any) -> None:
         sign_up(client, "Alice")
 
@@ -173,6 +186,7 @@ class TestNewAssociationScreen:
         assert "/association/" in text_of(page)
         assert re.search(r"<button[^>]*>\s*Create association\s*</button>", page)
 
+    # /core/ui/new-association/cancel
     def test_cancel_leads_to_my_associations(self, client: Any) -> None:
         sign_up(client, "Alice")
 
@@ -180,6 +194,8 @@ class TestNewAssociationScreen:
 
         assert re.search(r'<a[^>]*href="/"[^>]*>\s*Cancel\s*</a>', page)
 
+    # /core/ui/header/location
+    # /core/ui/header/menu
     def test_header_location_leads_to_my_associations_then_names_the_screen(
         self, client: Any
     ) -> None:
@@ -191,6 +207,9 @@ class TestNewAssociationScreen:
         assert "New association" in text_of(header)
         assert "Alice" in header
 
+    # /core/ui/header/location
+    # /core/ui/new-association/form
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         sign_up(client, "Alice")
         client.cookies.set("language", "fr")
@@ -200,6 +219,7 @@ class TestNewAssociationScreen:
         assert "Mes associations" in part(page, "header")
         assert "Nouvelle association" in part(page, "main")
 
+    # /core/ui/access/signed-out
     def test_signed_out_shows_sign_in(self, client: Any) -> None:
         response = client.get("/association/new")
 
@@ -208,6 +228,8 @@ class TestNewAssociationScreen:
 
 
 class TestCreating:
+    # /core/operations/create-association/created
+    # /core/ui/new-association/create
     def test_makes_the_user_its_manager(self, client: Any) -> None:
         sign_up(client, "Alice")
         slug = unique_slug()
@@ -218,6 +240,7 @@ class TestCreating:
         assert f'href="/association/{slug}"' in my_associations(client)
         assert "manager" in line_of(my_associations(client), NAME).lower()
 
+    # /core/ui/new-association/created
     def test_leads_to_the_new_associations_schedule(self, client: Any) -> None:
         sign_up(client, "Alice")
         slug = unique_slug()
@@ -227,6 +250,9 @@ class TestCreating:
         assert "window.location" in text
         assert f"/association/{slug}" in text
 
+    # /core/ui/new-association/malformed
+    # /core/operations/create-association/malformed-slug
+    # /core/model/association/slug-format
     @pytest.mark.parametrize(
         "slug",
         ["Jardin", "jardin lilas", "jardin_lilas", "-jardin", "jardin-", "jardín", "a" * 51],
@@ -240,6 +266,7 @@ class TestCreating:
         assert "window.location" not in text
         assert names_listed(client) == []
 
+    # /core/model/association/slug-format
     @pytest.mark.parametrize("slug", ["a", "7", "2-jardins", "jardin-des-lilas"])
     def test_a_well_formed_slug_is_not_refused_as_malformed(self, client: Any, slug: str) -> None:
         sign_up(client, "Alice")
@@ -250,6 +277,8 @@ class TestCreating:
         assert MALFORMED_EN not in text
         assert f"/association/{slug}" in text or TAKEN_EN in text
 
+    # /core/model/association/slug-format
+    # /core/operations/create-association/created
     def test_accepts_a_slug_of_50_characters(self, client: Any) -> None:
         sign_up(client, "Alice")
         slug = unique_slug().ljust(50, "x")
@@ -259,6 +288,8 @@ class TestCreating:
         assert f"/association/{slug}" in text
         assert names_listed(client) == [NAME]
 
+    # /core/operations/create-association/created
+    # /core/operations/delete-association/deleted
     def test_accepts_the_slug_of_a_deleted_association(self, client: Any) -> None:
         sign_up(client, "Alice")
         slug = unique_slug()
@@ -270,6 +301,8 @@ class TestCreating:
         assert f"/association/{slug}" in text
         assert names_listed(client) == ["Repair Café"]
 
+    # /core/ui/new-association/taken
+    # /core/operations/create-association/taken
     def test_a_taken_slug_shows_its_message(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -285,12 +318,17 @@ class TestCreating:
         assert "window.location" not in text
         assert names_listed(other) == []
 
+    # /core/ui/new-association/taken
+    # /core/operations/create-association/taken
     def test_the_slug_new_shows_the_taken_message(self, client: Any) -> None:
         sign_up(client, "Alice")
 
         assert TAKEN_EN in shown(create_on_screen(client, NAME, "new"))
         assert names_listed(client) == []
 
+    # /core/ui/new-association/malformed
+    # /core/ui/new-association/taken
+    # /core/ui/header/language
     def test_messages_follow_the_language(self, client: Any) -> None:
         sign_up(client, "Alice")
         slug = unique_slug()
@@ -300,6 +338,9 @@ class TestCreating:
         assert MALFORMED_FR in shown(create_on_screen(client, NAME, "Jardin"))
         assert TAKEN_FR in shown(create_on_screen(client, NAME, slug))
 
+    # /core/model/association/name
+    # /core/model/association/slug-format
+    # /core/operations/general/refused
     @pytest.mark.parametrize(
         "body",
         [
@@ -320,11 +361,15 @@ class TestCreating:
         assert "window.location" not in text
         assert names_listed(client) == []
 
+    # /ui/errors/generic
+    # /core/model/association/name
     def test_an_empty_name_shows_the_generic_error_message(self, client: Any) -> None:
         sign_up(client, "Alice")
 
         assert GENERIC in shown(create_on_screen(client, "", unique_slug()))
 
+    # /core/ui/access/action
+    # /core/operations/general/signed-out
     def test_signed_out_leads_to_sign_in_and_creates_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:

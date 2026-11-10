@@ -79,7 +79,9 @@ def filled(planning: Planning) -> tuple[dict[str, Any], str, str]:
     return slot, shared_token(planning), day
 
 
-def test_r34_everything_the_association_holds_is_erased(
+# /planning/operations/delete-association/planning
+# /core/operations/delete-association/deleted
+def test_everything_the_association_holds_is_erased(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
@@ -91,7 +93,9 @@ def test_r34_everything_the_association_holds_is_erased(
     assert not any(rows_held(planning.id, slot["id"]).values())
 
 
-def test_r34_the_share_link_no_longer_shows_the_schedule(
+# /planning/ui/shared-schedule/invalid
+# /planning/operations/delete-association/planning
+def test_the_share_link_no_longer_shows_the_schedule(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
@@ -105,7 +109,8 @@ def test_r34_the_share_link_no_longer_shows_the_schedule(
     assert "Week" not in response.text
 
 
-def test_r34_another_association_of_its_members_keeps_what_it_holds(
+# /core/operations/delete-association/silent
+def test_another_association_of_its_members_keeps_what_it_holds(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)

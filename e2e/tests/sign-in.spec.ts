@@ -8,6 +8,9 @@ async function submitSignIn(page: Page, email: string, password: string) {
 }
 
 test.describe('Sign in', () => {
+  // /core/ui/sign-in/wrong
+  // /ui/errors/kept
+  // /core/operations/sign-in/wrong
   test('wrong credentials show the message, on the same page', async ({ page }) => {
     const email = uniqueEmail('Nobody')
     await page.goto('/')
@@ -18,6 +21,8 @@ test.describe('Sign in', () => {
     await expect(page.getByLabel('Email', { exact: true })).toHaveValue(email)
   })
 
+  // /core/ui/sign-in/signed-in
+  // /core/ui/header/sign-out
   test('success leads to My associations, and Sign out to Sign in', async ({ page, request }) => {
     const email = await createAccount(request, 'Alice')
     await page.goto('/')
@@ -33,6 +38,8 @@ test.describe('Sign in', () => {
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
   })
 
+  // /core/ui/sign-in/wrong
+  // /core/ui/sign-in/signed-in
   test('a wrong try, then the right password, signs in', async ({ page, request }) => {
     const email = await createAccount(request, 'Alice')
     await page.goto('/')
@@ -46,6 +53,7 @@ test.describe('Sign in', () => {
 })
 
 test.describe('Language', () => {
+  // /core/ui/header/language
   test('the language selector switches the language, and the choice is kept', async ({ page }) => {
     await page.goto('/')
 
@@ -64,12 +72,14 @@ test.describe('Language', () => {
   test.describe('in a browser that prefers French', () => {
     test.use({ locale: 'fr-FR' })
 
+    // /ui/language/default
     test('opens in French', async ({ page }) => {
       await page.goto('/')
 
       await expect(page.getByRole('button', { name: 'Se connecter' })).toBeVisible()
     })
 
+    // /core/ui/header/language
     test('the choice wins over the browser', async ({ page }) => {
       await page.goto('/')
 

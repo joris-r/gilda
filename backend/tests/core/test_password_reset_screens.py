@@ -88,6 +88,7 @@ def assert_invalid_link(text: str) -> None:
 
 
 class TestForgotPasswordForm:
+    # /core/ui/forgot-password/form
     def test_shows_the_form(self, client: Any) -> None:
         response = client.get("/forgot-password")
 
@@ -97,16 +98,19 @@ class TestForgotPasswordForm:
         assert "Email" in response.text
         assert "Send a reset link" in response.text
 
+    # /core/ui/forgot-password/form
     def test_links_back_to_sign_in(self, client: Any) -> None:
         page = client.get("/forgot-password").text
 
         assert re.search(r'<a[^>]*href="/"[^>]*>\s*Back to Sign in\s*</a>', page)
 
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
 
         assert heading(client.get("/forgot-password")) == "Mot de passe oublié ?"
 
+    # /core/ui/header/signed-out
     def test_has_the_signed_out_language_selector(self, client: Any) -> None:
         response = client.get("/forgot-password")
 
@@ -116,6 +120,7 @@ class TestForgotPasswordForm:
 
 
 class TestForgotPasswordSubmit:
+    # /core/ui/forgot-password/send
     def test_shows_the_message_for_a_user_with_a_password(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -126,6 +131,8 @@ class TestForgotPasswordSubmit:
 
         assert link_sent(email) in shown(response)
 
+    # /core/ui/forgot-password/send
+    # /core/operations/request-password-reset/answer
     def test_shows_the_same_for_an_unknown_email(self, client: Any) -> None:
         email = unique_email("Nobody")
 
@@ -133,6 +140,8 @@ class TestForgotPasswordSubmit:
 
         assert link_sent(email) in shown(response)
 
+    # /core/ui/forgot-password/send
+    # /core/operations/request-password-reset/answer
     def test_shows_the_same_for_a_user_without_a_password(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -145,6 +154,8 @@ class TestForgotPasswordSubmit:
 
         assert link_sent(chloe_email) in shown(response)
 
+    # /core/ui/forgot-password/send
+    # /core/operations/request-password-reset/answer
     def test_shows_the_same_when_the_email_cannot_be_sent(
         self, client: Any, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -156,6 +167,8 @@ class TestForgotPasswordSubmit:
 
         assert link_sent(email) in shown(response)
 
+    # /core/ui/forgot-password/send
+    # /core/ui/header/language
     def test_the_message_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
         email = unique_email("Nobody")
@@ -165,6 +178,8 @@ class TestForgotPasswordSubmit:
         assert email in shown(response)
         assert link_sent(email) not in shown(response)
 
+    # /core/operations/request-password-reset/malformed
+    # /ui/errors/generic
     @pytest.mark.parametrize("signals", [{}, {"email": ""}, {"email": "not-an-email"}])
     def test_a_missing_or_invalid_email_shows_the_generic_error_message(
         self, client: Any, signals: dict[str, str]
@@ -173,6 +188,7 @@ class TestForgotPasswordSubmit:
 
         assert GENERIC in shown(response)
 
+    # /ui/errors/generic
     def test_a_body_that_is_not_json_shows_the_generic_error_message(self, client: Any) -> None:
         response = client.post(
             "/forgot-password", content=b"{not json", headers={"content-type": "application/json"}
@@ -181,7 +197,23 @@ class TestForgotPasswordSubmit:
         assert GENERIC in shown(response)
 
 
-class TestR21:
+class TestRequestPasswordReset:
+    # /core/model/passwordresettoken/token
+    def test_the_links_of_two_users_differ(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        alice = unique_email("Alice")
+        bruno = unique_email("Bruno")
+        sign_up(client, "Alice", alice)
+        sign_up(new_client(), "Bruno", bruno)
+        browser = new_client()
+
+        ask_for_reset(browser, alice)
+        ask_for_reset(browser, bruno)
+
+        assert latest_reset_token(alice) != latest_reset_token(bruno)
+
+    # /core/operations/request-password-reset/sent
     def test_sends_a_reset_link_to_a_user_with_a_password(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -192,6 +224,8 @@ class TestR21:
 
         assert_written_in(latest_email(email), ENGLISH)
 
+    # /core/operations/request-password-reset/sent
+    # /ui/language/default
     @pytest.mark.parametrize("accept_language", ["fr", "fr-FR,fr;q=0.9,en;q=0.8"])
     def test_in_french_when_the_browser_prefers_french(
         self, client: Any, new_client: Callable[[], Any], accept_language: str
@@ -203,7 +237,9 @@ class TestR21:
 
         assert_written_in(latest_email(email), FRENCH)
 
-    def test_r20_the_language_cookie_wins_over_the_browser(
+    # /core/operations/request-password-reset/sent
+    # /core/ui/header/language
+    def test_the_language_cookie_wins_over_the_browser(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         email = unique_email("Alice")
@@ -215,6 +251,8 @@ class TestR21:
 
         assert_written_in(latest_email(email), FRENCH)
 
+    # /core/operations/request-password-reset/sent
+    # /ui/language/default
     def test_in_english_otherwise(self, client: Any, new_client: Callable[[], Any]) -> None:
         email = unique_email("Alice")
         sign_up(client, "Alice", email)
@@ -223,6 +261,8 @@ class TestR21:
 
         assert_written_in(latest_email(email), ENGLISH)
 
+    # /core/operations/request-password-reset/sent
+    # /core/model/user/email
     def test_ignores_the_case_of_the_email(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -233,6 +273,7 @@ class TestR21:
 
         latest_reset_token(email)  # raises if no reset email was sent
 
+    # /core/operations/request-password-reset/sent
     def test_sends_a_reset_link_to_a_user_whose_email_is_not_confirmed(self, client: Any) -> None:
         email = unique_email("Bruno")
         create_account(client, "Bruno", email)
@@ -241,6 +282,7 @@ class TestR21:
 
         latest_reset_token(email)
 
+    # /core/operations/request-password-reset/ignored
     def test_sends_nothing_to_a_user_without_a_password(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -253,6 +295,7 @@ class TestR21:
 
         assert_no_email_sent(chloe_email)
 
+    # /core/operations/request-password-reset/ignored
     def test_sends_nothing_to_an_unknown_email(self, client: Any) -> None:
         email = unique_email("Nobody")
 
@@ -260,7 +303,10 @@ class TestR21:
 
         assert_no_email_sent(email)
 
-    def test_r8_a_new_request_invalidates_the_previous_link(
+    # /core/model/passwordresettoken/single
+    # /core/operations/request-password-reset/sent
+    # /core/operations/reset-password/invalid
+    def test_a_new_request_invalidates_the_previous_link(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         email = unique_email("Alice")
@@ -279,6 +325,7 @@ class TestR21:
 
 
 class TestResetPasswordForm:
+    # /core/ui/reset-password/form
     def test_shows_the_form_for_a_valid_link(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -297,6 +344,8 @@ class TestResetPasswordForm:
         assert "Set password" in response.text
         assert LINK_INVALID not in response.text
 
+    # /core/ui/reset-password/form
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         email = unique_email("Alice")
         sign_up(client, "Alice", email)
@@ -308,6 +357,7 @@ class TestResetPasswordForm:
 
         assert heading(response) == "Choisissez un nouveau mot de passe"
 
+    # /core/ui/header/signed-out
     def test_has_the_signed_out_language_selector(self, client: Any) -> None:
         response = client.get("/reset-password?token=unknown-token")
 
@@ -315,6 +365,7 @@ class TestResetPasswordForm:
         assert "English" in response.text
         assert "Français" in response.text
 
+    # /core/ui/reset-password/usable
     def test_opening_the_link_leaves_the_token_usable(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -343,14 +394,20 @@ class TestResetPasswordInvalidLinkWhenOpening:
         assert_invalid_link(response.text)
         assert 'type="password"' not in response.text
 
+    # /core/ui/reset-password/invalid-on-open
+    # /core/ui/reset-password/invalid
     def test_unknown_token(self, client: Any) -> None:
         self.assert_shows_the_message_instead_of_the_form(
             client.get("/reset-password?token=unknown-token")
         )
 
+    # /core/ui/reset-password/invalid-on-open
+    # /core/ui/reset-password/invalid
     def test_no_token(self, client: Any) -> None:
         self.assert_shows_the_message_instead_of_the_form(client.get("/reset-password"))
 
+    # /core/ui/reset-password/invalid-on-open
+    # /core/ui/reset-password/invalid
     def test_expired_token(self, client: Any, new_client: Callable[[], Any]) -> None:
         email = unique_email("Alice")
         sign_up(client, "Alice", email)
@@ -363,6 +420,8 @@ class TestResetPasswordInvalidLinkWhenOpening:
             browser.get(f"/reset-password?token={token}")
         )
 
+    # /core/ui/reset-password/invalid-on-open
+    # /core/ui/reset-password/invalid
     def test_already_used_token(self, client: Any, new_client: Callable[[], Any]) -> None:
         email = unique_email("Alice")
         sign_up(client, "Alice", email)
@@ -375,6 +434,8 @@ class TestResetPasswordInvalidLinkWhenOpening:
             new_client().get(f"/reset-password?token={token}")
         )
 
+    # /core/ui/reset-password/invalid-on-open
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
 
@@ -384,15 +445,23 @@ class TestResetPasswordInvalidLinkWhenOpening:
 
 
 class TestResetPasswordInvalidLinkOnSubmit:
+    # /core/ui/reset-password/invalid
+    # /core/operations/reset-password/invalid
     def test_unknown_token(self, client: Any) -> None:
         assert_invalid_link(shown(reset(client, "unknown-token")))
         assert signed_in_as(client) is None
 
+    # /core/ui/reset-password/invalid
+    # /core/operations/reset-password/invalid
     def test_no_token(self, client: Any) -> None:
         response = client.post("/reset-password", json={"password": NEW_PASSWORD})
 
         assert_invalid_link(shown(response))
 
+    # /core/ui/reset-password/invalid
+    # /core/operations/reset-password/invalid
+    # /core/model/passwordresettoken/expiry
+    # /core/operations/general/refused
     def test_expired_token(self, client: Any, new_client: Callable[[], Any]) -> None:
         email = unique_email("Alice")
         sign_up(client, "Alice", email)
@@ -406,6 +475,9 @@ class TestResetPasswordInvalidLinkOnSubmit:
         assert signed_in_as(browser) is None
         assert can_sign_in(new_client, email, PASSWORD)
 
+    # /core/ui/reset-password/invalid
+    # /core/operations/reset-password/invalid
+    # /core/operations/general/refused
     def test_already_used_token(self, client: Any, new_client: Callable[[], Any]) -> None:
         email = unique_email("Alice")
         sign_up(client, "Alice", email)
@@ -417,13 +489,17 @@ class TestResetPasswordInvalidLinkOnSubmit:
         assert_invalid_link(shown(reset(new_client(), token, "another password")))
         assert can_sign_in(new_client, email, NEW_PASSWORD)
 
+    # /core/ui/reset-password/invalid
+    # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
 
         assert "Ce lien n'est plus valide." in shown(reset(client, "unknown-token"))
 
 
-class TestR22:
+class TestResetPassword:
+    # /core/operations/reset-password/reset
+    # /core/ui/reset-password/set
     def test_replaces_the_password(self, client: Any, new_client: Callable[[], Any]) -> None:
         email = unique_email("Alice")
         sign_up(client, "Alice", email)
@@ -436,6 +512,8 @@ class TestR22:
         assert can_sign_in(new_client, email, NEW_PASSWORD)
         assert not can_sign_in(new_client, email, PASSWORD)
 
+    # /core/ui/reset-password/reset
+    # /core/operations/reset-password/reset
     def test_signs_in_and_leads_to_my_associations(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -450,6 +528,7 @@ class TestR22:
         assert signed_in_as(browser) == "Alice"
         assert heading(browser.get("/")) == "My associations"
 
+    # /core/operations/reset-password/reset
     def test_keeps_the_other_sessions_signed_in(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -462,6 +541,8 @@ class TestR22:
 
         assert signed_in_as(client) == "Alice"
 
+    # /core/operations/reset-password/reset
+    # /core/ui/members/not-joined
     def test_confirms_an_unconfirmed_email(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -479,7 +560,8 @@ class TestR22:
         line = member_line(client, association["slug"], bruno_email)
         assert line.startswith(f"Bruno {bruno_email} ")
 
-    def test_r16_replaces_a_session_id_planted_in_the_browser(
+    # /core/operations/sign-in/new-session
+    def test_replaces_a_session_id_planted_in_the_browser(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         email = unique_email("Alice")
@@ -498,6 +580,9 @@ class TestR22:
 
 
 class TestResetPasswordInvalidPassword:
+    # /core/operations/reset-password/short-password
+    # /ui/errors/generic
+    # /core/operations/general/refused
     def test_a_short_password_shows_the_generic_error_message_and_the_token_stays_usable(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -515,6 +600,9 @@ class TestResetPasswordInvalidPassword:
         assert LINK_INVALID not in shown(reset(browser, token, "12345678"))
         assert can_sign_in(new_client, email, "12345678")
 
+    # /core/operations/reset-password/short-password
+    # /ui/errors/generic
+    # /core/operations/general/refused
     def test_a_missing_password_shows_the_generic_error_message_and_the_token_stays_usable(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -529,6 +617,7 @@ class TestResetPasswordInvalidPassword:
         assert GENERIC in shown(response)
         assert LINK_INVALID not in shown(reset(browser, token))
 
+    # /ui/errors/generic
     def test_a_body_that_is_not_json_shows_the_generic_error_message(self, client: Any) -> None:
         response = client.post(
             "/reset-password", content=b"{not json", headers={"content-type": "application/json"}

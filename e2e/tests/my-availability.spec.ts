@@ -37,6 +37,7 @@ async function expectSaved(page: Page, slug: string, value: string | null) {
 }
 
 test.describe('My availability: My preferences', () => {
+  // /planning/ui/my-availability/preferences
   test('each slot has a selector showing "—"', async ({ page, request }) => {
     await openAvailability(page, request, [
       ['thursday', '10:00', '13:00'],
@@ -47,6 +48,8 @@ test.describe('My availability: My preferences', () => {
     await expect(selector(page, 'Saturday 10:00–13:00')).toHaveValue('')
   })
 
+  // /planning/ui/my-availability/set
+  // /planning/operations/set-preference/set
   test('choosing a value saves it at once', async ({ page, request }) => {
     const slug = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
 
@@ -57,6 +60,8 @@ test.describe('My availability: My preferences', () => {
     await expect(selector(page, 'Thursday')).toHaveValue('preferred')
   })
 
+  // /planning/ui/my-availability/set
+  // /planning/operations/set-preference/set
   test('choosing another value replaces it', async ({ page, request }) => {
     const slug = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
     await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
@@ -67,6 +72,8 @@ test.describe('My availability: My preferences', () => {
     await expectSaved(page, slug, 'unavailable')
   })
 
+  // /planning/ui/my-availability/set
+  // /planning/operations/delete-preference/deleted
   test('"—" deletes it', async ({ page, request }) => {
     const slug = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
     await selector(page, 'Thursday').selectOption({ label: 'Possible' })
@@ -79,6 +86,8 @@ test.describe('My availability: My preferences', () => {
     await expect(selector(page, 'Thursday')).toHaveValue('')
   })
 
+  // /planning/ui/my-availability/set
+  // /planning/operations/set-preference/set
   test('each selector saves its own slot', async ({ page, request }) => {
     await openAvailability(page, request, [
       ['thursday', '10:00', '13:00'],
@@ -95,6 +104,7 @@ test.describe('My availability: My preferences', () => {
     }).toPass()
   })
 
+  // /ui/errors/generic
   test('when the server fails: the generic error', async ({ page, request }) => {
     await openAvailability(page, request, [['thursday', '10:00', '13:00']])
     await page.route('**/availability/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -166,6 +176,8 @@ async function openNote(page: Page) {
 }
 
 test.describe('My availability: Add an absence', () => {
+  // /planning/ui/my-availability/add-absence
+  // /ui/forms/dialog
   test('opens the dialog "Add an absence", with From and To', async ({ page, request }) => {
     await openAvailability(page, request, [])
 
@@ -177,6 +189,10 @@ test.describe('My availability: Add an absence', () => {
     await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
   })
 
+  // /planning/ui/my-availability/add-absence
+  // /planning/operations/add-absence/added
+  // /planning/ui/my-availability/absences
+  // /ui/forms/success
   test('adding closes the dialog and shows the absence', async ({ page, request }) => {
     await openAvailability(page, request, [], { absences: [DEC] })
 
@@ -193,6 +209,7 @@ test.describe('My availability: Add an absence', () => {
   })
 
   for (const way of ['Cancel', 'the close button', 'Escape']) {
+    // /ui/forms/close
     test(`${way} closes it, changing nothing`, async ({ page, request }) => {
       await openAvailability(page, request, [])
       const dialog = await openAddAbsence(page)
@@ -209,6 +226,7 @@ test.describe('My availability: Add an absence', () => {
     })
   }
 
+  // /ui/forms/close
   test('opened again after Cancel, its fields are empty', async ({ page, request }) => {
     await openAvailability(page, request, [])
     let dialog = await openAddAbsence(page)
@@ -221,6 +239,7 @@ test.describe('My availability: Add an absence', () => {
     await expect(to(dialog)).toHaveValue('')
   })
 
+  // /planning/ui/my-availability/add-absence
   test('opened again after adding, its fields are empty', async ({ page, request }) => {
     await openAvailability(page, request, [])
     let dialog = await openAddAbsence(page)
@@ -235,6 +254,9 @@ test.describe('My availability: Add an absence', () => {
     await expect(to(dialog)).toHaveValue('')
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error in the dialog, and what was typed stays', async ({
     page,
     request,
@@ -254,6 +276,7 @@ test.describe('My availability: Add an absence', () => {
 })
 
 test.describe('My availability: Edit the absence', () => {
+  // /planning/ui/my-availability/edit-absence
   test('opens the dialog "Edit the absence", filled with the absence', async ({ page, request }) => {
     await openAvailability(page, request, [], { absences: [NOV, DEC] })
 
@@ -265,6 +288,9 @@ test.describe('My availability: Edit the absence', () => {
     await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
   })
 
+  // /planning/ui/my-availability/edit-absence
+  // /planning/operations/edit-absence/edited
+  // /ui/forms/success
   test('Save closes the dialog and shows the absence edited', async ({ page, request }) => {
     await openAvailability(page, request, [], { absences: [NOV] })
 
@@ -279,6 +305,7 @@ test.describe('My availability: Edit the absence', () => {
     await expect(line(page, 'Mon 9 Nov 2037 – Fri 20 Nov 2037')).toHaveCount(1)
   })
 
+  // /planning/ui/my-availability/edit-absence
   test('opened again after a Save, it is filled with the absence edited', async ({ page, request }) => {
     await openAvailability(page, request, [], { absences: [NOV] })
     let dialog = await openEditAbsence(page, NOV_SHOWN)
@@ -291,6 +318,7 @@ test.describe('My availability: Edit the absence', () => {
     await expect(to(dialog)).toHaveValue('2037-11-20')
   })
 
+  // /ui/forms/close
   test('Cancel closes it, changing nothing', async ({ page, request }) => {
     await openAvailability(page, request, [], { absences: [NOV] })
 
@@ -303,6 +331,7 @@ test.describe('My availability: Edit the absence', () => {
     await expect(line(page, NOV_SHOWN)).toHaveCount(1)
   })
 
+  // /ui/forms/close
   test('opened again after Cancel, it is filled with the absence', async ({ page, request }) => {
     await openAvailability(page, request, [], { absences: [NOV] })
     let dialog = await openEditAbsence(page, NOV_SHOWN)
@@ -314,6 +343,9 @@ test.describe('My availability: Edit the absence', () => {
     await expect(to(dialog)).toHaveValue('2037-11-15')
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error in the dialog', async ({ page, request }) => {
     await openAvailability(page, request, [], { absences: [NOV] })
     await page.route('**/edit', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -328,6 +360,8 @@ test.describe('My availability: Edit the absence', () => {
 })
 
 test.describe('My availability: Delete the absence', () => {
+  // /planning/ui/my-availability/delete-absence
+  // /planning/operations/delete-absence/deleted
   test('Delete removes the absence', async ({ page, request }) => {
     await openAvailability(page, request, [], { absences: [NOV, DEC] })
 
@@ -341,6 +375,7 @@ test.describe('My availability: Delete the absence', () => {
     await expect(line(page, NOV_SHOWN)).toHaveCount(0)
   })
 
+  // /planning/ui/my-availability/delete-absence
   test('asks with the dates of the absence', async ({ page, request }) => {
     await openAvailability(page, request, [], { absences: [NOV, DEC] })
 
@@ -348,6 +383,7 @@ test.describe('My availability: Delete the absence', () => {
   })
 
   for (const way of ['Cancel', 'Escape']) {
+    // /ui/forms/cancel
     test(`${way} keeps the absence`, async ({ page, request }) => {
       await openAvailability(page, request, [], { absences: [NOV] })
 
@@ -361,6 +397,8 @@ test.describe('My availability: Delete the absence', () => {
     })
   }
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
     await openAvailability(page, request, [], { absences: [NOV] })
     await page.route('**/delete', (route) => route.abort())
@@ -374,6 +412,7 @@ test.describe('My availability: Delete the absence', () => {
 })
 
 test.describe('My availability: Note for the managers', () => {
+  // /planning/ui/my-availability/edit-note
   test('the edit icon opens the dialog "Note for the managers", filled with the note', async ({
     page,
     request,
@@ -387,6 +426,7 @@ test.describe('My availability: Note for the managers', () => {
     await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
   })
 
+  // /planning/ui/my-availability/edit-note
   test('without a note, the dialog opens empty', async ({ page, request }) => {
     await openAvailability(page, request, [])
 
@@ -395,6 +435,9 @@ test.describe('My availability: Note for the managers', () => {
     await expect(noteText(dialog)).toHaveValue('')
   })
 
+  // /planning/ui/my-availability/edit-note
+  // /planning/operations/set-note/set
+  // /planning/ui/my-availability/note
   test('Save closes the dialog and shows the note', async ({ page, request }) => {
     await openAvailability(page, request, [])
 
@@ -408,6 +451,8 @@ test.describe('My availability: Note for the managers', () => {
     await expect(inNote(page, NOTE)).toBeVisible()
   })
 
+  // /planning/ui/my-availability/edit-note
+  // /planning/operations/set-note/set
   test('the Text takes several lines, kept once saved', async ({ page, request }) => {
     await openAvailability(page, request, [])
     let dialog = await openNote(page)
@@ -423,6 +468,7 @@ test.describe('My availability: Note for the managers', () => {
     await expect(noteText(dialog)).toHaveValue('Mornings only.\nNever on Sundays.')
   })
 
+  // /planning/ui/my-availability/edit-note
   test('opened again after a Save, it is filled with the note saved', async ({ page, request }) => {
     await openAvailability(page, request, [], { note: NOTE })
     let dialog = await openNote(page)
@@ -435,6 +481,8 @@ test.describe('My availability: Note for the managers', () => {
     await expect(noteText(dialog)).toHaveValue('Mornings only.')
   })
 
+  // /planning/ui/my-availability/none
+  // /planning/operations/set-note/set
   test('saving an empty Text shows "None"', async ({ page, request }) => {
     await openAvailability(page, request, [], { note: NOTE })
 
@@ -448,6 +496,7 @@ test.describe('My availability: Note for the managers', () => {
   })
 
   for (const way of ['Cancel', 'Escape']) {
+    // /ui/forms/close
     test(`${way} closes it, changing nothing`, async ({ page, request }) => {
       await openAvailability(page, request, [], { note: NOTE })
       const dialog = await openNote(page)
@@ -462,6 +511,7 @@ test.describe('My availability: Note for the managers', () => {
     })
   }
 
+  // /ui/forms/close
   test('opened again after Cancel, it is filled with the note', async ({ page, request }) => {
     await openAvailability(page, request, [], { note: NOTE })
     let dialog = await openNote(page)
@@ -473,6 +523,9 @@ test.describe('My availability: Note for the managers', () => {
     await expect(noteText(dialog)).toHaveValue(NOTE)
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error in the dialog, and what was typed stays', async ({
     page,
     request,

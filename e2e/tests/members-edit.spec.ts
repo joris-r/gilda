@@ -64,6 +64,9 @@ async function ask(page: Page, displayName: string, action: string, question: st
 }
 
 test.describe('Members: the edit dialog', () => {
+  // /core/ui/members/edit
+  // /core/ui/members/revoke-link
+  // /ui/forms/dialog
   test('the edit icon opens it, with the email, the role and its actions', async ({ page, request }) => {
     const chloe = await openMembers(page, request)
 
@@ -80,6 +83,7 @@ test.describe('Members: the edit dialog', () => {
     await expect(dialog.getByRole('button', { name: 'Revoke link' })).toHaveCount(0)
   })
 
+  // /core/ui/members/edit
   test("a manager's dialog shows Manager", async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -87,6 +91,7 @@ test.describe('Members: the edit dialog', () => {
   })
 
   for (const way of ['Cancel', 'the close button', 'Escape']) {
+    // /ui/forms/close
     test(`${way} closes it, changing nothing`, async ({ page, request }) => {
       await openMembers(page, request)
       const dialog = await openEdit(page, 'Chloé')
@@ -102,6 +107,7 @@ test.describe('Members: the edit dialog', () => {
     })
   }
 
+  // /ui/forms/close
   test('reopened after a Cancel, it shows the role again', async ({ page, request }) => {
     await openMembers(page, request)
     const dialog = await openEdit(page, 'Chloé')
@@ -113,6 +119,8 @@ test.describe('Members: the edit dialog', () => {
 })
 
 test.describe('Members: changing the role', () => {
+  // /core/ui/members/changed
+  // /core/operations/change-role/changed
   test('Save with another role closes the dialog, says so and shows the role', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -126,6 +134,7 @@ test.describe('Members: changing the role', () => {
     await expect(role(await openEdit(page, 'Chloé'))).toHaveValue('manager')
   })
 
+  // /core/ui/members/same-role
   test('Save with the same role closes the dialog and says nothing', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -137,6 +146,9 @@ test.describe('Members: changing the role', () => {
     await expect(line(page, 'Chloé')).toContainText(/volunteer/i)
   })
 
+  // /core/ui/members/last-manager
+  // /ui/forms/failure
+  // /core/operations/change-role/last-manager
   test('demoting the last manager: the dialog stays open, with its message', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -150,6 +162,9 @@ test.describe('Members: changing the role', () => {
     await expect(line(page, 'Alice')).toContainText(/manager/i)
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error in the dialog', async ({ page, request }) => {
     await openMembers(page, request)
     await page.route('**/role', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -164,6 +179,9 @@ test.describe('Members: changing the role', () => {
 })
 
 test.describe('Members: Remove from the association', () => {
+  // /core/ui/members/removed
+  // /core/operations/remove-member/removed
+  // /ui/forms/nested
   test('confirming removes the member and says so', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -177,6 +195,7 @@ test.describe('Members: Remove from the association', () => {
     await expect(line(page, 'Chloé')).toHaveCount(0)
   })
 
+  // /ui/forms/cancel
   test('Cancel of the confirmation changes nothing', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -188,6 +207,8 @@ test.describe('Members: Remove from the association', () => {
     await expect(line(page, 'Chloé')).toBeVisible()
   })
 
+  // /core/ui/members/remove-last-manager
+  // /core/operations/remove-member/last-manager
   test('removing the last manager says so and changes nothing', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -203,6 +224,8 @@ test.describe('Members: Remove from the association', () => {
     await expect(line(page, 'Alice')).toContainText(/manager/i)
   })
 
+  // /core/ui/members/themself
+  // /core/operations/remove-member/removed
   test('a manager who removes themself is led to My associations', async ({ page, request }) => {
     await openMembers(page, request, [['Zoé', 'manager']])
 
@@ -218,6 +241,8 @@ test.describe('Members: Remove from the association', () => {
     await expect(page.locator('main')).not.toContainText('Jardin partagé')
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
     await openMembers(page, request)
     await page.route('**/remove', (route) => route.abort())
@@ -231,6 +256,10 @@ test.describe('Members: Remove from the association', () => {
 })
 
 test.describe('Members: Send link', () => {
+  // /core/ui/members/sent
+  // /core/operations/send-access-link/sent
+  // /core/ui/members/revoke-link
+  // /ui/forms/nested
   test('confirming sends the link, says so and offers Revoke link', async ({ page, request }) => {
     const chloe = await openMembers(page, request)
 
@@ -244,6 +273,7 @@ test.describe('Members: Send link', () => {
     await expect(dialog.getByRole('button', { name: 'Revoke link' })).toBeVisible()
   })
 
+  // /ui/forms/cancel
   test('Cancel of the confirmation changes nothing', async ({ page, request }) => {
     await openMembers(page, request)
 
@@ -256,6 +286,8 @@ test.describe('Members: Send link', () => {
     await expect(dialog.getByRole('button', { name: 'Revoke link' })).toHaveCount(0)
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
     await openMembers(page, request)
     await page.route('**/send-link', (route) => route.abort())
@@ -278,6 +310,10 @@ test.describe('Members: Revoke link', () => {
     return token
   }
 
+  // /core/ui/members/revoke-link
+  // /core/operations/revoke-access-link/revoked
+  // /core/ui/access-link/invalid
+  // /ui/forms/nested
   test('confirming revokes the link, says so and hides Revoke link', async ({ page, request }) => {
     const token = await withLink(page, request)
 
@@ -292,6 +328,7 @@ test.describe('Members: Revoke link', () => {
     await expect(page.getByText('This link is no longer valid.')).toBeVisible()
   })
 
+  // /ui/forms/cancel
   test('Cancel of the confirmation changes nothing', async ({ page, request }) => {
     await withLink(page, request)
 
@@ -304,6 +341,8 @@ test.describe('Members: Revoke link', () => {
     await expect(dialog.getByRole('button', { name: 'Revoke link' })).toBeVisible()
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
     await withLink(page, request)
     await page.route('**/revoke-link', (route) => route.fulfill({ status: 500, body: 'failure' }))

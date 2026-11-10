@@ -36,6 +36,7 @@ function line(page: Page, text: string) {
 }
 
 test.describe("Members", () => {
+  // /core/ui/header/association-link
   test("the header's association name leads to its Schedule", async ({
     page,
     request,
@@ -50,6 +51,8 @@ test.describe("Members", () => {
     await expect(page).toHaveURL(new RegExp(`/association/${slug}$`));
   });
 
+  // /core/ui/members/first-five
+  // /core/ui/members/list
   test('"Show all 7 members" shows the others', async ({ page, request }) => {
     await openMembers(page, request);
     for (const name of ["Bruno", "Chloé", "David", "Emma", "Fanny", "Gaël"]) {
@@ -74,6 +77,8 @@ test.describe("Members", () => {
 });
 
 test.describe("Add a member", () => {
+  // /core/ui/members/add
+  // /ui/forms/dialog
   test("opens the dialog, with Role at Volunteer", async ({
     page,
     request,
@@ -92,6 +97,10 @@ test.describe("Add a member", () => {
     await expect(dialog.getByRole("button", { name: "Close" })).toBeVisible();
   });
 
+  // /core/ui/members/added
+  // /core/ui/members/not-joined
+  // /core/operations/add-member/new-user
+  // /ui/forms/success
   test("adding closes the dialog, says so and shows the member", async ({
     page,
     request,
@@ -111,6 +120,9 @@ test.describe("Add a member", () => {
     await expect(line(page, email)).toContainText(/manager/i);
   });
 
+  // /core/ui/members/already
+  // /ui/forms/failure
+  // /ui/errors/kept
   test("an existing member: the dialog stays open, with its message", async ({
     page,
     request,
@@ -132,6 +144,7 @@ test.describe("Add a member", () => {
   });
 
   for (const way of ["Cancel", "the close button", "Escape"]) {
+    // /ui/forms/close
     test(`${way} closes it, changing nothing`, async ({ page, request }) => {
       await openMembers(page, request);
       const email = uniqueEmail("Chloe");
@@ -148,6 +161,9 @@ test.describe("Add a member", () => {
     });
   }
 
+  // /ui/forms/failure
+  // /ui/errors/generic
+  // /ui/errors/kept
   test("when the server fails: the generic error in the dialog, and what was typed stays", async ({
     page,
     request,

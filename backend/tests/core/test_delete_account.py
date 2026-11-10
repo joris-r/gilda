@@ -34,6 +34,7 @@ def delete_account(client: Any) -> Any:
 # Delete my account
 
 
+# /core/ui/header/delete
 def test_delete_my_account_leads_to_sign_in(client: Any) -> None:
     sign_up(client, "Alice")
 
@@ -43,6 +44,7 @@ def test_delete_my_account_leads_to_sign_in(client: Any) -> None:
     assert 'type="password"' in client.get("/").text
 
 
+# /core/ui/access/action
 def test_delete_my_account_when_already_signed_out_leads_to_sign_in(client: Any) -> None:
     response = delete_account(client)
 
@@ -50,9 +52,8 @@ def test_delete_my_account_when_already_signed_out_leads_to_sign_in(client: Any)
     assert 'type="password"' in client.get("/").text
 
 
-def test_r29_signs_out_every_session_of_the_user(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
+# /core/operations/delete-account/deleted
+def test_signs_out_every_session_of_the_user(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
     other = new_client()
@@ -64,7 +65,9 @@ def test_r29_signs_out_every_session_of_the_user(
     assert signed_in_as(other) is None
 
 
-def test_r29_the_password_no_longer_signs_in(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/delete-account/deleted
+# /core/ui/sign-in/wrong
+def test_the_password_no_longer_signs_in(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
 
@@ -75,7 +78,9 @@ def test_r29_the_password_no_longer_signs_in(client: Any, new_client: Callable[[
     assert signed_in_as(browser) is None
 
 
-def test_r29_the_access_link_no_longer_signs_in(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/delete-account/deleted
+# /core/ui/access-link/invalid
+def test_the_access_link_no_longer_signs_in(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     sign_up(client, "Alice", email)
     assert ask_for_link(client, email).status_code == 200
@@ -86,7 +91,9 @@ def test_r29_the_access_link_no_longer_signs_in(client: Any, new_client: Callabl
     assert "This link is no longer valid." in shown(open_link(new_client(), token))
 
 
-def test_r29_a_pending_password_reset_no_longer_works(
+# /core/operations/delete-account/deleted
+# /core/ui/reset-password/invalid
+def test_a_pending_password_reset_no_longer_works(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -100,7 +107,10 @@ def test_r29_a_pending_password_reset_no_longer_works(
     assert "This link is no longer valid." in shown(response)
 
 
-def test_r29_no_email_is_sent_to_the_erased_email_anymore(
+# /core/operations/delete-account/deleted
+# /core/operations/request-access-link/ignored
+# /core/operations/request-password-reset/ignored
+def test_no_email_is_sent_to_the_erased_email_anymore(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     email = unique_email("Alice")
@@ -116,9 +126,9 @@ def test_r29_no_email_is_sent_to_the_erased_email_anymore(
     assert email_count(email) == before
 
 
-def test_r29_the_email_can_be_used_by_a_new_account(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
+# /core/operations/delete-account/deleted
+# /core/operations/create-account/created
+def test_the_email_can_be_used_by_a_new_account(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Alice")
     old = sign_up(client, "Alice", email)
     delete_account(client)
@@ -132,9 +142,10 @@ def test_r29_the_email_can_be_used_by_a_new_account(
     assert user_id_of(email) != old["id"]
 
 
-def test_r29_the_email_can_be_added_as_a_new_member(
-    client: Any, new_client: Callable[[], Any]
-) -> None:
+# /core/operations/delete-account/deleted
+# /core/operations/add-member/new-user
+# /core/ui/members/not-joined
+def test_the_email_can_be_added_as_a_new_member(client: Any, new_client: Callable[[], Any]) -> None:
     email = unique_email("Bruno")
     bruno = new_client()
     old = sign_up(bruno, "Bruno", email)
@@ -150,7 +161,8 @@ def test_r29_the_email_can_be_added_as_a_new_member(
     )
 
 
-def test_r29_ends_every_membership(client: Any, new_client: Callable[[], Any]) -> None:
+# /core/operations/delete-account/deleted
+def test_ends_every_membership(client: Any, new_client: Callable[[], Any]) -> None:
     sign_up(client, "Alice")
     first = create_association(client, "Jardin partagé des Lilas")
     second = create_association(client, "Repair Café Belleville")
@@ -166,7 +178,9 @@ def test_r29_ends_every_membership(client: Any, new_client: Callable[[], Any]) -
     assert members_roles(client, second["slug"]) == {"Alice": "manager"}
 
 
-def test_r30_the_remaining_members_become_managers_when_the_only_manager_leaves(
+# /core/operations/delete-account/last-manager
+# /core/ui/members/manager
+def test_the_remaining_members_become_managers_when_the_only_manager_leaves(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     sign_up(client, "Alice")
@@ -183,7 +197,8 @@ def test_r30_the_remaining_members_become_managers_when_the_only_manager_leaves(
     assert "Add a member" in bruno.get(f"/association/{association['slug']}/members").text
 
 
-def test_r30_roles_are_kept_when_another_manager_remains(
+# /core/operations/delete-account/last-manager
+def test_roles_are_kept_when_another_manager_remains(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     sign_up(client, "Alice")
@@ -199,7 +214,7 @@ def test_r30_roles_are_kept_when_another_manager_remains(
     assert members_roles(zoe, association["slug"]) == {"Zoé": "manager", "Chloé": "volunteer"}
 
 
-def test_r30_the_only_member_of_an_association_can_delete_their_account(client: Any) -> None:
+def test_the_only_member_of_an_association_can_delete_their_account(client: Any) -> None:
     sign_up(client, "Alice")
     create_association(client)
 

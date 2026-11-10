@@ -68,6 +68,9 @@ function jardin(page: Page) {
 }
 
 test.describe('My associations', () => {
+  // /home/ui/my-associations/new
+  // /core/ui/new-association/cancel
+  // /home/ui/my-associations/none
   test('New association leads to its screen, and Cancel back', async ({ page, request }) => {
     await signedIn(page, request)
 
@@ -80,6 +83,7 @@ test.describe('My associations', () => {
     await expect(page.getByText('You are not a member of any association yet.')).toBeVisible()
   })
 
+  // /core/ui/header/location
   test("the header's My associations leads back from New association", async ({
     page,
     request,
@@ -92,6 +96,7 @@ test.describe('My associations', () => {
     await expect(page).toHaveURL(/\/$/)
   })
 
+  // /home/ui/my-associations/list
   test("a name leads to the association's Schedule", async ({ page, request }) => {
     await signedIn(page, request)
     const slug = uniqueSlug()
@@ -109,6 +114,10 @@ test.describe('My associations', () => {
 })
 
 test.describe('Registrations summary', () => {
+  // /home/ui/my-associations/confirm
+  // /home/ui/my-associations/upcoming
+  // /home/ui/my-associations/registration
+  // /planning/operations/change-registration/confirm
   test('Confirm confirms the registration, and the summary shows it at once', async ({
     page,
     request,
@@ -124,6 +133,9 @@ test.describe('Registrations summary', () => {
     await expect(jardin(page).getByRole('button', { name: 'Confirm', exact: true })).toHaveCount(0)
   })
 
+  // /home/ui/my-associations/acknowledge
+  // /home/ui/my-associations/obsolete
+  // /home/operations/list-my-associations/obsolete
   test('OK cancels the obsolete registration, which no longer shows', async ({ page, request }) => {
     const slug = await withAssociation(page, request)
     const thursday = nextThursday().iso
@@ -139,7 +151,9 @@ test.describe('Registrations summary', () => {
     await expect(jardin(page).getByRole('button', { name: 'OK', exact: true })).toHaveCount(0)
   })
 
-  test("R14: Choose your slots leads to the association's Schedule", async ({ page, request }) => {
+  // /home/ui/my-associations/no-registration
+  // /home/ui/my-associations/choose
+  test("Choose your slots leads to the association's Schedule", async ({ page, request }) => {
     const slug = await withAssociation(page, request)
     await setPeriod(page.request, slug, nextThursday().iso, nextThursday().iso)
     await page.goto('/')
@@ -149,6 +163,7 @@ test.describe('Registrations summary', () => {
     await expect(page).toHaveURL(new RegExp(`/association/${slug}$`))
   })
 
+  // /ui/errors/generic
   test('when the server fails, Confirm shows the generic error message', async ({
     page,
     request,
@@ -169,7 +184,9 @@ test.describe('New association', () => {
     await page.goto('/association/new')
   })
 
-  test('R35: Association identifier follows Name', async ({ page }) => {
+  // /core/ui/new-association/follows
+  // /core/model/association/derived
+  test('Association identifier follows Name', async ({ page }) => {
     const examples = [
       ['Jardin partagé des Lilas', 'jardin-partage-des-lilas'],
       ['Repair Café  &  Co', 'repair-cafe-co'],
@@ -186,7 +203,8 @@ test.describe('New association', () => {
     }
   })
 
-  test('R35: once edited, Association identifier no longer follows Name', async ({ page }) => {
+  // /core/ui/new-association/follows
+  test('once edited, Association identifier no longer follows Name', async ({ page }) => {
     await nameField(page).fill('Jardin')
     await identifierField(page).fill('mon-jardin')
 
@@ -195,6 +213,7 @@ test.describe('New association', () => {
     await expect(identifierField(page)).toHaveValue('mon-jardin')
   })
 
+  // /core/ui/new-association/enabled
   test('Create association is enabled only when both fields are not empty', async ({ page }) => {
     await expect(createButton(page)).toBeDisabled()
 
@@ -209,6 +228,9 @@ test.describe('New association', () => {
     await expect(createButton(page)).toBeDisabled()
   })
 
+  // /core/ui/new-association/created
+  // /core/operations/create-association/created
+  // /home/ui/my-associations/list
   test("creating leads to the new association's Schedule, and My associations lists it as manager", async ({
     page,
   }) => {
@@ -224,6 +246,8 @@ test.describe('New association', () => {
     await expect(line).toContainText(/manager/i)
   })
 
+  // /core/ui/new-association/malformed
+  // /ui/errors/kept
   test('a malformed slug shows its message, and what was typed stays', async ({ page }) => {
     await nameField(page).fill('Jardin')
     await identifierField(page).fill('Not A Slug')
@@ -235,6 +259,7 @@ test.describe('New association', () => {
     await expect(identifierField(page)).toHaveValue('Not A Slug')
   })
 
+  // /core/ui/new-association/taken
   test('a taken slug shows its message', async ({ page }) => {
     await nameField(page).fill('Jardin')
     await identifierField(page).fill('new')
@@ -244,6 +269,8 @@ test.describe('New association', () => {
     await expect(page).toHaveURL(/\/association\/new$/)
   })
 
+  // /ui/errors/generic
+  // /ui/errors/kept
   test('when the server fails: the generic error message, and what was typed stays', async ({
     page,
   }) => {

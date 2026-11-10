@@ -7,6 +7,7 @@ ENGLISH = "Sign in"
 
 
 class TestLanguage:
+    # /ui/language/default
     @pytest.mark.parametrize(
         ("header", "expected"),
         [
@@ -27,12 +28,14 @@ class TestLanguage:
         assert expected in page
         assert (FRENCH in page) == (expected == FRENCH)
 
+    # /ui/language/default
     def test_opens_in_english_without_a_browser_preference(self, client: Any) -> None:
         page = client.get("/").text
 
         assert ENGLISH in page
         assert FRENCH not in page
 
+    # /core/ui/header/language
     @pytest.mark.parametrize(
         ("cookie", "header", "expected"),
         [
@@ -50,6 +53,7 @@ class TestLanguage:
         assert expected in page
         assert (FRENCH in page) == (expected == FRENCH)
 
+    # /ui/language/default
     def test_an_unknown_cookie_value_falls_back_to_the_browser(self, client: Any) -> None:
         client.cookies.set("language", "de")
 

@@ -8,6 +8,7 @@ At any path that leads nowhere, signed in or not; mockup in
 - [status] It answers 404.
 - [shown] "Page not found", then "Back to the home page", leading to
   `/`.
+- [header] Its header is the signed-out one, signed in or not.
 
 ## Language
 

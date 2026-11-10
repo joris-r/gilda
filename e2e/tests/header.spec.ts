@@ -32,6 +32,7 @@ async function linkStillWorks(request: APIRequestContext, token: string) {
 }
 
 test.describe('Header', () => {
+  // /core/ui/header/title
   test('the location stands for the screen title', async ({ page, request }) => {
     await signIn(page, await createAccount(request))
 
@@ -40,6 +41,8 @@ test.describe('Header', () => {
 })
 
 test.describe('Revoke my sign-in link', () => {
+  // /core/ui/header/revoked
+  // /core/operations/revoke-my-access-link/revoked
   test('confirming closes the dialog and shows it is revoked', async ({ page, request }) => {
     const email = await createAccount(request)
     const token = await askForLink(request, email)
@@ -55,6 +58,8 @@ test.describe('Revoke my sign-in link', () => {
     await expect(page.locator('header').getByText('My associations')).toBeVisible()
   })
 
+  // /core/ui/header/this-session
+  // /core/operations/revoke-my-access-link/revoked
   test('from a session opened with it, leads to Sign in', async ({ page, request }) => {
     const token = await askForLink(request, await createAccount(request))
     await signInWithLink(page, token)
@@ -66,6 +71,7 @@ test.describe('Revoke my sign-in link', () => {
     expect(await linkStillWorks(request, token)).toBe(false)
   })
 
+  // /ui/forms/cancel
   test('Cancel closes it and keeps the link', async ({ page, request }) => {
     const email = await createAccount(request)
     const token = await askForLink(request, email)
@@ -78,6 +84,8 @@ test.describe('Revoke my sign-in link', () => {
     expect(await linkStillWorks(request, token)).toBe(true)
   })
 
+  // /ui/forms/failure
+  // /ui/errors/generic
   test('on failure, the dialog stays open with its message', async ({ page, request }) => {
     await signIn(page, await createAccount(request))
     await page.route('**/revoke-access-link', (route) => route.abort())
@@ -89,6 +97,7 @@ test.describe('Revoke my sign-in link', () => {
     await expect(dialog).toContainText(QUESTION)
   })
 
+  // /core/ui/header/revoked
   test('it can be confirmed again, after a success', async ({ page, request }) => {
     await signIn(page, await createAccount(request))
 

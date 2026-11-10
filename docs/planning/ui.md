@@ -18,6 +18,7 @@ Shows, top to bottom:
 - [preferences] To managers only, "Members' preferences": one row per
   member, one column per slot, each cell a selector of the member's
   preference on the slot. In French: "Préférences des membres".
+  - [preferences-none] Without a slot: "None".
   - [preferences-order] Its rows follow the order of
     /core/ui/members/list, its columns that of
     /planning/ui/schedule-settings/slots.
@@ -184,6 +185,9 @@ Actions:
 - [icon] Hovering an icon shows its text; clicking it shows its text
   under the names, in place of the text shown, or hides it when it is
   already shown, and proposes nothing.
+- [icon-reset] The text shown leaves when the menu opens on another
+  occurrence.
+- [escape] Escape closes the menu.
 - [confirm-registration] "Confirm" runs
   /planning/operations/change-registration, confirming.
 - [cancel-registration] "Cancel registration…" asks "Cancel this

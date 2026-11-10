@@ -37,6 +37,7 @@ def assert_is_event_stream(response: Any) -> None:
 
 
 class TestSignIn:
+    # /core/ui/sign-in/form
     def test_signed_out_slash_shows_the_form(self, client: Any) -> None:
         response = client.get("/")
 
@@ -47,6 +48,9 @@ class TestSignIn:
         assert "Password" in response.text
         assert 'type="password"' in response.text
 
+    # /core/ui/sign-in/create
+    # /core/ui/sign-in/forgot
+    # /core/ui/sign-in/link
     @pytest.mark.parametrize(
         ("text", "path"),
         [
@@ -60,15 +64,19 @@ class TestSignIn:
 
         assert re.search(rf'<a[^>]*href="{path}"[^>]*>\s*{re.escape(text)}\s*</a>', page)
 
+    # /core/ui/sign-in/wrong
     def test_shows_no_wrong_credentials_message_until_submitted(self, client: Any) -> None:
         assert WRONG_EN not in client.get("/").text
 
+    # /core/ui/header/signed-out
     def test_signed_out_header_has_the_language_selector(self, client: Any) -> None:
         page = client.get("/").text
 
         assert "English" in page
         assert "Français" in page
 
+    # /core/ui/sign-in/wrong
+    # /core/operations/sign-in/wrong
     def test_wrong_password_shows_the_message(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -81,12 +89,16 @@ class TestSignIn:
         assert WRONG_EN in response.text
         assert heading(client.get("/")) == "Sign in"
 
+    # /core/ui/sign-in/wrong
+    # /core/operations/sign-in/wrong
     def test_unknown_email_shows_the_same_message(self, client: Any) -> None:
         response = sign_in(client, unique_email("Nobody"))
 
         assert_is_event_stream(response)
         assert WRONG_EN in response.text
 
+    # /core/ui/sign-in/wrong
+    # /core/operations/sign-in/wrong
     def test_unconfirmed_email_shows_the_same_message(self, client: Any) -> None:
         email = unique_email("Alice")
         assert email in create_account(client, "Alice", email).text
@@ -98,6 +110,8 @@ class TestSignIn:
         assert WRONG_EN in response.text
         assert heading(client.get("/")) == "Sign in"
 
+    # /core/ui/sign-in/wrong
+    # /core/ui/header/language
     def test_wrong_credentials_message_follows_the_language(self, client: Any) -> None:
         client.cookies.set("language", "fr")
 
@@ -105,6 +119,9 @@ class TestSignIn:
 
         assert WRONG_FR in response.text
 
+    # /core/ui/sign-in/signed-in
+    # /core/operations/sign-in/signed-in
+    # /core/ui/sign-in/sign-in
     def test_success_signs_in_and_leads_to_slash(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -117,7 +134,8 @@ class TestSignIn:
         assert WRONG_EN not in response.text
         assert heading(client.get("/")) == "My associations"
 
-    def test_r16_a_new_session_id_replaces_the_previous_one(
+    # /core/operations/sign-in/new-session
+    def test_a_new_session_id_replaces_the_previous_one(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         email = unique_email("Alice")
@@ -131,7 +149,8 @@ class TestSignIn:
         stale.cookies.set("session", previous)
         assert heading(stale.get("/")) == "Sign in"
 
-    def test_r16_replaces_a_session_id_planted_in_the_browser(
+    # /core/operations/sign-in/new-session
+    def test_replaces_a_session_id_planted_in_the_browser(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         email = unique_email("Alice")
@@ -148,7 +167,8 @@ class TestSignIn:
         assert signed_in_as(client) == "Alice"
         assert signed_in_as(attacker) is None
 
-    def test_r16_replaces_the_id_of_an_existing_session(
+    # /core/operations/sign-in/new-session
+    def test_replaces_the_id_of_an_existing_session(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         email = unique_email("Alice")
@@ -165,6 +185,8 @@ class TestSignIn:
         assert signed_in_as(client) == "Alice"
         assert signed_in_as(attacker) is None
 
+    # /core/operations/sign-in/signed-in
+    # /core/model/user/email
     def test_ignores_the_case_of_the_email(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -176,6 +198,8 @@ class TestSignIn:
         assert WRONG_EN not in shown(response)
         assert signed_in_as(client) == "Alice"
 
+    # /core/ui/sign-in/wrong
+    # /core/operations/sign-in/wrong
     def test_a_member_added_without_a_password_shows_the_same_message(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
