@@ -46,12 +46,8 @@
   only a session identifier, in an `HttpOnly` cookie.
 - Email is sent:
   - Production: handed to the server's local `sendmail` binary.
-    The hosting provider has no local SMTP listener and requires
-    authentication the app does not implement, which rules out SMTP
-    there.
   - Development and tests: Mailpit, run alongside PostgreSQL in
-    `compose.yaml`, on non-default ports to avoid clashing with other
-    projects' containers; backend and end-to-end tests query it over
+    `compose.yaml`, on non-default ports; backend and end-to-end tests query it over
     HTTP to read the sent email.
   - The two are selected by whether `SMTP_HOST` is set: set, SMTP;
     unset, `sendmail`.

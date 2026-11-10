@@ -73,4 +73,4 @@ Then restart the site so it picks up the new code.
 
 ## Dev43
 
-The development process is Dev43: see `spec/`.
+The development process is Dev43: see `docs/`.

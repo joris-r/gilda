@@ -21,6 +21,10 @@
 - Spec: separate invariants (data model) from post-conditions (API), with no sentence mixing both, starting with R8, R23, R28 and R33.
 - Traceability: try named markers on data model rules, with a generated spec-to-tests index, to judge it for Dev43.
 
+## Specification
+
+- Design: turn the text mockups of `docs/design/*.md` into real mockups, one HTML page per page with every state.
+
 ## Future
 
 - Cleanup: a procedure to purge old planning data (e.g. past absences, registrations and closures), which today is kept forever.
