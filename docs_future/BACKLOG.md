@@ -1,5 +1,10 @@
 # Backlog
 
+## Real use feedback
+
+- pre-filling in slot creation is painful. Better: initally 9:00-10:00, when start change (+X:+Y) move end by the same amount, on new dialog : repeat previous value
+- there is a flash with a red text on assocation creation submission
+
 ## Main list
 
 - Tooling: `make format` runs `ruff format` before `ruff check --fix`, so long lines get wrapped before the check stops.
