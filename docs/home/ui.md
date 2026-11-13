@@ -31,8 +31,8 @@ The summary of an association shows:
   2026 – 8 Jan 2027".
 
 Actions:
-- [confirm] "Confirm" runs /planning/operations/change-registration,
-  confirming the registration.
-- [acknowledge] "OK" runs /planning/operations/change-registration,
-  cancelling the registration; it then no longer shows.
+- [confirm] "Confirm" runs /planning/operations/change-registration on
+  the registration, confirming.
+- [acknowledge] "OK" runs /planning/operations/change-registration on
+  the registration, cancelling; it then no longer shows.
 - [choose] "Choose your slots" leads to the association's Schedule.

@@ -3,8 +3,8 @@
 ## Access
 
 - [signed-out] Signed out, every page but `/signup`, `/verify-email`,
-  `/forgot-password`, `/reset-password`, `/sign-in-link` and `/access`
-  shows Sign in.
+  `/forgot-password`, `/reset-password`, `/sign-in-link`, `/access`,
+  `/shared/<token>` and Not found shows Sign in.
 - [action] Signed out, an action of a screen, refused as
   /core/operations/general/signed-out, leads to Sign in.
 
@@ -20,7 +20,8 @@ Shows:
   - Members, Schedule settings, My availability: the association's
     name, then the screen's name;
   - New association: "My associations", leading to `/`, then "New
-    association".
+    association";
+  - Unknown association: "My associations", leading to `/`.
 - [association-link] The association's name leads to its Schedule.
 - [shared] On Shared schedule, signed in or not: the association's
   name, leading nowhere, and the language selector alone at its right.
@@ -58,7 +59,7 @@ Shows:
   account".
 
 Actions:
-- [sign-in] [Sign in] runs /core/operations/sign-in:
+- [sign-in] [Sign in] runs /core/operations/sign-in with the fields:
   - [signed-in] success: My associations shows;
   - [wrong] /core/operations/sign-in/wrong: "Wrong email or password."
     under the form.
@@ -75,13 +76,14 @@ Shows:
   Sign in.
 
 Actions:
-- [send] [Send me a link] runs /core/operations/request-access-link,
-  then shows "If <email> is known here, a sign-in link has been sent
+- [send] [Send me a link] runs /core/operations/request-access-link
+  with the field, then shows "If <email> is known here, a sign-in link has been sent
   to it." instead of the form.
 
 ## Access link
 
-At `/access?token=<token>`, opened from the access link.
+At `/access?token=<token>`, opened from the access link; mockup in
+`design/access-link.md`.
 
 - [signed-in] It runs /core/operations/sign-in-by-access-link with
   the token; on success, My associations shows, signed in.
@@ -100,7 +102,7 @@ Shows:
 
 Actions:
 - [send] [Send a reset link] runs
-  /core/operations/request-password-reset, then shows "If <email> has
+  /core/operations/request-password-reset with the field, then shows "If <email> has
   an account, a reset link has been sent to it." instead of the form.
 
 ## Reset password
@@ -110,14 +112,14 @@ mockup in `design/reset-password.md`.
 
 Shows:
 - [form] New password and [Set password].
-- [invalid-on-open] A token refused as
-  /core/operations/reset-password/invalid: the message of
-  /core/ui/reset-password/invalid, in place of the form.
+- [invalid-on-open] Opening the page runs
+  /core/operations/check-reset-token with the token; invalid: the
+  message of /core/ui/reset-password/invalid, in place of the form.
 - [usable] Opening the page leaves the token usable.
 
 Actions:
 - [set] [Set password] runs /core/operations/reset-password with the
-  token:
+  token and the field:
   - [reset] success: My associations shows, signed in;
   - [invalid] /core/operations/reset-password/invalid: "This link is
     no longer valid.", with a way to `/forgot-password` to request a
@@ -132,7 +134,8 @@ Shows:
   "Already have an account? Sign in".
 
 Actions:
-- [create] [Create account] runs /core/operations/create-account:
+- [create] [Create account] runs /core/operations/create-account with
+  the fields:
   - [check-email] success: "Check <email> for a confirmation link."
     instead of the form, not signed in, with "Resend the email" below
     it;
@@ -144,11 +147,13 @@ Actions:
   - [not-sent] /core/operations/create-account/not-sent: "We couldn't
     send the confirmation email. Try again later."
 - [resend] "Resend the email" runs
-  /core/operations/resend-confirmation and shows "Email sent."
+  /core/operations/resend-confirmation with the email and shows "Email
+  sent."
 
 ## Confirm email
 
-At `/verify-email?token=<token>`, opened from the confirmation link.
+At `/verify-email?token=<token>`, opened from the confirmation link;
+mockup in `design/confirm-email.md`.
 
 - [confirmed] It runs /core/operations/confirm-email with the token;
   on success, My associations shows, signed in.
@@ -165,12 +170,13 @@ Shows:
 - [form] Name, Association identifier (the slug, after
   `/association/`), [Create association] and Cancel.
 - [follows] Until the user edits Association identifier, it holds the
-  slug derived from Name, as /core/model/association/derived.
+  slug derived from Name, as /core/model/association defines it.
 - [enabled] [Create association] is enabled only when both fields are
   not empty.
 
 Actions:
-- [create] [Create association] runs /core/operations/create-association:
+- [create] [Create association] runs /core/operations/create-association
+  with the fields:
   - [created] success: the new association's Schedule shows;
   - [malformed] /core/operations/create-association/malformed-slug:
     "Use only lowercase letters, digits and hyphens, starting and
@@ -201,14 +207,15 @@ Shows:
 Actions:
 - [add] "Add a member" opens the dialog "Add a member": Display name,
   Email, Role (Volunteer by default), [Add member]. It runs
-  /core/operations/add-member:
+  /core/operations/add-member with the fields:
   - [added] success: "<name> added.";
   - [already] /core/operations/add-member/already: "<name> is already
     a member."
 - [edit] The edit icon opens the dialog titled with the member's
   display name: their email; Role and [Save]; under "SIGN-IN LINK",
   [Send link] and "Revoke link"; then "Remove from the association".
-- [save] [Save] with another role runs /core/operations/change-role:
+- [save] [Save] with another role runs /core/operations/change-role
+  for the member, with Role:
   - [changed] success: "<name> is now <role>.";
   - [last-manager] /core/operations/change-role/last-manager: "An
     association keeps at least one manager."
@@ -216,16 +223,19 @@ Actions:
   nothing.
 - [revoke-link] "Revoke link" shows only for a member with an access
   link; it asks "Revoke <name>'s sign-in link?" with [Revoke];
-  confirming runs /core/operations/revoke-access-link and shows
+  confirming runs /core/operations/revoke-access-link for the member
+  and shows
   "<name>'s sign-in link is revoked."
 - [send-link] "Send link" asks "Send <name>'s sign-in link by email?"
-  with [Send]; confirming runs /core/operations/send-access-link:
+  with [Send]; confirming runs /core/operations/send-access-link for
+  the member:
   - [sent] success: "<name>'s sign-in link is sent.";
   - [not-sent] /core/operations/send-access-link/not-sent: "We
     couldn't send <name>'s sign-in link. Try again later."
 - [remove] "Remove from the association" asks "Remove <name> from the
   association? Their upcoming registrations are cancelled." with
-  [Remove]; confirming runs /core/operations/remove-member:
+  [Remove]; confirming runs /core/operations/remove-member for the
+  member:
   - [removed] success: "<name> is removed.";
   - [remove-last-manager] /core/operations/remove-member/last-manager: "An
     association keeps at least one manager.";
@@ -234,14 +244,16 @@ Actions:
 - [rename] "Rename the association" opens the dialog "Rename the
   association": Name, filled with the name, and [Save], enabled only
   when Name is not empty.
-  - [renamed] Another name runs /core/operations/update-association;
+  - [renamed] Another name runs /core/operations/update-association
+    with Name alone;
     on success, the header shows the new name, and "The association is
     now <name>."
   - [same-name] The same name closes the dialog and changes nothing.
 - [change-slug] "Change the association identifier" opens the dialog
   "Change the association identifier": Association identifier, filled
   with the slug, and [Save], enabled only when it is not empty.
-  - [slug-changed] Another slug runs /core/operations/update-association;
+  - [slug-changed] Another slug runs /core/operations/update-association
+    with Association identifier alone;
     on success, the screen moves to the new URL and shows "The
     association identifier is now <slug>."
   - [same-slug] The same slug closes the dialog and changes nothing.
@@ -258,6 +270,9 @@ Actions:
 
 ## Unknown association
 
+Mockup in `design/unknown-association.md`.
+
 - [shown] A screen of an association whose slug is unknown, or of
   which the user is not a member, shows "This association does not
   exist or you are not a member." with a way to My associations.
+- [status] It answers 200.

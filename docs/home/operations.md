@@ -2,6 +2,8 @@
 
 ## List my associations
 
+Cases:
+
 - [listed] The associations the signed-in user is a member of, each
   with their role there, their upcoming and obsolete registrations,
   and its planning period, if any.
@@ -13,4 +15,4 @@
 - [obsolete] The obsolete registrations are the user's obsolete
   registrations dated today or later, sorted by date, then start.
 - [period] With a planning period, the user's registration count, as
-  /planning/model/registration/count.
+  /planning/model/registration defines it.

@@ -13,3 +13,34 @@ ABSENCES                                     [+ Add an absence]
 NOTE FOR THE MANAGERS                                         ✎
   Always group my registrations in pairs.
 ```
+
+Empty:
+
+```
+MY PREFERENCES
+  None
+
+ABSENCES                                     [+ Add an absence]
+  None
+
+NOTE FOR THE MANAGERS                                         ✎
+  None
+```
+
+Dialogs:
+
+```
+┌ Add an absence ────────────────────────────── ✕ ┐
+│ From [2026-11-09]   To [2026-11-15]             │
+│ [Add absence]  Cancel                           │
+└─────────────────────────────────────────────────┘
+
+┌ Note for the managers ─────────────────────── ✕ ┐
+│ Text [Always group my registrations in pairs. ] │
+│      [                                        ] │
+│ [Save]  Cancel                                  │
+└─────────────────────────────────────────────────┘
+```
+
+"Edit the absence" has the same fields as "Add an absence", filled
+with the absence, and [Save].

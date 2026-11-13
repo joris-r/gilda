@@ -48,3 +48,26 @@ Week 44
 Thu 29   [Chloé      ]
 Sat 31   [Bruno ?    ]
 ```
+
+An obsolete registration, in place of its occurrence:
+
+```
+10h  ┌──────────────┐
+     │Alice         │
+     │obsolete      │
+13h  └──────────────┘
+```
+
+No occurrence in the shown weeks:
+
+```
+(logo)  Jardin partagé des Lilas                           Alice ▾
+                      My availability  Members  Schedule settings
+
+No openings in these weeks.
+
+[More weeks]
+```
+
+Without a planning period: no Planning start and Planning end lines,
+nothing greyed.

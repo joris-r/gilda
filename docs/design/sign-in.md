@@ -12,3 +12,10 @@ Sign in
 
 No account yet? Create an account
 ```
+
+Wrong email or password:
+
+```
+  [Sign in]
+  Wrong email or password.
+```

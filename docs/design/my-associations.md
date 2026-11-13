@@ -33,10 +33,18 @@ Mes associations
     Aucune inscription à venir.
 ```
 
-In French, without registrations:
+Without any association:
 
 ```
-Mes associations
-  Jardin partagé des Lilas             RESPONSABLE
-  Repair Café Belleville                  BÉNÉVOLE
+(logo)  My associations                                    Alice ▾
+
+You are not a member of any association yet.
+
+[+ New association]
+```
+
+After deleting an association, above the list:
+
+```
+Jardin partagé des Lilas is deleted.
 ```

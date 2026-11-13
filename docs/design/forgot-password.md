@@ -9,3 +9,13 @@ Forgot your password?
 
 Back to Sign in
 ```
+
+After [Send a reset link]:
+
+```
+(logo)                                     [English ▾]
+
+If alice@example.org has an account, a reset link has been sent to it.
+
+Back to Sign in
+```

@@ -4,13 +4,15 @@
 
 Alice, Bruno, Chloé and David have no account.
 
-- Alice creates her account, then creates the association "Jardin
-  partagé".
+- Alice creates her account and opens the confirmation link from her
+  email, then creates the association "Jardin partagé".
 - On its Members page, she adds Bruno as manager, and Chloé and David
   as volunteers. She signs out.
-- Chloé creates her account with her email. My associations shows
-  Jardin partagé, VOLUNTEER. She signs out.
-- Bruno creates his account with his email, opens the Members of
+- Chloé creates her account with her email and opens the confirmation
+  link. My associations shows Jardin partagé, VOLUNTEER. She signs
+  out.
+- Bruno creates his account with his email, opens the confirmation
+  link, then the Members of
   Jardin partagé and promotes Chloé: "Chloé is now manager." He signs
   out.
 - Chloé signs in. My associations shows Jardin partagé, MANAGER. She

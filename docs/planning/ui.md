@@ -28,21 +28,24 @@ Shows, top to bottom:
 Actions:
 - [edit-period] The period's edit icon opens the dialog "Planning
   period": From, To, [Save]; it runs
-  /planning/operations/set-planning-period.
+  /planning/operations/set-planning-period with the fields.
 - [clear-period] The period's delete icon shows only when a period is
   set; it asks "Clear the planning period?" with [Clear], which runs
   /planning/operations/clear-planning-period.
 - [add-closure] "Add a closure" opens the dialog "Add a closure": From,
-  To, Label, [Add closure]; it runs /planning/operations/add-closure.
+  To, Label, [Add closure]; it runs /planning/operations/add-closure
+  with the fields.
 - [edit-closure] A closure's edit icon opens the dialog "Edit the
   closure", filled with the closure, with [Save]; it runs
-  /planning/operations/edit-closure.
+  /planning/operations/edit-closure for it, with the fields.
 - [delete-closure] A closure's delete icon asks "Delete the closure
   "<label>"?", or "Delete the closure of <first date>?", e.g. "Delete the closure of
   Sat 14 Nov 2026?", without a label,
-  with [Delete], which runs /planning/operations/delete-closure.
+  with [Delete], which runs /planning/operations/delete-closure for
+  it.
 - [add-slot] "Add a slot" opens the dialog "Add a slot": Day, From,
-  To, [Add slot]; it runs /planning/operations/add-slot.
+  To, [Add slot]; it runs /planning/operations/add-slot with the
+  fields.
   - [defaults] The dialog opens with From at 09:00 and To at 09:00.
     Changing From sets To to the same time, until the manager changes
     To.
@@ -54,12 +57,13 @@ Actions:
     exists."
 - [edit-slot] A slot's edit icon opens the dialog "Edit the slot",
   filled with the slot, with [Save]; From and To do not follow each
-  other. It runs /planning/operations/edit-slot.
+  other. It runs /planning/operations/edit-slot for it, with the
+  fields.
   - [edit-exists] /planning/operations/edit-slot/exists: "This slot
     already exists."
 - [delete-slot] A slot's delete icon asks "Delete the slot <weekday>
   <start>–<end>?" with [Delete], which runs
-  /planning/operations/delete-slot.
+  /planning/operations/delete-slot for it.
 - [create-link] "Create a share link" runs
   /planning/operations/create-share-link; when there is a link, it
   first asks "Replace the share link? The current link no longer shows
@@ -69,7 +73,8 @@ Actions:
   no longer shows the Schedule." with [Revoke], which runs
   /planning/operations/revoke-share-link.
 - [set-preference] A cell of "Members' preferences" saves at once, as
-  /planning/ui/my-availability/set.
+  /planning/ui/my-availability/set, for the row's member and the
+  column's slot.
 
 ## My availability
 
@@ -95,20 +100,21 @@ Shows, top to bottom:
 
 Actions:
 - [set] Choosing a value saves it at once, running
-  /planning/operations/set-preference; "—" runs
-  /planning/operations/delete-preference.
+  /planning/operations/set-preference for the user and the slot, with
+  the value; "—" runs /planning/operations/delete-preference.
 - [add-absence] "Add an absence" opens the dialog "Add an absence":
-  From, To, [Add absence]; it runs /planning/operations/add-absence.
+  From, To, [Add absence]; it runs /planning/operations/add-absence
+  with the fields.
 - [edit-absence] An absence's edit icon opens the dialog "Edit the
   absence", filled with it, with [Save]; it runs
-  /planning/operations/edit-absence.
+  /planning/operations/edit-absence for it, with the fields.
 - [delete-absence] An absence's delete icon asks "Delete the absence
   of <first> – <last>?", e.g. "Delete the absence of Mon 9 Nov 2026 –
   Sun 15 Nov 2026?", with [Delete], which runs
-  /planning/operations/delete-absence.
+  /planning/operations/delete-absence for it.
 - [edit-note] The note's edit icon opens the dialog "Note for the
   managers": a multi-line Text, [Save]; it runs
-  /planning/operations/set-note.
+  /planning/operations/set-note with the field.
 
 ## Schedule
 
@@ -136,18 +142,20 @@ Shows:
   - no registration: empty.
 - [obsolete] An obsolete registration is placed like an occurrence,
   by its date, start and end, marked "obsolete".
-- [closed] A day covered by a closure shows "Closed" and the closure's
-  label.
+- [closed] A shown day covered by a closure shows "Closed" and the
+  closure's label.
 
 Actions:
-- [more] "More weeks" adds the four weeks that follow.
+- [more] "More weeks" adds the four weeks that follow, from
+  /planning/operations/get-schedule with their dates.
 - [menu] Clicking an occurrence or an obsolete registration, from
   today on, opens the Occurrence menu on it; after the period's last
   date as well.
 
 ## Occurrence menu
 
-Opened on an occurrence or an obsolete registration of Schedule.
+Opened on an occurrence or an obsolete registration of Schedule;
+mockup in `design/occurrence-menu.md`.
 
 Shows:
 - [title] Its day and times, e.g. "Thu 29 Oct · 10–13".
@@ -167,7 +175,8 @@ Shows:
   - [order] The names are sorted by the member's preference for the
     occurrence's slot: Preferred, Possible, none stated, Unavailable,
     then absent members whatever their preference; then by fewest
-    registrations, as /planning/model/registration/count; then by
+    registrations, as /planning/model/registration defines the count;
+    then by
     display name.
 - [confirm] A proposed registration that is not obsolete, the user's
   own, or any to a manager: "Confirm".
@@ -175,9 +184,10 @@ Shows:
   any to a manager: "Cancel registration…".
 
 Actions:
-- [sign-up] "Sign up" runs /planning/operations/register for the user.
+- [sign-up] "Sign up" runs /planning/operations/register for the user,
+  on the occurrence.
 - [propose] A member's name runs /planning/operations/register for
-  that member.
+  that member, on the occurrence.
 - [taken] /planning/operations/register/taken: "Someone took this
   slot in the meantime."
 - [closes] On success, the menu closes and the occurrence shows the
@@ -189,10 +199,12 @@ Actions:
   occurrence.
 - [escape] Escape closes the menu.
 - [confirm-registration] "Confirm" runs
-  /planning/operations/change-registration, confirming.
+  /planning/operations/change-registration on the registration,
+  confirming.
 - [cancel-registration] "Cancel registration…" asks "Cancel this
   registration?" with [Yes, cancel] and "Keep it"; "Yes, cancel" runs
-  /planning/operations/change-registration, cancelling.
+  /planning/operations/change-registration on the registration,
+  cancelling.
 
 ## Shared schedule
 
@@ -200,7 +212,8 @@ At `/shared/<token>`, signed in or not; mockup in
 `design/shared-schedule.md`.
 
 - [shown] It shows the association's Schedule as a member sees it,
-  from /planning/operations/get-shared-schedule, without the links to
-  the other screens; clicking an occurrence opens no menu.
+  from /planning/operations/get-shared-schedule with the token,
+  without the links to the other screens; clicking an occurrence opens
+  no menu.
 - [invalid] An unknown, replaced or revoked link: "This link is no
   longer valid."

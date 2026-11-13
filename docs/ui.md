@@ -5,7 +5,8 @@
 At any path that leads nowhere, signed in or not; mockup in
 `design/not-found.md`.
 
-- [status] It answers 404.
+- [status] It answers 404. An association screen whose slug is unknown
+  is not Not found: core's Unknown association.
 - [shown] "Page not found", then "Back to the home page", leading to
   `/`.
 - [header] Its header is the signed-out one, signed in or not.
@@ -21,7 +22,9 @@ At any path that leads nowhere, signed in or not; mockup in
 
 Mockup in `design/forms.md`.
 
-- [create] A button, "+" then its name, opens a form to create.
+- [create] A button, "+" then its name, opens a form to create, in a
+  dialog or on its own page; with nothing to enter, it creates at
+  once.
 - [edit] An edit icon on a line opens a form to change it.
 - [delete] A delete icon on a line asks for confirmation.
 - [icon-names] Each icon is named by its action, e.g. "Edit the
@@ -40,7 +43,8 @@ Mockup in `design/forms.md`.
   - [nested] Confirming one asked from a form's dialog also closes
     that form.
 - [managers] Only managers see the buttons and icons that create, edit
-  or delete.
+  or delete an association's data; a member's own data, on My
+  availability, has them for every member.
 
 ## Errors
 

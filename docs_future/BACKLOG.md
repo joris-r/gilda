@@ -26,6 +26,7 @@
 - Process: CLAUDE.md would say that tests read from the database only what no screen shows (ids, rows already erased), and everything else through the screens.
 - Process: CLAUDE.md would ask a setup helper whose action answers a list with dialogs to check success by its message, not by the generic error's absence.
 - Tests: strengthen weak existing tests found by the migration: the e2e share-link revoke test never asserts "None", the only-member account deletion asserts only status 200, and the Schedule's date order is checked only through the column layout.
+- Process: an ordered variant of `Cases:` for Dev43, where the first case whose condition holds applies (as /core/operations/general/first does today); prototype it here first, by a rule in CLAUDE.md, then propose it to Dev43.
 - Config: rename `FRONTEND_URL`, a name left from the former frontend, to the site's address (e.g. `SITE_URL`), in the code, the README and the hosting provider's settings.
 
 
@@ -276,3 +277,16 @@ Choices the spec left open, settled by `finish-rewrite`:
 
 - Cleanup: a procedure to purge old planning data (e.g. past absences, registrations and closures), which today is kept forever.
 - Cleanup: an association left with no member stays forever, unreachable, with its slug and share link; decide its fate (automatic deletion, or a superuser action).
+
+## Rulings asked by the new-form increment
+
+Points the soundness check of 2026-11-13 left to the human; the
+specification keeps its current decision on each until ruled.
+
+- Confirmation dialogs: /ui/forms/confirmation says every confirmation has its action button and Cancel, but the Occurrence menu's asks "Cancel this registration?" with [Yes, cancel] and "Keep it". Which is right?
+- Schedule: where does the "Planning start" line sit when the week holding the period's first date is not shown (period begun before the shown weeks)? And which of "Planning end" and "Today" comes first when they fall at the same place?
+- Schedule: when two closures cover the same day, which label does the day show?
+- Access link and Confirm email: which status does the "This link is no longer valid." page answer (CLAUDE.md asks tests of a page to assert it)?
+- Update association: the spec now lets one request change both the name and the slug; keep that, or one at a time?
+- Remove member: a manager who is the only member cannot remove themself (last-manager), though Delete account lets them leave; keep?
+- Change registration: the server cancels a registration dated before today, though no screen offers it; refuse it?
