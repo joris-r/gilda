@@ -49,11 +49,13 @@ adds the sections it integrates.
    - New association: its mockup shows a title in the page, but `interface.md` says the header's location stands for the title; the page follows the mockup.
    - New association: "+ New association" is a link, while `interface.md` describes a button.
 7. Orders: /readme, /ui/name-order, /home/ui/my-associations,
-   /planning/ui/occurrence-menu, design/my-associations.md (Members'
-   order by display name follows /ui/name-order with no edit; the
-   Occurrence menu also carries, from Stale days, its message shown
-   until the next try or the menu closes, and, from Schedule display,
-   its note icon's name).
+   /planning/ui/occurrence-menu, /planning/operations/register,
+   design/my-associations.md (Members' order by display name follows
+   /ui/name-order with no edit; the Occurrence menu also carries, from
+   Stale days, its message shown until the next try or the menu
+   closes, from Schedule display, its note icon's name, and, from
+   Taken occurrences, a manager's names on a taken occurrence, giving
+   it to another member, with Register's `replacing`).
    - My associations: the spec sets no order, so the list follows whatever order the database returns.
    - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
    - Manager's menu: names are ordered by `casefold`, not by the language's collation, as on Members.
@@ -71,7 +73,9 @@ adds the sections it integrates.
    no longer valid." when More weeks or the new-day refresh is
    refused; from Schedule display, the Schedule shows the closed days
    that Get schedule now gives, and opens the Occurrence menu at once,
-   loading its rest).
+   loading its rest; from Taken occurrences, "This day is past." also
+   shows in the confirmation of giving an occurrence to another
+   member).
    - Schedule: a page left open past midnight keeps the old today line and past days until it reloads.
    - Schedule: a page left open past midnight still offers Sign up on yesterday's occurrences, which then shows only the generic error.
 10. Stale data: /ui/notices.
@@ -105,13 +109,18 @@ adds the sections it integrates.
     design/schedule.md, design/occurrence-menu.md (the Schedule's
     closed days and the Occurrence menu's opening, kept in item 9, and
     the menu's note icon, kept in item 7; a note of only spaces already shows
-    no note icon, by the Occurrence menu's note case).
+    no note icon, by the Occurrence menu's note case; the menu's mockup
+    also carries, from Taken occurrences, a manager's names on a taken
+    occurrence and the confirmation of giving it to another member).
     - Schedule: a closure on a weekday with no column of the shown weeks doesn't show at all.
     - Schedule menu: it shows centred on the screen, not anchored to the occurrence.
     - Schedule menu: it opens only once the server answers, so a slow network shows nothing for a while after the click.
     - Note icon: the whole note is the icon's accessible name, so a long note gives a long screen-reader label.
     - A note of only spaces is saved as is; the Schedule's note icon (a later item) should treat it as empty.
-15. Taken occurrences:
+15. Taken occurrences (the Occurrence menu and Register, kept in item
+    7, carry a manager's names on a taken occurrence and giving it to
+    another member; the Schedule, kept in item 9, its past message;
+    the menu's mockup, kept in item 14, its two states).
     - Manager's menu: a taken occurrence offers no names, so moving it to another member takes a cancel, then a proposal.
 16. Clipboard:
     - Share link: "Link copied." shows even when the browser refuses the clipboard.
@@ -168,3 +177,6 @@ adds the sections it integrates.
 - Schedule display: the menu opens at once with its title and a loading sign, the rest coming with the server's answer; an answer for an earlier click, or after the menu closed, is dropped. A closure's day on a weekday with no slot gets no column of its own, as it removes no opening.
 - Schedule display: no operation of `docs/` names what the Occurrence menu loads (members, counts, absences, notes), a gap older than this feature; the menu's loading and its outcomes are stated on the Schedule's menu action alone (`/planning/ui/schedule/load`).
 - Schedule display: the third [soundness] check of the menu's loading reported three points (a menu reopened on the same occurrence, when the past date is judged, and a load that fails never "loading"); `[opens]`, `[latest]` and `[load]` of `/planning/ui/schedule` were then rewritten per click, the past date judged when the load ends, which no check has re-read.
+- Taken occurrences: a manager may give an occurrence away from a confirmed registration too, cancelling a member's commitment behind a confirmation; the member is not told, as the software sends no notice of registrations, and sees their name struck only on the Schedule (Get schedule shows the new registration, not the cancelled one); limiting it to proposed registrations, or telling the member, is the human's call.
+- Taken occurrences: the move reuses Register with an optional `replacing`, so the cancellation and the new registration happen in one operation; a `replacing` that is no longer the occurrence's registration is refused as taken when another holds it, and registers normally when the occurrence has become free.
+- Taken occurrences: `design/occurrence-menu.md` shows no refused state of the move's confirmation ("Someone took this slot in the meantime.", "This day is past."), as for Cancel registration's; whether they need a mockup is left to the human.

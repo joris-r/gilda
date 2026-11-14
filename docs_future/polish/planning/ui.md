@@ -121,7 +121,8 @@
     4. [load-shown] Otherwise: the rest shows.
 - [past] In the Occurrence menu, /planning/operations/register/past
   and /planning/operations/change-registration/past: "This day is
-  past.", in the menu, or in its confirmation for Cancel registration;
+  past.", in the menu, or in its confirmation for Cancel registration
+  or /planning/ui/occurrence-menu/move;
   the Schedule shows its weeks again at once, as
   /planning/ui/schedule/new-day.
 - [taken] In the Occurrence menu, /planning/operations/register/taken:
@@ -152,6 +153,22 @@
 ×     then by
 ×     display name.
     then by display name, as /ui/name-order.
+  any to a manager: "Cancel registration…". …
+- [taken-names] An occurrence whose registration is not cancelled, to
+  a manager: also the members' display names but that of the
+  registration's member, as /planning/ui/occurrence-menu/free shows
+  them.
+× - [propose] A member's name runs /planning/operations/register for
+×   that member, on the occurrence.
+- [propose] On a free or cancelled occurrence, a member's name runs
+  /planning/operations/register for that member, on the occurrence.
+- [move] On an occurrence whose registration is not cancelled, a
+  member's name asks "Give this slot to <name> instead of <registered
+  name>?" with [Yes, give it] and "Keep it"; "Yes, give it" runs
+  /planning/operations/register for that member, on the occurrence,
+  replacing its registration.
+  - [move-messages] The messages of its tries, "Someone took this slot
+    in the meantime." included, show in its confirmation.
   slot in the meantime." …
 - [fresh] The message of a refused or failed try shows in the menu
   until the next try or the menu closes: opened again, the menu shows

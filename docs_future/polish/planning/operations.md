@@ -45,3 +45,24 @@ between two dates, both included.
     the range; …
   - [closed-days] the closed days are the dates of the range that a
     closure covers and that fall on the weekday of a slot;
+
+## Register
+
+- `end: time` …
+- `replacing: optional /planning/model/registration`, the registration
+  it replaces.
+
+× 1. [other] A volunteer registering another member: refused.
+1. [other] A volunteer registering another member, or with `replacing`:
+   refused.
+× 5. [taken] The occurrence already holds a registration that is not
+×    cancelled: refused.
+5. [taken] The occurrence already holds a registration that is not
+   cancelled, unless that registration is `replacing` and its user is
+   not `user`: refused.
+   the same, `proposed`. …
+
+Then:
+- [replaced] After /planning/operations/register/self or
+  /planning/operations/register/proposed: the occurrence's registration
+  that was not cancelled before, if any, becomes `cancelled`.
