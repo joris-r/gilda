@@ -735,7 +735,7 @@ class _Item:
 class _Day:
     date: date
     items: list[_Item]
-    closure: ClosureRead | None
+    closures: list[ClosureRead]
     past: bool
     within: bool
     after: bool
@@ -743,6 +743,16 @@ class _Day:
     @property
     def lanes(self) -> int:
         return max([1, *(item.lanes for item in self.items)])
+
+    @property
+    def closed(self) -> bool:
+        return bool(self.closures)
+
+    @property
+    def closure_labels(self) -> list[str]:
+        """The labels of the closures covering the day, by first date, each once."""
+        ordered = sorted(self.closures, key=lambda closure: closure.first)
+        return list(dict.fromkeys(c.label for c in ordered if c.label))
 
 
 @dataclass
@@ -869,7 +879,7 @@ def _weeks_view(schedule: ScheduleRead, period: PlanningPeriodData | None, today
                 _Day(
                     date=day,
                     items=by_date.get(day, []),
-                    closure=next((c for c in schedule.closures if c.first <= day <= c.last), None),
+                    closures=[c for c in schedule.closures if c.first <= day <= c.last],
                     past=day < today,
                     within=period is not None and period.first <= day <= period.last,
                     after=period is not None and day > period.last,

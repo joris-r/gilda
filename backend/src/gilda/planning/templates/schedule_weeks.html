@@ -22,7 +22,7 @@
       <div class="day{% if day.past %} past{% endif %}{% if day.within %} within{% endif %}{% if day.after %} after{% endif %}" role="group" aria-label="{{ short_day(day.date) }}">
         <div class="day-head">{{ short_day(day.date) }}</div>
         <div class="track" style="--day-lanes: {{ day.lanes }}">
-          {% if day.closure %}<div class="closure"><strong>{{ t("schedule.closed") }}</strong>{% if day.closure.label %} <span>{{ day.closure.label }}</span>{% endif %}</div>{% endif %}
+          {% if day.closed %}<div class="closure"><strong>{{ t("schedule.closed") }}</strong>{% if day.closure_labels %} <span>{{ day.closure_labels | join(" · ") }}</span>{% endif %}</div>{% endif %}
           {% if day.items %}
           <ul>
             {% for item in day.items %}

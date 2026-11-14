@@ -613,20 +613,16 @@ class PlanningService:
         if registration is None:
             raise NotFoundException("Registration not found.")
         mine = registration.user_id == user.id
+        if not mine and own.role != "manager":
+            raise PermissionDeniedException("Only the member or a manager can change it.")
+        if registration.date < datetime.now(ZoneInfo(own.association.timezone)).date():
+            raise ConflictException("This registration is past.")
         if status == "confirmed":
-            if not mine and own.role != "manager":
-                raise PermissionDeniedException(
-                    "Only the registered member or a manager can confirm."
-                )
             if registration.status != "proposed" or not await self._is_occurrence(
                 association_id, registration.date, registration.start, registration.end
             ):
                 raise ConflictException("Only a proposed registration can be confirmed.")
         elif status == "cancelled":
-            if not mine and own.role != "manager":
-                raise PermissionDeniedException(
-                    "Only the registered member or a manager can cancel."
-                )
             if registration.status == "cancelled":
                 raise ConflictException("This registration is already cancelled.")
         else:

@@ -276,4 +276,5 @@ Choices the spec left open, settled by `finish-rewrite`:
 ## Future
 
 - Cleanup: a procedure to purge old planning data (e.g. past absences, registrations and closures), which today is kept forever.
+- Cleanup: one helper for "today in the association's timezone", computed in five places of planning/services.py.
 - Cleanup: an association left with no member stays forever, unreachable, with its slug and share link; decide its fate (automatic deletion, or a superuser action).
