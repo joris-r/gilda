@@ -222,7 +222,7 @@ class TestCreatingAShareLink:
         assert shows_the_schedule(token, new_client())
         assert not shows_the_schedule(previous, new_client())
 
-    # /planning/operations/create-share-link/volunteer
+    # /planning/operations/general/manager
     def test_a_volunteer_creates_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -231,7 +231,7 @@ class TestCreatingAShareLink:
         assert "/shared/" not in response.text
         assert share_link_shown(client, planning.slug) is None
 
-    # /planning/operations/create-share-link/volunteer
+    # /planning/operations/general/manager
     def test_a_volunteer_replaces_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         token = shared_token(planning)
@@ -293,7 +293,7 @@ class TestRevokingTheShareLink:
 
         assert shows_the_schedule(token, new_client())
 
-    # /planning/operations/revoke-share-link/volunteer
+    # /planning/operations/general/manager
     def test_a_volunteer_revokes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         token = shared_token(planning)

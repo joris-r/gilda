@@ -638,7 +638,7 @@ class TestAddingAMember:
         assert "added." not in text
         assert member_count(client, association) == 1
 
-    # /core/operations/add-member/volunteer
+    # /core/operations/general/manager
     def test_a_volunteer_adds_no_one(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -808,7 +808,7 @@ class TestChangingTheRole:
         assert GENERIC in text
         assert "Zoé" not in members_page(client, association["slug"])
 
-    # /core/operations/change-role/volunteer
+    # /core/operations/general/manager
     def test_a_volunteer_changes_no_role(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -981,7 +981,7 @@ class TestRemovingAMember:
         assert GENERIC in text
         assert "is removed." not in text
 
-    # /core/operations/remove-member/volunteer
+    # /core/operations/general/manager
     def test_a_volunteer_removes_no_one(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -1142,7 +1142,7 @@ class TestRevokingALink:
         assert "is revoked." not in text
         assert signs_in(new_client(), token)
 
-    # /core/operations/revoke-access-link/volunteer
+    # /core/operations/general/manager
     def test_a_volunteer_revokes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, chloe, token = with_link(client, new_client)
         bruno = new_client()
@@ -1299,7 +1299,7 @@ class TestSendingALink:
         assert "is sent." not in text
         assert no_email_sent(email, already=1)  # only the confirmation email
 
-    # /core/operations/send-access-link/volunteer
+    # /core/operations/general/manager
     def test_a_volunteer_sends_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
         chloe_email = unique_email("Chloe")
@@ -1526,7 +1526,7 @@ class TestRenamingTheAssociation:
         assert GENERIC in text
         assert name_of(client, association) == NAME
 
-    # /core/operations/update-association/volunteer
+    # /core/operations/general/manager
     def test_a_volunteer_renames_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
@@ -1696,14 +1696,14 @@ class TestChangingTheIdentifier:
 
         assert no_email_sent(email, already=before)
 
-    # /core/operations/update-association/volunteer
+    # /core/operations/general/manager
     def test_a_volunteer_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
         slug = unique_slug()
 
         response = change_identifier(bruno, association["slug"], slug)
 
-        assert slug not in response.text
+        assert "is now" not in html.unescape(response.text)
         assert slug_of(client, association) == association["slug"]
 
     # /core/operations/general/unknown-association
@@ -1803,7 +1803,7 @@ class TestDeletingTheAssociation:
         assert no_email_sent(email, already=before)
 
     # /core/ui/members/delete-refused
-    # /core/operations/delete-association/volunteer
+    # /core/operations/general/manager
     def test_refused_shows_members_again_as_it_now_is(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1834,7 +1834,7 @@ class TestDeletingTheAssociation:
         assert f"window.location = '/association/{association['slug']}/members'" in text, text
         assert UNKNOWN in html.unescape(members_page(bruno, association["slug"]))
 
-    # /core/operations/delete-association/volunteer
+    # /core/operations/general/manager
     def test_a_volunteer_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, bruno = with_volunteer(client, new_client)
 
