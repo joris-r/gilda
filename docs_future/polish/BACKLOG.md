@@ -9,7 +9,7 @@ orders and displays.
 Each increment lists the entries it settles; its `future` increment
 adds the sections it integrates.
 
-1. Network retries:
+1. Network retries: /ui/errors.
    - Datastar: after a network error, `@post` retries even once its dialog is cancelled, so a failed "Delete my account" could still go through after Cancel; `retry: 'never'` covers only HTTP errors, and only `retryMaxCount: 0` stops it, as the confirmation macro does.
    - Actions outside a confirmation (Sign out, Create an account, Forgot password…) still retry after a network error, so they could run twice.
    - My preferences: a selector retries after a network error, so a late retry could overwrite a newer choice on the same slot.
@@ -71,3 +71,7 @@ adds the sections it integrates.
     - My associations shows dates without their year, so a proposal months ahead (e.g. "Sun 3 Jan") is ambiguous.
 
 ## Lessons
+
+## For the human
+
+- Network retries: two saves of the same selector sent in quick succession (My preferences, Members' preferences) may still reach the server out of order, the older overwriting the newer; with no resend this needs a slow network and two changes within one request's time, so it is left unspecified.
