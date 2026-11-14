@@ -14,7 +14,9 @@ adds the sections it integrates.
    - Actions outside a confirmation (Sign out, Create an account, Forgot password…) still retry after a network error, so they could run twice.
    - My preferences: a selector retries after a network error, so a late retry could overwrite a newer choice on the same slot.
 2. Failed saves: /planning/ui/schedule-settings,
-   /planning/ui/my-availability.
+   /planning/ui/my-availability (Schedule settings also carries, from
+   Stale data, Members' preferences shown again when the screen shows
+   again).
    - My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
    - Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
 3. Confirmation error: /ui/forms.
@@ -50,10 +52,13 @@ adds the sections it integrates.
    - Confirm and OK use the slug from page load, so after a change of identifier in another tab they show only the generic error.
 9. Stale days: /planning/ui/schedule, /planning/ui/shared-schedule
    (Occurrence menu, kept in item 7: a message shows until the next
-   try or the menu closes).
+   try or the menu closes; Schedule and Shared schedule also carry,
+   from Stale data, the weeks shown again after "Someone took this
+   slot in the meantime." and "This link is no longer valid." when
+   More weeks or the new-day refresh is refused).
    - Schedule: a page left open past midnight keeps the old today line and past days until it reloads.
    - Schedule: a page left open past midnight still offers Sign up on yesterday's occurrences, which then shows only the generic error.
-10. Stale data:
+10. Stale data: /ui/notices.
     - Sign up: after "Someone took this slot in the meantime.", the Schedule still shows the occurrence as free until a reload.
     - Members' preferences: a member added on Members, or a choice made on My availability, shows only after a reload.
     - Shared schedule: once the link is replaced or revoked, More weeks on a page already open shows only the generic error, not "This link is no longer valid.".
@@ -110,4 +115,9 @@ adds the sections it integrates.
 - Stale days: other screens keep the day they opened with past midnight (My availability's absences ending today or later, My associations' summary); no entry names them, so they are left as is.
 - Stale days: after midnight between Sunday and Monday, an open Schedule keeps its weeks, so it shows one more past week than a fresh one (`/planning/operations/get-schedule/default`); its range is not recomputed.
 - Stale days: "This day is past." also shows in the confirmation of Cancel registration, which `design/occurrence-menu.md` shows refused only in the plain menu ("Refused"); whether that state needs its own mockup is left to the human.
-- Stale days: on a Shared schedule open past midnight whose link was since replaced or revoked, the new-day refresh leaves the page as it was, with no message, rather than "This link is no longer valid."; Stale data (item 10) may revise it with More weeks.
+- Stale days: on a Shared schedule open past midnight whose link was since replaced or revoked, the new-day refresh leaves the page as it was, with no message, rather than "This link is no longer valid."; Stale data (item 10) may revise it with More weeks. Settled by Stale data: refused, the page shows only "This link is no longer valid.", as More weeks does.
+- Stale data: Members' preferences shows again only when Schedule settings shows again after being hidden, so a choice a member makes while the manager keeps the screen in view shows only once they leave and come back, or reload; a refresh every minute, as the new-day one, was left out.
+- Stale data: after "Someone took this slot in the meantime.", the Schedule behind shows the taker, but the open menu keeps "Sign up" (and a manager's names) until it closes, a new try giving the same message; whether the menu should then show the occurrence as it now is is left to the human.
+- Stale data: `docs/README.md`'s line for ui.md, carried by Orders, names neither Changed identifier nor Notices, which later items add; the last of them to be integrated may add both.
+- Stale data: when Schedule settings shows again, only Members' preferences shows again, so its columns may show a slot that SLOTS above does not list yet, or no longer lists, until a reload; refreshing the whole screen was left out to keep open dialogs and the volunteer's view out of it.
+- Stale data: the third [soundness] check still reported findings on Members' preferences shown again (a save running then, a cell whose member or slot is gone, and the main case overlapping its sub-cases); `/planning/ui/schedule-settings/preferences-again` was then rewritten to wait until no save runs and as a numbered list whose last case is "Otherwise", which no check has re-read.

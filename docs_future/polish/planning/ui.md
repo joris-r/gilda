@@ -9,6 +9,19 @@
   /planning/ui/my-availability/set, for the row's member and the
   column's slot, and shows its value as
   /planning/ui/my-availability/saved-value.
+- [preferences-again] When the screen, opened by a manager, shows
+  again after being hidden, once no save of "Members' preferences"
+  runs, the first that holds:
+  1. [preferences-again-signed-out] Signed out by then: it leads to
+     Sign in.
+  2. [preferences-again-failed] The user no longer a manager of the
+     association, or failing: the screen stays as it was, with no
+     message.
+  3. [preferences-again-shown] Otherwise: "Members' preferences" shows
+     again as it now is, its members, slots and values, without a
+     reload; each selector then shows its value as
+     /planning/ui/my-availability/saved-value, with the value it
+     showed again with for the value it opened with.
 
 ## My availability
 
@@ -29,6 +42,9 @@
 - [past] In the Occurrence menu, /planning/operations/register/past
   and /planning/operations/change-registration/past: "This day is
   past.", in the menu, or in its confirmation for Cancel registration;
+  the Schedule shows its weeks again at once, as
+  /planning/ui/schedule/new-day.
+- [taken] In the Occurrence menu, /planning/operations/register/taken:
   the Schedule shows its weeks again at once, as
   /planning/ui/schedule/new-day.
 - [new-day] Once today changes while the Schedule is open, it shows
@@ -62,5 +78,9 @@
 - [new-day] Once today changes while it is open, it shows its weeks
   again as /planning/ui/schedule/new-day, from
   /planning/operations/get-shared-schedule with the token and their
-  dates; refused, the link being unknown, replaced or revoked, or
+  dates; refused other than as /planning/ui/shared-schedule/gone, or
   failing, it stays as it was, with no message.
+- [gone] More weeks, or the refresh of
+  /planning/ui/shared-schedule/new-day, refused as
+  /planning/operations/get-shared-schedule/unknown: the page shows as
+  the link opened then would, as /planning/ui/shared-schedule/invalid.
