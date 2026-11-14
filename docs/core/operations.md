@@ -6,8 +6,6 @@ The screens run every operation on the server, as the signed-in user
 of the request.
 
 - [refused] A refused operation changes nothing.
-- [first] The cases of an operation are read in order, after those of
-  General: the first one whose condition holds applies.
 - [malformed] An input missing or not of its type, a display name or
   a name that is empty, or an email that is not valid: refused.
 - [signed-out] Signed out, every operation but Create account, Confirm
@@ -31,18 +29,20 @@ Inputs:
 - `password: string`
 
 Cases:
-- [short-password] Password of fewer than 8 characters: refused.
-- [not-invited] No user has this email, `invitation_only`, and the
-  email is not the superuser's: refused.
-- [exists] A user with a password has this email: refused.
-- [not-sent] The email of /core/operations/create-account/confirmation
-  cannot be sent: refused.
-- [created] No user has this email: a user is stored with the display
-  name, email and password, email not verified, not deleted, not
-  signed in.
-- [claimed] Otherwise, a user without a password has this email: that
-  user gets the password and the display name, and keeps their
-  memberships.
+1. [short-password] Password of fewer than 8 characters: refused.
+2. [not-invited] No user has this email, `invitation_only`, and the
+   email is not the superuser's: refused.
+3. [exists] A user with a password has this email: refused.
+4. [not-sent] The email of /core/operations/create-account/confirmation
+   cannot be sent: refused.
+5. [created] No user has this email: a user is stored with the display
+   name, email and password, email not verified, not deleted, not
+   signed in.
+6. [claimed] Otherwise, a user without a password has this email: that
+   user gets the password and the display name, and keeps their
+   memberships.
+
+Then:
 - [confirmation] After /core/operations/create-account/created or
   /core/operations/create-account/claimed: an EmailVerificationToken
   expiring 24 hours later is stored for the user, replacing their
@@ -110,14 +110,14 @@ Inputs:
 - `password: string`
 
 Cases:
-- [short-password] Password of fewer than 8 characters: refused.
-- [invalid] Token of no PasswordResetToken, or of an expired one:
-  refused.
-- [reset] Otherwise:
-  - the user's password is replaced, their `email_verified_at` set to
-    now if none, and the token deleted;
-  - the user is signed in, as /core/operations/sign-in/new-session;
-    their other sessions stay.
+1. [short-password] Password of fewer than 8 characters: refused.
+2. [invalid] Token of no PasswordResetToken, or of an expired one:
+   refused.
+3. [reset] Otherwise:
+   - the user's password is replaced, their `email_verified_at` set to
+     now if none, and the token deleted;
+   - the user is signed in, as /core/operations/sign-in/new-session;
+     their other sessions stay.
 
 ## Delete account
 
@@ -204,16 +204,16 @@ Inputs:
 - `slug: optional string`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [malformed-slug] Slug given, without the format of
-  /core/model/association/slug-format: refused.
-- [taken] Slug given, of another association or `new`: refused.
-- [changed] Otherwise:
-  - [renamed] the association takes the name given, if any;
-  - [new-slug] the association takes the slug given, if any; its
-    former slug no longer leads to it, and another association can
-    take it;
-  - [silent] its members are not told.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [malformed-slug] Slug given, without the format of
+   /core/model/association/slug-format: refused.
+3. [taken] Slug given, of another association or `new`: refused.
+4. [changed] Otherwise:
+   - [renamed] the association takes the name given, if any;
+   - [new-slug] the association takes the slug given, if any; its
+     former slug no longer leads to it, and another association can
+     take it;
+   - [silent] its members are not told.
 
 ## Delete association
 
@@ -231,13 +231,13 @@ Inputs:
 - `role: one of manager, volunteer`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [already] A member of the association has this email: refused.
-- [existing-user] A user has this email: that user becomes a member
-  with the role, their display name unchanged.
-- [new-user] Otherwise: a user without a password is stored with the
-  display name and email, email not verified, and becomes a member
-  with the role.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [already] A member of the association has this email: refused.
+3. [existing-user] A user has this email: that user becomes a member
+   with the role, their display name unchanged.
+4. [new-user] Otherwise: a user without a password is stored with the
+   display name and email, email not verified, and becomes a member
+   with the role.
 
 ## Change role
 
@@ -246,11 +246,11 @@ Inputs:
 - `role: one of manager, volunteer`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [not-member] The user is not a member: refused.
-- [last-manager] The user is the only manager and the role is
-  `volunteer`: refused.
-- [changed] Otherwise: the member takes the role.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [not-member] The user is not a member: refused.
+3. [last-manager] The user is the only manager and the role is
+   `volunteer`: refused.
+4. [changed] Otherwise: the member takes the role.
 
 ## Remove member
 
@@ -258,11 +258,11 @@ Inputs:
 - `user: /core/model/user`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [not-member] The user is not a member: refused.
-- [last-manager] The user is the only manager: refused.
-- [removed] Otherwise: the membership ends. A manager may remove
-  themself.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [not-member] The user is not a member: refused.
+3. [last-manager] The user is the only manager: refused.
+4. [removed] Otherwise: the membership ends. A manager may remove
+   themself.
 
 ## Send access link
 
@@ -270,13 +270,13 @@ Inputs:
 - `user: /core/model/user`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [not-member] The user is not a member: refused.
-- [not-sent] The email cannot be sent: refused.
-- [sent] Otherwise: the member is sent the email of
-  /core/operations/request-access-link/sent, in the language of
-  /core/operations/create-account/language set by the manager's
-  request, as /core/operations/request-access-link/same.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [not-member] The user is not a member: refused.
+3. [not-sent] The email cannot be sent: refused.
+4. [sent] Otherwise: the member is sent the email of
+   /core/operations/request-access-link/sent, in the language of
+   /core/operations/create-account/language set by the manager's
+   request, as /core/operations/request-access-link/same.
 
 ## Revoke access link
 
@@ -284,11 +284,11 @@ Inputs:
 - `user: /core/model/user`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [not-member] The user is not a member: refused.
-- [revoked] Otherwise: the member's AccessLink is revoked, as
-  /core/operations/revoke-my-access-link/revoked, in every association
-  they belong to, also when they have none.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [not-member] The user is not a member: refused.
+3. [revoked] Otherwise: the member's AccessLink is revoked, as
+   /core/operations/revoke-my-access-link/revoked, in every association
+   they belong to, also when they have none.
 
 ## Migrate slugs
 

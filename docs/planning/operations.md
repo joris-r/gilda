@@ -23,11 +23,11 @@ Inputs:
 - `end: time`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [order] Start not before end: refused.
-- [exists] The association already has that slot: refused.
-- [added] Otherwise: a slot is stored with them, with an id no slot
-  has.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [order] Start not before end: refused.
+3. [exists] The association already has that slot: refused.
+4. [added] Otherwise: a slot is stored with them, with an id no slot
+   has.
 
 ## Edit slot
 
@@ -39,12 +39,12 @@ Inputs:
 - `end: time`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [unknown] The slot is not of this association: refused.
-- [order] Start not before end: refused.
-- [exists] Another slot of the association has them: refused.
-- [edited] Otherwise: the slot takes the weekday, start and end, and
-  keeps its preferences.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [unknown] The slot is not of this association: refused.
+3. [order] Start not before end: refused.
+4. [exists] Another slot of the association has them: refused.
+5. [edited] Otherwise: the slot takes the weekday, start and end, and
+   keeps its preferences.
 
 ## Delete slot
 
@@ -52,9 +52,9 @@ Inputs:
 - `slot: /planning/model/slot`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [unknown] The slot is not of this association: refused.
-- [deleted] Otherwise: the slot and its preferences are deleted.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [unknown] The slot is not of this association: refused.
+3. [deleted] Otherwise: the slot and its preferences are deleted.
 
 ## Add closure
 
@@ -64,10 +64,10 @@ Inputs:
 - `label: string`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [order] Last before first: refused.
-- [added] Otherwise: a closure is stored with the dates and label,
-  empty or not, with an id no closure has.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [order] Last before first: refused.
+3. [added] Otherwise: a closure is stored with the dates and label,
+   empty or not, with an id no closure has.
 
 ## Edit closure
 
@@ -78,10 +78,10 @@ Inputs:
 - `label: string`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [unknown] The closure is not of this association: refused.
-- [order] Last before first: refused.
-- [edited] Otherwise: the closure takes the dates and label.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [unknown] The closure is not of this association: refused.
+3. [order] Last before first: refused.
+4. [edited] Otherwise: the closure takes the dates and label.
 
 ## Delete closure
 
@@ -89,9 +89,9 @@ Inputs:
 - `closure: /planning/model/closure`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [unknown] The closure is not of this association: refused.
-- [deleted] Otherwise: the closure is deleted.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [unknown] The closure is not of this association: refused.
+3. [deleted] Otherwise: the closure is deleted.
 
 ## Set planning period
 
@@ -100,10 +100,10 @@ Inputs:
 - `last: date`
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [order] Last before first: refused.
-- [set] Otherwise: the association's period has the dates, replacing
-  the previous one.
+1. [volunteer] Signed-in user a volunteer: refused.
+2. [order] Last before first: refused.
+3. [set] Otherwise: the association's period has the dates, replacing
+   the previous one.
 
 ## Clear planning period
 
@@ -119,12 +119,12 @@ Inputs:
 - `value: one of preferred, possible, unavailable`
 
 Cases:
-- [other] A volunteer, for another member: refused.
-- [unknown] The slot is not of this association, or the user not a
-  member: refused.
-- [set] Otherwise: the member's preference on the slot is the value,
-  replacing the previous one, even when several requests for the same
-  member and slot run at once.
+1. [other] A volunteer, for another member: refused.
+2. [unknown] The slot is not of this association, or the user not a
+   member: refused.
+3. [set] Otherwise: the member's preference on the slot is the value,
+   replacing the previous one, even when several requests for the same
+   member and slot run at once.
 
 ## Delete preference
 
@@ -133,11 +133,11 @@ Inputs:
 - `slot: /planning/model/slot`
 
 Cases:
-- [other] A volunteer, for another member: refused.
-- [unknown] The slot is not of this association, or the user not a
-  member: refused.
-- [deleted] Otherwise: the member has no preference on the slot
-  anymore.
+1. [other] A volunteer, for another member: refused.
+2. [unknown] The slot is not of this association, or the user not a
+   member: refused.
+3. [deleted] Otherwise: the member has no preference on the slot
+   anymore.
 
 ## Add absence
 
@@ -158,10 +158,10 @@ Inputs:
 - `last: date`
 
 Cases:
-- [unknown] The absence is not the signed-in user's in this
-  association: refused.
-- [order] Last before first: refused.
-- [edited] Otherwise: the absence takes the dates.
+1. [unknown] The absence is not the signed-in user's in this
+   association: refused.
+2. [order] Last before first: refused.
+3. [edited] Otherwise: the absence takes the dates.
 
 ## Delete absence
 
@@ -192,13 +192,16 @@ Inputs:
 - `last: optional date`
 
 Cases:
-- [reversed] Both dates, last before first: refused.
-- [range] Both dates: that range.
-- [default] Otherwise: the range starts on the Monday of the week
-  before today's and spans six weeks, and more if needed to reach the
-  end of the week after the one that holds the planning period's last
-  date.
-- [result] In both:
+1. [reversed] Both dates, last before first: refused.
+2. [range] Both dates: that range.
+3. [default] Otherwise: the range starts on the Monday of the week
+   before today's and spans six weeks, and more if needed to reach the
+   end of the week after the one that holds the planning period's last
+   date.
+
+Then:
+- [result] After /planning/operations/get-schedule/range or
+  /planning/operations/get-schedule/default:
   - [registration] an occurrence's registration is the one that is not
     cancelled; else the cancelled one created last; else none;
   - [closures] the closures are those that cover at least one date of
@@ -215,17 +218,17 @@ Inputs:
 - `end: time`
 
 Cases:
-- [other] A volunteer registering another member: refused.
-- [non-member] The user is not a member of the association: refused.
-- [past] The date is before today: refused.
-- [no-occurrence] No occurrence has this date, start and end: refused.
-- [taken] The occurrence already holds a registration that is not
-  cancelled: refused.
-- [self] A member registering themself: a registration is stored for
-  them on the occurrence, `confirmed`, created now, with an id no
-  registration has.
-- [proposed] Otherwise, a manager registering another member: stored
-  the same, `proposed`.
+1. [other] A volunteer registering another member: refused.
+2. [non-member] The user is not a member of the association: refused.
+3. [past] The date is before today: refused.
+4. [no-occurrence] No occurrence has this date, start and end: refused.
+5. [taken] The occurrence already holds a registration that is not
+   cancelled: refused.
+6. [self] A member registering themself: a registration is stored for
+   them on the occurrence, `confirmed`, created now, with an id no
+   registration has.
+7. [proposed] Otherwise, a manager registering another member: stored
+   the same, `proposed`.
 
 ## Change registration
 
@@ -236,15 +239,15 @@ Inputs:
 - `status: one of confirmed, cancelled`
 
 Cases:
-- [unknown] The registration is not of this association: refused.
-- [forbidden] Signed-in user neither the registered user nor a
-  manager: refused.
-- [past] The registration is dated before today: refused.
-- [confirm] `confirmed`, on a `proposed` registration that is not
-  obsolete: it becomes `confirmed`.
-- [cancel] `cancelled`, on a registration that is not cancelled: it
-  becomes `cancelled`.
-- [other] Any other change: refused.
+1. [unknown] The registration is not of this association: refused.
+2. [forbidden] Signed-in user neither the registered user nor a
+   manager: refused.
+3. [past] The registration is dated before today: refused.
+4. [confirm] `confirmed`, on a `proposed` registration that is not
+   obsolete: it becomes `confirmed`.
+5. [cancel] `cancelled`, on a registration that is not cancelled: it
+   becomes `cancelled`.
+6. [other] Any other change: refused.
 
 ## Create share link
 
