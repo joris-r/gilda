@@ -20,3 +20,10 @@
   failure, on the server or on the network, the operation is not sent
   again until the user triggers it again, or opens its page again when
   the page runs it on opening.
+
+## Name order
+
+- [names] Wherever a screen sorts by name, names are sorted
+  alphabetically, ignoring case and accents, e.g. "émile" and "Émile"
+  before "Zoé"; between names that are equal once case and accents are
+  ignored, the order is left free.

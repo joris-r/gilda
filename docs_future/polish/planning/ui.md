@@ -17,3 +17,11 @@
     value chosen. Once none runs, it shows the value of the save that
     succeeded last, in the order the answers came, or else the value
     it opened with: a refused or failed save does not change it.
+
+## Occurrence menu
+
+  - [order] The names are sorted by the member's preference for the …
+    registrations, as /planning/model/registration defines the count; …
+×     then by
+×     display name.
+    then by display name, as /ui/name-order.

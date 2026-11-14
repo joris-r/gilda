@@ -34,7 +34,9 @@ adds the sections it integrates.
    `/core/ui/header/title` as is; mockup, test and code to align).
    - New association: its mockup shows a title in the page, but `interface.md` says the header's location stands for the title; the page follows the mockup.
    - New association: "+ New association" is a link, while `interface.md` describes a button.
-7. Orders:
+7. Orders: /readme, /ui/name-order, /home/ui/my-associations,
+   /planning/ui/occurrence-menu, design/my-associations.md (Members'
+   order by display name follows /ui/name-order with no edit).
    - My associations: the spec sets no order, so the list follows whatever order the database returns.
    - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
    - Manager's menu: names are ordered by `casefold`, not by the language's collation, as on Members.
@@ -79,6 +81,8 @@ adds the sections it integrates.
 ## Lessons
 
 - New association: its integration drops the in-page title from the code and from the test of `/core/ui/new-association/form`, which asserts an `<h1>` "New association" in `main`; the "+ New association" link of My associations needs no code change.
+- Orders: the code sorts names with `casefold` in two places (`core/pages.py` `members_in_order`, and the Occurrence menu's names in `planning/pages.py`); its integration may share one sort key in `web/`, used by My associations too; Members' preferences follows Members' order through `/planning/ui/schedule-settings/preferences-order`, with no change of its own.
+- Orders: a section kept in an earlier item cannot cite a section a later item adds, or `docs/` is not closed after the earlier one; /ui/name-order is therefore stated for every screen that sorts by name, and Members' `[list]` (item 4) is left as is.
 
 ## For the human
 
@@ -89,3 +93,5 @@ adds the sections it integrates.
 - Sign-in links: `design/header.md` shows no confirmation and no message of "Revoke my sign-in link" ("Your sign-in link is revoked.", and now "You have no sign-in link."), while `design/members.md` lists its messages; whether the header's messages need a mockup is left to the human.
 - Access pages: when Confirm email succeeds on the server but its answer never reaches the browser, the token is gone, so [Try again] shows "This link is no longer valid." and "Create an account to request a new one", though the email is confirmed and the user can sign in with their password; left as is, as it needs a lost answer, but a pointer to Sign in there is the human's call.
 - New association: without its in-page title, the page has no `<h1>`, as Schedule, Members, Schedule settings and My availability already, where only My associations' location is an `<h1>`; whether the location should be each signed-in screen's heading is left to the human (`/core/ui/header/title` says it stands for the title, not how).
+- Orders: /ui/name-order ignores case and accents in every language, rather than a collation per interface language; for English and French names the two agree, and it needs no new dependency (e.g. PyICU), so a locale-aware collation is left to the human.
+- Orders: My associations is sorted by name alone, not managers first as Members; whether the associations the user manages should come first is left to the human.
