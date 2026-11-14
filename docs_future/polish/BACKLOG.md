@@ -17,7 +17,7 @@ adds the sections it integrates.
    /planning/ui/my-availability.
    - My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
    - Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
-3. Confirmation error:
+3. Confirmation error: /ui/forms.
    - Confirmation: the generic error probably still shows after Cancel and reopening, until the next try.
 4. Sign-in links:
    - Revoke my sign-in link: the menu offers it to a user who has no link, and then says "revoked"; consider showing it only when they have one.
@@ -77,3 +77,5 @@ adds the sections it integrates.
 
 - Network retries: two saves of the same selector sent in quick succession (My preferences, Members' preferences) may still reach the server out of order, the older overwriting the newer; with no resend this needs a slow network and two changes within one request's time, so it is left unspecified.
 - Failed saves: the outline must cite domain sections (`/planning/ui/…`) for [outline], but check.py's [depends] then reports them, as BACKLOG.md counts as the top level, which declares no domain; a false positive of the Dev43 plugin, worth an issue.
+- Confirmation error: /ui/errors/kept ("What was typed stays.") does not say whether a form opened again after a failed try and Cancel keeps what was typed; /ui/forms/fresh settles only its messages, and the project backlog's Add a slot entry already touches the fields.
+- Confirmation error: the Occurrence menu is not a dialog, so /ui/forms/fresh leaves open whether "Someone took this slot in the meantime." or the generic error still shows when it opens again on the same occurrence; outline item 9 or 10 may settle it.

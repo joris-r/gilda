@@ -1,5 +1,12 @@
 # UI
 
+## Forms
+
+    that form. …
+- [fresh] The message of a refused or failed try in a dialog, the
+  generic error included, shows in that dialog only, until the next
+  try or the dialog closes: opened again, the dialog shows none.
+
 ## Errors
 
 - [kept] What was typed stays. …
