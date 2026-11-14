@@ -2,6 +2,12 @@
 
 ## Forms
 
+× - [create] A button, "+" then its name, opens a form to create, in a
+×   dialog or on its own page; with nothing to enter, it creates at
+×   once.
+- [create] "+" then its name opens a form to create: a button for a
+  dialog, a link for a form on its own page; with nothing to enter, a
+  button creates at once.
     that form. …
 - [fresh] The message of a refused or failed try in a dialog, the
   generic error included, shows in that dialog only, until the next

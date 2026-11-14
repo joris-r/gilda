@@ -30,7 +30,8 @@ adds the sections it integrates.
 5. Access pages: /core/ui/access-link, /core/ui/confirm-email,
    design/access-link.md, design/confirm-email.md.
    - Access link and Confirm email: the page stays blank while the action runs, and after a server failure only the generic error shows, with no way forward.
-6. New association:
+6. New association: /design, design/new-association.md (the title:
+   `/core/ui/header/title` as is; mockup, test and code to align).
    - New association: its mockup shows a title in the page, but `interface.md` says the header's location stands for the title; the page follows the mockup.
    - New association: "+ New association" is a link, while `interface.md` describes a button.
 7. Orders:
@@ -77,6 +78,8 @@ adds the sections it integrates.
 
 ## Lessons
 
+- New association: its integration drops the in-page title from the code and from the test of `/core/ui/new-association/form`, which asserts an `<h1>` "New association" in `main`; the "+ New association" link of My associations needs no code change.
+
 ## For the human
 
 - Network retries: two saves of the same selector sent in quick succession (My preferences, Members' preferences) may still reach the server out of order, the older overwriting the newer; with no resend this needs a slow network and two changes within one request's time, so it is left unspecified.
@@ -85,3 +88,4 @@ adds the sections it integrates.
 - Confirmation error: the Occurrence menu is not a dialog, so /ui/forms/fresh leaves open whether "Someone took this slot in the meantime." or the generic error still shows when it opens again on the same occurrence; outline item 9 or 10 may settle it.
 - Sign-in links: `design/header.md` shows no confirmation and no message of "Revoke my sign-in link" ("Your sign-in link is revoked.", and now "You have no sign-in link."), while `design/members.md` lists its messages; whether the header's messages need a mockup is left to the human.
 - Access pages: when Confirm email succeeds on the server but its answer never reaches the browser, the token is gone, so [Try again] shows "This link is no longer valid." and "Create an account to request a new one", though the email is confirmed and the user can sign in with their password; left as is, as it needs a lost answer, but a pointer to Sign in there is the human's call.
+- New association: without its in-page title, the page has no `<h1>`, as Schedule, Members, Schedule settings and My availability already, where only My associations' location is an `<h1>`; whether the location should be each signed-in screen's heading is left to the human (`/core/ui/header/title` says it stands for the title, not how).
