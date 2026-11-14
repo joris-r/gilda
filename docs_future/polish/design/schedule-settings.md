@@ -1,5 +1,16 @@
 # Schedule settings
 
+  Link copied. …
+``` …
+
+After [Copy], when the browser does not copy the link:
+
+```
+SHARE LINK                                  [+ Create a share link]
+  https://gilda.example.org/shared/Hq3v…           [Copy]  🗑
+  The link couldn't be copied. Select it to copy it.
+```
+
 │ Clear the planning period? …
 │ [Clear]  Cancel …
 └───────────────────────────────────────────────────┘ …

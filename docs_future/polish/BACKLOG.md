@@ -26,7 +26,8 @@ adds the sections it integrates.
    absence that overlaps another; from Past dates, Schedule settings
    lists only the closures ending today or later, and both screens,
    with Add closure, Edit closure, Add absence and Edit absence, carry
-   the refusal of a closure or an absence that ends before today).
+   the refusal of a closure or an absence that ends before today;
+   from Clipboard, Schedule settings shows when Copy fails).
    - My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
    - Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
 3. Confirmation error: /ui/forms.
@@ -86,7 +87,8 @@ adds the sections it integrates.
 11. Date order messages: design/schedule-settings.md (Schedule
     settings and My availability, kept in item 2, carry its messages;
     the mockup also carries, from Warnings, the Delete slot
-    confirmation and the Edit the slot warning).
+    confirmation and the Edit the slot warning, and, from Clipboard,
+    Copy's failure).
     - Add a slot or Edit the slot with To not after From shows only the generic error; the former frontend said "Check the dates and times: the start comes before the end."
     - Planning period and closures with To before From show only the generic error, as Slots do.
     - Absences with To before From show only the generic error; the former frontend said "Check the dates: the start comes before the end." (its translation is gone with the former frontend's other leftovers).
@@ -122,7 +124,8 @@ adds the sections it integrates.
     another member; the Schedule, kept in item 9, its past message;
     the menu's mockup, kept in item 14, its two states).
     - Manager's menu: a taken occurrence offers no names, so moving it to another member takes a cancel, then a proposal.
-16. Clipboard:
+16. Clipboard (Schedule settings, kept in item 2, shows when Copy
+    fails; its mockup, kept in item 11, shows that state).
     - Share link: "Link copied." shows even when the browser refuses the clipboard.
 17. Years on dates:
     - My associations shows dates without their year, so a proposal months ahead (e.g. "Sun 3 Jan") is ambiguous.
@@ -180,3 +183,4 @@ adds the sections it integrates.
 - Taken occurrences: a manager may give an occurrence away from a confirmed registration too, cancelling a member's commitment behind a confirmation; the member is not told, as the software sends no notice of registrations, and sees their name struck only on the Schedule (Get schedule shows the new registration, not the cancelled one); limiting it to proposed registrations, or telling the member, is the human's call.
 - Taken occurrences: the move reuses Register with an optional `replacing`, so the cancellation and the new registration happen in one operation; a `replacing` that is no longer the occurrence's registration is refused as taken when another holds it, and registers normally when the occurrence has become free.
 - Taken occurrences: `design/occurrence-menu.md` shows no refused state of the move's confirmation ("Someone took this slot in the meantime.", "This day is past."), as for Cancel registration's; whether they need a mockup is left to the human.
+- Clipboard: when the browser refuses the clipboard, Copy says "The link couldn't be copied. Select it to copy it." in place of "Link copied.", the link staying shown in full for the user to copy by hand; the page does not select it for them, and which message stays after two Copies whose answers cross is left free.

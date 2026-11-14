@@ -45,6 +45,11 @@
   - [delete-slot-warning] The question goes on with "Its registrations
     from today on become obsolete, and the members' preferences on it
     are deleted."
+× - [copy] "Copy" copies the link and shows "Link copied."
+- [copy] "Copy" copies the link and shows "Link copied.", in place of
+  the message of an earlier Copy.
+  - [copy-failed] When the browser does not copy it: "The link
+    couldn't be copied. Select it to copy it." instead.
 × - [set-preference] A cell of "Members' preferences" saves at once, as
 ×   /planning/ui/my-availability/set, for the row's member and the
 ×   column's slot.
