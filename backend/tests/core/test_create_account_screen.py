@@ -463,7 +463,6 @@ class TestEmailNotSent:
 
 
 class TestCaseOrder:
-    # /core/operations/general/first
     # /core/operations/create-account/short-password
     # /core/operations/create-account/exists
     # /ui/errors/generic
