@@ -16,5 +16,6 @@ Week 44
 ```
 
 With no occurrence in the shown weeks but a closed day, "No openings
-in these weeks." sits above the weeks, which show only their closed
-days.
+in these weeks." sits above the weeks that hold a closed day, which
+show only their closed days; the other weeks do not show, and the
+Today line shows only with the current week.

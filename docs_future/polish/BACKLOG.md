@@ -53,8 +53,7 @@ adds the sections it integrates.
    order by display name follows /ui/name-order with no edit; the
    Occurrence menu also carries, from Stale days, its message shown
    until the next try or the menu closes, and, from Schedule display,
-   its note icon's name, and its opening at once, showing only the
-   last click).
+   its note icon's name).
    - My associations: the spec sets no order, so the list follows whatever order the database returns.
    - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
    - Manager's menu: names are ordered by `casefold`, not by the language's collation, as on Members.
@@ -71,7 +70,8 @@ adds the sections it integrates.
    after "Someone took this slot in the meantime." and "This link is
    no longer valid." when More weeks or the new-day refresh is
    refused; from Schedule display, the Schedule shows the closed days
-   that Get schedule now gives).
+   that Get schedule now gives, and opens the Occurrence menu at once,
+   loading its rest).
    - Schedule: a page left open past midnight keeps the old today line and past days until it reloads.
    - Schedule: a page left open past midnight still offers Sign up on yesterday's occurrences, which then shows only the generic error.
 10. Stale data: /ui/notices.
@@ -103,8 +103,8 @@ adds the sections it integrates.
     - Cancel registration: the server cancels a registration dated before today (`/planning/operations/change-registration/cancel` doesn't forbid it), though no menu opens there.
 14. Schedule display: /planning/operations/set-note,
     design/schedule.md, design/occurrence-menu.md (the Schedule's
-    closed days, kept in item 9, and the Occurrence menu's note icon
-    and opening, kept in item 7; a note of only spaces already shows
+    closed days and the Occurrence menu's opening, kept in item 9, and
+    the menu's note icon, kept in item 7; a note of only spaces already shows
     no note icon, by the Occurrence menu's note case).
     - Schedule: a closure on a weekday with no column of the shown weeks doesn't show at all.
     - Schedule menu: it shows centred on the screen, not anchored to the occurrence.
@@ -166,4 +166,5 @@ adds the sections it integrates.
 - Schedule display: Set note now drops the leading and trailing spaces and line breaks, but notes saved before keep theirs, so one of only spaces still shows blank on My availability, where `/planning/ui/my-availability/none` gives "None" only to an empty note (the code already shows "None" for it); a migration trimming the stored notes is the human's call.
 - Schedule display: the note icon is named "Note", the note being its description, rather than the note itself; the absence icon keeps its text as its name, as it is short.
 - Schedule display: the menu opens at once with its title and a loading sign, the rest coming with the server's answer; an answer for an earlier click, or after the menu closed, is dropped. A closure's day on a weekday with no slot gets no column of its own, as it removes no opening.
-- Schedule display: the first [soundness] check found four points (the empty message beside closed days, a failed load of the opened menu, [opens] without "from today on", the trimmed characters), all fixed; its re-check of the fixes did not report back before the commit, and no operation of `docs/` names what the menu loads (members, counts, absences, notes), a gap older than this change.
+- Schedule display: no operation of `docs/` names what the Occurrence menu loads (members, counts, absences, notes), a gap older than this feature; the menu's loading and its outcomes are stated on the Schedule's menu action alone (`/planning/ui/schedule/load`).
+- Schedule display: the third [soundness] check of the menu's loading reported three points (a menu reopened on the same occurrence, when the past date is judged, and a load that fails never "loading"); `[opens]`, `[latest]` and `[load]` of `/planning/ui/schedule` were then rewritten per click, the past date judged when the load ends, which no check has re-read.
