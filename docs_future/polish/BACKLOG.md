@@ -27,7 +27,8 @@ adds the sections it integrates.
    - Sign-in link: when the email can't be sent, the link is still created, so the member later shows "Revoke link" for a link nobody received.
    - Send link drops the link when the email can't be sent, but Sign-in link keeps it; align the two.
    - Revoke link from a page opened before the member's link was revoked elsewhere still says "revoked".
-5. Access pages:
+5. Access pages: /core/ui/access-link, /core/ui/confirm-email,
+   design/access-link.md, design/confirm-email.md.
    - Access link and Confirm email: the page stays blank while the action runs, and after a server failure only the generic error shows, with no way forward.
 6. New association:
    - New association: its mockup shows a title in the page, but `interface.md` says the header's location stands for the title; the page follows the mockup.
@@ -83,3 +84,4 @@ adds the sections it integrates.
 - Confirmation error: /ui/errors/kept ("What was typed stays.") does not say whether a form opened again after a failed try and Cancel keeps what was typed; /ui/forms/fresh settles only its messages, and the project backlog's Add a slot entry already touches the fields.
 - Confirmation error: the Occurrence menu is not a dialog, so /ui/forms/fresh leaves open whether "Someone took this slot in the meantime." or the generic error still shows when it opens again on the same occurrence; outline item 9 or 10 may settle it.
 - Sign-in links: `design/header.md` shows no confirmation and no message of "Revoke my sign-in link" ("Your sign-in link is revoked.", and now "You have no sign-in link."), while `design/members.md` lists its messages; whether the header's messages need a mockup is left to the human.
+- Access pages: when Confirm email succeeds on the server but its answer never reaches the browser, the token is gone, so [Try again] shows "This link is no longer valid." and "Create an account to request a new one", though the email is confirmed and the user can sign in with their password; left as is, as it needs a lost answer, but a pointer to Sign in there is the human's call.
