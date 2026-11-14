@@ -260,8 +260,7 @@ Inputs:
 Cases:
 - [volunteer] Signed-in user a volunteer: refused.
 - [not-member] The user is not a member: refused.
-- [last-manager] The user is the only manager and the association has
-  other members: refused.
+- [last-manager] The user is the only manager: refused.
 - [removed] Otherwise: the membership ends. A manager may remove
   themself.
 

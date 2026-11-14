@@ -239,6 +239,7 @@ Cases:
 - [unknown] The registration is not of this association: refused.
 - [forbidden] Signed-in user neither the registered user nor a
   manager: refused.
+- [past] The registration is dated before today: refused.
 - [confirm] `confirmed`, on a `proposed` registration that is not
   obsolete: it becomes `confirmed`.
 - [cancel] `cancelled`, on a registration that is not cancelled: it

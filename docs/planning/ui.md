@@ -132,8 +132,8 @@ Shows:
 - [period-lines] When a planning period is set, a line "Planning start
   · <date>" sits just before the week that holds its first date, and a
   line "Planning end · <date>" just after the week that holds its last
-  date. When the first line and the today line fall at the same place,
-  the today line comes first.
+  date. A line whose week is not shown is not shown. Lines at the same
+  place come in this order: Planning end, Today, Planning start.
 - [occurrence] An occurrence shows the display name of its
   registration, as /planning/operations/get-schedule/registration, and
   no times:
@@ -142,8 +142,10 @@ Shows:
   - no registration: empty.
 - [obsolete] An obsolete registration is placed like an occurrence,
   by its date, start and end, marked "obsolete".
-- [closed] A shown day covered by a closure shows "Closed" and the
-  closure's label.
+- [closed] A shown day covered by a closure shows "Closed", then the
+  labels of the closures covering it, by first date (free among the
+  same first date), separated by " · ", each once and empty ones left
+  out.
 
 Actions:
 - [more] "More weeks" adds the four weeks that follow, from
@@ -217,3 +219,4 @@ At `/shared/<token>`, signed in or not; mockup in
   no menu.
 - [invalid] An unknown, replaced or revoked link: "This link is no
   longer valid."
+- [status] It answers 200, the link valid or not.

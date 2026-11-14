@@ -92,6 +92,7 @@ At `/access?token=<token>`, opened from the access link; mockup in
   a new one.
 - [fetched] Fetching the link without running the page signs no one
   in.
+- [status] It answers 200, the link valid or not.
 
 ## Forgot password
 
@@ -161,6 +162,7 @@ mockup in `design/confirm-email.md`.
   token usable.
 - [invalid] /core/operations/confirm-email/invalid: "This link is no
   longer valid.", with a way back to `/signup` to request a new one.
+- [status] It answers 200, the link valid or not.
 
 ## New association
 

@@ -277,16 +277,3 @@ Choices the spec left open, settled by `finish-rewrite`:
 
 - Cleanup: a procedure to purge old planning data (e.g. past absences, registrations and closures), which today is kept forever.
 - Cleanup: an association left with no member stays forever, unreachable, with its slug and share link; decide its fate (automatic deletion, or a superuser action).
-
-## Rulings asked by the new-form increment
-
-Points the soundness check of 2026-11-13 left to the human; the
-specification keeps its current decision on each until ruled.
-
-- Confirmation dialogs: /ui/forms/confirmation says every confirmation has its action button and Cancel, but the Occurrence menu's asks "Cancel this registration?" with [Yes, cancel] and "Keep it". Which is right?
-- Schedule: where does the "Planning start" line sit when the week holding the period's first date is not shown (period begun before the shown weeks)? And which of "Planning end" and "Today" comes first when they fall at the same place?
-- Schedule: when two closures cover the same day, which label does the day show?
-- Access link and Confirm email: which status does the "This link is no longer valid." page answer (CLAUDE.md asks tests of a page to assert it)?
-- Update association: the spec now lets one request change both the name and the slug; keep that, or one at a time?
-- Remove member: a manager who is the only member cannot remove themself (last-manager), though Delete account lets them leave; keep?
-- Change registration: the server cancels a registration dated before today, though no screen offers it; refuse it?

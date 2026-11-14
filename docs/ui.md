@@ -37,7 +37,8 @@ Mockup in `design/forms.md`.
   result and its message, if any.
 - [failure] On failure, the dialog stays open, with its message.
 - [confirmation] A confirmation opens in a dialog with its question,
-  its action button and Cancel.
+  its action button and Cancel, unless its screen names another
+  button for Cancel.
   - [cancel] Cancel and Escape close it, changing nothing, even after
     a failed try.
   - [nested] Confirming one asked from a form's dialog also closes
