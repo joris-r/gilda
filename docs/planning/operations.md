@@ -8,6 +8,10 @@
   schedule, requires a signed-in member of the association, as
   /core/operations/general/signed-out and
   /core/operations/general/unknown-association.
+- [manager] Add slot, Edit slot, Delete slot, Add closure, Edit
+  closure, Delete closure, Set planning period, Clear planning period,
+  Create share link and Revoke share link require a manager of the
+  association: a volunteer's is refused.
 
 ## Initial state
 
@@ -23,11 +27,12 @@ Inputs:
 - `end: time`
 
 Cases:
-1. [volunteer] Signed-in user a volunteer: refused.
-2. [order] Start not before end: refused.
-3. [exists] The association already has that slot: refused.
-4. [added] Otherwise: a slot is stored with them, with an id no slot
-   has.
+- [order] Start not before end: refused.
+- [exists] The association already has that slot: refused.
+
+Then:
+- [added] After no refusal: a slot is stored with them, with an id no
+  slot has.
 
 ## Edit slot
 
@@ -39,12 +44,13 @@ Inputs:
 - `end: time`
 
 Cases:
-1. [volunteer] Signed-in user a volunteer: refused.
-2. [unknown] The slot is not of this association: refused.
-3. [order] Start not before end: refused.
-4. [exists] Another slot of the association has them: refused.
-5. [edited] Otherwise: the slot takes the weekday, start and end, and
-   keeps its preferences.
+1. [unknown] The slot is not of this association: refused.
+2. [order] Start not before end: refused.
+3. [exists] Another slot of the association has them: refused.
+
+Then:
+- [edited] After no refusal: the slot takes the weekday, start and
+  end, and keeps its preferences.
 
 ## Delete slot
 
@@ -52,9 +58,11 @@ Inputs:
 - `slot: /planning/model/slot`
 
 Cases:
-1. [volunteer] Signed-in user a volunteer: refused.
-2. [unknown] The slot is not of this association: refused.
-3. [deleted] Otherwise: the slot and its preferences are deleted.
+- [unknown] The slot is not of this association: refused.
+
+Then:
+- [deleted] After no refusal: the slot and its preferences are
+  deleted.
 
 ## Add closure
 
@@ -64,10 +72,11 @@ Inputs:
 - `label: string`
 
 Cases:
-1. [volunteer] Signed-in user a volunteer: refused.
-2. [order] Last before first: refused.
-3. [added] Otherwise: a closure is stored with the dates and label,
-   empty or not, with an id no closure has.
+- [order] Last before first: refused.
+
+Then:
+- [added] After no refusal: a closure is stored with the dates and
+  label, empty or not, with an id no closure has.
 
 ## Edit closure
 
@@ -78,10 +87,11 @@ Inputs:
 - `label: string`
 
 Cases:
-1. [volunteer] Signed-in user a volunteer: refused.
-2. [unknown] The closure is not of this association: refused.
-3. [order] Last before first: refused.
-4. [edited] Otherwise: the closure takes the dates and label.
+1. [unknown] The closure is not of this association: refused.
+2. [order] Last before first: refused.
+
+Then:
+- [edited] After no refusal: the closure takes the dates and label.
 
 ## Delete closure
 
@@ -89,9 +99,10 @@ Inputs:
 - `closure: /planning/model/closure`
 
 Cases:
-1. [volunteer] Signed-in user a volunteer: refused.
-2. [unknown] The closure is not of this association: refused.
-3. [deleted] Otherwise: the closure is deleted.
+- [unknown] The closure is not of this association: refused.
+
+Then:
+- [deleted] After no refusal: the closure is deleted.
 
 ## Set planning period
 
@@ -100,16 +111,16 @@ Inputs:
 - `last: date`
 
 Cases:
-1. [volunteer] Signed-in user a volunteer: refused.
-2. [order] Last before first: refused.
-3. [set] Otherwise: the association's period has the dates, replacing
-   the previous one.
+- [order] Last before first: refused.
+
+Then:
+- [set] After no refusal: the association's period has the dates,
+  replacing the previous one.
 
 ## Clear planning period
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [cleared] Otherwise: the association has no period anymore.
+- [cleared] The association has no period anymore.
 
 ## Set preference
 
@@ -122,9 +133,11 @@ Cases:
 1. [other] A volunteer, for another member: refused.
 2. [unknown] The slot is not of this association, or the user not a
    member: refused.
-3. [set] Otherwise: the member's preference on the slot is the value,
-   replacing the previous one, even when several requests for the same
-   member and slot run at once.
+
+Then:
+- [set] After no refusal: the member's preference on the slot is the
+  value, replacing the previous one, even when several requests for
+  the same member and slot run at once.
 
 ## Delete preference
 
@@ -136,8 +149,10 @@ Cases:
 1. [other] A volunteer, for another member: refused.
 2. [unknown] The slot is not of this association, or the user not a
    member: refused.
-3. [deleted] Otherwise: the member has no preference on the slot
-   anymore.
+
+Then:
+- [deleted] After no refusal: the member has no preference on the slot
+  anymore.
 
 ## Add absence
 
@@ -147,8 +162,10 @@ Inputs:
 
 Cases:
 - [order] Last before first: refused.
-- [added] Otherwise: an absence is stored as the signed-in user's,
-  with the dates and an id no absence has.
+
+Then:
+- [added] After no refusal: an absence is stored as the signed-in
+  user's, with the dates and an id no absence has.
 
 ## Edit absence
 
@@ -161,7 +178,9 @@ Cases:
 1. [unknown] The absence is not the signed-in user's in this
    association: refused.
 2. [order] Last before first: refused.
-3. [edited] Otherwise: the absence takes the dates.
+
+Then:
+- [edited] After no refusal: the absence takes the dates.
 
 ## Delete absence
 
@@ -171,7 +190,9 @@ Inputs:
 Cases:
 - [unknown] The absence is not the signed-in user's in this
   association: refused.
-- [deleted] Otherwise: the absence is deleted.
+
+Then:
+- [deleted] After no refusal: the absence is deleted.
 
 ## Set note
 
@@ -252,15 +273,13 @@ Cases:
 ## Create share link
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [created] Otherwise: a ShareLink is stored for the association,
-  replacing the previous one.
+- [created] A ShareLink is stored for the association, replacing the
+  previous one.
 
 ## Revoke share link
 
 Cases:
-- [volunteer] Signed-in user a volunteer: refused.
-- [revoked] Otherwise: the ShareLink, if any, is deleted.
+- [revoked] The ShareLink, if any, is deleted.
 
 ## Get shared schedule
 
@@ -273,7 +292,9 @@ Inputs:
 
 Cases:
 - [unknown] No ShareLink has this token: refused.
-- [schedule] Otherwise: for the ShareLink's association, as
+
+Then:
+- [schedule] After no refusal: for the ShareLink's association, as
   /planning/operations/get-schedule with the dates.
 
 ## Remove member
