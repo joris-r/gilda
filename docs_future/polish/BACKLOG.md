@@ -40,7 +40,9 @@ adds the sections it integrates.
    - My associations: the spec sets no order, so the list follows whatever order the database returns.
    - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
    - Manager's menu: names are ordered by `casefold`, not by the language's collation, as on Members.
-8. Stale identifiers:
+8. Stale identifiers: /ui/changed-identifier (Members, kept in item
+   4: Rename and Change the association identifier compare with the
+   association as it now is, Delete with the name the screen shows).
    - Rename and Delete check against the name the page was loaded with: after a rename in another tab, Delete stays disabled for the new name until a reload.
    - Change the association identifier breaks every bookmark of the former URLs, with no redirect (`/core/operations/update-association/new-slug`).
    - Confirm and OK use the slug from page load, so after a change of identifier in another tab they show only the generic error.
@@ -83,6 +85,8 @@ adds the sections it integrates.
 - New association: its integration drops the in-page title from the code and from the test of `/core/ui/new-association/form`, which asserts an `<h1>` "New association" in `main`; the "+ New association" link of My associations needs no code change.
 - Orders: the code sorts names with `casefold` in two places (`core/pages.py` `members_in_order`, and the Occurrence menu's names in `planning/pages.py`); its integration may share one sort key in `web/`, used by My associations too; Members' preferences follows Members' order through `/planning/ui/schedule-settings/preferences-order`, with no change of its own.
 - Orders: a section kept in an earlier item cannot cite a section a later item adds, or `docs/` is not closed after the earlier one; /ui/name-order is therefore stated for every screen that sorts by name, and Members' `[list]` (item 4) is left as is.
+- Stale identifiers: an outline item may not cite by path a section kept in an earlier item, even in a parenthesis, or [outline] counts it in two increments; name it in plain text.
+- Stale identifiers: every action of an association screen (Members, Schedule, Schedule settings, My availability, My associations' Confirm and OK) finds its association by the slug of its URL today (`detail_by_slug`); /ui/changed-identifier needs them to find it by its id instead, e.g. carried in the action's URL, as technical.md leaves those URLs free.
 
 ## For the human
 
@@ -95,3 +99,6 @@ adds the sections it integrates.
 - New association: without its in-page title, the page has no `<h1>`, as Schedule, Members, Schedule settings and My availability already, where only My associations' location is an `<h1>`; whether the location should be each signed-in screen's heading is left to the human (`/core/ui/header/title` says it stands for the title, not how).
 - Orders: /ui/name-order ignores case and accents in every language, rather than a collation per interface language; for English and French names the two agree, and it needs no new dependency (e.g. PyICU), so a locale-aware collation is left to the human.
 - Orders: My associations is sorted by name alone, not managers first as Members; whether the associations the user manages should come first is left to the human.
+- Stale identifiers: a former slug still leads to Unknown association, with no redirect, as decided by `association-slug` (a redirect needs a history of slugs, a model change, and conflicts with `/core/operations/update-association/new-slug`, which frees the former slug for another association); left as is, a redirect is the human's call.
+- Stale identifiers: Delete the association checks the typed name against the name the screen shows, not the association's current name, so a page opened before a rename in another tab deletes once the former name is typed; it is still the same association, so no server check (a `name` input of `/core/operations/delete-association`) was added.
+- Stale identifiers: links of a screen opened before a change of identifier (the header's name, My associations' names, Choose your slots) are not actions on the association's data, so /ui/changed-identifier does not cover them: they may keep the former URL until the screen opens again, leading to Unknown association, or to another association that took the former slug; left free.

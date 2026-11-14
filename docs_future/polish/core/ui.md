@@ -28,6 +28,33 @@
     "<name> has no sign-in link.";
   - [link-leaves] after either, the member's dialog, opened again,
     has no "Revoke link".
+- [rename] "Rename the association" opens the dialog "Rename the …
+×   - [renamed] Another name runs /core/operations/update-association
+  - [renamed] A name other than the association's current one runs
+    /core/operations/update-association
+    with Name alone; …
+×   - [same-name] The same name closes the dialog and changes nothing.
+  - [same-name] The association's current name closes the dialog and
+    changes nothing.
+- [change-slug] "Change the association identifier" opens the dialog …
+×   - [slug-changed] Another slug runs /core/operations/update-association
+  - [slug-changed] A slug other than the association's current one
+    runs /core/operations/update-association
+    with Association identifier alone; …
+×   - [same-slug] The same slug closes the dialog and changes nothing.
+  - [same-slug] The association's current slug closes the dialog and
+    changes nothing.
+- [delete] "Delete the association" asks "Delete <name>? Its schedule …
+  and its members' registrations are erased. This cannot be undone." …
+×   with a field "Type the association's name to confirm" and [Delete],
+×   enabled only when the field holds exactly the association's name.
+  with a field "Type the association's name to confirm" and [Delete],
+  enabled only when the field holds exactly the <name> of the
+  question, the name the screen shows, even when the association was
+  renamed since the screen opened.
+  - [delete-refused] Refused: Members shows again, as it now is. …
+  - [deleted-name] The <name> of "<name> is deleted." is the
+    association's name when it was deleted.
 
 ## Access link
 
