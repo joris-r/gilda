@@ -56,7 +56,9 @@ adds the sections it integrates.
    Stale days, its message shown until the next try or the menu
    closes, from Schedule display, its note icon's name, and, from
    Taken occurrences, a manager's names on a taken occurrence, giving
-   it to another member, with Register's `replacing`).
+   it to another member, with Register's `replacing`; My associations
+   and its mockup also carry, from Years on dates, every date with its
+   year).
    - My associations: the spec sets no order, so the list follows whatever order the database returns.
    - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
    - Manager's menu: names are ordered by `casefold`, not by the language's collation, as on Members.
@@ -127,7 +129,8 @@ adds the sections it integrates.
 16. Clipboard (Schedule settings, kept in item 2, shows when Copy
     fails; its mockup, kept in item 11, shows that state).
     - Share link: "Link copied." shows even when the browser refuses the clipboard.
-17. Years on dates:
+17. Years on dates (My associations and its mockup, kept in item 7,
+    show every date with its year).
     - My associations shows dates without their year, so a proposal months ahead (e.g. "Sun 3 Jan") is ambiguous.
 
 ## Lessons
@@ -184,3 +187,5 @@ adds the sections it integrates.
 - Taken occurrences: the move reuses Register with an optional `replacing`, so the cancellation and the new registration happen in one operation; a `replacing` that is no longer the occurrence's registration is refused as taken when another holds it, and registers normally when the occurrence has become free.
 - Taken occurrences: `design/occurrence-menu.md` shows no refused state of the move's confirmation ("Someone took this slot in the meantime.", "This day is past."), as for Cancel registration's; whether they need a mockup is left to the human.
 - Clipboard: when the browser refuses the clipboard, Copy says "The link couldn't be copied. Select it to copy it." in place of "Link copied.", the link staying shown in full for the user to copy by hand; the page does not select it for them, and which message stays after two Copies whose answers cross is left free.
+- Years on dates: every date of My associations now shows its year, as Schedule settings and My availability already do, a period writing a year it shares once ("2–25 Nov 2026"); showing the year only outside the current year, a lighter summary but a second rule, is the human's call.
+- Years on dates: the Occurrence menu's title ("Thu 29 Oct · 10–13") and the Schedule's day headings still show no year, as their weeks sit under the Schedule's dated Today and planning lines; and Schedule settings writes the period in full ("Mon 2 Nov 2026 – Wed 25 Nov 2026") where My associations shortens it; both left as is.
