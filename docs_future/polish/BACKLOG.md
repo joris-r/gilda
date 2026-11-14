@@ -36,7 +36,9 @@ adds the sections it integrates.
    - New association: "+ New association" is a link, while `interface.md` describes a button.
 7. Orders: /readme, /ui/name-order, /home/ui/my-associations,
    /planning/ui/occurrence-menu, design/my-associations.md (Members'
-   order by display name follows /ui/name-order with no edit).
+   order by display name follows /ui/name-order with no edit; the
+   Occurrence menu also carries, from Stale days, its message shown
+   until the next try or the menu closes).
    - My associations: the spec sets no order, so the list follows whatever order the database returns.
    - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
    - Manager's menu: names are ordered by `casefold`, not by the language's collation, as on Members.
@@ -46,7 +48,9 @@ adds the sections it integrates.
    - Rename and Delete check against the name the page was loaded with: after a rename in another tab, Delete stays disabled for the new name until a reload.
    - Change the association identifier breaks every bookmark of the former URLs, with no redirect (`/core/operations/update-association/new-slug`).
    - Confirm and OK use the slug from page load, so after a change of identifier in another tab they show only the generic error.
-9. Stale days:
+9. Stale days: /planning/ui/schedule, /planning/ui/shared-schedule
+   (Occurrence menu, kept in item 7: a message shows until the next
+   try or the menu closes).
    - Schedule: a page left open past midnight keeps the old today line and past days until it reloads.
    - Schedule: a page left open past midnight still offers Sign up on yesterday's occurrences, which then shows only the generic error.
 10. Stale data:
@@ -87,13 +91,14 @@ adds the sections it integrates.
 - Orders: a section kept in an earlier item cannot cite a section a later item adds, or `docs/` is not closed after the earlier one; /ui/name-order is therefore stated for every screen that sorts by name, and Members' `[list]` (item 4) is left as is.
 - Stale identifiers: an outline item may not cite by path a section kept in an earlier item, even in a parenthesis, or [outline] counts it in two increments; name it in plain text.
 - Stale identifiers: every action of an association screen (Members, Schedule, Schedule settings, My availability, My associations' Confirm and OK) finds its association by the slug of its URL today (`detail_by_slug`); /ui/changed-identifier needs them to find it by its id instead, e.g. carried in the action's URL, as technical.md leaves those URLs free.
+- Stale days: the weeks of the Schedule render the days before today with no menu button (`day.past` in `schedule_weeks.html`), and the menu's handler checks no date; the new-day refresh can reuse More weeks' handler with the shown range, and the shared one its own. The refresh also shows what changed elsewhere since the page opened, which Stale data (item 10) may build on.
 
 ## For the human
 
 - Network retries: two saves of the same selector sent in quick succession (My preferences, Members' preferences) may still reach the server out of order, the older overwriting the newer; with no resend this needs a slow network and two changes within one request's time, so it is left unspecified.
 - Failed saves: the outline must cite domain sections (`/planning/ui/…`) for [outline], but check.py's [depends] then reports them, as BACKLOG.md counts as the top level, which declares no domain; a false positive of the Dev43 plugin, worth an issue.
 - Confirmation error: /ui/errors/kept ("What was typed stays.") does not say whether a form opened again after a failed try and Cancel keeps what was typed; /ui/forms/fresh settles only its messages, and the project backlog's Add a slot entry already touches the fields.
-- Confirmation error: the Occurrence menu is not a dialog, so /ui/forms/fresh leaves open whether "Someone took this slot in the meantime." or the generic error still shows when it opens again on the same occurrence; outline item 9 or 10 may settle it.
+- Confirmation error: the Occurrence menu is not a dialog, so /ui/forms/fresh leaves open whether "Someone took this slot in the meantime." or the generic error still shows when it opens again on the same occurrence; outline item 9 or 10 may settle it. Settled by Stale days, in the Occurrence menu, so carried by Orders (item 7): opened again, the menu shows no message of an earlier try.
 - Sign-in links: `design/header.md` shows no confirmation and no message of "Revoke my sign-in link" ("Your sign-in link is revoked.", and now "You have no sign-in link."), while `design/members.md` lists its messages; whether the header's messages need a mockup is left to the human.
 - Access pages: when Confirm email succeeds on the server but its answer never reaches the browser, the token is gone, so [Try again] shows "This link is no longer valid." and "Create an account to request a new one", though the email is confirmed and the user can sign in with their password; left as is, as it needs a lost answer, but a pointer to Sign in there is the human's call.
 - New association: without its in-page title, the page has no `<h1>`, as Schedule, Members, Schedule settings and My availability already, where only My associations' location is an `<h1>`; whether the location should be each signed-in screen's heading is left to the human (`/core/ui/header/title` says it stands for the title, not how).
@@ -102,3 +107,7 @@ adds the sections it integrates.
 - Stale identifiers: a former slug still leads to Unknown association, with no redirect, as decided by `association-slug` (a redirect needs a history of slugs, a model change, and conflicts with `/core/operations/update-association/new-slug`, which frees the former slug for another association); left as is, a redirect is the human's call.
 - Stale identifiers: Delete the association checks the typed name against the name the screen shows, not the association's current name, so a page opened before a rename in another tab deletes once the former name is typed; it is still the same association, so no server check (a `name` input of `/core/operations/delete-association`) was added.
 - Stale identifiers: links of a screen opened before a change of identifier (the header's name, My associations' names, Choose your slots) are not actions on the association's data, so /ui/changed-identifier does not cover them: they may keep the former URL until the screen opens again, leading to Unknown association, or to another association that took the former slug; left free.
+- Stale days: other screens keep the day they opened with past midnight (My availability's absences ending today or later, My associations' summary); no entry names them, so they are left as is.
+- Stale days: after midnight between Sunday and Monday, an open Schedule keeps its weeks, so it shows one more past week than a fresh one (`/planning/operations/get-schedule/default`); its range is not recomputed.
+- Stale days: "This day is past." also shows in the confirmation of Cancel registration, which `design/occurrence-menu.md` shows refused only in the plain menu ("Refused"); whether that state needs its own mockup is left to the human.
+- Stale days: on a Shared schedule open past midnight whose link was since replaced or revoked, the new-day refresh leaves the page as it was, with no message, rather than "This link is no longer valid."; Stale data (item 10) may revise it with More weeks.
