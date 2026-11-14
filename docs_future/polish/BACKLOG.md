@@ -15,14 +15,18 @@ adds the sections it integrates.
    - My preferences: a selector retries after a network error, so a late retry could overwrite a newer choice on the same slot.
 2. Failed saves: /planning/ui/schedule-settings,
    /planning/ui/my-availability, /planning/operations/add-absence,
-   /planning/operations/edit-absence (Schedule settings also carries,
+   /planning/operations/edit-absence, /planning/operations/add-closure,
+   /planning/operations/edit-closure (Schedule settings also carries,
    from Stale data, Members' preferences shown again when the screen
    shows again; both also carry, from Date order messages, the
    messages of a slot, the planning period, a closure or an absence
    that ends before it starts; from Warnings, Schedule settings
    carries the warnings of the slot and closure dialogs, and My
    availability, with Add absence and Edit absence, the refusal of an
-   absence that overlaps another).
+   absence that overlaps another; from Past dates, Schedule settings
+   lists only the closures ending today or later, and both screens,
+   with Add closure, Edit closure, Add absence and Edit absence, carry
+   the refusal of a closure or an absence that ends before today).
    - My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
    - Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
 3. Confirmation error: /ui/forms.
@@ -84,7 +88,10 @@ adds the sections it integrates.
     - Add a closure, Edit the closure and Delete the closure don't warn that the registrations on the closed dates become obsolete, or stop being obsolete.
     - Closures may overlap each other, with no warning.
     - Absences may overlap each other, with no warning.
-13. Past dates:
+13. Past dates (Schedule settings and My availability, kept in item
+    2, carry its listing of closures and its refusals; a past
+    registration is already refused, by Change registration's past
+    case and, from Stale days, "This day is past.").
     - Closures: past closures stay listed forever; they could be listed from those ending today on, as Absences are.
     - Adding or editing an absence that ends before today saves it, but it never shows, with no message.
     - Cancel registration: the server cancels a registration dated before today (`/planning/operations/change-registration/cancel` doesn't forbid it), though no menu opens there.
@@ -111,6 +118,7 @@ adds the sections it integrates.
 - Stale days: the weeks of the Schedule render the days before today with no menu button (`day.past` in `schedule_weeks.html`), and the menu's handler checks no date; the new-day refresh can reuse More weeks' handler with the shown range, and the shared one its own. The refresh also shows what changed elsewhere since the page opened, which Stale data (item 10) may build on.
 - Date order messages: its messages went into Schedule settings and My availability, already kept by Failed saves (item 2), so Failed saves integrates and tests them; item 11 then integrates only the Add a slot mockup, whose times now differ so that "This slot already exists." can show with them.
 - Warnings: a section kept in an earlier item that gains a message citing a new case of an operation pulls that operation into the earlier item: Add absence and Edit absence went to Failed saves (item 2) with My availability's overlap message, leaving Warnings (item 12) only `design/forms.md`.
+- Past dates: all its statements went to Failed saves (item 2), with Add closure and Edit closure, as its messages sit in Schedule settings and My availability; item 13 integrates no section, so its entries are done once item 2 is, and it can then leave the outline. Its third entry was already settled in `docs/` before the outline (`/planning/operations/change-registration/past`, tested in `test_schedule_menu.py`), so item 14 onwards may also hold entries `docs/` already settles: check each against `docs/` first.
 
 ## For the human
 
@@ -141,3 +149,6 @@ adds the sections it integrates.
 - Warnings: "upcoming registrations" means dated today or later and not obsolete in `/home/operations/list-my-associations/upcoming`, but not cancelled in Members' Remove confirmation (`/core/ui/members/remove`); the warnings avoid the word and say "from today on".
 - Warnings: overlapping absences are refused from now on, but no invariant forbids them, so absences saved before may still overlap from today on: which one the Occurrence menu's absence icon names (`/planning/ui/occurrence-menu/absent`, "the absence covering the date") is then left free, and Edit absence on either is refused until the edit removes the overlap; two requests at once may also both pass the check. An invariant, with a migration merging the overlapping absences, is the human's call.
 - Warnings: overlapping closures stay allowed with no warning, as the Schedule's Closed line already lists the labels of every closure covering a day (e.g. an event within a holiday); a warning or a refusal is the human's call.
+- Past dates: a closure or an absence that ends before today is refused ("The end date can't be before today."), rather than saved and kept out of the list, as neither then has any effect a member or manager can act on; a manager can therefore no longer record a closure after the fact to mark the past week's registrations obsolete, nor edit or delete a closure once it has ended (it no longer shows), which may touch the registration counts of a planning period that started before today; keeping past closures listed, or a "show past" toggle, is the human's call.
+- Past dates: the backlog entry on cancelling a past registration was already settled when the outline was written: `/planning/operations/change-registration/past` refuses it, and the Stale days item shows "This day is past."; nothing was added for it.
+- Past dates: the planning period may still be set wholly before today, and stays shown; it was left as is, as no entry names it.

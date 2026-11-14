@@ -2,6 +2,11 @@
 
 ## Schedule settings
 
+× - [closures] CLOSURES: each closure's dates and label, by first date,
+×   or "None".
+- [closures] CLOSURES: the closures ending today or later, each with
+  its dates and label, by first date, or "None"; earlier ones do not
+  show.
   /planning/operations/set-planning-period with the fields. …
   - [period-order] /planning/operations/set-planning-period/order: "The
     end date can't be before the start date."
@@ -9,12 +14,16 @@
   with the fields. …
   - [closure-order] /planning/operations/add-closure/order: "The end
     date can't be before the start date."
+  - [closure-past] /planning/operations/add-closure/past: "The end date
+    can't be before today."
   - [closure-warning] The dialog shows "Registrations on its dates,
     from today on, become obsolete."
   closure", filled with the closure, with [Save]; it runs …
   /planning/operations/edit-closure for it, with the fields. …
   - [edit-closure-order] /planning/operations/edit-closure/order: "The
     end date can't be before the start date."
+  - [edit-closure-past] /planning/operations/edit-closure/past: "The
+    end date can't be before today."
   - [edit-closure-warning] The dialog shows "Registrations on its new
     dates, from today on, become obsolete; those on the dates it no
     longer covers may stop being obsolete."
@@ -68,12 +77,16 @@
   with the fields. …
   - [absence-order] /planning/operations/add-absence/order: "The end
     date can't be before the start date."
+  - [absence-past] /planning/operations/add-absence/past: "The end date
+    can't be before today."
   - [absence-overlap] /planning/operations/add-absence/overlap: "This
     absence overlaps another one."
   absence", filled with it, with [Save]; it runs …
   /planning/operations/edit-absence for it, with the fields. …
   - [edit-absence-order] /planning/operations/edit-absence/order: "The
     end date can't be before the start date."
+  - [edit-absence-past] /planning/operations/edit-absence/past: "The
+    end date can't be before today."
   - [edit-absence-overlap] /planning/operations/edit-absence/overlap:
     "This absence overlaps another one."
 
