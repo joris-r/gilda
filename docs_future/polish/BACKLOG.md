@@ -19,7 +19,10 @@ adds the sections it integrates.
    - Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
 3. Confirmation error: /ui/forms.
    - Confirmation: the generic error probably still shows after Cancel and reopening, until the next try.
-4. Sign-in links:
+4. Sign-in links: /core/operations/request-access-link,
+   /core/operations/revoke-my-access-link,
+   /core/operations/revoke-access-link, /core/ui/header,
+   /core/ui/members, design/header.md, design/members.md.
    - Revoke my sign-in link: the menu offers it to a user who has no link, and then says "revoked"; consider showing it only when they have one.
    - Sign-in link: when the email can't be sent, the link is still created, so the member later shows "Revoke link" for a link nobody received.
    - Send link drops the link when the email can't be sent, but Sign-in link keeps it; align the two.
@@ -79,3 +82,4 @@ adds the sections it integrates.
 - Failed saves: the outline must cite domain sections (`/planning/ui/…`) for [outline], but check.py's [depends] then reports them, as BACKLOG.md counts as the top level, which declares no domain; a false positive of the Dev43 plugin, worth an issue.
 - Confirmation error: /ui/errors/kept ("What was typed stays.") does not say whether a form opened again after a failed try and Cancel keeps what was typed; /ui/forms/fresh settles only its messages, and the project backlog's Add a slot entry already touches the fields.
 - Confirmation error: the Occurrence menu is not a dialog, so /ui/forms/fresh leaves open whether "Someone took this slot in the meantime." or the generic error still shows when it opens again on the same occurrence; outline item 9 or 10 may settle it.
+- Sign-in links: `design/header.md` shows no confirmation and no message of "Revoke my sign-in link" ("Your sign-in link is revoked.", and now "You have no sign-in link."), while `design/members.md` lists its messages; whether the header's messages need a mockup is left to the human.
