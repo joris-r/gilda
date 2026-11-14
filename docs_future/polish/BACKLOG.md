@@ -13,7 +13,8 @@ adds the sections it integrates.
    - Datastar: after a network error, `@post` retries even once its dialog is cancelled, so a failed "Delete my account" could still go through after Cancel; `retry: 'never'` covers only HTTP errors, and only `retryMaxCount: 0` stops it, as the confirmation macro does.
    - Actions outside a confirmation (Sign out, Create an account, Forgot password…) still retry after a network error, so they could run twice.
    - My preferences: a selector retries after a network error, so a late retry could overwrite a newer choice on the same slot.
-2. Failed saves:
+2. Failed saves: /planning/ui/schedule-settings,
+   /planning/ui/my-availability.
    - My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
    - Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
 3. Confirmation error:
@@ -75,3 +76,4 @@ adds the sections it integrates.
 ## For the human
 
 - Network retries: two saves of the same selector sent in quick succession (My preferences, Members' preferences) may still reach the server out of order, the older overwriting the newer; with no resend this needs a slow network and two changes within one request's time, so it is left unspecified.
+- Failed saves: the outline must cite domain sections (`/planning/ui/…`) for [outline], but check.py's [depends] then reports them, as BACKLOG.md counts as the top level, which declares no domain; a false positive of the Dev43 plugin, worth an issue.
