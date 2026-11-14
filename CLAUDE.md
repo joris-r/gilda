@@ -3,15 +3,6 @@
 This project follows the Dev43 process. Before any work, load the
 `dev43:core` skill and follow it.
 
-Under `Cases:`, a bulleted list is Dev43's: exactly one case applies to
-each state and input. A numbered list is ordered: the first case whose
-condition holds applies. Either list may leave inputs to no case when
-`Then:` has a statement after no refusal. The statements of
-`## General` apply before the cases of any operation. `Then:`, after
-the cases, introduces the statements that hold once the cases are
-read, each saying after which case, or after no refusal: once neither
-`## General` nor a case refused, whether a case applied or none.
-
 
 # Project 
 
