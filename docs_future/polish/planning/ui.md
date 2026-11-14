@@ -92,10 +92,20 @@
 
 ## Schedule
 
+× - [empty] With no occurrence and no obsolete registration in the shown
+×   weeks: "No openings in these weeks."
+- [empty] With no occurrence and no obsolete registration in the shown
+  weeks: "No openings in these weeks.", above the weeks, which still
+  show their closed days.
+- [closed] A shown day covered by a closure shows "Closed", then the …
+  out. …
+- [closed-days] Each closed day of the shown weeks, as
+  /planning/operations/get-schedule/closed-days, is a shown day, even
+  when no occurrence falls on its weekday in the shown weeks.
   date as well. …
   - [menu-past] Clicking an occurrence or an obsolete registration
     that the Schedule still shows from today on, though its date is
-    now before today: the menu opens with only "This day is past.",
+    now before today: the menu then shows only "This day is past.",
     and the Schedule shows its weeks again at once, as
     /planning/ui/schedule/new-day.
 - [past] In the Occurrence menu, /planning/operations/register/past
@@ -121,6 +131,11 @@
 
 ## Occurrence menu
 
+×   - [note] A member whose note holds more than spaces has a note icon,
+×     whose text is the note.
+  - [note] A member whose note holds more than spaces has a note icon
+    named "Note", in French "Note", whose text is the note, given as
+    its description.
   - [order] The names are sorted by the member's preference for the …
     registrations, as /planning/model/registration defines the count; …
 ×     then by
@@ -130,6 +145,15 @@
 - [fresh] The message of a refused or failed try shows in the menu
   until the next try or the menu closes: opened again, the menu shows
   no message of an earlier try.
+- [opens] A click that opens the menu, as /planning/ui/schedule/menu,
+  opens it at once, with its title and a sign that the rest is
+  loading, until the rest shows.
+- [latest] Once the menu has closed, or opened on another occurrence
+  or obsolete registration, what was loading for the earlier one never
+  shows.
+- [load-failed] Loading the rest refused, or failing: the menu shows
+  only its title and the generic error, as /ui/errors/generic; refused
+  as /core/operations/general/signed-out: as /core/ui/access/action.
 
 ## Shared schedule
 

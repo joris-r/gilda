@@ -43,14 +43,18 @@ adds the sections it integrates.
    design/access-link.md, design/confirm-email.md.
    - Access link and Confirm email: the page stays blank while the action runs, and after a server failure only the generic error shows, with no way forward.
 6. New association: /design, design/new-association.md (the title:
-   `/core/ui/header/title` as is; mockup, test and code to align).
+   `/core/ui/header/title` as is; mockup, test and code to align; the
+   design also carries, from Schedule display, the Schedule's columns
+   for closed days and where the Occurrence menu opens).
    - New association: its mockup shows a title in the page, but `interface.md` says the header's location stands for the title; the page follows the mockup.
    - New association: "+ New association" is a link, while `interface.md` describes a button.
 7. Orders: /readme, /ui/name-order, /home/ui/my-associations,
    /planning/ui/occurrence-menu, design/my-associations.md (Members'
    order by display name follows /ui/name-order with no edit; the
    Occurrence menu also carries, from Stale days, its message shown
-   until the next try or the menu closes).
+   until the next try or the menu closes, and, from Schedule display,
+   its note icon's name, and its opening at once, showing only the
+   last click).
    - My associations: the spec sets no order, so the list follows whatever order the database returns.
    - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
    - Manager's menu: names are ordered by `casefold`, not by the language's collation, as on Members.
@@ -60,12 +64,14 @@ adds the sections it integrates.
    - Rename and Delete check against the name the page was loaded with: after a rename in another tab, Delete stays disabled for the new name until a reload.
    - Change the association identifier breaks every bookmark of the former URLs, with no redirect (`/core/operations/update-association/new-slug`).
    - Confirm and OK use the slug from page load, so after a change of identifier in another tab they show only the generic error.
-9. Stale days: /planning/ui/schedule, /planning/ui/shared-schedule
-   (Occurrence menu, kept in item 7: a message shows until the next
-   try or the menu closes; Schedule and Shared schedule also carry,
-   from Stale data, the weeks shown again after "Someone took this
-   slot in the meantime." and "This link is no longer valid." when
-   More weeks or the new-day refresh is refused).
+9. Stale days: /planning/ui/schedule, /planning/ui/shared-schedule,
+   /planning/operations/get-schedule (Occurrence menu, kept in item 7:
+   a message shows until the next try or the menu closes; Schedule and
+   Shared schedule also carry, from Stale data, the weeks shown again
+   after "Someone took this slot in the meantime." and "This link is
+   no longer valid." when More weeks or the new-day refresh is
+   refused; from Schedule display, the Schedule shows the closed days
+   that Get schedule now gives).
    - Schedule: a page left open past midnight keeps the old today line and past days until it reloads.
    - Schedule: a page left open past midnight still offers Sign up on yesterday's occurrences, which then shows only the generic error.
 10. Stale data: /ui/notices.
@@ -95,7 +101,11 @@ adds the sections it integrates.
     - Closures: past closures stay listed forever; they could be listed from those ending today on, as Absences are.
     - Adding or editing an absence that ends before today saves it, but it never shows, with no message.
     - Cancel registration: the server cancels a registration dated before today (`/planning/operations/change-registration/cancel` doesn't forbid it), though no menu opens there.
-14. Schedule display:
+14. Schedule display: /planning/operations/set-note,
+    design/schedule.md, design/occurrence-menu.md (the Schedule's
+    closed days, kept in item 9, and the Occurrence menu's note icon
+    and opening, kept in item 7; a note of only spaces already shows
+    no note icon, by the Occurrence menu's note case).
     - Schedule: a closure on a weekday with no column of the shown weeks doesn't show at all.
     - Schedule menu: it shows centred on the screen, not anchored to the occurrence.
     - Schedule menu: it opens only once the server answers, so a slow network shows nothing for a while after the click.
@@ -119,6 +129,7 @@ adds the sections it integrates.
 - Date order messages: its messages went into Schedule settings and My availability, already kept by Failed saves (item 2), so Failed saves integrates and tests them; item 11 then integrates only the Add a slot mockup, whose times now differ so that "This slot already exists." can show with them.
 - Warnings: a section kept in an earlier item that gains a message citing a new case of an operation pulls that operation into the earlier item: Add absence and Edit absence went to Failed saves (item 2) with My availability's overlap message, leaving Warnings (item 12) only `design/forms.md`.
 - Past dates: all its statements went to Failed saves (item 2), with Add closure and Edit closure, as its messages sit in Schedule settings and My availability; item 13 integrates no section, so its entries are done once item 2 is, and it can then leave the outline. Its third entry was already settled in `docs/` before the outline (`/planning/operations/change-registration/past`, tested in `test_schedule_menu.py`), so item 14 onwards may also hold entries `docs/` already settles: check each against `docs/` first.
+- Schedule display: where the Occurrence menu opens is already coded, with CSS anchor positioning (`restore-design`), centred as a last resort; it shows centred where the browser lacks anchor positioning, so the integration of item 6 needs a placement that works without it. Item 6 also brings the Schedule's columns for closed days before item 9 adds them to Get schedule: its code may compute them from the slots in `_weeks_view` (`planning/pages.py`, whose columns come from the occurrences and obsolete registrations alone).
 
 ## For the human
 
@@ -152,3 +163,7 @@ adds the sections it integrates.
 - Past dates: a closure or an absence that ends before today is refused ("The end date can't be before today."), rather than saved and kept out of the list, as neither then has any effect a member or manager can act on; a manager can therefore no longer record a closure after the fact to mark the past week's registrations obsolete, nor edit or delete a closure once it has ended (it no longer shows), which may touch the registration counts of a planning period that started before today; keeping past closures listed, or a "show past" toggle, is the human's call.
 - Past dates: the backlog entry on cancelling a past registration was already settled when the outline was written: `/planning/operations/change-registration/past` refuses it, and the Stale days item shows "This day is past."; nothing was added for it.
 - Past dates: the planning period may still be set wholly before today, and stays shown; it was left as is, as no entry names it.
+- Schedule display: Set note now drops the leading and trailing spaces and line breaks, but notes saved before keep theirs, so one of only spaces still shows blank on My availability, where `/planning/ui/my-availability/none` gives "None" only to an empty note (the code already shows "None" for it); a migration trimming the stored notes is the human's call.
+- Schedule display: the note icon is named "Note", the note being its description, rather than the note itself; the absence icon keeps its text as its name, as it is short.
+- Schedule display: the menu opens at once with its title and a loading sign, the rest coming with the server's answer; an answer for an earlier click, or after the menu closed, is dropped. A closure's day on a weekday with no slot gets no column of its own, as it removes no opening.
+- Schedule display: the first [soundness] check found four points (the empty message beside closed days, a failed load of the opened menu, [opens] without "from today on", the trimmed characters), all fixed; its re-check of the fixes did not report back before the commit, and no operation of `docs/` names what the menu loads (members, counts, absences, notes), a gap older than this change.
