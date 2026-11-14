@@ -16,7 +16,9 @@ adds the sections it integrates.
 2. Failed saves: /planning/ui/schedule-settings,
    /planning/ui/my-availability (Schedule settings also carries, from
    Stale data, Members' preferences shown again when the screen shows
-   again).
+   again; both also carry, from Date order messages, the messages of a
+   slot, the planning period, a closure or an absence that ends before
+   it starts).
    - My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
    - Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
 3. Confirmation error: /ui/forms.
@@ -63,7 +65,8 @@ adds the sections it integrates.
     - Members' preferences: a member added on Members, or a choice made on My availability, shows only after a reload.
     - Shared schedule: once the link is replaced or revoked, More weeks on a page already open shows only the generic error, not "This link is no longer valid.".
     - The one-time notice is kept in the session, so it shows on whichever page loads next, even in another tab.
-11. Date order messages:
+11. Date order messages: design/schedule-settings.md (Schedule
+    settings and My availability, kept in item 2, carry its messages).
     - Add a slot or Edit the slot with To not after From shows only the generic error; the former frontend said "Check the dates and times: the start comes before the end."
     - Planning period and closures with To before From show only the generic error, as Slots do.
     - Absences with To before From show only the generic error; the former frontend said "Check the dates: the start comes before the end." (its translation is gone with the former frontend's other leftovers).
@@ -97,6 +100,7 @@ adds the sections it integrates.
 - Stale identifiers: an outline item may not cite by path a section kept in an earlier item, even in a parenthesis, or [outline] counts it in two increments; name it in plain text.
 - Stale identifiers: every action of an association screen (Members, Schedule, Schedule settings, My availability, My associations' Confirm and OK) finds its association by the slug of its URL today (`detail_by_slug`); /ui/changed-identifier needs them to find it by its id instead, e.g. carried in the action's URL, as technical.md leaves those URLs free.
 - Stale days: the weeks of the Schedule render the days before today with no menu button (`day.past` in `schedule_weeks.html`), and the menu's handler checks no date; the new-day refresh can reuse More weeks' handler with the shown range, and the shared one its own. The refresh also shows what changed elsewhere since the page opened, which Stale data (item 10) may build on.
+- Date order messages: its messages went into Schedule settings and My availability, already kept by Failed saves (item 2), so Failed saves integrates and tests them; item 11 then integrates only the Add a slot mockup, whose times now differ so that "This slot already exists." can show with them.
 
 ## For the human
 
@@ -121,3 +125,4 @@ adds the sections it integrates.
 - Stale data: `docs/README.md`'s line for ui.md, carried by Orders, names neither Changed identifier nor Notices, which later items add; the last of them to be integrated may add both.
 - Stale data: when Schedule settings shows again, only Members' preferences shows again, so its columns may show a slot that SLOTS above does not list yet, or no longer lists, until a reload; refreshing the whole screen was left out to keep open dialogs and the volunteer's view out of it.
 - Stale data: the third [soundness] check still reported findings on Members' preferences shown again (a save running then, a cell whose member or slot is gone, and the main case overlapping its sub-cases); `/planning/ui/schedule-settings/preferences-again` was then rewritten to wait until no save runs and as a numbered list whose last case is "Otherwise", which no check has re-read.
+- Date order messages: a slot whose To is not after From shows "The end time must be after the start time.", and a planning period, closure or absence whose To is before From "The end date can't be before the start date.", in the dialog, as "This slot already exists."; the mockups show no new state, as `design/schedule-settings.md` already shows a message in the Add a slot dialog (its times changed from 09:00–09:00, which now gives the end time message, to 10:00–13:00, the slot listed), while `design/my-availability.md` shows no message in its absence dialogs, the generic error included; whether that state needs a mockup is left to the human.
