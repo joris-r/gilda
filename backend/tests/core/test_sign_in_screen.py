@@ -134,6 +134,20 @@ class TestSignIn:
         assert WRONG_EN not in response.text
         assert heading(client.get("/")) == "My associations"
 
+    # /core/model/session/id
+    def test_two_browsers_signed_in_as_one_user_get_different_session_ids(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        email = unique_email("Alice")
+        sign_up(client, "Alice", email)
+        other = new_client()
+
+        sign_in(other, email)
+
+        assert other.cookies["session"] != client.cookies["session"]
+        assert signed_in_as(other) == "Alice"
+        assert signed_in_as(client) == "Alice"
+
     # /core/operations/sign-in/new-session
     def test_a_new_session_id_replaces_the_previous_one(
         self, client: Any, new_client: Callable[[], Any]

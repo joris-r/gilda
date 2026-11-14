@@ -357,6 +357,7 @@ def shared_entries(as_client: Any, token: str) -> Any:
 
 class TestSharedSchedule:
     # /planning/ui/shared-schedule/shown
+    # /planning/ui/shared-schedule/status
     # /planning/operations/get-shared-schedule/schedule
     def test_signed_out_shows_the_schedule_as_a_member_sees_it(
         self, client: Any, new_client: Callable[[], Any]
@@ -488,6 +489,7 @@ class TestSharedScheduleHeader:
 
 class TestSharedScheduleNoLongerValid:
     # /planning/ui/shared-schedule/invalid
+    # /planning/ui/shared-schedule/status
     # /planning/operations/get-shared-schedule/unknown
     @pytest.mark.parametrize("token", ["unknown-token", "Hq3v"])
     def test_an_unknown_link_says_so(self, client: Any, token: str) -> None:
@@ -508,6 +510,7 @@ class TestSharedScheduleNoLongerValid:
         assert not shows_the_schedule(previous, new_client())
 
     # /planning/ui/shared-schedule/invalid
+    # /planning/ui/shared-schedule/status
     # /planning/operations/revoke-share-link/revoked
     def test_a_revoked_link_says_so(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)

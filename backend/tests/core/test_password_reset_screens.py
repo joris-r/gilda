@@ -178,7 +178,7 @@ class TestForgotPasswordSubmit:
         assert email in shown(response)
         assert link_sent(email) not in shown(response)
 
-    # /core/operations/request-password-reset/malformed
+    # /core/operations/general/malformed
     # /ui/errors/generic
     @pytest.mark.parametrize("signals", [{}, {"email": ""}, {"email": "not-an-email"}])
     def test_a_missing_or_invalid_email_shows_the_generic_error_message(
@@ -326,6 +326,7 @@ class TestRequestPasswordReset:
 
 class TestResetPasswordForm:
     # /core/ui/reset-password/form
+    # /core/operations/check-reset-token/valid
     def test_shows_the_form_for_a_valid_link(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -366,6 +367,7 @@ class TestResetPasswordForm:
         assert "Français" in response.text
 
     # /core/ui/reset-password/usable
+    # /core/operations/check-reset-token/valid
     def test_opening_the_link_leaves_the_token_usable(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -396,18 +398,20 @@ class TestResetPasswordInvalidLinkWhenOpening:
 
     # /core/ui/reset-password/invalid-on-open
     # /core/ui/reset-password/invalid
+    # /core/operations/check-reset-token/invalid
     def test_unknown_token(self, client: Any) -> None:
         self.assert_shows_the_message_instead_of_the_form(
             client.get("/reset-password?token=unknown-token")
         )
 
     # /core/ui/reset-password/invalid-on-open
-    # /core/ui/reset-password/invalid
+    # /core/ui/reset-password/no-token
     def test_no_token(self, client: Any) -> None:
         self.assert_shows_the_message_instead_of_the_form(client.get("/reset-password"))
 
     # /core/ui/reset-password/invalid-on-open
     # /core/ui/reset-password/invalid
+    # /core/operations/check-reset-token/invalid
     def test_expired_token(self, client: Any, new_client: Callable[[], Any]) -> None:
         email = unique_email("Alice")
         sign_up(client, "Alice", email)
@@ -422,6 +426,7 @@ class TestResetPasswordInvalidLinkWhenOpening:
 
     # /core/ui/reset-password/invalid-on-open
     # /core/ui/reset-password/invalid
+    # /core/operations/check-reset-token/invalid
     def test_already_used_token(self, client: Any, new_client: Callable[[], Any]) -> None:
         email = unique_email("Alice")
         sign_up(client, "Alice", email)
@@ -452,7 +457,7 @@ class TestResetPasswordInvalidLinkOnSubmit:
         assert signed_in_as(client) is None
 
     # /core/ui/reset-password/invalid
-    # /core/operations/reset-password/invalid
+    # /core/ui/reset-password/no-token
     def test_no_token(self, client: Any) -> None:
         response = client.post("/reset-password", json={"password": NEW_PASSWORD})
 
@@ -460,7 +465,7 @@ class TestResetPasswordInvalidLinkOnSubmit:
 
     # /core/ui/reset-password/invalid
     # /core/operations/reset-password/invalid
-    # /core/model/passwordresettoken/expiry
+    # /core/operations/request-password-reset/sent
     # /core/operations/general/refused
     def test_expired_token(self, client: Any, new_client: Callable[[], Any]) -> None:
         email = unique_email("Alice")

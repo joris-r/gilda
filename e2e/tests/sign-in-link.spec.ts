@@ -41,7 +41,7 @@ test.describe('Sign-in link', () => {
     await expect(page.getByRole('link', { name: 'Back to Sign in' })).toBeVisible()
   })
 
-  // /core/operations/request-access-link/malformed
+  // /core/operations/general/malformed
   test('the browser refuses an invalid email', async ({ page }) => {
     await page.goto('/sign-in-link')
 

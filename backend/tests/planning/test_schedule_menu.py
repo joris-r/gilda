@@ -447,7 +447,7 @@ class TestRegistrationCount:
         }
 
     # /planning/ui/occurrence-menu/count
-    # /planning/model/registration/count
+    # /planning/model/registration
     def test_counts_proposed_and_confirmed_registrations(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -467,7 +467,7 @@ class TestRegistrationCount:
         }
 
     # /planning/ui/occurrence-menu/count
-    # /planning/model/registration/count
+    # /planning/model/registration
     def test_does_not_count_cancelled_registrations(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -481,7 +481,7 @@ class TestRegistrationCount:
         assert "Bruno (0)" in texts_offered(client, planning.slug, thursday)
 
     # /planning/ui/occurrence-menu/count
-    # /planning/model/registration/count
+    # /planning/model/registration
     def test_does_not_count_registrations_outside_the_planning_period(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -499,7 +499,7 @@ class TestRegistrationCount:
         assert "Bruno (1)" in offered
 
     # /planning/ui/occurrence-menu/count
-    # /planning/model/registration/count
+    # /planning/model/registration
     def test_does_not_count_obsolete_registrations(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -517,7 +517,7 @@ class TestRegistrationCount:
         assert "Bruno (0)" in offered
 
     # /planning/ui/occurrence-menu/count
-    # /planning/model/registration/count
+    # /planning/model/registration
     def test_counts_only_the_associations_registrations(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -552,7 +552,7 @@ class TestNameOrder:
         ]
 
     # /planning/ui/occurrence-menu/order
-    # /planning/model/occurrence/slot
+    # /planning/model/occurrence
     def test_the_preference_is_for_the_occurrences_slot(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -880,8 +880,7 @@ class TestSignUp:
         assert day_in(schedule_entries(text), today.isoformat()) == "[Bruno]"
 
     # /planning/operations/register/past
-    # /planning/model/time-zone/today
-    # /planning/model/time-zone/local
+    # /planning/model/time-zone
     @pytest.mark.parametrize(
         ("now", "day", "taken"),
         [
@@ -1128,7 +1127,7 @@ class TestPropose:
 
     # /planning/operations/register/non-member
     # /ui/errors/generic
-    # /planning/model/registration/member
+    # /planning/model/registration
     @pytest.mark.parametrize("who", ["non-member", "unknown", "invalid"])
     def test_a_user_who_is_not_a_member_shows_the_generic_error(
         self, client: Any, new_client: Callable[[], Any], who: str
@@ -1312,6 +1311,76 @@ class TestConfirm:
         assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"
 
 
+class TestChangeAPastRegistration:
+    """Registrations of next week's Thursday, changed once that day is past or is today."""
+
+    @staticmethod
+    def on(day: str, hour: int, minute: int = 0) -> datetime:
+        """`hour`:`minute` on `day`, in Paris."""
+        return datetime.fromisoformat(f"{day}T{hour:02}:{minute:02}").replace(
+            tzinfo=ZoneInfo("Europe/Paris")
+        )
+
+    @staticmethod
+    def the_day_after(day: str) -> str:
+        return date.fromordinal(date.fromisoformat(day).toordinal() + 1).isoformat()
+
+    # /planning/operations/change-registration/past
+    # /planning/model/time-zone
+    # /ui/errors/generic
+    def test_a_past_proposed_registration_cannot_be_confirmed(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday, registration = proposed_to_bruno(client, new_client)
+
+        # 00:30 in Paris, still the Thursday in UTC.
+        with time_machine.travel(self.on(self.the_day_after(thursday), 0, 30), tick=False):
+            text = shown(
+                confirm_registration(planning.bruno_client, planning.slug, registration["id"])
+            )
+
+            assert GENERIC in text
+            assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"
+
+    # /planning/operations/change-registration/past
+    # /ui/errors/generic
+    @pytest.mark.parametrize("by_manager", [False, True])
+    def test_a_past_registration_cannot_be_cancelled(
+        self, client: Any, new_client: Callable[[], Any], by_manager: bool
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.bruno_client, planning.bruno, thursday, "10:00", "13:00"
+        )
+        as_client = client if by_manager else planning.bruno_client
+
+        with time_machine.travel(self.on(self.the_day_after(thursday), 10), tick=False):
+            text = shown(cancel_registration(as_client, planning.slug, registration["id"]))
+
+            assert GENERIC in text
+            assert day_shown(client, planning.slug, thursday) == "[Bruno]"
+
+    # /planning/operations/change-registration/past
+    # /planning/operations/change-registration/confirm
+    # /planning/operations/change-registration/cancel
+    def test_a_registration_of_today_can_still_be_changed(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday, registration = proposed_to_bruno(client, new_client)
+
+        with time_machine.travel(self.on(thursday, 22), tick=False):
+            confirmed = shown(
+                confirm_registration(planning.bruno_client, planning.slug, registration["id"])
+            )
+            cancelled = shown(
+                cancel_registration(planning.bruno_client, planning.slug, registration["id"])
+            )
+
+            assert GENERIC not in confirmed
+            assert GENERIC not in cancelled
+            assert day_shown(client, planning.slug, thursday) == "[~~Bruno~~]"
+
+
 class TestCancelRegistration:
     # /planning/ui/occurrence-menu/cancel-registration
     # /planning/operations/change-registration/cancel
@@ -1355,7 +1424,7 @@ class TestCancelRegistration:
         assert day_in(schedule_entries(text), thursday) == "[~~Bruno~~]"
 
     # /planning/operations/change-registration/cancel
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     def test_an_obsolete_registration_can_be_cancelled(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:

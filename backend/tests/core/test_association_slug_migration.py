@@ -87,8 +87,8 @@ def slugs_after_migrating(url: str, names: list[str]) -> list[str]:
     return asyncio.run(read())
 
 
-# /core/model/association/legacy
-# /core/model/association/derived
+# /core/operations/migrate-slugs/legacy
+# /core/model/association
 def test_derives_the_slug_from_the_name(scratch_database: str) -> None:
     slugs = slugs_after_migrating(
         scratch_database, ["Jardin partagé des Lilas", "L'Atelier  d'à côté !"]
@@ -97,7 +97,7 @@ def test_derives_the_slug_from_the_name(scratch_database: str) -> None:
     assert slugs == ["jardin-partage-des-lilas", "l-atelier-d-a-cote"]
 
 
-# /core/model/association/legacy
+# /core/operations/migrate-slugs/legacy
 def test_adds_a_number_when_taken(scratch_database: str) -> None:
     slugs = slugs_after_migrating(
         scratch_database, ["Atelier vélo", "Atelier vélo", "ATELIER VÉLO"]
@@ -106,7 +106,7 @@ def test_adds_a_number_when_taken(scratch_database: str) -> None:
     assert sorted(slugs) == ["atelier-velo", "atelier-velo-2", "atelier-velo-3"]
 
 
-# /core/model/association/legacy
+# /core/operations/migrate-slugs/legacy
 # /core/model/association/slug-format
 # /core/model/association/slug-unique
 def test_every_slug_has_the_format_of_a_slug(scratch_database: str) -> None:

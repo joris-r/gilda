@@ -304,7 +304,7 @@ class TestDefaultWeeks:
 
 
 class TestToday:
-    # /planning/model/time-zone/today
+    # /planning/model/time-zone
     # /planning/ui/schedule/today
     # /planning/operations/get-schedule/default
     # /core/model/association/timezone
@@ -428,6 +428,25 @@ class TestTodayAndPeriodLines:
             "Week 46",
             "Planning end · Tuesday 10 November 2026",
             *WEEKS_OPENED[2:],
+        ]
+
+    # /planning/ui/schedule/period-lines
+    def test_the_planning_end_line_comes_before_the_today_line_at_the_same_place(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        period_set(planning, "2026-11-03", "2026-11-05")
+
+        with time_machine.travel(NOW, tick=False):
+            entries = schedule_shown(planning.bruno_client, planning.slug)
+
+        assert [e if isinstance(e, str) else e[0] for e in entries] == [
+            "Planning start · Tuesday 3 November 2026",
+            "Week 45",
+            "Planning end · Thursday 5 November 2026",
+            "Today · Monday 9 November 2026",
+            *WEEKS_OPENED[1:],
         ]
 
     # /planning/ui/schedule/period-lines
@@ -595,6 +614,7 @@ class TestOccurrences:
 
     # /planning/ui/schedule/occurrence
     # /planning/operations/get-schedule/registration
+    # /planning/operations/get-schedule/result
     def test_shows_the_latest_cancelled_registration_when_none_other(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -629,7 +649,7 @@ class TestOccurrences:
         assert day_shown(client, planning.slug, thursday) == "[Bruno]"
 
     # /planning/ui/schedule/occurrence
-    # /planning/model/occurrence/identity
+    # /planning/model/occurrence
     def test_each_occurrence_of_a_day_shows_its_own_registration(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -775,7 +795,27 @@ class TestClosures:
         assert day_in(entries, day_of_week("saturday", 2)) == "[]"
 
     # /planning/ui/schedule/closed
-    # /planning/operations/add-closure/no-label
+    def test_a_day_under_several_closures_shows_their_labels_by_first_date(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        planning.add_slot("saturday", "10:00", "13:00")
+        saturday = day_of_week("saturday")
+        planning.add_closure(saturday, saturday, "Fête")
+        planning.add_closure(day_of_week("thursday"), saturday)
+        planning.add_closure(day_of_week("friday"), saturday, "Travaux")
+        planning.add_closure(day_of_week("monday"), day_of_week("sunday", 2), "Travaux")
+
+        entries = schedule_shown(planning.bruno_client, planning.slug)
+
+        assert day_in(entries, saturday) == "Closed Travaux · Fête"
+        assert day_in(entries, day_of_week("thursday")) == "Closed Travaux"
+        assert day_in(entries, day_of_week("thursday", 2)) == "Closed Travaux"
+        assert day_in(entries, day_of_week("saturday", 3)) == "[]"
+
+    # /planning/ui/schedule/closed
+    # /planning/operations/add-closure/added
     def test_a_closure_without_a_label_shows_closed(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -823,7 +863,7 @@ class TestClosures:
 
     # /planning/ui/schedule/closed
     # /planning/ui/schedule/obsolete
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     def test_the_closure_hides_the_registration_held_on_it(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -854,7 +894,7 @@ class TestClosures:
 
 class TestObsoleteRegistrations:
     # /planning/ui/schedule/obsolete
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     def test_a_registration_whose_slot_was_deleted_shows_on_its_day_marked_obsolete(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -867,7 +907,7 @@ class TestObsoleteRegistrations:
         assert day_shown(planning.bruno_client, planning.slug, thursday) == "[Bruno ? obsolete]"
 
     # /planning/ui/schedule/obsolete
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     def test_a_registration_whose_slot_changed_hours_is_obsolete(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -881,7 +921,7 @@ class TestObsoleteRegistrations:
         assert items(day_shown(client, planning.slug, thursday)) == ["[Bruno obsolete]", "[]"]
 
     # /planning/ui/schedule/obsolete
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     def test_a_registration_whose_slot_was_edited_is_obsolete(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -895,7 +935,7 @@ class TestObsoleteRegistrations:
         assert items(day_shown(client, planning.slug, thursday)) == ["[Bruno obsolete]", "[]"]
 
     # /planning/ui/schedule/obsolete
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     def test_a_registration_on_a_date_an_edited_closure_covers_is_obsolete(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -913,7 +953,7 @@ class TestObsoleteRegistrations:
         assert day_in(entries, thursday) == "Closed Fête du quartier [Bruno obsolete]"
         assert day_in(entries, saturday) == "[]"
 
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     def test_a_cancelled_registration_is_never_obsolete(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -929,9 +969,9 @@ class TestObsoleteRegistrations:
 
         assert "Bruno" not in str(schedule_shown(client, planning.slug))
 
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     # /planning/ui/schedule/occurrence
-    # /planning/model/occurrence/identity
+    # /planning/model/occurrence
     def test_comes_back_as_the_occurrences_registration_when_the_slot_does(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -969,6 +1009,7 @@ class TestMoreWeeks:
         assert main.rfind("</section>") < button.start()
 
     # /planning/ui/schedule/more
+    # /planning/operations/get-schedule/range
     def test_adds_the_four_weeks_that_follow(self, thursdays_on_now: Planning) -> None:
         planning = thursdays_on_now
 
@@ -986,6 +1027,7 @@ class TestMoreWeeks:
         assert re.search(r"<button[^>]*>\s*More weeks\s*</button>", text)
 
     # /planning/ui/schedule/more
+    # /planning/operations/get-schedule/range
     def test_adds_four_more_each_time(self, thursdays_on_now: Planning) -> None:
         planning = thursdays_on_now
 
@@ -1024,6 +1066,18 @@ class TestMoreWeeks:
         assert len(headings_of(entries)) == 10
         assert day_in(entries, late_thursday) == "[Bruno]"
         assert day_in(entries, late_saturday) == "Closed Fête"
+
+    # /planning/operations/get-schedule/reversed
+    # /ui/errors/generic
+    def test_shown_weeks_that_end_before_they_start_are_refused(
+        self, thursdays_on_now: Planning
+    ) -> None:
+        planning = thursdays_on_now
+
+        text = shown(more_weeks(planning.bruno_client, planning.slug, "2026-12-28", "2026-11-02"))
+
+        assert GENERIC in text
+        assert "Week" not in text
 
     # /planning/ui/schedule/more
     # /core/ui/header/language

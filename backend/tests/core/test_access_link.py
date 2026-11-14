@@ -155,7 +155,7 @@ class TestSignInLinkSubmit:
 
         assert re.search(r'<a[^>]*href="/"[^>]*>\s*Back to Sign in\s*</a>', text)
 
-    # /core/operations/request-access-link/malformed
+    # /core/operations/general/malformed
     # /ui/errors/generic
     @pytest.mark.parametrize("signals", [{}, {"email": ""}, {"email": "not-an-email"}])
     def test_a_missing_or_invalid_email_shows_the_generic_error_message(
@@ -307,6 +307,19 @@ class TestAccessLink:
         assert signed_in_as(browser) is None
         assert signs_in(browser, token)
 
+    # /core/ui/access-link/status
+    def test_the_page_answers_200_whether_the_link_is_valid_or_not(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        _, _, chloe_email = manager_with_member(client)
+        browser = new_client()
+        ask_for_link(browser, chloe_email)
+        token = latest_access_token(chloe_email)
+
+        assert browser.get(f"/access?token={token}").status_code == 200
+        assert browser.get("/access?token=unknown-token").status_code == 200
+        assert browser.get("/access").status_code == 200
+
     def test_the_page_carries_the_token_safely(self, client: Any) -> None:
         response = client.get("/access", params={"token": "'\"><script>alert(1)</script>"})
 
@@ -421,7 +434,7 @@ class TestAccessLinkInvalid:
         assert signed_in_as(client) is None
 
     # /core/ui/access-link/invalid
-    # /core/operations/sign-in-by-access-link/invalid
+    # /core/ui/access-link/no-token
     @pytest.mark.parametrize("signals", [{}, {"token": ""}])
     def test_no_token(self, client: Any, signals: dict[str, str]) -> None:
         assert_invalid_link(shown(client.post("/access", json=signals)))

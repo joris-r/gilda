@@ -185,7 +185,7 @@ test.describe('New association', () => {
   })
 
   // /core/ui/new-association/follows
-  // /core/model/association/derived
+  // /core/model/association
   test('Association identifier follows Name', async ({ page }) => {
     const examples = [
       ['Jardin partagé des Lilas', 'jardin-partage-des-lilas'],

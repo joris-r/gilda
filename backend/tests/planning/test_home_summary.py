@@ -237,7 +237,7 @@ class TestObsolete:
         assert bruno_lines(planning) == [obsolete_line(5), confirmed_line(1)]
 
     # /home/operations/list-my-associations/obsolete
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     def test_a_removed_slot_makes_its_registrations_obsolete(self, planning: Planning) -> None:
         slot = slot_on(2, planning, "14:00", "16:00")
         confirmed(planning, 2, "14:00", "16:00")
@@ -247,7 +247,7 @@ class TestObsolete:
 
     # /home/operations/list-my-associations/obsolete
     # /home/operations/list-my-associations/upcoming
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     def test_a_closure_makes_its_registrations_obsolete(self, planning: Planning) -> None:
         confirmed(planning, 3)
         proposed(planning, 4)
@@ -266,7 +266,7 @@ class TestObsolete:
         assert bruno_lines(planning) == [obsolete_line(4)]
 
     # /home/operations/list-my-associations/obsolete
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     def test_an_edited_slot_makes_its_registrations_obsolete(self, planning: Planning) -> None:
         slot = slot_on(2, planning, "14:00", "16:00")
         confirmed(planning, 2, "14:00", "16:00")
@@ -309,7 +309,7 @@ class TestObsolete:
         assert obsolete(planning) == [obsolete_line(2)]
 
     # /home/operations/list-my-associations/obsolete
-    # /planning/model/registration/obsolete
+    # /planning/model/registration
     # /home/ui/my-associations/no-upcoming
     def test_cancelled_registrations_are_not_listed(self, planning: Planning) -> None:
         registration = confirmed(planning, 2)
@@ -484,7 +484,7 @@ class TestNoRegistrationYet:
 
     # /home/ui/my-associations/no-registration
     # /home/operations/list-my-associations/period
-    # /planning/model/registration/count
+    # /planning/model/registration
     @pytest.mark.parametrize("offset", [2, 4, 6])
     @pytest.mark.parametrize("register", [confirmed, proposed])
     def test_a_confirmed_or_proposed_one_within_the_period_both_dates_included(
@@ -498,7 +498,7 @@ class TestNoRegistrationYet:
 
     # /home/ui/my-associations/no-registration
     # /home/operations/list-my-associations/period
-    # /planning/model/registration/count
+    # /planning/model/registration
     def test_a_cancelled_one_does_not_count(self, planning: Planning) -> None:
         set_period(planning, 2, 6)
         planning.cancel(planning.bruno_client, confirmed(planning, 3))
@@ -507,7 +507,7 @@ class TestNoRegistrationYet:
 
     # /home/ui/my-associations/no-registration
     # /home/operations/list-my-associations/period
-    # /planning/model/registration/count
+    # /planning/model/registration
     def test_an_obsolete_one_does_not_count(self, planning: Planning) -> None:
         set_period(planning, 0, 10)
         slot = slot_on(2, planning, "14:00", "16:00")
@@ -518,7 +518,7 @@ class TestNoRegistrationYet:
 
     # /home/ui/my-associations/no-registration
     # /home/operations/list-my-associations/period
-    # /planning/model/registration/count
+    # /planning/model/registration
     def test_another_members_registration_does_not_count(self, planning: Planning) -> None:
         set_period(planning, 0, 10)
         planning.registered(planning.chloe_client, planning.chloe, day(2), "10:00", "13:00")
@@ -527,7 +527,7 @@ class TestNoRegistrationYet:
 
     # /home/ui/my-associations/no-registration
     # /home/operations/list-my-associations/period
-    # /planning/model/registration/count
+    # /planning/model/registration
     # /home/ui/my-associations/no-upcoming
     def test_registrations_of_the_period_before_today_count(
         self, planning: Planning, clock: time_machine.Traveller
@@ -559,7 +559,7 @@ class TestNoRegistrationYet:
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
     # /home/ui/my-associations/no-registration
-    # /planning/model/time-zone/today
+    # /planning/model/time-zone
     # /home/ui/my-associations/no-upcoming
     def test_after_midnight_in_paris_a_period_that_ended_yesterday_no_longer_reminds(
         self, planning: Planning, clock: time_machine.Traveller

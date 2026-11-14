@@ -482,6 +482,23 @@ class TestUnknownAssociation:
         assert NAME not in response.text
         assert "Chloé" not in response.text
 
+    # /core/ui/unknown-association/status
+    def test_answers_200_for_an_unknown_slug_and_an_association_of_others(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association = managed(client)
+        other = new_client()
+        sign_up(other, "Zoé", unique_email("Zoe"))
+
+        for path in (
+            f"/association/{unique_slug()}",
+            f"/association/{association['slug']}",
+            f"/association/{association['slug']}/members",
+        ):
+            response = other.get(path)
+            assert response.status_code == 200, path
+            assert UNKNOWN in html.unescape(response.text), path
+
     # /core/ui/unknown-association/shown
     def test_does_not_show_for_an_association_of_the_user(self, client: Any) -> None:
         association = managed(client)
@@ -897,6 +914,18 @@ class TestRemovingAMember:
 
         assert LAST_MANAGER in text
         assert "is removed." not in text
+        assert "manager" in role_of(client, association, "Alice")
+
+    # /core/ui/members/remove-last-manager
+    # /core/operations/remove-member/last-manager
+    def test_the_only_member_cannot_remove_themself(self, client: Any) -> None:
+        association = managed(client)
+
+        member = user_id(client, association, "Alice")
+        text = shown(remove_member(client, association["slug"], member))
+
+        assert LAST_MANAGER in text
+        assert "window.location" not in text
         assert "manager" in role_of(client, association, "Alice")
 
     # /core/ui/members/themself
@@ -1395,6 +1424,7 @@ class TestAssociationActions:
 class TestRenamingTheAssociation:
     # /core/ui/members/renamed
     # /core/operations/update-association/renamed
+    # /core/operations/update-association/changed
     def test_another_name_changes_it_and_says_so(self, client: Any) -> None:
         association = managed(client)
 

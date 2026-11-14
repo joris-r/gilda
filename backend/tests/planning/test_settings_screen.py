@@ -16,6 +16,7 @@ from tests.planning.conftest import (
     add_slot,
     add_slot_on_screen,
     availability_page,
+    availability_section,
     clear_period,
     create_association,
     day_of_week,
@@ -64,6 +65,47 @@ def other_user(new_client: Callable[[], Any]) -> Any:
     other = new_client()
     sign_up(other, "Zoé", unique_email("Zoe"))
     return other
+
+
+class TestInitialState:
+    # /planning/operations/initial-state/empty
+    def test_a_new_association_has_no_planning_data(self, client: Any) -> None:
+        sign_up(client, "Alice")
+        association = create_association(client)
+        slug = association["slug"]
+
+        for heading in ("Planning period", "Closures", "Slots", "Share link"):
+            assert settings_section(client, slug, heading).endswith(" None"), heading
+        assert "None" in settings_section(client, slug, "Members' preferences")
+        for heading in ("Absences", "Note for the managers"):
+            assert availability_section(client, slug, heading).endswith(" None"), heading
+        assert "No openings in these weeks." in text_of(
+            without_dialogs(part(client.get(f"/association/{slug}").text, "main"))
+        )
+
+
+class TestIds:
+    # /core/model/id/unique
+    def test_the_entities_added_get_ids_no_other_has(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        other = Planning(new_client(), new_client)
+
+        ids = [
+            planning.id,
+            other.id,
+            planning.add_slot("thursday", "10:00", "13:00")["id"],
+            planning.add_slot("saturday", "10:00", "13:00")["id"],
+            other.add_slot("thursday", "10:00", "13:00")["id"],
+            planning.add_closure(day_of_week("monday"), day_of_week("monday"))["id"],
+            other.add_closure(day_of_week("monday"), day_of_week("monday"))["id"],
+            planning.alice["id"],
+            planning.bruno["id"],
+            other.bruno["id"],
+        ]
+
+        assert len(set(ids)) == len(ids)
 
 
 class TestScheduleSettings:
@@ -891,7 +933,7 @@ class TestSettingThePlanningPeriod:
         assert "Mon 2 Nov 2026" in period_shown(client, planning.slug)
 
     # /planning/operations/set-planning-period/set
-    # /planning/model/registration/count
+    # /planning/model/registration
     # /planning/ui/occurrence-menu/count
     def test_the_period_set_counts_the_registrations(
         self, client: Any, new_client: Callable[[], Any]
@@ -1205,7 +1247,7 @@ class TestAddingAClosure:
         assert FETES in lines_of(text)
         assert closures_shown(client, planning.slug) == [FETE, FETES]
 
-    # /planning/operations/add-closure/no-label
+    # /planning/operations/add-closure/added
     # /planning/ui/schedule-settings/closures
     # /planning/ui/schedule-settings/delete-closure
     def test_an_empty_label_adds_it_without_a_label(

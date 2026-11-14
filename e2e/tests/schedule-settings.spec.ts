@@ -667,7 +667,7 @@ test.describe('Schedule settings: Add a closure', () => {
     await expect(line(page, 'Fête du quartier')).toContainText('Sat 14 Nov 2026')
   })
 
-  // /planning/operations/add-closure/no-label
+  // /planning/operations/add-closure/added
   // /planning/ui/schedule-settings/closures
   test('without a label, the closure shows its dates', async ({ page, request }) => {
     await openSettings(page, request)

@@ -157,7 +157,7 @@ class TestConfirmationEmail:
 
         assert latest_verification_token(alice) != latest_verification_token(bruno)
 
-    # /core/model/emailverificationtoken/expiry
+    # /core/operations/create-account/confirmation
     def test_the_link_expires_24_hours_after_creation(self, client: Any) -> None:
         email = unique_email("Alice")
         create_account(client, "Alice", email)
@@ -342,7 +342,7 @@ class TestInvitationOnly:
         assert check_your_email(chloe_email.upper()) in shown(response)
 
     # /core/operations/create-account/created
-    # /core/model/user/superuser
+    # /core/model/user
     # /core/ui/create-an-account/check-email
     def test_creates_the_account_of_the_superuser(
         self, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
@@ -356,7 +356,7 @@ class TestInvitationOnly:
         assert check_your_email(email) in shown(response)
 
     # /core/operations/create-account/created
-    # /core/model/user/superuser
+    # /core/model/user
     def test_the_superusers_email_is_compared_ignoring_case(
         self, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -370,7 +370,7 @@ class TestInvitationOnly:
 
     # /core/ui/create-an-account/not-invited
     # /core/operations/create-account/not-invited
-    # /core/model/user/superuser
+    # /core/model/user
     def test_another_email_than_the_superusers_shows_the_message(
         self, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -384,7 +384,7 @@ class TestInvitationOnly:
 
     # /core/ui/create-an-account/not-invited
     # /core/operations/create-account/not-invited
-    # /core/model/user/superuser
+    # /core/model/user
     def test_with_no_superuser_shows_the_message(
         self, new_client: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -462,6 +462,34 @@ class TestEmailNotSent:
         assert line.startswith(f"Chloé {NOT_JOINED} {chloe_email} ")
 
 
+class TestCaseOrder:
+    # /core/operations/general/first
+    # /core/operations/create-account/short-password
+    # /core/operations/create-account/exists
+    # /ui/errors/generic
+    def test_a_short_password_on_an_existing_email_is_refused_as_short(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        email = unique_email("Alice")
+        sign_up(client, "Alice", email)
+
+        text = shown(create_account(new_client(), "Other", email, "1234567"))
+
+        assert GENERIC in text
+        assert EXISTS not in text
+
+
+class TestInitialState:
+    # /core/operations/initial-state/empty
+    def test_an_email_never_used_has_no_user(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        email = unique_email("Alice")
+
+        assert "window.location" not in shown(sign_in(client, email))
+        assert check_your_email(email) in shown(create_account(new_client(), "Alice", email))
+
+
 class TestInvalidFields:
     # /core/operations/create-account/short-password
     # /ui/errors/generic
@@ -477,7 +505,7 @@ class TestInvalidFields:
         assert email_count(email) == 0
         assert check_your_email(email) in shown(create_account(client, "Alice", email))
 
-    # /core/operations/create-account/malformed
+    # /core/operations/general/malformed
     # /core/model/user/display-name
     # /ui/errors/generic
     # /core/operations/general/refused
@@ -639,6 +667,16 @@ class TestConfirmEmail:
         assert LINK_INVALID not in shown(confirm_email(client, token))
         assert signed_in_as(client) is not None
 
+    # /core/ui/confirm-email/status
+    def test_the_page_answers_200_whether_the_link_is_valid_or_not(self, client: Any) -> None:
+        email = unique_email("Alice")
+        create_account(client, "Alice", email)
+        token = latest_verification_token(email)
+
+        assert client.get(f"/verify-email?token={token}").status_code == 200
+        assert client.get("/verify-email?token=unknown-token").status_code == 200
+        assert client.get("/verify-email").status_code == 200
+
     def test_the_page_carries_the_token_to_its_action_safely(self, client: Any) -> None:
         response = client.get("/verify-email", params={"token": '"><script>alert(1)</script>'})
 
@@ -659,7 +697,7 @@ class TestConfirmEmailInvalidLink:
         assert signed_in_as(client) is None
 
     # /core/ui/confirm-email/invalid
-    # /core/operations/confirm-email/invalid
+    # /core/ui/confirm-email/no-token
     def test_no_token(self, client: Any) -> None:
         self.assert_shows_the_message(client.post("/verify-email", json={}))
 

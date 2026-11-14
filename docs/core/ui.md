@@ -90,6 +90,7 @@ At `/access?token=<token>`, opened from the access link; mockup in
 - [invalid] /core/operations/sign-in-by-access-link/invalid: "This
   link is no longer valid.", with a way to `/sign-in-link` to request
   a new one.
+- [no-token] Without a token: as /core/ui/access-link/invalid.
 - [fetched] Fetching the link without running the page signs no one
   in.
 - [status] It answers 200, the link valid or not.
@@ -117,6 +118,8 @@ Shows:
   /core/operations/check-reset-token with the token; invalid: the
   message of /core/ui/reset-password/invalid, in place of the form.
 - [usable] Opening the page leaves the token usable.
+- [no-token] Without a token, on opening or on [Set password]: as
+  with an invalid one.
 
 Actions:
 - [set] [Set password] runs /core/operations/reset-password with the
@@ -162,6 +165,7 @@ mockup in `design/confirm-email.md`.
   token usable.
 - [invalid] /core/operations/confirm-email/invalid: "This link is no
   longer valid.", with a way back to `/signup` to request a new one.
+- [no-token] Without a token: as /core/ui/confirm-email/invalid.
 - [status] It answers 200, the link valid or not.
 
 ## New association
