@@ -9,10 +9,19 @@
   with the fields. …
   - [closure-order] /planning/operations/add-closure/order: "The end
     date can't be before the start date."
+  - [closure-warning] The dialog shows "Registrations on its dates,
+    from today on, become obsolete."
   closure", filled with the closure, with [Save]; it runs …
   /planning/operations/edit-closure for it, with the fields. …
   - [edit-closure-order] /planning/operations/edit-closure/order: "The
     end date can't be before the start date."
+  - [edit-closure-warning] The dialog shows "Registrations on its new
+    dates, from today on, become obsolete; those on the dates it no
+    longer covers may stop being obsolete."
+  with [Delete], which runs /planning/operations/delete-closure for …
+  it. …
+  - [delete-closure-warning] The question goes on with "Registrations
+    on its dates, from today on, may stop being obsolete."
   - [exists] /planning/operations/add-slot/exists: "This slot already …
     exists." …
   - [order] /planning/operations/add-slot/order: "The end time must be
@@ -21,6 +30,12 @@
     already exists." …
   - [edit-order] /planning/operations/edit-slot/order: "The end time
     must be after the start time."
+  - [edit-warning] The dialog shows "Changing the day or times makes
+    its registrations from today on obsolete."
+  /planning/operations/delete-slot for it. …
+  - [delete-slot-warning] The question goes on with "Its registrations
+    from today on become obsolete, and the members' preferences on it
+    are deleted."
 × - [set-preference] A cell of "Members' preferences" saves at once, as
 ×   /planning/ui/my-availability/set, for the row's member and the
 ×   column's slot.
@@ -53,10 +68,14 @@
   with the fields. …
   - [absence-order] /planning/operations/add-absence/order: "The end
     date can't be before the start date."
+  - [absence-overlap] /planning/operations/add-absence/overlap: "This
+    absence overlaps another one."
   absence", filled with it, with [Save]; it runs …
   /planning/operations/edit-absence for it, with the fields. …
   - [edit-absence-order] /planning/operations/edit-absence/order: "The
     end date can't be before the start date."
+  - [edit-absence-overlap] /planning/operations/edit-absence/overlap:
+    "This absence overlaps another one."
 
 ## Schedule
 

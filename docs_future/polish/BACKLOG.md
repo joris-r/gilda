@@ -14,11 +14,15 @@ adds the sections it integrates.
    - Actions outside a confirmation (Sign out, Create an account, Forgot password…) still retry after a network error, so they could run twice.
    - My preferences: a selector retries after a network error, so a late retry could overwrite a newer choice on the same slot.
 2. Failed saves: /planning/ui/schedule-settings,
-   /planning/ui/my-availability (Schedule settings also carries, from
-   Stale data, Members' preferences shown again when the screen shows
-   again; both also carry, from Date order messages, the messages of a
-   slot, the planning period, a closure or an absence that ends before
-   it starts).
+   /planning/ui/my-availability, /planning/operations/add-absence,
+   /planning/operations/edit-absence (Schedule settings also carries,
+   from Stale data, Members' preferences shown again when the screen
+   shows again; both also carry, from Date order messages, the
+   messages of a slot, the planning period, a closure or an absence
+   that ends before it starts; from Warnings, Schedule settings
+   carries the warnings of the slot and closure dialogs, and My
+   availability, with Add absence and Edit absence, the refusal of an
+   absence that overlaps another).
    - My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
    - Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
 3. Confirmation error: /ui/forms.
@@ -66,11 +70,16 @@ adds the sections it integrates.
     - Shared schedule: once the link is replaced or revoked, More weeks on a page already open shows only the generic error, not "This link is no longer valid.".
     - The one-time notice is kept in the session, so it shows on whichever page loads next, even in another tab.
 11. Date order messages: design/schedule-settings.md (Schedule
-    settings and My availability, kept in item 2, carry its messages).
+    settings and My availability, kept in item 2, carry its messages;
+    the mockup also carries, from Warnings, the Delete slot
+    confirmation and the Edit the slot warning).
     - Add a slot or Edit the slot with To not after From shows only the generic error; the former frontend said "Check the dates and times: the start comes before the end."
     - Planning period and closures with To before From show only the generic error, as Slots do.
     - Absences with To before From show only the generic error; the former frontend said "Check the dates: the start comes before the end." (its translation is gone with the former frontend's other leftovers).
-12. Warnings:
+12. Warnings: design/forms.md (Schedule settings and My
+    availability, kept in item 2, carry its warnings and its overlap
+    message; closures may still overlap, with no warning, as Schedule
+    shows each covering closure's label).
     - Edit the slot and Delete the slot don't warn that the slot's registrations become obsolete, nor that deleting it deletes the members' preferences on it.
     - Add a closure, Edit the closure and Delete the closure don't warn that the registrations on the closed dates become obsolete, or stop being obsolete.
     - Closures may overlap each other, with no warning.
@@ -101,6 +110,7 @@ adds the sections it integrates.
 - Stale identifiers: every action of an association screen (Members, Schedule, Schedule settings, My availability, My associations' Confirm and OK) finds its association by the slug of its URL today (`detail_by_slug`); /ui/changed-identifier needs them to find it by its id instead, e.g. carried in the action's URL, as technical.md leaves those URLs free.
 - Stale days: the weeks of the Schedule render the days before today with no menu button (`day.past` in `schedule_weeks.html`), and the menu's handler checks no date; the new-day refresh can reuse More weeks' handler with the shown range, and the shared one its own. The refresh also shows what changed elsewhere since the page opened, which Stale data (item 10) may build on.
 - Date order messages: its messages went into Schedule settings and My availability, already kept by Failed saves (item 2), so Failed saves integrates and tests them; item 11 then integrates only the Add a slot mockup, whose times now differ so that "This slot already exists." can show with them.
+- Warnings: a section kept in an earlier item that gains a message citing a new case of an operation pulls that operation into the earlier item: Add absence and Edit absence went to Failed saves (item 2) with My availability's overlap message, leaving Warnings (item 12) only `design/forms.md`.
 
 ## For the human
 
@@ -126,3 +136,8 @@ adds the sections it integrates.
 - Stale data: when Schedule settings shows again, only Members' preferences shows again, so its columns may show a slot that SLOTS above does not list yet, or no longer lists, until a reload; refreshing the whole screen was left out to keep open dialogs and the volunteer's view out of it.
 - Stale data: the third [soundness] check still reported findings on Members' preferences shown again (a save running then, a cell whose member or slot is gone, and the main case overlapping its sub-cases); `/planning/ui/schedule-settings/preferences-again` was then rewritten to wait until no save runs and as a numbered list whose last case is "Otherwise", which no check has re-read.
 - Date order messages: a slot whose To is not after From shows "The end time must be after the start time.", and a planning period, closure or absence whose To is before From "The end date can't be before the start date.", in the dialog, as "This slot already exists."; the mockups show no new state, as `design/schedule-settings.md` already shows a message in the Add a slot dialog (its times changed from 09:00–09:00, which now gives the end time message, to 10:00–13:00, the slot listed), while `design/my-availability.md` shows no message in its absence dialogs, the generic error included; whether that state needs a mockup is left to the human.
+- Warnings: the warnings are fixed sentences in the existing dialogs and confirmations, shown whether or not a registration or preference is affected, as Members' "Their upcoming registrations are cancelled."; they name only registrations from today on, though the same actions also make obsolete the past ones the Schedule shows in its past week; counts were left out, as the closure dialogs would need them recomputed while the dates are typed.
+- Warnings: the closure warnings say registrations "may stop being obsolete", as a registration on a date the closure no longer covers stays obsolete when another closure covers it or its slot is gone; a precise count or list is the human's call.
+- Warnings: "upcoming registrations" means dated today or later and not obsolete in `/home/operations/list-my-associations/upcoming`, but not cancelled in Members' Remove confirmation (`/core/ui/members/remove`); the warnings avoid the word and say "from today on".
+- Warnings: overlapping absences are refused from now on, but no invariant forbids them, so absences saved before may still overlap from today on: which one the Occurrence menu's absence icon names (`/planning/ui/occurrence-menu/absent`, "the absence covering the date") is then left free, and Edit absence on either is refused until the edit removes the overlap; two requests at once may also both pass the check. An invariant, with a migration merging the overlapping absences, is the human's call.
+- Warnings: overlapping closures stay allowed with no warning, as the Schedule's Closed line already lists the labels of every closure covering a day (e.g. an event within a holiday); a warning or a refusal is the human's call.
