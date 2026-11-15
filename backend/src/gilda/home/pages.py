@@ -14,6 +14,7 @@ from gilda.core.sessions import find_current_user
 from gilda.home.services import HomeService
 from gilda.planning.schemas import Status
 from gilda.planning.services import PlanningService
+from gilda.web.ordering import name_key
 from gilda.web.rendering import fragment, interface_language, page, translate
 
 _REFUSALS = (ClientException, NotFoundException, PermissionDeniedException)
@@ -26,7 +27,8 @@ async def home(
     user = await find_current_user(request, db_session)
     if user is None:
         return page(request, "sign_in.html", message="")
-    associations = await HomeService(db_session).list_for(user)
+    listed = await HomeService(db_session).list_for(user)
+    associations = sorted(listed, key=lambda a: name_key(a.name))
     return page(request, "my_associations.html", user=user, associations=associations)
 
 

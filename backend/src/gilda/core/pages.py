@@ -35,6 +35,7 @@ from gilda.core.services import (
     MembershipEndHook,
 )
 from gilda.core.sessions import SESSION_LINK_KEY, find_current_user, sign_in_as
+from gilda.web.ordering import name_key
 from gilda.web.rendering import (
     flash,
     fragment,
@@ -85,7 +86,7 @@ async def create_association(
 
 def members_in_order(members: list[MemberRead]) -> list[MemberRead]:
     """Managers first, then by display name."""
-    return sorted(members, key=lambda m: (m.role != "manager", m.display_name.casefold()))
+    return sorted(members, key=lambda m: (m.role != "manager", name_key(m.display_name)))
 
 
 async def _members_list(

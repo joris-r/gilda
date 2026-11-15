@@ -86,8 +86,8 @@ def format_days(language: Language, first: date, last: date) -> str:
 
 
 def format_period(language: Language, first: date, last: date) -> str:
-    """Days from `first` to `last` without their weekdays, joined by an en dash, with their
-    years only when these differ, as R14's reminder shows them."""
+    """Days from `first` to `last` without their weekdays, joined by an en dash, with a year or a
+    month they share written once, as R14's reminder shows them."""
 
     def day_month(value: date) -> str:
         return f"{value.day} {translate(language, f'dates.months.{value.month}')}"
@@ -95,10 +95,10 @@ def format_period(language: Language, first: date, last: date) -> str:
     if first.year != last.year:
         return f"{day_month(first)} {first.year} – {day_month(last)} {last.year}"  # noqa: RUF001
     if first.month != last.month:
-        return f"{day_month(first)} – {day_month(last)}"  # noqa: RUF001
+        return f"{day_month(first)} – {day_month(last)} {last.year}"  # noqa: RUF001
     if first.day != last.day:
-        return f"{first.day}–{day_month(last)}"  # noqa: RUF001
-    return day_month(last)
+        return f"{first.day}–{day_month(last)} {last.year}"  # noqa: RUF001
+    return f"{day_month(last)} {last.year}"
 
 
 def _context(request: Request[Any, Any, Any], context: dict[str, Any]) -> dict[str, Any]:
@@ -109,6 +109,9 @@ def _context(request: Request[Any, Any, Any], context: dict[str, Any]) -> dict[s
 
     def days(first: date, last: date) -> str:
         return format_days(language, first, last)
+
+    def day(value: date) -> str:
+        return format_day(language, value)
 
     def short_day(value: date) -> str:
         return format_short_day(language, value)
@@ -123,6 +126,7 @@ def _context(request: Request[Any, Any, Any], context: dict[str, Any]) -> dict[s
         "language": language,
         "t": t,
         "days": days,
+        "full_day": day,
         "short_day": short_day,
         "period_days": period_days,
         "long_day": long_day,
