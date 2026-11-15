@@ -1,12 +1,5 @@
 # UI
 
-## Name order
-
-- [names] Wherever a screen sorts by name, names are sorted
-  alphabetically, ignoring case and accents, e.g. "émile" and "Émile"
-  before "Zoé"; between names that are equal once case and accents are
-  ignored, the order is left free.
-
 ## Changed identifier
 
 - [actions] An action on an association or its data, from a screen

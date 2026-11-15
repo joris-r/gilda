@@ -9,12 +9,6 @@ orders and displays.
 Each increment lists the sections it integrates, then the entries it
 settles.
 
-5. Name order and My associations: /readme, /ui/name-order,
-   /home/ui/my-associations, design/my-associations.md (Members follows
-   the rule with no edit of its own).
-   - My associations: the spec sets no order, so the list follows whatever order the database returns.
-   - Members: display names are ordered by `casefold`, not by the language's collation, so "Émile" comes after "Zoé".
-   - My associations shows dates without their year, so a proposal months ahead (e.g. "Sun 3 Jan") is ambiguous.
 6. Changed identifier: /ui/changed-identifier.
    - Change the association identifier breaks every bookmark of the former URLs, with no redirect (`/core/operations/update-association/new-slug`).
    - Confirm and OK use the slug from page load, so after a change of identifier in another tab they show only the generic error.

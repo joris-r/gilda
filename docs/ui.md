@@ -61,3 +61,10 @@ Mockup in `design/forms.md`.
   one of its triggers firing anew: the user acting again, its page
   opening again when the page runs it on opening, or another event its
   screen names as a trigger.
+
+## Name order
+
+- [names] Wherever a screen sorts by name, names are sorted
+  alphabetically, ignoring case and accents, e.g. "émile" and "Émile"
+  before "Zoé"; between names that are equal once case and accents are
+  ignored, the order is left free.
