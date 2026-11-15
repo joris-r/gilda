@@ -38,7 +38,7 @@
   {% include "availability_absences.html" %}
   {% call form_dialog("add-absence", t("availability.addAbsence")) %}
   {# No retry: a request that failed after adding would add the absence twice. #}
-  <form data-on:submit="@post('{{ availability }}/absences', {filterSignals: {include: /^(first|last)$/}, retryMaxCount: 0})">
+  <form data-on:submit="@post('{{ availability }}/absences', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^(first|last)$/}, retryMaxCount: 0})">
     {% include "absence_fields.html" %}
     {% with error_id = "add-absence-error", message = "" %}{% include "form_error.html" %}{% endwith %}
     <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
@@ -49,7 +49,7 @@
   </form>
   {% endcall %}
   {% call form_dialog("edit-absence", t("availability.editAbsence")) %}
-  <form data-on:submit="@post('{{ availability }}/absences/' + $_absence + '/edit', {filterSignals: {include: /^(first|last)$/}, retryMaxCount: 0})">
+  <form data-on:submit="@post('{{ availability }}/absences/' + $_absence + '/edit', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^(first|last)$/}, retryMaxCount: 0})">
     {% include "absence_fields.html" %}
     {% with error_id = "edit-absence-error", message = "" %}{% include "form_error.html" %}{% endwith %}
     <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
@@ -63,7 +63,7 @@
   <dialog id="delete-absence" class="dialog" aria-labelledby="delete-absence-question">
     <p id="delete-absence-question" data-text="$_question"></p>
     <div class="dialog-actions">
-      <button type="button" data-on:click="@post('{{ availability }}/absences/' + $_absence + '/delete', {filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.deleteAction") }}</button>
+      <button type="button" data-on:click="@post('{{ availability }}/absences/' + $_absence + '/delete', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.deleteAction") }}</button>
       <button type="button" class="link" commandfor="delete-absence" command="close">{{ t("dialog.cancel") }}</button>
     </div>
     {% with error_id = "delete-absence-error", message = "" %}{% include "form_error.html" %}{% endwith %}
@@ -87,7 +87,7 @@
   </div>
   {% include "availability_note.html" %}
   {% call form_dialog("edit-note", t("availability.note")) %}
-  <form data-on:submit="@post('{{ availability }}/note', {filterSignals: {include: /^text$/}, retryMaxCount: 0})">
+  <form data-on:submit="@post('{{ availability }}/note', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^text$/}, retryMaxCount: 0})">
     <label>
       {{ t("availability.text") }}
       <textarea rows="4" data-bind:text></textarea>

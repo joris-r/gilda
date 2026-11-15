@@ -19,7 +19,7 @@
     <button
       type="button"
       class="add"
-      data-on:click="$_copied = false; @post('{{ action }}', {filterSignals: {include: /^$/}, retryMaxCount: 0})"
+      data-on:click="$_copied = false; @post('{{ action }}', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^$/}, retryMaxCount: 0})"
     >+ {{ t("settings.createShareLink") }}</button>
     {% endif %}
   </div>

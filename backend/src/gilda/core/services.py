@@ -323,11 +323,27 @@ class AssociationService:
         )
         return association_read(association)
 
-    async def detail_by_slug(self, user: User, slug: str) -> AssociationDetail:
-        association = await self.associations.get_one_or_none(slug=slug)
+    async def _find_by_ref(self, ref: str) -> Association | None:
+        """The association whose id or, failing that, whose slug is `ref`: actions carry the id,
+        so that they survive a change of slug, and screens' URLs carry the slug."""
+        try:
+            by_id = await self.associations.get_one_or_none(id=UUID(ref))
+        except ValueError:
+            by_id = None
+        if by_id is not None:
+            return by_id
+        return await self.associations.get_one_or_none(slug=ref)
+
+    async def detail_by_ref(self, user: User, ref: str) -> AssociationDetail:
+        association = await self._find_by_ref(ref)
         if association is None:
             raise NotFoundException("Association not found.")
         return await self.detail(user, association.id)
+
+    async def current_slug(self, ref: str) -> str:
+        """The slug of the association `ref` stands for now, or `ref` itself when none exists."""
+        association = await self._find_by_ref(ref)
+        return association.slug if association else ref
 
     async def detail(self, user: User, association_id: UUID) -> AssociationDetail:
         own = await self._membership_of(user, association_id)

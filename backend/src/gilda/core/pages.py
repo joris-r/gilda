@@ -37,6 +37,7 @@ from gilda.core.services import (
 from gilda.core.sessions import SESSION_LINK_KEY, find_current_user, sign_in_as
 from gilda.web.ordering import name_key
 from gilda.web.rendering import (
+    association_ref,
     flash,
     fragment,
     interface_language,
@@ -113,7 +114,7 @@ async def members_page(
         return page(request, "sign_in.html", message="")
     associations = AssociationService(db_session)
     try:
-        association = await associations.detail_by_slug(user, slug)
+        association = await associations.detail_by_ref(user, association_ref(request, slug))
     except NotFoundException:
         return page(request, "association_unknown.html", user=user)
     return page(
@@ -148,7 +149,7 @@ async def add_member(
         return _form_error(request, "error")
     associations = AssociationService(db_session)
     try:
-        association = await associations.detail_by_slug(user, slug)
+        association = await associations.detail_by_ref(user, association_ref(request, slug))
         added = await associations.add_member(
             user, association.id, asked.display_name, asked.email, asked.role
         )
@@ -243,7 +244,7 @@ async def change_role(
         return _member_error(request, user_id, "error")
     associations = AssociationService(db_session)
     try:
-        association = await associations.detail_by_slug(user, slug)
+        association = await associations.detail_by_ref(user, association_ref(request, slug))
         member = _member(association.members, user_id)
         if member.role == asked.role:
             return DatastarResponse(
@@ -279,7 +280,7 @@ async def remove_member(
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
     associations = AssociationService(db_session)
     try:
-        association = await associations.detail_by_slug(user, slug)
+        association = await associations.detail_by_ref(user, association_ref(request, slug))
         member = _member(association.members, user_id)
         await associations.remove_member(user, association.id, user_id, membership_end_hooks)
     except ConflictException:
@@ -306,7 +307,7 @@ async def send_member_link(
     language = interface_language(request)
     associations = AssociationService(db_session)
     try:
-        association = await associations.detail_by_slug(user, slug)
+        association = await associations.detail_by_ref(user, association_ref(request, slug))
         member = _member(association.members, user_id)
         await associations.send_member_link(user, association.id, user_id, language)
     except ServiceUnavailableException:
@@ -329,7 +330,7 @@ async def revoke_member_link(
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
     associations = AssociationService(db_session)
     try:
-        association = await associations.detail_by_slug(user, slug)
+        association = await associations.detail_by_ref(user, association_ref(request, slug))
         member = _member(association.members, user_id)
         had_link = await associations.revoke_member_link(user, association.id, user_id)
     except (NotFoundException, PermissionDeniedException):
@@ -373,7 +374,7 @@ async def rename_association(
         return _dialog_error(request, "rename", "error")
     associations = AssociationService(db_session)
     try:
-        association = await associations.detail_by_slug(user, slug)
+        association = await associations.detail_by_ref(user, association_ref(request, slug))
         if name == association.name:
             return _closed("rename")
         await associations.update(user, association.id, name, None)
@@ -413,7 +414,7 @@ async def change_identifier(
         return _dialog_error(request, "identifier", "association.identifierInvalid")
     associations = AssociationService(db_session)
     try:
-        association = await associations.detail_by_slug(user, slug)
+        association = await associations.detail_by_ref(user, association_ref(request, slug))
         if new_slug == association.slug:
             return _closed("identifier")
         await associations.update(user, association.id, None, new_slug)
@@ -435,11 +436,13 @@ async def delete_association(
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
     associations = AssociationService(db_session)
     try:
-        association = await associations.detail_by_slug(user, slug)
+        association = await associations.detail_by_ref(user, association_ref(request, slug))
         await associations.delete(user, association.id)
     except (NotFoundException, PermissionDeniedException):
         # The page no longer matches what the user may do: show it as it now is.
-        return DatastarResponse(ServerSentEventGenerator.redirect(f"/association/{slug}/members"))
+        current = await associations.current_slug(association_ref(request, slug))
+        members = f"/association/{current}/members"
+        return DatastarResponse(ServerSentEventGenerator.redirect(members))
     language = interface_language(request)
     flash(request, translate(language, "association.deleted", name=association.name))
     return DatastarResponse(ServerSentEventGenerator.redirect("/"))

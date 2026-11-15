@@ -10,7 +10,7 @@
       <li class="obsolete">
         <span class="when"><span class="date">{{ full_day(registration.date) }},</span> <span class="time">{{ registration.start }}–{{ registration.end }}</span></span>
         <span class="slot-note"><span class="who">{{ registration.display_name }}</span><span class="note">{{ t("myAssociations.obsolete") }}</span></span>
-        <button type="button" data-on:click="@post('{{ here }}/summary/{{ registration.id }}/cancel', {retryMaxCount: 0})">{{ t("myAssociations.acknowledge") }}</button>
+        <button type="button" data-on:click="@post('{{ here }}/summary/{{ registration.id }}/cancel', {headers: {'X-Association': '{{ association.id }}'}, retryMaxCount: 0})">{{ t("myAssociations.acknowledge") }}</button>
       </li>
       {% endfor %}
       {% for registration in association.upcoming %}
@@ -18,7 +18,7 @@
         <span class="when"><span class="date">{{ full_day(registration.date) }},</span> <span class="time">{{ registration.start }}–{{ registration.end }}</span></span>
         <span class="who">{{ registration.display_name }}{% if registration.status == "proposed" %} ?{% endif %}</span>
         {% if registration.status == "proposed" %}
-        <button type="button" data-on:click="@post('{{ here }}/summary/{{ registration.id }}/confirm', {retryMaxCount: 0})">{{ t("myAssociations.confirm") }}</button>
+        <button type="button" data-on:click="@post('{{ here }}/summary/{{ registration.id }}/confirm', {headers: {'X-Association': '{{ association.id }}'}, retryMaxCount: 0})">{{ t("myAssociations.confirm") }}</button>
         {% endif %}
       </li>
       {% endfor %}

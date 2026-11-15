@@ -2,7 +2,7 @@
 <dialog id="cancel-registration" class="dialog" aria-labelledby="cancel-registration-question">
   <p id="cancel-registration-question">{{ t("schedule.askCancel") }}</p>
   <div class="dialog-actions">
-    <button type="button"{% if menu %} data-on:click="@post('/association/{{ association.slug }}/registrations/{{ menu.registration_id }}/cancel', {payload: {from: '{{ weeks['from'] }}', to: '{{ weeks['to'] }}'}, retryMaxCount: 0})"{% endif %}>{{ t("schedule.yesCancel") }}</button>
+    <button type="button"{% if menu %} data-on:click="@post('/association/{{ association.slug }}/registrations/{{ menu.registration_id }}/cancel', {headers: {'X-Association': '{{ association.id }}'}, payload: {from: '{{ weeks['from'] }}', to: '{{ weeks['to'] }}'}, retryMaxCount: 0})"{% endif %}>{{ t("schedule.yesCancel") }}</button>
     <button type="button" class="link" commandfor="cancel-registration" command="close">{{ t("schedule.keep") }}</button>
   </div>
   {% with error_id = "cancel-registration-error", message = "" %}{% include "form_error.html" %}{% endwith %}

@@ -162,3 +162,12 @@ async def read_signals_dict(request: Request[Any, Any, Any]) -> dict[str, Any]:
     except ValueError:
         return {}
     return signals if isinstance(signals, dict) else {}
+
+
+ASSOCIATION_HEADER = "X-Association"
+
+
+def association_ref(request: Request[Any, Any, Any], slug: str) -> str:
+    """What identifies the association an action of its screens runs on: the id its page sent,
+    which a change of slug since the page opened leaves true, else the `slug` of the URL."""
+    return request.headers.get(ASSOCIATION_HEADER) or slug

@@ -15,7 +15,7 @@ from gilda.home.services import HomeService
 from gilda.planning.schemas import Status
 from gilda.planning.services import PlanningService
 from gilda.web.ordering import name_key
-from gilda.web.rendering import fragment, interface_language, page, translate
+from gilda.web.rendering import association_ref, fragment, interface_language, page, translate
 
 _REFUSALS = (ClientException, NotFoundException, PermissionDeniedException)
 
@@ -49,7 +49,9 @@ async def _status_changed(
             registration = UUID(registration_id)
         except ValueError as invalid:
             raise NotFoundException("Registration not found.") from invalid
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).change_status(user, association.id, registration, status)
     except _REFUSALS:
         message = translate(interface_language(request), "error")

@@ -15,7 +15,7 @@
   {% if manages %}
   {% call form_dialog("edit-period", t("settings.planningPeriod")) %}
   {# No retry: a request that failed must not go through later, once the dialog is cancelled. #}
-  <form data-on:submit="@post('{{ settings }}/period', {filterSignals: {include: /^(first|last)$/}, retryMaxCount: 0})">
+  <form data-on:submit="@post('{{ settings }}/period', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^(first|last)$/}, retryMaxCount: 0})">
     <label>
       {{ t("settings.first") }}
       <input type="date" data-bind:first required>
@@ -35,7 +35,7 @@
   <dialog id="clear-period" class="dialog" aria-labelledby="clear-period-question">
     <p id="clear-period-question">{{ t("settings.confirmClearPeriod") }}</p>
     <div class="dialog-actions">
-      <button type="button" data-on:click="@post('{{ settings }}/period/clear', {filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.clearAction") }}</button>
+      <button type="button" data-on:click="@post('{{ settings }}/period/clear', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.clearAction") }}</button>
       <button type="button" class="link" commandfor="clear-period" command="close">{{ t("dialog.cancel") }}</button>
     </div>
     {% with error_id = "clear-period-error", message = "" %}{% include "form_error.html" %}{% endwith %}
@@ -60,7 +60,7 @@
   {% if manages %}
   {% call form_dialog("add-closure", t("settings.addClosureTitle")) %}
   {# No retry: a request that failed after adding would add the closure twice. #}
-  <form data-on:submit="@post('{{ settings }}/closures', {filterSignals: {include: /^(first|last|label)$/}, retryMaxCount: 0})">
+  <form data-on:submit="@post('{{ settings }}/closures', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^(first|last|label)$/}, retryMaxCount: 0})">
     {% include "closure_fields.html" %}
     {% with error_id = "add-closure-error", message = "" %}{% include "form_error.html" %}{% endwith %}
     <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
@@ -71,7 +71,7 @@
   </form>
   {% endcall %}
   {% call form_dialog("edit-closure", t("settings.editClosure")) %}
-  <form data-on:submit="@post('{{ settings }}/closures/' + $_closure + '/edit', {filterSignals: {include: /^(first|last|label)$/}, retryMaxCount: 0})">
+  <form data-on:submit="@post('{{ settings }}/closures/' + $_closure + '/edit', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^(first|last|label)$/}, retryMaxCount: 0})">
     {% include "closure_fields.html" %}
     {% with error_id = "edit-closure-error", message = "" %}{% include "form_error.html" %}{% endwith %}
     <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
@@ -85,7 +85,7 @@
   <dialog id="delete-closure" class="dialog" aria-labelledby="delete-closure-question">
     <p id="delete-closure-question" data-text="$_question"></p>
     <div class="dialog-actions">
-      <button type="button" data-on:click="@post('{{ settings }}/closures/' + $_closure + '/delete', {filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.deleteAction") }}</button>
+      <button type="button" data-on:click="@post('{{ settings }}/closures/' + $_closure + '/delete', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.deleteAction") }}</button>
       <button type="button" class="link" commandfor="delete-closure" command="close">{{ t("dialog.cancel") }}</button>
     </div>
     {% with error_id = "delete-closure-error", message = "" %}{% include "form_error.html" %}{% endwith %}
@@ -115,7 +115,7 @@
   {% if manages %}
   {% call form_dialog("add-slot", t("settings.addSlotTitle")) %}
   {# No retry: a request that failed after adding would come back as "already exists". #}
-  <form data-on:submit="@post('{{ base }}', {filterSignals: {include: /^(weekday|start|end)$/}, retryMaxCount: 0})">
+  <form data-on:submit="@post('{{ base }}', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^(weekday|start|end)$/}, retryMaxCount: 0})">
     {% include "slot_fields.html" %}
     {% with error_id = "add-slot-error", message = "" %}{% include "form_error.html" %}{% endwith %}
     <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
@@ -127,7 +127,7 @@
   {% endcall %}
   {% call form_dialog("edit-slot", t("settings.editSlot")) %}
   {# No retry: a request that failed must not go through later, once the dialog is cancelled. #}
-  <form data-on:submit="@post('{{ base }}/' + $_slot + '/edit', {filterSignals: {include: /^(weekday|start|end)$/}, retryMaxCount: 0})">
+  <form data-on:submit="@post('{{ base }}/' + $_slot + '/edit', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^(weekday|start|end)$/}, retryMaxCount: 0})">
     {% with follows = false %}{% include "slot_fields.html" %}{% endwith %}
     {% with error_id = "edit-slot-error", message = "" %}{% include "form_error.html" %}{% endwith %}
     <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
@@ -141,7 +141,7 @@
   <dialog id="delete-slot" class="dialog" aria-labelledby="delete-slot-question">
     <p id="delete-slot-question" data-text="$_question"></p>
     <div class="dialog-actions">
-      <button type="button" data-on:click="@post('{{ base }}/' + $_slot + '/delete', {filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.deleteAction") }}</button>
+      <button type="button" data-on:click="@post('{{ base }}/' + $_slot + '/delete', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^$/}, retryMaxCount: 0})">{{ t("settings.deleteAction") }}</button>
       <button type="button" class="link" commandfor="delete-slot" command="close">{{ t("dialog.cancel") }}</button>
     </div>
     {% with error_id = "delete-slot-error", message = "" %}{% include "form_error.html" %}{% endwith %}

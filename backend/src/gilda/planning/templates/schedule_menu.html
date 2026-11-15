@@ -9,10 +9,10 @@
   {% if menu.sign_up or menu.confirm or menu.cancel %}
   <div class="actions">
     {% if menu.sign_up %}
-    <button type="button" data-on:click="@post('{{ here }}/sign-up', {payload: {date: '{{ menu.date }}', start: '{{ menu.start }}', end: '{{ menu.end }}', {{ shown }}}, retryMaxCount: 0})">{{ t("schedule.signUp") }}</button>
+    <button type="button" data-on:click="@post('{{ here }}/sign-up', {headers: {'X-Association': '{{ association.id }}'}, payload: {date: '{{ menu.date }}', start: '{{ menu.start }}', end: '{{ menu.end }}', {{ shown }}}, retryMaxCount: 0})">{{ t("schedule.signUp") }}</button>
     {% endif %}
     {% if menu.confirm %}
-    <button type="button" data-on:click="@post('{{ here }}/registrations/{{ menu.registration_id }}/confirm', {payload: { {{- shown -}} }, retryMaxCount: 0})">{{ t("schedule.confirm") }}</button>
+    <button type="button" data-on:click="@post('{{ here }}/registrations/{{ menu.registration_id }}/confirm', {headers: {'X-Association': '{{ association.id }}'}, payload: { {{- shown -}} }, retryMaxCount: 0})">{{ t("schedule.confirm") }}</button>
     {% endif %}
     {% if menu.cancel %}
     <button type="button" class="link danger" commandfor="cancel-registration" command="show-modal" data-on:click="$_failed = false; document.getElementById('cancel-registration-error').hidden = true">{{ t("schedule.cancel") }}</button>
@@ -24,7 +24,7 @@
   <ul class="menu-names">
     {% for name in menu.names %}
     <li class="menu-name {{ name.look }}">
-      <button type="button" class="name" data-on:click="@post('{{ here }}/propose', {payload: {user_id: '{{ name.user_id }}', date: '{{ menu.date }}', start: '{{ menu.start }}', end: '{{ menu.end }}', {{ shown }}}, retryMaxCount: 0})">{{ name.name }}{% if name.count is not none %} ({{ name.count }}){% endif %}</button>
+      <button type="button" class="name" data-on:click="@post('{{ here }}/propose', {headers: {'X-Association': '{{ association.id }}'}, payload: {user_id: '{{ name.user_id }}', date: '{{ menu.date }}', start: '{{ menu.start }}', end: '{{ menu.end }}', {{ shown }}}, retryMaxCount: 0})">{{ name.name }}{% if name.count is not none %} ({{ name.count }}){% endif %}</button>
       {% if name.absence %}
       <button type="button" class="icon-button menu-icon" aria-label="{{ name.absence }}" title="{{ name.absence }}" data-on:click="{{ toggle }}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18" /></svg>

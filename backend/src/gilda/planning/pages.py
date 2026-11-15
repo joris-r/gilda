@@ -35,6 +35,7 @@ from gilda.planning.schemas import (
 )
 from gilda.planning.services import PlanningService, TakenException
 from gilda.web.rendering import (
+    association_ref,
     format_day,
     fragment,
     interface_language,
@@ -55,7 +56,9 @@ async def settings_page(
     if user is None:
         return page(request, "sign_in.html", message="")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
     except NotFoundException:
         return page(request, "association_unknown.html", user=user)
     service = PlanningService(db_session)
@@ -150,7 +153,9 @@ async def add_slot(
     except msgspec.ValidationError:
         return _error(request, "add-slot-error", "error")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         added = await PlanningService(db_session).add_slot(
             user, association.id, asked.weekday, asked.start, asked.end
         )
@@ -188,7 +193,9 @@ async def edit_slot(
     except msgspec.ValidationError:
         return _error(request, error_id, "error")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).edit_slot(
             user, association.id, _slot_id(slot_id), asked.weekday, asked.start, asked.end
         )
@@ -210,7 +217,9 @@ async def delete_slot(
     if user is None:
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).delete_slot(user, association.id, _slot_id(slot_id))
     except _REFUSALS:
         return _error(request, "delete-slot-error", "error")
@@ -236,7 +245,9 @@ async def choose_member_preference(
     if value not in ("", "preferred", "possible", "unavailable"):
         return _error(request, error_id, "error")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         if association.role != "manager":
             raise PermissionDeniedException("Only managers set the members' preferences.")
         service = PlanningService(db_session)
@@ -302,7 +313,9 @@ async def set_period(
     except msgspec.ValidationError:
         return _error(request, error_id, "error")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).set_planning_period(
             user, association.id, asked.first, asked.last
         )
@@ -319,7 +332,9 @@ async def clear_period(
     if user is None:
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).clear_planning_period(user, association.id)
     except _REFUSALS:
         return _error(request, "clear-period-error", "error")
@@ -372,7 +387,9 @@ async def add_closure(
     except msgspec.ValidationError:
         return _error(request, error_id, "error")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).add_closure(
             user, association.id, asked.first, asked.last, asked.label
         )
@@ -397,7 +414,9 @@ async def edit_closure(
     except msgspec.ValidationError:
         return _error(request, error_id, "error")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).edit_closure(
             user, association.id, _closure_id(closure_id), asked.first, asked.last, asked.label
         )
@@ -417,7 +436,9 @@ async def delete_closure(
     if user is None:
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).delete_closure(
             user, association.id, _closure_id(closure_id)
         )
@@ -477,7 +498,9 @@ async def create_share_link(
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
     service = PlanningService(db_session)
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await service.create_share_link(user, association.id)
     except _REFUSALS:
         return _error(request, "share-link-error", "error")
@@ -493,7 +516,9 @@ async def revoke_share_link(
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
     service = PlanningService(db_session)
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await service.revoke_share_link(user, association.id)
     except _REFUSALS:
         return _error(request, "share-link-error", "error")
@@ -516,7 +541,9 @@ async def availability_page(
     if user is None:
         return page(request, "sign_in.html", message="")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
     except NotFoundException:
         return page(request, "association_unknown.html", user=user)
     service = PlanningService(db_session)
@@ -547,7 +574,9 @@ async def choose_preference(
     if value not in ("", "preferred", "possible", "unavailable"):
         return _error(request, error_id, "error")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         service = PlanningService(db_session)
         wanted = _slot_id(slot_id)
         slots = await service.list_slots(user, association.id)
@@ -627,7 +656,9 @@ async def add_absence(
     except msgspec.ValidationError:
         return _error(request, error_id, "error")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).add_absence(user, association.id, asked.first, asked.last)
     except _REFUSALS:
         return _error(request, error_id, "error")
@@ -650,7 +681,9 @@ async def edit_absence(
     except msgspec.ValidationError:
         return _error(request, error_id, "error")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).edit_absence(
             user, association.id, _absence_id(absence_id), asked.first, asked.last
         )
@@ -670,7 +703,9 @@ async def delete_absence(
     if user is None:
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).delete_absence(
             user, association.id, _absence_id(absence_id)
         )
@@ -694,7 +729,9 @@ async def save_note(
     if not isinstance(text, str):
         return _error(request, error_id, "error")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         await PlanningService(db_session).set_note(user, association.id, text)
     except _REFUSALS:
         return _error(request, error_id, "error")
@@ -911,7 +948,9 @@ async def schedule_page(
     if user is None:
         return page(request, "sign_in.html", message="")
     try:
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
     except NotFoundException:
         return page(request, "association_unknown.html", user=user)
     service = PlanningService(db_session)
@@ -950,7 +989,9 @@ async def more_weeks(
     error_id = "weeks-error"
     try:
         first, last = _shown_range(await read_signals_dict(request))
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         service = PlanningService(db_session)
         first -= timedelta(days=first.weekday())
         last += timedelta(days=6 - last.weekday(), weeks=_MORE_WEEKS)
@@ -1184,7 +1225,9 @@ async def occurrence_menu(
     try:
         signals = await read_signals_dict(request)
         day, start, end = _asked_occurrence(signals)
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         service = PlanningService(db_session)
         if "from" in signals or "to" in signals:
             first, last = _shown_range(signals)
@@ -1228,7 +1271,9 @@ async def schedule_sign_up(
         signals = await read_signals_dict(request)
         day, start, end = _asked_occurrence(signals)
         first, last = _shown_range(signals)
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         service = PlanningService(db_session)
         await service.register(user, association.id, user.id, day, start, end)
     except TakenException:
@@ -1253,7 +1298,9 @@ async def schedule_propose(
             user_id = UUID(signals.get("user_id"))
         except (TypeError, ValueError) as error:
             raise ClientException("Give the member's user_id.") from error
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         service = PlanningService(db_session)
         await service.register(user, association.id, user_id, day, start, end)
     except TakenException:
@@ -1281,7 +1328,9 @@ async def _status_changed(
             registration = UUID(registration_id)
         except ValueError as error:
             raise NotFoundException("Registration not found.") from error
-        association = await AssociationService(db_session).detail_by_slug(user, slug)
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
         service = PlanningService(db_session)
         await service.change_status(user, association.id, registration, status)
     except _REFUSALS:

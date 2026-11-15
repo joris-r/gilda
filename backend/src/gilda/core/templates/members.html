@@ -6,7 +6,7 @@
 {% if association.role == "manager" %}
 {% call form_dialog("add-member", t("association.addMember")) %}
 {# No retry: a request that failed after adding would come back as "already a member". #}
-<form data-on:submit="@post('/association/{{ association.slug }}/members', {filterSignals: {exclude: /^language$/}, retryMaxCount: 0})">
+<form data-on:submit="@post('/association/{{ association.slug }}/members', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {exclude: /^language$/}, retryMaxCount: 0})">
   <label>
     {{ t("fields.displayName") }}
     <input data-bind:display-name autocomplete="off" required>

@@ -39,7 +39,7 @@
   {% call form_dialog(id, member.display_name) %}
   <p class="sub">{{ member.email }}</p>
   {# No retry: a request that failed must not go through later, once the dialog is cancelled. #}
-  <form data-on:submit="@post('/association/{{ association.slug }}/members/{{ member.user_id }}/role', {filterSignals: {include: /^role$/}, retryMaxCount: 0})">
+  <form data-on:submit="@post('/association/{{ association.slug }}/members/{{ member.user_id }}/role', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^role$/}, retryMaxCount: 0})">
     <label>
       {{ t("fields.role") }}
       <select data-bind:role>
