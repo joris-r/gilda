@@ -87,6 +87,11 @@ At `/access?token=<token>`, opened from the access link; mockup in
 
 - [signed-in] It runs /core/operations/sign-in-by-access-link with
   the token; on success, My associations shows, signed in.
+- [running] While it runs, on opening or after [Try again]: "Signing
+  you in…", and nothing else under the header.
+- [failed] It failing, on the server or on the way to it: the generic
+  error of /ui/errors/generic, with [Try again], which runs
+  /core/operations/sign-in-by-access-link again with the token.
 - [invalid] /core/operations/sign-in-by-access-link/invalid: "This
   link is no longer valid.", with a way to `/sign-in-link` to request
   a new one.
@@ -161,6 +166,11 @@ mockup in `design/confirm-email.md`.
 
 - [confirmed] It runs /core/operations/confirm-email with the token;
   on success, My associations shows, signed in.
+- [running] While it runs, on opening or after [Try again]:
+  "Confirming your email…", and nothing else under the header.
+- [failed] It failing, on the server or on the way to it: the generic
+  error of /ui/errors/generic, with [Try again], which runs
+  /core/operations/confirm-email again with the token.
 - [fetched] Fetching the link without running the page leaves the
   token usable.
 - [invalid] /core/operations/confirm-email/invalid: "This link is no

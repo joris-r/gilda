@@ -9,9 +9,6 @@ orders and displays.
 Each increment lists the sections it integrates, then the entries it
 settles.
 
-3. Access pages: /core/ui/access-link, /core/ui/confirm-email,
-   design/access-link.md, design/confirm-email.md.
-   - Access link and Confirm email: the page stays blank while the action runs, and after a server failure only the generic error shows, with no way forward.
 4. Sign-in links and Members: /core/operations/request-access-link,
    /core/operations/revoke-my-access-link,
    /core/operations/revoke-access-link, /core/ui/header,
