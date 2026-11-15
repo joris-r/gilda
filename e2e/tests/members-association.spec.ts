@@ -119,6 +119,77 @@ test.describe('Members: Rename the association', () => {
   })
 })
 
+test.describe('Members: a form opened again', () => {
+  // /ui/forms/fresh
+  test('shows no message of a failed try after it was closed', async ({ page, request }) => {
+    await openMembers(page, request)
+    await page.route('**/rename', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    const dialog = await openRename(page)
+    await dialog.getByLabel('Name', { exact: true }).fill('Jardin des Lilas')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+    await expect(dialog.getByText(GENERIC)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(dialog).toBeHidden()
+
+    const again = await openRename(page)
+
+    await expect(again.getByText(GENERIC)).toBeHidden()
+  })
+
+  // /ui/forms/fresh
+  test('a confirmation opened again shows no message of a failed try', async ({ page, request }) => {
+    await openMembers(page, request)
+    await page.route('**/delete', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    const confirmation = await openDelete(page)
+    await confirmation.getByLabel("Type the association's name to confirm").fill(NAME)
+    await confirmation.getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect(confirmation.getByText(GENERIC)).toBeVisible()
+    await confirmation.getByRole('button', { name: 'Cancel' }).click()
+    await expect(confirmation).toBeHidden()
+
+    const again = await openDelete(page)
+
+    await expect(again.getByText(GENERIC)).toBeHidden()
+  })
+
+  // /ui/forms/fresh
+  test('the message of a failed try shows in that dialog only', async ({ page, request }) => {
+    await openMembers(page, request)
+    await page.route('**/rename', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    const dialog = await openRename(page)
+    await dialog.getByLabel('Name', { exact: true }).fill('Jardin des Lilas')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    await expect(dialog.getByText(GENERIC)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Close' }).click()
+    await expect(dialog).toBeHidden()
+
+    const other = await openIdentifier(page)
+
+    await expect(other.getByText(GENERIC)).toBeHidden()
+  })
+
+  // /ui/forms/fresh
+  test('Escape closes a failed form, which opens again with no message', async ({ page, request }) => {
+    await openMembers(page, request)
+    await page.route('**/rename', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    const dialog = await openRename(page)
+    await dialog.getByLabel('Name', { exact: true }).fill('Jardin des Lilas')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+    await expect(dialog.getByText(GENERIC)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+
+    const again = await openRename(page)
+
+    await expect(again.getByText(GENERIC)).toBeHidden()
+  })
+})
+
 test.describe('Members: Change the association identifier', () => {
   // /core/ui/members/change-slug
   test('its dialog shows the slug, with Save enabled only when it is not empty', async ({ page, request }) => {

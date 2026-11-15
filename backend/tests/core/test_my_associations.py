@@ -151,6 +151,7 @@ class TestMyAssociations:
         assert "Nouvelle association" in page
 
     # /home/ui/my-associations/new
+    # /ui/forms/create
     @pytest.mark.parametrize("with_association", [False, True])
     def test_new_association_leads_to_its_screen(self, client: Any, with_association: bool) -> None:
         sign_up(client, "Alice")
@@ -180,7 +181,6 @@ class TestNewAssociationScreen:
 
         page = part(new_association(client), "main")
 
-        assert re.search(r"<h1[^>]*>\s*New association\s*</h1>", page)
         assert re.search(r"<label[^>]*>\s*Name\b", page)
         assert re.search(r"<label[^>]*>\s*Association identifier\b", page)
         assert "/association/" in text_of(page)
@@ -207,6 +207,16 @@ class TestNewAssociationScreen:
         assert "New association" in text_of(header)
         assert "Alice" in header
 
+    # /core/ui/header/title
+    # /core/ui/new-association/form
+    def test_has_no_title_in_the_page(self, client: Any) -> None:
+        sign_up(client, "Alice")
+
+        page = new_association(client)
+
+        assert "New association" in text_of(part(page, "header"))
+        assert "New association" not in text_of(part(page, "main"))
+
     # /core/ui/header/location
     # /core/ui/new-association/form
     # /core/ui/header/language
@@ -217,7 +227,7 @@ class TestNewAssociationScreen:
         page = new_association(client)
 
         assert "Mes associations" in part(page, "header")
-        assert "Nouvelle association" in part(page, "main")
+        assert "Nouvelle association" in text_of(part(page, "header"))
 
     # /core/ui/access/signed-out
     def test_signed_out_shows_sign_in(self, client: Any) -> None:

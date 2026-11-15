@@ -132,3 +132,21 @@ test.describe('Forms: a confirmation', () => {
     await askToDelete(page)
   })
 })
+
+test.describe('Forms: a confirmation opened again', () => {
+  // /ui/forms/fresh
+  test('shows no message of a failed try after Cancel', async ({ page, request }) => {
+    await signedIn(page, request)
+    await page.route('**/delete-account', (route) => route.abort())
+
+    const dialog = await askToDelete(page)
+    await dialog.getByRole('button', { name: 'Delete my account' }).click()
+    await expect(dialog.getByText(GENERIC)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(dialog).toBeHidden()
+
+    const again = await askToDelete(page)
+
+    await expect(again.getByText(GENERIC)).toBeHidden()
+  })
+})
