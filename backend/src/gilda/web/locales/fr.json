@@ -43,6 +43,7 @@
     "back": "Retour à la page d'accueil"
   },
   "verifyEmail": {
+    "running": "Confirmation de votre e-mail en cours…",
     "invalid": "Ce lien n'est plus valide."
   },
   "forgotPassword": {
@@ -58,6 +59,7 @@
     "back": "Retour à la connexion"
   },
   "accessLink": {
+    "running": "Connexion en cours…",
     "revoke": "Révoquer mon lien de connexion",
     "confirmRevoke": "Révoquer votre lien de connexion ? Les sessions ouvertes avec lui seront déconnectées.",
     "confirm": "Confirmer",
@@ -281,6 +283,7 @@
     "absentFrom": "Absent du {first} au {last}",
     "taken": "Quelqu'un a pris ce créneau entre-temps."
   },
+  "tryAgain": "Réessayer",
   "error": "Une erreur est survenue. Réessayez.",
   "dialog": {
     "close": "Fermer",

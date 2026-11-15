@@ -1,5 +1,11 @@
 {% extends "layout.html" %}
 {% block main %}
 {# No retry: a request that failed is sent again only when the page opens again. #}
-<div id="access" data-init='@post("/access", {payload: {token: {{ token|tojson }}}, retryMaxCount: 0})'></div>
+<div id="access" data-init='@post("/access", {payload: {token: {{ token|tojson }}}, retryMaxCount: 0})'>
+  <p data-show="!$_failed">{{ t("accessLink.running") }}</p>
+</div>
+{% endblock %}
+{% block after_error %}
+<button type="button" style="display: none" data-show="$_failed"
+          data-on:click='@post("/access", {payload: {token: {{ token|tojson }}}, retryMaxCount: 0})'>{{ t("tryAgain") }}</button>
 {% endblock %}
