@@ -2,7 +2,7 @@
 {% block main %}
 <div id="sign-up">
   <h1>{{ t("signUp.title") }}</h1>
-  <form class="panel" data-on:submit="@post('/signup', {filterSignals: {exclude: /^language$/}})">
+  <form class="panel" data-on:submit="@post('/signup', {filterSignals: {exclude: /^language$/}, retryMaxCount: 0})">
     <label>
       {{ t("fields.displayName") }}
       <input data-bind:display-name autocomplete="nickname" required>

@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block main %}
 <h1>{{ t("signIn.title") }}</h1>
-<form class="panel" data-on:submit="@post('/sign-in', {filterSignals: {exclude: /^language$/}})">
+<form class="panel" data-on:submit="@post('/sign-in', {filterSignals: {exclude: /^language$/}, retryMaxCount: 0})">
   <label>
     {{ t("fields.email") }}
     <input data-bind:email type="email" autocomplete="email" required>

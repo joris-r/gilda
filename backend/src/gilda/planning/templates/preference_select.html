@@ -4,7 +4,7 @@
   id="preference-{{ slot.id }}"
   {% if value %}class="preference-{{ value }}"{% endif %}
   aria-label="{{ t('weekdays.' ~ slot.weekday) }} {{ slot.start }}–{{ slot.end }}"
-  data-on:change="$value = el.value; @post('/association/{{ association.slug }}/availability/preferences/{{ slot.id }}', {filterSignals: {include: /^value$/}})"
+  data-on:change="$value = el.value; @post('/association/{{ association.slug }}/availability/preferences/{{ slot.id }}', {filterSignals: {include: /^value$/}, retryMaxCount: 0})"
 >
   <option value=""{% if not value %} selected{% endif %}>{{ t("settings.noPreference") }}</option>
   {% for choice in ["preferred", "possible", "unavailable"] %}
