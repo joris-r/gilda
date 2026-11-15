@@ -2,7 +2,6 @@
 {% block header_actions %}{% include "user_menu.html" %}{% endblock %}
 {% block location %}<p class="where"><a href="/">{{ t("myAssociations.title") }}</a><span class="sep">›</span>{{ t("myAssociations.create") }}</p>{% endblock %}
 {% block main %}
-<h1>{{ t("myAssociations.create") }}</h1>
 {# No retry: a request that failed after creating would come back as "already taken". #}
 <form
   class="panel"
