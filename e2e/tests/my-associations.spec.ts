@@ -40,7 +40,7 @@ function nextThursday() {
   day.setHours(12, 0, 0, 0)
   day.setDate(day.getDate() - ((day.getDay() + 6) % 7) + 7 + 3)
   const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
-  return { iso, label: `${WEEKDAYS[day.getDay()]} ${day.getDate()} ${MONTHS[day.getMonth()]}` }
+  return { iso, label: `${WEEKDAYS[day.getDay()]} ${day.getDate()} ${MONTHS[day.getMonth()]} ${day.getFullYear()}` }
 }
 
 /** Alice, signed in on `page`, manages Jardin partagé, open on Thursdays from 10:00 to 13:00. */

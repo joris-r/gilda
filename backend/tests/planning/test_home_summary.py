@@ -42,7 +42,8 @@ def label(offset: int, start: str = "10:00", end: str = "13:00") -> str:
     """How a registration `offset` days after today shows its date and times."""
     shown_day = TODAY + timedelta(days=offset)
     weekday = SHORT_WEEKDAYS[shown_day.weekday()]
-    return f"{weekday} {shown_day.day} {MONTHS[shown_day.month - 1]}, {start}–{end}"
+    month = MONTHS[shown_day.month - 1]
+    return f"{weekday} {shown_day.day} {month} {shown_day.year}, {start}–{end}"
 
 
 def confirmed_line(offset: int, start: str = "10:00", end: str = "13:00") -> str:
@@ -158,7 +159,7 @@ class TestMyAssociations:
 
         repair_cafe = entry(planning.bruno_client, "Repair Café Belleville")
         assert repair_cafe.lines == []
-        assert "No registration yet for the planning period, 2–25 Nov." in repair_cafe.text
+        assert "No registration yet for the planning period, 2–25 Nov 2026." in repair_cafe.text
         assert "Choose your slots" in repair_cafe.text
         assert "No upcoming registration." not in repair_cafe.text
 
@@ -184,12 +185,12 @@ class TestMyAssociations:
         planning.bruno_client.cookies.set("language", "fr")
 
         assert entry(planning.bruno_client).lines == [
-            "jeu. 12 nov., 10:00–13:00 Bruno : ce créneau n'a plus lieu. OK",
-            "jeu. 5 nov., 10:00–13:00 Bruno",
-            "sam. 14 nov., 10:00–13:00 Bruno ? Confirmer",
+            "jeu. 12 nov. 2026, 10:00–13:00 Bruno : ce créneau n'a plus lieu. OK",
+            "jeu. 5 nov. 2026, 10:00–13:00 Bruno",
+            "sam. 14 nov. 2026, 10:00–13:00 Bruno ? Confirmer",
         ]
         repair_cafe = entry(planning.bruno_client, "Repair Café Belleville").text
-        assert "Aucune inscription pour la période de planning, 2–25 nov." in repair_cafe
+        assert "Aucune inscription pour la période de planning, 2–25 nov. 2026." in repair_cafe
         assert "Choisir mes créneaux" in repair_cafe
         assert "Aucune inscription à venir." in entry(planning.bruno_client, "Atelier vélo").text
 
@@ -458,6 +459,30 @@ class TestUpcoming:
         confirmed(planning, 28)
 
         assert "No upcoming registration." in entry(planning.bruno_client).text
+
+
+class TestPeriodDates:
+    # /home/ui/my-associations/dates
+    # /home/ui/my-associations/no-registration
+    @pytest.mark.parametrize(
+        ("first", "last", "dates"),
+        [
+            (-2, 21, "2–25 Nov 2026"),
+            (-2, 30, "2 Nov – 4 Dec 2026"),
+            (30, 60, "4 Dec 2026 – 3 Jan 2027"),
+            (60, 70, "3–13 Jan 2027"),
+            (0, 0, "4 Nov 2026"),
+        ],
+    )
+    def test_the_period_writes_a_year_or_a_month_they_share_once(
+        self, planning: Planning, first: int, last: int, dates: str
+    ) -> None:
+        set_period(planning, first, last)
+
+        assert (
+            f"No registration yet for the planning period, {dates}."
+            in entry(planning.bruno_client).text
+        )
 
 
 class TestNoRegistrationYet:

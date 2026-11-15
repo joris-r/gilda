@@ -87,6 +87,15 @@ class TestMyAssociations:
         assert "volunteer" in line_of(page, "Repair Café Belleville").lower()
 
     # /home/ui/my-associations/list
+    # /ui/name-order/names
+    def test_lists_the_associations_by_name_ignoring_case_and_accents(self, client: Any) -> None:
+        sign_up(client, "Alice")
+        for name in ("zèbre", "Émile", "atelier", "Boulangerie"):
+            create_association(client, name)
+
+        assert names_listed(client) == ["atelier", "Boulangerie", "Émile", "zèbre"]
+
+    # /home/ui/my-associations/list
     # /core/ui/header/language
     def test_roles_follow_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         alice = sign_up(client, "Alice")

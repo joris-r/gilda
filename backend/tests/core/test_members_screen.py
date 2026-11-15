@@ -192,6 +192,22 @@ class TestMembers:
         assert names == ["Alice", "Zoé", "Bruno", "Chloé"]
 
     # /core/ui/members/list
+    # /ui/name-order/names
+    def test_orders_display_names_ignoring_case_and_accents(self, client: Any) -> None:
+        association = managed(client)
+        add_member(client, association["slug"], "Zoé", unique_email("Zoe"))
+        add_member(client, association["slug"], "Émile", unique_email("Emile"))
+        add_member(client, association["slug"], "bruno", unique_email("Bruno"))
+
+        page = members_page(client, association["slug"])
+
+        names = [
+            next(name for name in ("Alice", "Zoé", "Émile", "bruno") if name in line)
+            for line in lines(page)
+        ]
+        assert names == ["Alice", "bruno", "Émile", "Zoé"]
+
+    # /core/ui/members/list
     def test_shows_all_its_members_and_only_theirs(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
