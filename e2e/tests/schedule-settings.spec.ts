@@ -1,5 +1,15 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
-import { addClosure, addMember, addSlot as createSlot, createAssociation, setPeriod, signedIn } from './helpers'
+import {
+  addClosure,
+  addMember,
+  addSlot as createSlot,
+  createAccount,
+  createAssociation,
+  setPeriod,
+  signedIn,
+  uniqueEmail,
+  userIdOf,
+} from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const EXISTS = 'This slot already exists.'
@@ -67,7 +77,7 @@ async function openEdit(page: Page, text: string) {
 
 async function askToDelete(page: Page, text: string, question: string) {
   await line(page, text).getByRole('button', { name: 'Delete the slot' }).click()
-  const confirmation = page.getByRole('dialog', { name: question, exact: true })
+  const confirmation = page.getByRole('dialog', { name: question })
   await expect(confirmation).toBeVisible()
   return confirmation
 }
@@ -437,7 +447,7 @@ test.describe('Schedule settings: Delete the slot', () => {
 
 const PERIOD_SHOWN = 'Mon 2 Nov 2026 – Wed 25 Nov 2026'
 const CLEAR = 'Clear the planning period?'
-const FETE = ['2026-11-14', '2026-11-14', 'Fête du quartier'] as [string, string, string]
+const FETE = ['2037-11-14', '2037-11-14', 'Fête du quartier'] as [string, string, string]
 const DELETE_FETE = 'Delete the closure "Fête du quartier"?'
 
 function label(dialog: Locator) {
@@ -478,7 +488,7 @@ async function openEditClosure(page: Page, text: string) {
 
 async function askToDeleteClosure(page: Page, text: string, question: string) {
   await line(page, text).getByRole('button', { name: 'Delete the closure' }).click()
-  const confirmation = page.getByRole('dialog', { name: question, exact: true })
+  const confirmation = page.getByRole('dialog', { name: question })
   await expect(confirmation).toBeVisible()
   return confirmation
 }
@@ -652,19 +662,19 @@ test.describe('Schedule settings: Add a closure', () => {
   // /planning/operations/add-closure/added
   // /planning/ui/schedule-settings/closures
   test('adding closes the dialog and shows the closure', async ({ page, request }) => {
-    await openSettings(page, request, [], { closures: [['2026-12-24', '2027-01-01', "Fêtes de fin d'année"]] })
+    await openSettings(page, request, [], { closures: [['2037-12-24', '2038-01-01', "Fêtes de fin d'année"]] })
 
     const dialog = await openAddClosure(page)
-    await from(dialog).fill('2026-11-14')
-    await to(dialog).fill('2026-11-14')
+    await from(dialog).fill('2037-11-14')
+    await to(dialog).fill('2037-11-14')
     await label(dialog).fill('Fête du quartier')
     await dialog.getByRole('button', { name: 'Add closure' }).click()
 
     await expect(dialog).toBeHidden()
-    await expect(line(page, 'Fête du quartier')).toContainText('Sat 14 Nov 2026')
+    await expect(line(page, 'Fête du quartier')).toContainText('Sat 14 Nov 2037')
     await expect(line(page, "Fêtes de fin d'année")).toBeVisible()
     await page.reload()
-    await expect(line(page, 'Fête du quartier')).toContainText('Sat 14 Nov 2026')
+    await expect(line(page, 'Fête du quartier')).toContainText('Sat 14 Nov 2037')
   })
 
   // /planning/operations/add-closure/added
@@ -673,12 +683,12 @@ test.describe('Schedule settings: Add a closure', () => {
     await openSettings(page, request)
 
     const dialog = await openAddClosure(page)
-    await from(dialog).fill('2026-12-24')
-    await to(dialog).fill('2027-01-01')
+    await from(dialog).fill('2037-12-24')
+    await to(dialog).fill('2038-01-01')
     await dialog.getByRole('button', { name: 'Add closure' }).click()
 
     await expect(dialog).toBeHidden()
-    await expect(line(page, 'Thu 24 Dec 2026 – Fri 1 Jan 2027')).toBeVisible()
+    await expect(line(page, 'Thu 24 Dec 2037 – Fri 1 Jan 2038')).toBeVisible()
   })
 
   for (const way of ['Cancel', 'the close button', 'Escape']) {
@@ -686,8 +696,8 @@ test.describe('Schedule settings: Add a closure', () => {
     test(`${way} closes it, changing nothing`, async ({ page, request }) => {
       await openSettings(page, request)
       const dialog = await openAddClosure(page)
-      await from(dialog).fill('2026-11-14')
-      await to(dialog).fill('2026-11-14')
+      await from(dialog).fill('2037-11-14')
+      await to(dialog).fill('2037-11-14')
       await label(dialog).fill('Fête du quartier')
 
       if (way === 'Cancel') await dialog.getByRole('button', { name: 'Cancel' }).click()
@@ -704,7 +714,7 @@ test.describe('Schedule settings: Add a closure', () => {
   test('opened again after Cancel, its fields are empty', async ({ page, request }) => {
     await openSettings(page, request)
     let dialog = await openAddClosure(page)
-    await from(dialog).fill('2026-11-14')
+    await from(dialog).fill('2037-11-14')
     await label(dialog).fill('Fête du quartier')
     await dialog.getByRole('button', { name: 'Cancel' }).click()
 
@@ -719,8 +729,8 @@ test.describe('Schedule settings: Add a closure', () => {
   test('opened again after adding, its fields are empty', async ({ page, request }) => {
     await openSettings(page, request)
     let dialog = await openAddClosure(page)
-    await from(dialog).fill('2026-11-14')
-    await to(dialog).fill('2026-11-14')
+    await from(dialog).fill('2037-11-14')
+    await to(dialog).fill('2037-11-14')
     await label(dialog).fill('Fête du quartier')
     await dialog.getByRole('button', { name: 'Add closure' }).click()
     await expect(dialog).toBeHidden()
@@ -742,13 +752,13 @@ test.describe('Schedule settings: Add a closure', () => {
     await page.route('**/settings/closures', (route) => route.fulfill({ status: 500, body: 'failure' }))
 
     const dialog = await openAddClosure(page)
-    await from(dialog).fill('2026-11-14')
-    await to(dialog).fill('2026-11-14')
+    await from(dialog).fill('2037-11-14')
+    await to(dialog).fill('2037-11-14')
     await label(dialog).fill('Fête du quartier')
     await dialog.getByRole('button', { name: 'Add closure' }).click()
 
     await expect(dialog.getByText(GENERIC)).toBeVisible()
-    await expect(from(dialog)).toHaveValue('2026-11-14')
+    await expect(from(dialog)).toHaveValue('2037-11-14')
     await expect(label(dialog)).toHaveValue('Fête du quartier')
   })
 })
@@ -757,13 +767,13 @@ test.describe('Schedule settings: Edit the closure', () => {
   // /planning/ui/schedule-settings/edit-closure
   test('opens the dialog "Edit the closure", filled with the closure', async ({ page, request }) => {
     await openSettings(page, request, [], {
-      closures: [FETE, ['2026-12-24', '2027-01-01', "Fêtes de fin d'année"]],
+      closures: [FETE, ['2037-12-24', '2038-01-01', "Fêtes de fin d'année"]],
     })
 
     const dialog = await openEditClosure(page, "Fêtes de fin d'année")
 
-    await expect(from(dialog)).toHaveValue('2026-12-24')
-    await expect(to(dialog)).toHaveValue('2027-01-01')
+    await expect(from(dialog)).toHaveValue('2037-12-24')
+    await expect(to(dialog)).toHaveValue('2038-01-01')
     await expect(label(dialog)).toHaveValue("Fêtes de fin d'année")
     await expect(dialog.getByRole('button', { name: 'Save' })).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
@@ -771,9 +781,9 @@ test.describe('Schedule settings: Edit the closure', () => {
 
   // /planning/ui/schedule-settings/edit-closure
   test('a closure without a label opens with an empty Label', async ({ page, request }) => {
-    await openSettings(page, request, [], { closures: [['2026-11-14', '2026-11-14']] })
+    await openSettings(page, request, [], { closures: [['2037-11-14', '2037-11-14']] })
 
-    const dialog = await openEditClosure(page, 'Sat 14 Nov 2026')
+    const dialog = await openEditClosure(page, 'Sat 14 Nov 2037')
 
     await expect(label(dialog)).toHaveValue('')
   })
@@ -784,15 +794,15 @@ test.describe('Schedule settings: Edit the closure', () => {
     await openSettings(page, request, [], { closures: [FETE] })
 
     const dialog = await openEditClosure(page, 'Fête du quartier')
-    await to(dialog).fill('2026-11-15')
+    await to(dialog).fill('2037-11-15')
     await label(dialog).fill('Fête élargie')
     await dialog.getByRole('button', { name: 'Save' }).click()
 
     await expect(dialog).toBeHidden()
-    await expect(line(page, 'Fête élargie')).toContainText('Sat 14 Nov 2026 – Sun 15 Nov 2026')
+    await expect(line(page, 'Fête élargie')).toContainText('Sat 14 Nov 2037 – Sun 15 Nov 2037')
     await expect(line(page, 'Fête du quartier')).toHaveCount(0)
     await page.reload()
-    await expect(line(page, 'Fête élargie')).toContainText('Sat 14 Nov 2026 – Sun 15 Nov 2026')
+    await expect(line(page, 'Fête élargie')).toContainText('Sat 14 Nov 2037 – Sun 15 Nov 2037')
   })
 
   // /planning/ui/schedule-settings/edit-closure
@@ -854,7 +864,7 @@ test.describe('Schedule settings: Delete the closure', () => {
   // /planning/operations/delete-closure/deleted
   test('Delete removes the closure', async ({ page, request }) => {
     await openSettings(page, request, [], {
-      closures: [FETE, ['2026-12-24', '2027-01-01', "Fêtes de fin d'année"]],
+      closures: [FETE, ['2037-12-24', '2038-01-01', "Fêtes de fin d'année"]],
     })
 
     const confirmation = await askToDeleteClosure(page, 'Fête du quartier', DELETE_FETE)
@@ -869,16 +879,16 @@ test.describe('Schedule settings: Delete the closure', () => {
 
   // /planning/ui/schedule-settings/delete-closure
   test('asks with the label, quotes included', async ({ page, request }) => {
-    await openSettings(page, request, [], { closures: [['2026-12-24', '2027-01-01', "Fêtes de fin d'année"]] })
+    await openSettings(page, request, [], { closures: [['2037-12-24', '2038-01-01', "Fêtes de fin d'année"]] })
 
     await askToDeleteClosure(page, "Fêtes de fin d'année", 'Delete the closure "Fêtes de fin d\'année"?')
   })
 
   // /planning/ui/schedule-settings/delete-closure
   test('without a label, asks with the dates', async ({ page, request }) => {
-    await openSettings(page, request, [], { closures: [['2026-11-14', '2026-11-14']] })
+    await openSettings(page, request, [], { closures: [['2037-11-14', '2037-11-14']] })
 
-    await askToDeleteClosure(page, 'Sat 14 Nov 2026', 'Delete the closure of Sat 14 Nov 2026?')
+    await askToDeleteClosure(page, 'Sat 14 Nov 2037', 'Delete the closure of Sat 14 Nov 2037?')
   })
 
   for (const way of ['Cancel', 'Escape']) {
@@ -1219,5 +1229,525 @@ test.describe('Schedule settings: Share link', () => {
     await confirmation.getByRole('button', { name: 'Revoke', exact: true }).click()
 
     await expect(confirmation.getByText(GENERIC)).toBeVisible()
+  })
+})
+
+/** The date `days` from today in Paris, as the date field takes it. */
+function inDays(days: number) {
+  const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Paris' }))
+  today.setHours(12, 0, 0, 0)
+  today.setDate(today.getDate() + days)
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+}
+
+const DATE_ORDER = "The end date can't be before the start date."
+const PAST = "The end date can't be before today."
+const TIME_ORDER = 'The end time must be after the start time.'
+const ADD_CLOSURE_WARNING = 'Registrations on its dates, from today on, become obsolete.'
+const EDIT_CLOSURE_WARNING =
+  'Registrations on its new dates, from today on, become obsolete; those on the dates it no longer covers may stop being obsolete.'
+const DELETE_CLOSURE_WARNING = 'Registrations on its dates, from today on, may stop being obsolete.'
+const EDIT_SLOT_WARNING = 'Changing the day or times makes its registrations from today on obsolete.'
+const DELETE_SLOT_WARNING =
+  "Its registrations from today on become obsolete, and the members' preferences on it are deleted."
+
+test.describe('Schedule settings: the dialogs refuse', () => {
+  // /planning/ui/schedule-settings/period-order
+  test('Planning period with To before From says so in the dialog, which stays open', async ({ page, request }) => {
+    await openSettings(page, request, [], { period: ['2026-11-02', '2026-11-25'] })
+
+    const dialog = await openPeriod(page)
+    await from(dialog).fill('2026-12-25')
+    await to(dialog).fill('2026-12-02')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    await expect(dialog.getByText(DATE_ORDER, { exact: true })).toBeVisible()
+    await expect(dialog.getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+    await expect(from(dialog)).toHaveValue('2026-12-25')
+    await expect(period(page)).toBeVisible()
+  })
+
+  const closureCases = [
+    { name: 'To before From', first: '2037-11-16', last: '2037-11-15', order: true },
+    { name: 'To before today', first: inDays(-7), last: inDays(-1), order: false },
+  ]
+  for (const { name, first, last, order } of closureCases) {
+    // /planning/ui/schedule-settings/closure-order
+    // /planning/ui/schedule-settings/closure-past
+    test(`Add a closure with ${name} says so in the dialog, which stays open`, async ({ page, request }) => {
+      await openSettings(page, request)
+
+      const dialog = await openAddClosure(page)
+      await from(dialog).fill(first)
+      await to(dialog).fill(last)
+      await dialog.getByRole('button', { name: 'Add closure' }).click()
+
+      await expect(dialog.getByText(order ? DATE_ORDER : PAST, { exact: true })).toBeVisible()
+      await expect(dialog.getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+      await expect(from(dialog)).toHaveValue(first)
+      await expect(
+        page.locator('main section').filter({ has: page.getByRole('heading', { name: 'Closures' }) }).getByText('None'),
+      ).toBeVisible()
+    })
+
+    // /planning/ui/schedule-settings/edit-closure-order
+    // /planning/ui/schedule-settings/edit-closure-past
+    test(`Edit the closure with ${name} says so in the dialog, which stays open`, async ({ page, request }) => {
+      await openSettings(page, request, [], { closures: [FETE] })
+
+      const dialog = await openEditClosure(page, 'Fête du quartier')
+      await from(dialog).fill(first)
+      await to(dialog).fill(last)
+      await dialog.getByRole('button', { name: 'Save' }).click()
+
+      await expect(dialog.getByText(order ? DATE_ORDER : PAST, { exact: true })).toBeVisible()
+      await expect(dialog.getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+      await expect(to(dialog)).toHaveValue(last)
+      await expect(line(page, 'Sat 14 Nov 2037')).toHaveCount(1)
+    })
+  }
+
+  // /planning/ui/schedule-settings/order
+  test('Add a slot with To before From says so in the dialog, which stays open', async ({ page, request }) => {
+    await openSettings(page, request)
+
+    const dialog = await openAdd(page)
+    await from(dialog).fill('13:00')
+    await to(dialog).fill('10:00')
+    await dialog.getByRole('button', { name: 'Add slot' }).click()
+
+    await expect(dialog.getByText(TIME_ORDER, { exact: true })).toBeVisible()
+    await expect(dialog.getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+    await expect(to(dialog)).toHaveValue('10:00')
+  })
+
+  // /planning/ui/schedule-settings/edit-order
+  test('Edit the slot with To before From says so in the dialog, which stays open', async ({ page, request }) => {
+    await openSettings(page, request, [['thursday', '10:00', '13:00']])
+
+    const dialog = await openEdit(page, 'Thursday')
+    await from(dialog).fill('14:00')
+    await to(dialog).fill('13:00')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    await expect(dialog.getByText(TIME_ORDER, { exact: true })).toBeVisible()
+    await expect(dialog.getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+    await expect(line(page, 'Thursday')).toContainText('10:00–13:00')
+  })
+
+  // /ui/forms/fresh
+  // /planning/ui/schedule-settings/closure-order
+  test('Add a closure opened again shows no message of the earlier try', async ({ page, request }) => {
+    await openSettings(page, request)
+    let dialog = await openAddClosure(page)
+    await from(dialog).fill('2037-11-16')
+    await to(dialog).fill('2037-11-15')
+    await dialog.getByRole('button', { name: 'Add closure' }).click()
+    await expect(dialog.getByText(DATE_ORDER, { exact: true })).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+
+    dialog = await openAddClosure(page)
+
+    await expect(dialog.getByText(DATE_ORDER, { exact: true })).toBeHidden()
+  })
+
+  // /ui/forms/fresh
+  // /planning/ui/schedule-settings/order
+  test('Add a slot opened again shows no message of the earlier try', async ({ page, request }) => {
+    await openSettings(page, request)
+    let dialog = await openAdd(page)
+    await from(dialog).fill('13:00')
+    await to(dialog).fill('10:00')
+    await dialog.getByRole('button', { name: 'Add slot' }).click()
+    await expect(dialog.getByText(TIME_ORDER, { exact: true })).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+
+    dialog = await openAdd(page)
+
+    await expect(dialog.getByText(TIME_ORDER, { exact: true })).toBeHidden()
+  })
+})
+
+test.describe('Schedule settings: the closures listed', () => {
+  // /planning/ui/schedule-settings/closures
+  test('a closure ending today shows', async ({ page, request }) => {
+    await openSettings(page, request, [], {
+      closures: [
+        [inDays(0), inDays(0), 'Ends today'],
+        [inDays(2), inDays(3), 'Ends later'],
+      ],
+    })
+
+    await expect(line(page, 'Ends today')).toHaveCount(1)
+    await expect(line(page, 'Ends later')).toHaveCount(1)
+  })
+})
+
+test.describe('Schedule settings: the warnings', () => {
+  // /planning/ui/schedule-settings/closure-warning
+  test('the dialog "Add a closure" shows the warning', async ({ page, request }) => {
+    await openSettings(page, request)
+
+    const dialog = await openAddClosure(page)
+
+    await expect(dialog.getByText(ADD_CLOSURE_WARNING, { exact: true })).toBeVisible()
+  })
+
+  // /planning/ui/schedule-settings/edit-closure-warning
+  test('the dialog "Edit the closure" shows the warning', async ({ page, request }) => {
+    await openSettings(page, request, [], { closures: [FETE] })
+
+    const dialog = await openEditClosure(page, 'Fête du quartier')
+
+    await expect(dialog.getByText(EDIT_CLOSURE_WARNING, { exact: true })).toBeVisible()
+  })
+
+  // /planning/ui/schedule-settings/delete-closure-warning
+  test('the question to delete a closure goes on with the warning', async ({ page, request }) => {
+    await openSettings(page, request, [], { closures: [FETE] })
+
+    const confirmation = await askToDeleteClosure(page, 'Fête du quartier', DELETE_FETE)
+
+    await expect(confirmation).toContainText(`${DELETE_FETE} ${DELETE_CLOSURE_WARNING}`)
+  })
+
+  // /planning/ui/schedule-settings/edit-warning
+  test('the dialog "Edit the slot" shows the warning', async ({ page, request }) => {
+    await openSettings(page, request, [['thursday', '10:00', '13:00']])
+
+    const dialog = await openEdit(page, 'Thursday')
+
+    await expect(dialog.getByText(EDIT_SLOT_WARNING, { exact: true })).toBeVisible()
+  })
+
+  // /planning/ui/schedule-settings/delete-slot-warning
+  test('the question to delete a slot goes on with the warning', async ({ page, request }) => {
+    await openSettings(page, request, [['thursday', '10:00', '13:00']])
+
+    const confirmation = await askToDelete(page, 'Thursday', DELETE_THURSDAY)
+
+    await expect(confirmation).toContainText(`${DELETE_THURSDAY} ${DELETE_SLOT_WARNING}`)
+  })
+})
+
+/** The browser refuses the clipboard while `window.copyRefused` holds, and copies otherwise. */
+async function stubClipboard(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as unknown as { copyRefused: boolean; copied: string }
+    w.copyRefused = true
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          if (w.copyRefused) return Promise.reject(new DOMException('denied', 'NotAllowedError'))
+          w.copied = text
+          return Promise.resolve()
+        },
+      },
+    })
+  })
+}
+
+async function refuseCopy(page: Page, refused: boolean) {
+  await page.evaluate((value) => ((window as unknown as { copyRefused: boolean }).copyRefused = value), refused)
+}
+
+const NOT_COPIED = "The link couldn't be copied. Select it to copy it."
+
+test.describe('Schedule settings: Copy', () => {
+  // /planning/ui/schedule-settings/copy-failed
+  test('when the browser does not copy the link, it says so, not "Link copied."', async ({ page, request }) => {
+    await stubClipboard(page)
+    await openSettings(page, request)
+    await createLink(page)
+
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+
+    await expect(page.getByText(NOT_COPIED, { exact: true })).toBeVisible()
+    await expect(page.getByText('Link copied.')).toHaveCount(0)
+  })
+
+  // /planning/ui/schedule-settings/copy
+  test('a Copy that works shows "Link copied." in place of the message of a failed one', async ({ page, request }) => {
+    await stubClipboard(page)
+    await openSettings(page, request)
+    await createLink(page)
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await expect(page.getByText(NOT_COPIED, { exact: true })).toBeVisible()
+
+    await refuseCopy(page, false)
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+
+    await expect(page.getByText('Link copied.')).toBeVisible()
+    await expect(page.getByText(NOT_COPIED, { exact: true })).toHaveCount(0)
+  })
+
+  // /planning/ui/schedule-settings/copy-failed
+  test('a failed Copy shows its message in place of "Link copied."', async ({ page, request }) => {
+    await stubClipboard(page)
+    await openSettings(page, request)
+    await createLink(page)
+    await refuseCopy(page, false)
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await expect(page.getByText('Link copied.')).toBeVisible()
+
+    await refuseCopy(page, true)
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+
+    await expect(page.getByText(NOT_COPIED, { exact: true })).toBeVisible()
+    await expect(page.getByText('Link copied.')).toHaveCount(0)
+  })
+
+  // /planning/ui/schedule-settings/copy
+  test('two Copy in a row show one "Link copied."', async ({ page, request }) => {
+    await stubClipboard(page)
+    await openSettings(page, request)
+    await createLink(page)
+    await refuseCopy(page, false)
+
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+
+    await expect(page.getByText('Link copied.')).toHaveCount(1)
+  })
+})
+
+test.describe("Schedule settings: Members' preferences show the value saved", () => {
+  const SLOTS: [string, string, string][] = [['thursday', '10:00', '13:00']]
+
+  async function saved(page: Page, slug: string, value: string) {
+    const other = await page.context().newPage()
+    await expect(async () => {
+      await other.goto(`/association/${slug}/settings`)
+      await expect(cell(other, 'Bruno', 0)).toHaveValue(value, { timeout: 1000 })
+    }).toPass()
+    await other.close()
+  }
+
+  // /planning/ui/schedule-settings/set-preference
+  // /planning/ui/my-availability/saved-value
+  test('a failed save puts the selector back on the value it opened with', async ({ page, request }) => {
+    await openSettings(page, request, SLOTS, { members: ['Bruno'] })
+    await page.route('**/settings/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    await cell(page, 'Bruno', 0).selectOption({ label: 'Preferred' })
+
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toBeVisible()
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('')
+  })
+
+  // /planning/ui/schedule-settings/set-preference
+  // /planning/ui/my-availability/saved-value
+  test('a failed save puts the selector back on the value saved last', async ({ page, request }) => {
+    const slug = await openSettings(page, request, SLOTS, { members: ['Bruno'] })
+    await cell(page, 'Bruno', 0).selectOption({ label: 'Preferred' })
+    await saved(page, slug, 'preferred')
+    await page.route('**/settings/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    await cell(page, 'Bruno', 0).selectOption({ label: 'Possible' })
+
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toBeVisible()
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('preferred')
+  })
+
+  // /planning/ui/schedule-settings/set-preference
+  // /planning/ui/my-availability/saved-value
+  test('while a save runs, the selector shows the value chosen', async ({ page, request }) => {
+    const slug = await openSettings(page, request, SLOTS, { members: ['Bruno'] })
+    let release: () => void = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    await page.route('**/settings/preferences/**', async (route) => {
+      await held
+      await route.continue()
+    })
+
+    await cell(page, 'Bruno', 0).selectOption({ label: 'Preferred' })
+
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('preferred')
+    release()
+    await saved(page, slug, 'preferred')
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('preferred')
+  })
+
+  // /planning/ui/schedule-settings/set-preference
+  // /planning/ui/my-availability/saved-value
+  test('two saves answered in the other order show the value of the answer that came last', async ({
+    page,
+    request,
+  }) => {
+    await openSettings(page, request, SLOTS, { members: ['Bruno'] })
+    const answers: (() => Promise<void>)[] = []
+    await page.route('**/settings/preferences/**', async (route) => {
+      const response = await route.fetch()
+      await new Promise<void>((resolve) =>
+        answers.push(async () => {
+          await route.fulfill({ response })
+          resolve()
+        }),
+      )
+    })
+
+    await cell(page, 'Bruno', 0).selectOption({ label: 'Preferred' })
+    await expect.poll(() => answers.length).toBe(1)
+    await cell(page, 'Bruno', 0).selectOption({ label: 'Possible' })
+    await expect.poll(() => answers.length).toBe(2)
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('possible')
+    await answers[1]()
+    await answers[0]()
+
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('preferred')
+  })
+
+  // /planning/ui/schedule-settings/set-preference
+  // /planning/ui/my-availability/saved-value
+  test('a failed "—" puts the selector back on the value saved last', async ({ page, request }) => {
+    const slug = await openSettings(page, request, SLOTS, { members: ['Bruno'] })
+    await cell(page, 'Bruno', 0).selectOption({ label: 'Preferred' })
+    await saved(page, slug, 'preferred')
+    await page.route('**/settings/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    await cell(page, 'Bruno', 0).selectOption({ label: '—' })
+
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toBeVisible()
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('preferred')
+  })
+})
+
+/** The page is hidden, then shown again, as when its tab is left and come back to. */
+async function hideThenShow(page: Page) {
+  const set = (hidden: boolean) =>
+    page.evaluate((value) => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => value })
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => (value ? 'hidden' : 'visible'),
+      })
+      document.dispatchEvent(new Event('visibilitychange'))
+    }, hidden)
+  await set(true)
+  await set(false)
+}
+
+/** Another tab of the manager: Chloé is added, and Bruno's preference on Thursday is set to `value`. */
+async function changeMembersElsewhere(page: Page, slug: string, value: string) {
+  await addMember(page.request, slug, 'Chloé')
+  const brunoId = await userIdOf(page.request, slug, 'Bruno')
+  const settings = await (await page.request.get(`/association/${slug}/settings`)).text()
+  const slot = new RegExp(`member-preference-${brunoId}-([\\w-]+)`).exec(settings)
+  if (!slot) throw new Error('no selector of Bruno on Schedule settings')
+  const response = await page.request.post(`/association/${slug}/settings/preferences/${slot[1]}/${brunoId}`, {
+    data: { value },
+  })
+  expect(response.status()).toBe(200)
+}
+
+test.describe("Schedule settings: Members' preferences shown again", () => {
+  const SLOTS: [string, string, string][] = [['thursday', '10:00', '13:00']]
+
+  // /planning/ui/schedule-settings/preferences-again
+  // /planning/ui/schedule-settings/preferences-again-shown
+  test('a member added and a choice made elsewhere show without a reload', async ({ page, request }) => {
+    const slug = await openSettings(page, request, SLOTS, { members: ['Bruno'] })
+    await changeMembersElsewhere(page, slug, 'possible')
+    await expect(preferences(page).getByRole('row').filter({ hasText: 'Chloé' })).toHaveCount(0)
+    await page.evaluate(() => ((window as unknown as { sameDocument: boolean }).sameDocument = true))
+
+    await hideThenShow(page)
+
+    await expect(preferences(page).getByRole('row').filter({ hasText: 'Chloé' })).toHaveCount(1)
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('possible')
+    await expect(cell(page, 'Chloé', 0)).toHaveValue('')
+    expect(await page.evaluate(() => (window as unknown as { sameDocument?: boolean }).sameDocument)).toBe(true)
+  })
+
+  // /planning/ui/schedule-settings/preferences-again-shown
+  test('after it, a failed save puts the selector back on the value it showed again with', async ({
+    page,
+    request,
+  }) => {
+    const slug = await openSettings(page, request, SLOTS, { members: ['Bruno'] })
+    await changeMembersElsewhere(page, slug, 'possible')
+    await hideThenShow(page)
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('possible')
+    await page.route('**/settings/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    await cell(page, 'Bruno', 0).selectOption({ label: 'Preferred' })
+
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toBeVisible()
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('possible')
+  })
+
+  // /planning/ui/schedule-settings/preferences-again-shown
+  test('a slot added elsewhere shows its column', async ({ page, request }) => {
+    const slug = await openSettings(page, request, SLOTS, { members: ['Bruno'] })
+    await createSlot(page.request, slug, 'saturday', '10:00', '13:00')
+
+    await hideThenShow(page)
+
+    await expect(preferences(page).getByText('Sat 10:00–13:00')).toBeVisible()
+    await expect(preferences(page).getByRole('row').filter({ hasText: 'Bruno' }).getByRole('combobox')).toHaveCount(2)
+  })
+
+  // /planning/ui/schedule-settings/preferences-again
+  test('while a save runs, it waits for the save to end', async ({ page, request }) => {
+    const slug = await openSettings(page, request, SLOTS, { members: ['Bruno'] })
+    let release: () => void = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    await page.route('**/settings/preferences/**', async (route) => {
+      await held
+      await route.continue()
+    })
+    await cell(page, 'Bruno', 0).selectOption({ label: 'Preferred' })
+    await addMember(page.request, slug, 'Chloé')
+
+    await hideThenShow(page)
+    await page.waitForTimeout(500)
+
+    await expect(preferences(page).getByRole('row').filter({ hasText: 'Chloé' })).toHaveCount(0)
+    release()
+    await expect(preferences(page).getByRole('row').filter({ hasText: 'Chloé' })).toHaveCount(1)
+    await expect(cell(page, 'Bruno', 0)).toHaveValue('preferred')
+  })
+
+  // /planning/ui/schedule-settings/preferences-again-signed-out
+  test('signed out meanwhile, it leads to Sign in', async ({ page, request }) => {
+    await openSettings(page, request, SLOTS, { members: ['Bruno'] })
+    const other = await page.context().newPage()
+    await other.goto('/')
+    await other.locator('header').getByRole('button', { name: 'Alice' }).click()
+    await other.getByRole('button', { name: 'Sign out' }).click()
+    await expect(other.getByRole('button', { name: 'Sign in' })).toBeVisible()
+    await other.close()
+
+    await hideThenShow(page)
+
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
+  })
+
+  // /planning/ui/schedule-settings/preferences-again-failed
+  test('no longer a manager meanwhile, the screen stays as it was, with no message', async ({
+    page,
+    request,
+    browser,
+  }) => {
+    const slug = await openSettings(page, request, SLOTS, { members: ['Chloé'] })
+    const bruno = uniqueEmail('Bruno')
+    await addMember(page.request, slug, 'Bruno', bruno, 'manager')
+    const brunoContext = await browser.newContext()
+    await createAccount(brunoContext.request, 'Bruno', bruno)
+    const aliceId = await userIdOf(page.request, slug, 'Alice')
+    const response = await brunoContext.request.post(`/association/${slug}/members/${aliceId}/role`, {
+      data: { role: 'volunteer' },
+    })
+    expect(response.status()).toBe(200)
+    await addMember(brunoContext.request, slug, 'Zoé')
+
+    await hideThenShow(page)
+    await page.waitForTimeout(500)
+
+    await expect(preferences(page).getByRole('row').filter({ hasText: 'Chloé' })).toHaveCount(1)
+    await expect(preferences(page).getByRole('row').filter({ hasText: 'Zoé' })).toHaveCount(0)
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+    await brunoContext.close()
   })
 })

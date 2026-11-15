@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 import pytest
 import time_machine
 
-from tests.core.conftest import delete_association, unique_slug
+from tests.core.conftest import delete_association, run_sql_rows, unique_slug
 from tests.planning.conftest import (
     GENERIC,
     WEEKDAYS,
@@ -526,9 +526,9 @@ class TestColumns:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
         planning.add_slot("saturday", "10:00", "13:00")
-        shown(add_closure_on_screen(client, planning.slug, "2026-11-14", "2026-11-14", "Fête"))
 
         with time_machine.travel(NOW, tick=False):
+            shown(add_closure_on_screen(client, planning.slug, "2026-11-14", "2026-11-14", "Fête"))
             entries = schedule_shown(planning.bruno_client, planning.slug)
 
         weeks = [entry for entry in entries if isinstance(entry, tuple)]
@@ -854,7 +854,14 @@ class TestClosures:
     ) -> None:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
-        planning.add_closure(day_of_week("monday", -4), day_of_week("sunday", -1), "Travaux")
+        travaux = planning.add_closure(day_of_week("monday"), day_of_week("sunday"), "Travaux")
+        # Time passes: the closure now ended before the current week.
+        run_sql_rows(
+            "UPDATE closure SET first = :first, last = :last WHERE id = :id",
+            id=travaux["id"],
+            first=date.fromisoformat(day_of_week("monday", -4)),
+            last=date.fromisoformat(day_of_week("sunday", -1)),
+        )
 
         entries = schedule_shown(client, planning.slug)
 

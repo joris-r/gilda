@@ -2,11 +2,13 @@
 import html
 import re
 from collections.abc import Callable
+from datetime import date, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
 
-from tests.core.conftest import delete_association, unique_slug
+from tests.core.conftest import delete_association, run_sql_rows, unique_slug
 from tests.planning.conftest import (
     GENERIC,
     Planning,
@@ -51,8 +53,41 @@ EXISTS = "This slot already exists."
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 PERIOD = {"first": "2026-11-02", "last": "2026-11-25"}
 PERIOD_SHOWN = "Mon 2 Nov 2026 – Wed 25 Nov 2026"
-FETE = "Sat 14 Nov 2026 Fête du quartier"
-FETES = "Thu 24 Dec 2026 – Fri 1 Jan 2027 Fêtes de fin d'année"
+FETE = "Sat 14 Nov 2037 Fête du quartier"
+FETES = "Thu 24 Dec 2037 – Fri 1 Jan 2038 Fêtes de fin d'année"
+PERIOD_ORDER = "The end date can't be before the start date."
+CLOSURE_ORDER = "The end date can't be before the start date."
+CLOSURE_PAST = "The end date can't be before today."
+SLOT_ORDER = "The end time must be after the start time."
+ADD_CLOSURE_WARNING = "Registrations on its dates, from today on, become obsolete."
+EDIT_CLOSURE_WARNING = (
+    "Registrations on its new dates, from today on, become obsolete; "
+    "those on the dates it no longer covers may stop being obsolete."
+)
+DELETE_CLOSURE_WARNING = "Registrations on its dates, from today on, may stop being obsolete."
+EDIT_SLOT_WARNING = "Changing the day or times makes its registrations from today on obsolete."
+DELETE_SLOT_WARNING = (
+    "Its registrations from today on become obsolete, "
+    "and the members' preferences on it are deleted."
+)
+
+
+def paris_today() -> date:
+    return datetime.now(ZoneInfo("Europe/Paris")).date()
+
+
+def days_from_today(days: int) -> str:
+    return (paris_today() + timedelta(days=days)).isoformat()
+
+
+def move_closure(closure: dict[str, Any], first: str, last: str) -> None:
+    """Time passes: the closure now covers `first` to `last`, as no operation can set it so."""
+    run_sql_rows(
+        "UPDATE closure SET first = :first, last = :last WHERE id = :id",
+        id=closure["id"],
+        first=date.fromisoformat(first),
+        last=date.fromisoformat(last),
+    )
 
 
 def slots_shown(client: Any, slug: str) -> list[str]:
@@ -269,6 +304,17 @@ class TestAsAManager:
         assert len(re.findall(r'<button[^>]*aria-label="Edit the slot"', main)) == 2
         assert len(re.findall(r'<button[^>]*aria-label="Delete the slot"', main)) == 2
 
+    # /planning/ui/schedule-settings/edit-warning
+    def test_the_edit_dialog_warns_that_changing_the_day_or_times_makes_registrations_obsolete(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+
+        form = dialog_titled(settings_page(client, planning.slug), "Edit the slot")
+
+        assert EDIT_SLOT_WARNING in " ".join(text_of(form).split())
+
     # /planning/ui/schedule-settings/edit-slot
     def test_the_edit_dialog_is_edit_the_slot_with_save(
         self, client: Any, new_client: Callable[[], Any]
@@ -295,6 +341,17 @@ class TestAsAManager:
 
         assert "Delete the slot Thursday 10:00–13:00?" in main
         assert re.search(r"<button[^>]*>\s*Delete\s*</button>", main)
+
+    # /planning/ui/schedule-settings/delete-slot-warning
+    def test_the_delete_question_goes_on_with_the_registrations_and_preferences_lost(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+
+        main = " ".join(html.unescape(part(settings_page(client, planning.slug), "main")).split())
+
+        assert f"Delete the slot Thursday 10:00–13:00? {DELETE_SLOT_WARNING}" in main
 
     # /core/ui/header/language
     # /planning/ui/schedule-settings/add-slot
@@ -463,15 +520,11 @@ class TestAddingASlot:
         assert "Ce créneau existe déjà." in text
 
     # /ui/errors/generic
-    # /planning/operations/add-slot/order
-    # /planning/model/slot/order
     @pytest.mark.parametrize(
         "body",
         [
             {"start": "10:00", "end": "13:00"},
             {"weekday": "someday", "start": "10:00", "end": "13:00"},
-            {"weekday": "thursday", "start": "13:00", "end": "10:00"},
-            {"weekday": "thursday", "start": "10:00", "end": "10:00"},
             {"weekday": "thursday", "start": "10h", "end": "13:00"},
             {"weekday": "thursday", "start": "10:00"},
             {"weekday": "thursday", "start": "", "end": "13:00"},
@@ -486,6 +539,47 @@ class TestAddingASlot:
 
         assert GENERIC in text
         assert slots_shown(client, planning.slug) == []
+
+    # /planning/ui/schedule-settings/order
+    # /planning/operations/add-slot/order
+    # /planning/model/slot/order
+    @pytest.mark.parametrize(("start", "end"), [("13:00", "10:00"), ("10:00", "10:00")])
+    def test_a_slot_ending_at_or_before_its_start_says_so_and_adds_nothing(
+        self, client: Any, new_client: Callable[[], Any], start: str, end: str
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(add_slot_on_screen(client, planning.slug, "thursday", start, end))
+
+        assert SLOT_ORDER in text
+        assert GENERIC not in text
+        assert slots_shown(client, planning.slug) == []
+
+    # /planning/operations/add-slot/order
+    def test_a_slot_ending_a_minute_after_its_start_is_added(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(add_slot_on_screen(client, planning.slug, "thursday", "10:00", "10:01"))
+
+        assert SLOT_ORDER not in text
+        assert slots_shown(client, planning.slug) == ["Thursday 10:00–10:01"]
+
+    # /ui/errors/generic
+    # /planning/operations/add-slot/manager
+    # /planning/operations/add-slot/order
+    def test_a_volunteer_with_times_out_of_order_adds_nothing_and_sees_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(
+            add_slot_on_screen(planning.bruno_client, planning.slug, "thursday", "13:00", "10:00")
+        )
+
+        assert GENERIC in text
+        assert SLOT_ORDER not in text
 
     # /planning/operations/add-slot/manager
     def test_a_volunteer_adds_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
@@ -578,13 +672,11 @@ class TestEditingASlot:
         assert "Ce créneau existe déjà." in text
 
     # /ui/errors/generic
-    # /planning/operations/edit-slot/order
     @pytest.mark.parametrize(
         "body",
         [
             {"start": "10:00", "end": "13:00"},
             {"weekday": "someday", "start": "10:00", "end": "13:00"},
-            {"weekday": "thursday", "start": "13:00", "end": "10:00"},
             {"weekday": "thursday", "start": "10h", "end": "13:00"},
         ],
     )
@@ -599,6 +691,35 @@ class TestEditingASlot:
 
         assert GENERIC in text
         assert slots_shown(client, planning.slug) == ["Thursday 10:00–13:00"]
+
+    # /planning/ui/schedule-settings/edit-order
+    # /planning/operations/edit-slot/order
+    # /planning/model/slot/order
+    @pytest.mark.parametrize(("start", "end"), [("13:00", "10:00"), ("10:00", "10:00")])
+    def test_a_slot_ending_at_or_before_its_start_says_so_and_changes_nothing(
+        self, client: Any, new_client: Callable[[], Any], start: str, end: str
+    ) -> None:
+        planning = Planning(client, new_client)
+        slot = planning.add_slot("thursday", "10:00", "13:00")
+
+        text = shown(edit_slot(client, planning.slug, slot["id"], "friday", start, end))
+
+        assert SLOT_ORDER in text
+        assert GENERIC not in text
+        assert slots_shown(client, planning.slug) == ["Thursday 10:00–13:00"]
+
+    # /ui/errors/generic
+    # /planning/operations/edit-slot/unknown
+    # /planning/operations/edit-slot/order
+    def test_an_unknown_slot_with_times_out_of_order_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(edit_slot(client, planning.slug, UNKNOWN_ID, "friday", "13:00", "10:00"))
+
+        assert GENERIC in text
+        assert SLOT_ORDER not in text
 
     # /ui/errors/generic
     # /planning/operations/edit-slot/unknown
@@ -946,12 +1067,9 @@ class TestSettingThePlanningPeriod:
         assert "Bruno (1)" in [text for text, _ in names]
 
     # /ui/errors/generic
-    # /planning/operations/set-planning-period/order
-    # /planning/model/planning-period/order
     @pytest.mark.parametrize(
         "body",
         [
-            {"first": "2026-11-25", "last": "2026-11-02"},
             {"first": "2026-11-02"},
             {"last": "2026-11-25"},
             {"first": "", "last": "2026-11-25"},
@@ -967,6 +1085,34 @@ class TestSettingThePlanningPeriod:
 
         assert GENERIC in text
         assert "None" in period_shown(client, planning.slug)
+
+    # /planning/ui/schedule-settings/period-order
+    # /planning/operations/set-planning-period/order
+    # /planning/model/planning-period/order
+    def test_last_before_first_says_so_and_sets_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        with_period(planning)
+
+        text = shown(set_period(client, planning.slug, "2026-12-25", "2026-12-02"))
+
+        assert PERIOD_ORDER in text
+        assert GENERIC not in text
+        assert PERIOD_SHOWN in period_shown(client, planning.slug)
+
+    # /ui/errors/generic
+    # /planning/operations/set-planning-period/manager
+    # /planning/operations/set-planning-period/order
+    def test_a_volunteer_with_last_before_first_sets_nothing_and_sees_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(set_period(planning.bruno_client, planning.slug, "2026-12-25", "2026-12-02"))
+
+        assert GENERIC in text
+        assert PERIOD_ORDER not in text
 
     # /planning/operations/set-planning-period/manager
     def test_a_volunteer_sets_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
@@ -1053,8 +1199,8 @@ class TestClosures:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        planning.add_closure("2026-12-24", "2027-01-01", "Fêtes de fin d'année")
-        planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        planning.add_closure("2037-12-24", "2038-01-01", "Fêtes de fin d'année")
+        planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         assert closures_shown(client, planning.slug) == [FETE, FETES]
 
@@ -1063,9 +1209,9 @@ class TestClosures:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        planning.add_closure("2026-11-14", "2026-11-14")
+        planning.add_closure("2037-11-14", "2037-11-14")
 
-        assert closures_shown(client, planning.slug) == ["Sat 14 Nov 2026"]
+        assert closures_shown(client, planning.slug) == ["Sat 14 Nov 2037"]
 
     # /planning/ui/schedule-settings/closures
     def test_without_a_closure_shows_none(self, client: Any, new_client: Callable[[], Any]) -> None:
@@ -1075,36 +1221,83 @@ class TestClosures:
         assert "None" in settings_section(client, planning.slug, "Closures")
 
     # /planning/ui/schedule-settings/closures
+    def test_lists_the_closures_ending_today_or_later_and_not_the_earlier_ones(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        ended_long_ago = planning.add_closure("2037-03-02", "2037-03-06", "Ended long ago")
+        ended_yesterday = planning.add_closure("2037-04-06", "2037-04-10", "Ended yesterday")
+        ends_today = planning.add_closure("2037-05-04", "2037-05-08", "Ends today")
+        ends_tomorrow = planning.add_closure("2037-06-01", "2037-06-05", "Ends tomorrow")
+        # Time passes: the first two now ended before today, the third ends today.
+        move_closure(ended_long_ago, "2020-01-06", "2020-01-10")
+        move_closure(ended_yesterday, days_from_today(-7), days_from_today(-1))
+        move_closure(ends_today, days_from_today(-7), days_from_today(0))
+        move_closure(ends_tomorrow, days_from_today(0), days_from_today(1))
+
+        lines = closures_shown(client, planning.slug)
+
+        assert len(lines) == 2
+        assert lines[0].endswith("Ends today")
+        assert lines[1].endswith("Ends tomorrow")
+
+    # /planning/ui/schedule-settings/closures
+    def test_a_closure_covering_today_is_listed_from_its_first_date(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        later = planning.add_closure("2037-09-07", "2037-09-11", "Later")
+        current = planning.add_closure("2037-06-01", "2037-06-05", "Current")
+        move_closure(current, days_from_today(-3), days_from_today(3))
+        move_closure(later, days_from_today(10), days_from_today(12))
+
+        lines = closures_shown(client, planning.slug)
+
+        assert [line.split()[-1] for line in lines] == ["Current", "Later"]
+
+    # /planning/ui/schedule-settings/closures
+    def test_with_only_ended_closures_shows_none(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        closure = planning.add_closure("2037-04-06", "2037-04-10", "Ended yesterday")
+        move_closure(closure, days_from_today(-7), days_from_today(-1))
+
+        assert closures_shown(client, planning.slug) == []
+        assert "None" in settings_section(client, planning.slug, "Closures")
+        assert "None" in settings_section(planning.bruno_client, planning.slug, "Closures")
+
+    # /planning/ui/schedule-settings/closures
     def test_shows_only_the_closures_of_its_association(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        add_closure(client, other, "2026-12-24", "2027-01-01", "Fêtes de fin d'année")
+        add_closure(client, other, "2037-12-24", "2038-01-01", "Fêtes de fin d'année")
 
         assert closures_shown(client, planning.slug) == [FETE]
 
     # /planning/ui/schedule-settings/closures
     def test_escapes_the_label(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
-        planning.add_closure("2026-11-14", "2026-11-14", "<b>Fête</b>")
+        planning.add_closure("2037-11-14", "2037-11-14", "<b>Fête</b>")
 
         page = settings_page(client, planning.slug)
 
         assert "<b>Fête</b>" not in page
-        assert closures_shown(client, planning.slug) == ["Sat 14 Nov 2026 <b>Fête</b>"]
+        assert closures_shown(client, planning.slug) == ["Sat 14 Nov 2037 <b>Fête</b>"]
 
     # /core/ui/header/language
     # /planning/ui/schedule-settings/closures
     def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
-        planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
         client.cookies.set("language", "fr")
 
         main = text_of(without_dialogs(part(settings_page(client, planning.slug), "main")))
 
-        assert "sam. 14 nov. 2026 Fête du quartier" in " ".join(main.split())
+        assert "sam. 14 nov. 2037 Fête du quartier" in " ".join(main.split())
 
 
 class TestClosuresAsAManager:
@@ -1140,20 +1333,55 @@ class TestClosuresAsAManager:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
-        planning.add_closure("2026-12-24", "2027-01-01")
+        planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
+        planning.add_closure("2037-12-24", "2038-01-01")
 
         section = section_html(client, planning.slug, "Closures")
 
         assert len(re.findall(r'<button[^>]*aria-label="Edit the closure"', section)) == 2
         assert len(re.findall(r'<button[^>]*aria-label="Delete the closure"', section)) == 2
 
+    # /planning/ui/schedule-settings/closure-warning
+    def test_the_add_dialog_warns_that_registrations_on_its_dates_become_obsolete(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        form = dialog_titled(settings_page(client, planning.slug), "Add a closure")
+
+        assert ADD_CLOSURE_WARNING in " ".join(text_of(form).split())
+
+    # /planning/ui/schedule-settings/edit-closure-warning
+    def test_the_edit_dialog_warns_of_the_registrations_that_become_obsolete_or_stop_being(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
+
+        form = dialog_titled(settings_page(client, planning.slug), "Edit the closure")
+
+        assert EDIT_CLOSURE_WARNING in " ".join(text_of(form).split())
+
+    # /planning/ui/schedule-settings/delete-closure-warning
+    def test_the_delete_question_goes_on_with_the_registrations_that_may_stop_being_obsolete(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
+        planning.add_closure("2037-12-24", "2038-01-01")
+
+        main = " ".join(html.unescape(part(settings_page(client, planning.slug), "main")).split())
+
+        assert f'Delete the closure "Fête du quartier"? {DELETE_CLOSURE_WARNING}' in main
+        dates = "Thu 24 Dec 2037 – Fri 1 Jan 2038"
+        assert f"Delete the closure of {dates}? {DELETE_CLOSURE_WARNING}" in main
+
     # /planning/ui/schedule-settings/edit-closure
     def test_the_edit_dialog_is_edit_the_closure_with_save(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         form = dialog_titled(settings_page(client, planning.slug), "Edit the closure")
 
@@ -1166,17 +1394,17 @@ class TestClosuresAsAManager:
         ("first", "last", "label", "question"),
         [
             (
-                "2026-11-14",
-                "2026-11-14",
+                "2037-11-14",
+                "2037-11-14",
                 "Fête du quartier",
                 'Delete the closure "Fête du quartier"?',
             ),
-            ("2026-11-14", "2026-11-14", None, "Delete the closure of Sat 14 Nov 2026?"),
+            ("2037-11-14", "2037-11-14", None, "Delete the closure of Sat 14 Nov 2037?"),
             (
-                "2026-12-24",
-                "2027-01-01",
+                "2037-12-24",
+                "2038-01-01",
                 None,
-                "Delete the closure of Thu 24 Dec 2026 – Fri 1 Jan 2027?",
+                "Delete the closure of Thu 24 Dec 2037 – Fri 1 Jan 2038?",
             ),
         ],
     )
@@ -1205,7 +1433,7 @@ class TestClosuresAsAVolunteer:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         page = html.unescape(settings_page(planning.bruno_client, planning.slug))
 
@@ -1230,11 +1458,11 @@ class TestAddingAClosure:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         text = shown(
             add_closure_on_screen(
-                client, planning.slug, "2026-12-24", "2027-01-01", "Fêtes de fin d'année"
+                client, planning.slug, "2037-12-24", "2038-01-01", "Fêtes de fin d'année"
             )
         )
 
@@ -1250,11 +1478,11 @@ class TestAddingAClosure:
     ) -> None:
         planning = Planning(client, new_client)
 
-        text = shown(add_closure_on_screen(client, planning.slug, "2026-11-14", "2026-11-14", ""))
+        text = shown(add_closure_on_screen(client, planning.slug, "2037-11-14", "2037-11-14", ""))
 
         assert GENERIC not in text
-        assert closures_shown(client, planning.slug) == ["Sat 14 Nov 2026"]
-        assert "Delete the closure of Sat 14 Nov 2026?" in html.unescape(
+        assert closures_shown(client, planning.slug) == ["Sat 14 Nov 2037"]
+        assert "Delete the closure of Sat 14 Nov 2037?" in html.unescape(
             settings_page(client, planning.slug)
         )
 
@@ -1273,16 +1501,13 @@ class TestAddingAClosure:
         assert shown_on == "Closed Fête du quartier"
 
     # /ui/errors/generic
-    # /planning/operations/add-closure/order
-    # /planning/model/closure/order
     @pytest.mark.parametrize(
         "body",
         [
-            {"last": "2026-11-14", "label": ""},
-            {"first": "2026-11-14", "label": ""},
-            {"first": "", "last": "2026-11-14", "label": ""},
-            {"first": "2026-11-15", "last": "2026-11-14", "label": ""},
-            {"first": "14/11/2026", "last": "2026-11-14", "label": ""},
+            {"last": "2037-11-14", "label": ""},
+            {"first": "2037-11-14", "label": ""},
+            {"first": "", "last": "2037-11-14", "label": ""},
+            {"first": "14/11/2026", "last": "2037-11-14", "label": ""},
         ],
     )
     def test_a_missing_or_invalid_field_shows_the_generic_error_and_adds_nothing(
@@ -1295,11 +1520,132 @@ class TestAddingAClosure:
         assert GENERIC in text
         assert closures_shown(client, planning.slug) == []
 
+    # /planning/ui/schedule-settings/closure-order
+    # /planning/operations/add-closure/order
+    # /planning/model/closure/order
+    def test_last_before_first_says_so_and_adds_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(add_closure_on_screen(client, planning.slug, "2037-11-15", "2037-11-14"))
+
+        assert CLOSURE_ORDER in text
+        assert CLOSURE_PAST not in text
+        assert GENERIC not in text
+        assert closures_shown(client, planning.slug) == []
+
+    # /planning/operations/add-closure/order
+    # /planning/operations/add-closure/past
+    def test_last_before_first_and_before_today_says_the_order_not_the_past(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(
+            add_closure_on_screen(
+                client, planning.slug, days_from_today(-2), days_from_today(-5), "Travaux"
+            )
+        )
+
+        assert CLOSURE_ORDER in text
+        assert CLOSURE_PAST not in text
+        assert closures_shown(client, planning.slug) == []
+
+    # /planning/operations/add-closure/order
+    # /planning/operations/add-closure/added
+    def test_one_day_is_not_a_reversed_range(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(add_closure_on_screen(client, planning.slug, "2037-11-14", "2037-11-14"))
+
+        assert CLOSURE_ORDER not in text
+        assert closures_shown(client, planning.slug) == ["Sat 14 Nov 2037"]
+
+    # /planning/ui/schedule-settings/closure-past
+    # /planning/operations/add-closure/past
+    @pytest.mark.parametrize("days_before_first", [0, 6])
+    def test_last_before_today_says_so_and_adds_nothing(
+        self, client: Any, new_client: Callable[[], Any], days_before_first: int
+    ) -> None:
+        planning = Planning(client, new_client)
+        first = days_from_today(-1 - days_before_first)
+
+        text = shown(add_closure_on_screen(client, planning.slug, first, days_from_today(-1)))
+
+        assert CLOSURE_PAST in text
+        assert CLOSURE_ORDER not in text
+        assert GENERIC not in text
+        assert closures_shown(client, planning.slug) == []
+
+    # /planning/operations/add-closure/past
+    # /planning/operations/add-closure/added
+    @pytest.mark.parametrize("days_before_first", [0, 3])
+    def test_last_today_is_added(
+        self, client: Any, new_client: Callable[[], Any], days_before_first: int
+    ) -> None:
+        planning = Planning(client, new_client)
+        first = days_from_today(-days_before_first)
+
+        text = shown(add_closure_on_screen(client, planning.slug, first, days_from_today(0), "Now"))
+
+        assert CLOSURE_PAST not in text
+        assert len(closures_shown(client, planning.slug)) == 1
+
+    # /planning/operations/add-closure/added
+    def test_a_closure_overlapping_another_is_added(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_closure("2037-11-14", "2037-11-16", "Fête du quartier")
+
+        text = shown(
+            add_closure_on_screen(client, planning.slug, "2037-11-15", "2037-11-20", "Travaux")
+        )
+
+        assert GENERIC not in text
+        assert len(closures_shown(client, planning.slug)) == 2
+
+    # /ui/errors/generic
+    # /planning/operations/add-closure/manager
+    # /planning/operations/add-closure/order
+    def test_a_volunteer_with_last_before_first_adds_nothing_and_sees_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(
+            add_closure_on_screen(planning.bruno_client, planning.slug, "2037-11-15", "2037-11-14")
+        )
+
+        assert GENERIC in text
+        assert CLOSURE_ORDER not in text
+        assert closures_shown(client, planning.slug) == []
+
+    # /ui/errors/generic
+    # /planning/operations/add-closure/manager
+    # /planning/operations/add-closure/past
+    def test_a_volunteer_with_last_before_today_adds_nothing_and_sees_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(
+            add_closure_on_screen(
+                planning.bruno_client, planning.slug, days_from_today(-7), days_from_today(-1)
+            )
+        )
+
+        assert GENERIC in text
+        assert CLOSURE_PAST not in text
+
     # /planning/operations/add-closure/manager
     def test_a_volunteer_adds_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
-        add_closure_on_screen(planning.bruno_client, planning.slug, "2026-11-14", "2026-11-14")
+        add_closure_on_screen(planning.bruno_client, planning.slug, "2037-11-14", "2037-11-14")
 
         assert closures_shown(client, planning.slug) == []
 
@@ -1307,7 +1653,7 @@ class TestAddingAClosure:
     def test_a_non_member_adds_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
-        add_closure_on_screen(other_user(new_client), planning.slug, "2026-11-14", "2026-11-14")
+        add_closure_on_screen(other_user(new_client), planning.slug, "2037-11-14", "2037-11-14")
 
         assert closures_shown(client, planning.slug) == []
 
@@ -1318,7 +1664,7 @@ class TestAddingAClosure:
     ) -> None:
         planning = Planning(client, new_client)
 
-        response = add_closure_on_screen(new_client(), planning.slug, "2026-11-14", "2026-11-14")
+        response = add_closure_on_screen(new_client(), planning.slug, "2037-11-14", "2037-11-14")
         text = shown(response)
 
         assert "window.location" in text
@@ -1333,15 +1679,15 @@ class TestEditingAClosure:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         text = shown(
             edit_closure(
-                client, planning.slug, closure["id"], "2026-11-13", "2026-11-15", "Fête élargie"
+                client, planning.slug, closure["id"], "2037-11-13", "2037-11-15", "Fête élargie"
             )
         )
 
-        edited = "Fri 13 Nov 2026 – Sun 15 Nov 2026 Fête élargie"
+        edited = "Fri 13 Nov 2037 – Sun 15 Nov 2037 Fête élargie"
         assert GENERIC not in text
         assert edited in lines_of(text)
         assert closures_shown(client, planning.slug) == [edited]
@@ -1349,57 +1695,170 @@ class TestEditingAClosure:
     # /planning/operations/edit-closure/edited
     def test_an_empty_label_removes_it(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
-        closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
-        shown(edit_closure(client, planning.slug, closure["id"], "2026-11-14", "2026-11-14", ""))
+        shown(edit_closure(client, planning.slug, closure["id"], "2037-11-14", "2037-11-14", ""))
 
-        assert closures_shown(client, planning.slug) == ["Sat 14 Nov 2026"]
+        assert closures_shown(client, planning.slug) == ["Sat 14 Nov 2037"]
 
     # /planning/operations/edit-closure/edited
     # /planning/ui/schedule-settings/closures
     def test_the_list_stays_by_first_date(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
-        planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
-        fetes = planning.add_closure("2026-12-24", "2027-01-01", "Fêtes de fin d'année")
+        planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
+        fetes = planning.add_closure("2037-12-24", "2038-01-01", "Fêtes de fin d'année")
 
         shown(
             edit_closure(
                 client,
                 planning.slug,
                 fetes["id"],
-                "2026-11-02",
-                "2026-11-03",
+                "2037-11-02",
+                "2037-11-03",
                 "Fêtes de fin d'année",
             )
         )
 
         assert closures_shown(client, planning.slug) == [
-            "Mon 2 Nov 2026 – Tue 3 Nov 2026 Fêtes de fin d'année",
+            "Mon 2 Nov 2037 – Tue 3 Nov 2037 Fêtes de fin d'année",
             FETE,
         ]
 
     # /ui/errors/generic
-    # /planning/operations/edit-closure/order
-    # /planning/model/closure/order
     @pytest.mark.parametrize(
         "body",
         [
-            {"last": "2026-11-14", "label": ""},
-            {"first": "2026-11-15", "last": "2026-11-14", "label": ""},
-            {"first": "14/11/2026", "last": "2026-11-14", "label": ""},
+            {"last": "2037-11-14", "label": ""},
+            {"first": "14/11/2026", "last": "2037-11-14", "label": ""},
         ],
     )
     def test_a_missing_or_invalid_field_shows_the_generic_error_and_changes_nothing(
         self, client: Any, new_client: Callable[[], Any], body: dict[str, str]
     ) -> None:
         planning = Planning(client, new_client)
-        closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         path = f"/association/{planning.slug}/settings/closures/{closure['id']}/edit"
         text = shown(client.post(path, json=body))
 
         assert GENERIC in text
         assert closures_shown(client, planning.slug) == [FETE]
+
+    # /planning/ui/schedule-settings/edit-closure-order
+    # /planning/operations/edit-closure/order
+    # /planning/model/closure/order
+    def test_last_before_first_says_so_and_changes_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
+
+        text = shown(
+            edit_closure(client, planning.slug, closure["id"], "2037-11-15", "2037-11-14", "Autre")
+        )
+
+        assert CLOSURE_ORDER in text
+        assert CLOSURE_PAST not in text
+        assert GENERIC not in text
+        assert closures_shown(client, planning.slug) == [FETE]
+
+    # /planning/operations/edit-closure/order
+    # /planning/operations/edit-closure/past
+    def test_last_before_first_and_before_today_says_the_order_not_the_past(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
+
+        text = shown(
+            edit_closure(
+                client, planning.slug, closure["id"], days_from_today(-2), days_from_today(-5)
+            )
+        )
+
+        assert CLOSURE_ORDER in text
+        assert CLOSURE_PAST not in text
+        assert closures_shown(client, planning.slug) == [FETE]
+
+    # /planning/ui/schedule-settings/edit-closure-past
+    # /planning/operations/edit-closure/past
+    def test_last_before_today_says_so_and_changes_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
+
+        text = shown(
+            edit_closure(
+                client, planning.slug, closure["id"], days_from_today(-7), days_from_today(-1)
+            )
+        )
+
+        assert CLOSURE_PAST in text
+        assert CLOSURE_ORDER not in text
+        assert GENERIC not in text
+        assert closures_shown(client, planning.slug) == [FETE]
+
+    # /planning/operations/edit-closure/past
+    # /planning/operations/edit-closure/edited
+    def test_last_today_is_saved(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
+
+        text = shown(
+            edit_closure(
+                client, planning.slug, closure["id"], days_from_today(-3), days_from_today(0), "Now"
+            )
+        )
+
+        assert CLOSURE_PAST not in text
+        lines = closures_shown(client, planning.slug)
+        assert len(lines) == 1
+        assert lines[0].endswith("Now")
+
+    # /planning/operations/edit-closure/past
+    # /planning/operations/edit-closure/edited
+    def test_a_closure_that_ended_is_saved_with_dates_ending_today_or_later(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
+        # Time passes: the closure now ended before today.
+        move_closure(closure, days_from_today(-7), days_from_today(-1))
+
+        shown(edit_closure(client, planning.slug, closure["id"], "2037-11-14", "2037-11-16", "Now"))
+
+        assert closures_shown(client, planning.slug) == ["Sat 14 Nov 2037 – Mon 16 Nov 2037 Now"]
+
+    # /planning/operations/edit-closure/edited
+    def test_dates_overlapping_another_closure_are_saved(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_closure("2037-11-14", "2037-11-16", "Fête du quartier")
+        travaux = planning.add_closure("2037-12-01", "2037-12-02", "Travaux")
+
+        text = shown(
+            edit_closure(
+                client, planning.slug, travaux["id"], "2037-11-15", "2037-11-20", "Travaux"
+            )
+        )
+
+        assert GENERIC not in text
+        assert len(closures_shown(client, planning.slug)) == 2
+
+    # /ui/errors/generic
+    # /planning/operations/edit-closure/unknown
+    # /planning/operations/edit-closure/order
+    def test_an_unknown_closure_with_last_before_first_shows_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(edit_closure(client, planning.slug, UNKNOWN_ID, "2037-11-15", "2037-11-14"))
+
+        assert GENERIC in text
+        assert CLOSURE_ORDER not in text
 
     # /ui/errors/generic
     # /planning/operations/edit-closure/unknown
@@ -1409,7 +1868,7 @@ class TestEditingAClosure:
     ) -> None:
         planning = Planning(client, new_client)
 
-        text = shown(edit_closure(client, planning.slug, closure_id, "2026-11-14", "2026-11-14"))
+        text = shown(edit_closure(client, planning.slug, closure_id, "2037-11-14", "2037-11-14"))
 
         assert GENERIC in text
         assert closures_shown(client, planning.slug) == []
@@ -1421,9 +1880,9 @@ class TestEditingAClosure:
     ) -> None:
         planning = Planning(client, new_client)
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        theirs = add_closure(client, other, "2026-11-14", "2026-11-14", "Fête du quartier")
+        theirs = add_closure(client, other, "2037-11-14", "2037-11-14", "Fête du quartier")
 
-        text = shown(edit_closure(client, planning.slug, theirs["id"], "2026-12-24", "2026-12-25"))
+        text = shown(edit_closure(client, planning.slug, theirs["id"], "2037-12-24", "2037-12-25"))
 
         assert GENERIC in text
         assert closures_shown(client, planning.slug) == []
@@ -1432,20 +1891,20 @@ class TestEditingAClosure:
     # /planning/operations/edit-closure/manager
     def test_a_volunteer_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
-        closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         bruno = planning.bruno_client
-        edit_closure(bruno, planning.slug, closure["id"], "2026-12-24", "2026-12-25")
+        edit_closure(bruno, planning.slug, closure["id"], "2037-12-24", "2037-12-25")
 
         assert closures_shown(client, planning.slug) == [FETE]
 
     # /planning/operations/edit-closure/manager
     def test_a_non_member_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
-        closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         zoe = other_user(new_client)
-        edit_closure(zoe, planning.slug, closure["id"], "2026-12-24", "2026-12-25")
+        edit_closure(zoe, planning.slug, closure["id"], "2037-12-24", "2037-12-25")
 
         assert closures_shown(client, planning.slug) == [FETE]
 
@@ -1455,10 +1914,10 @@ class TestEditingAClosure:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         response = edit_closure(
-            new_client(), planning.slug, closure["id"], "2026-12-24", "2026-12-25"
+            new_client(), planning.slug, closure["id"], "2037-12-24", "2037-12-25"
         )
 
         assert "window.location" in shown(response)
@@ -1473,8 +1932,8 @@ class TestDeletingAClosure:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        fete = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
-        planning.add_closure("2026-12-24", "2027-01-01", "Fêtes de fin d'année")
+        fete = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
+        planning.add_closure("2037-12-24", "2038-01-01", "Fêtes de fin d'année")
 
         text = shown(delete_closure(client, planning.slug, fete["id"]))
 
@@ -1489,7 +1948,7 @@ class TestDeletingAClosure:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        fete = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        fete = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         text = shown(delete_closure(client, planning.slug, fete["id"]))
 
@@ -1503,7 +1962,7 @@ class TestDeletingAClosure:
         self, client: Any, new_client: Callable[[], Any], closure_id: str
     ) -> None:
         planning = Planning(client, new_client)
-        planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         text = shown(delete_closure(client, planning.slug, closure_id))
 
@@ -1516,7 +1975,7 @@ class TestDeletingAClosure:
     ) -> None:
         planning = Planning(client, new_client)
         other = create_association(client, "Repair Café Belleville", unique_slug())
-        theirs = add_closure(client, other, "2026-11-14", "2026-11-14", "Fête du quartier")
+        theirs = add_closure(client, other, "2037-11-14", "2037-11-14", "Fête du quartier")
 
         delete_closure(client, planning.slug, theirs["id"])
 
@@ -1525,7 +1984,7 @@ class TestDeletingAClosure:
     # /planning/operations/delete-closure/manager
     def test_a_volunteer_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
-        closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         delete_closure(planning.bruno_client, planning.slug, closure["id"])
 
@@ -1534,7 +1993,7 @@ class TestDeletingAClosure:
     # /planning/operations/delete-closure/manager
     def test_a_non_member_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
-        closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         delete_closure(other_user(new_client), planning.slug, closure["id"])
 
@@ -1546,7 +2005,7 @@ class TestDeletingAClosure:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
+        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
 
         text = shown(delete_closure(new_client(), planning.slug, closure["id"]))
 
