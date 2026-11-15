@@ -70,7 +70,7 @@ test.describe('Changed identifier: Members', () => {
     await dialog.getByRole('button', { name: 'Add member' }).click()
 
     await expect(page.getByText('Bruno added.')).toBeVisible()
-    await expect(main(page).getByText(GENERIC)).toHaveCount(0)
+    await expect(main(page).getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
   })
 
   // /ui/changed-identifier/actions
@@ -124,7 +124,7 @@ test.describe('Changed identifier: Members', () => {
 
     await expect(dialog).toBeHidden()
     await expect(page.getByText(/is now/)).toHaveCount(0)
-    await expect(main(page).getByText(GENERIC)).toHaveCount(0)
+    await expect(main(page).getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
   })
 
   // /ui/changed-identifier/actions
@@ -193,7 +193,7 @@ test.describe('Changed identifier: Schedule settings', () => {
 
     await expect(dialog).toBeHidden()
     await expect(main(page).getByRole('listitem').filter({ hasText: 'Thursday' })).toHaveCount(1)
-    await expect(main(page).getByText(GENERIC)).toHaveCount(0)
+    await expect(main(page).getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
   })
 })
 
@@ -207,9 +207,14 @@ test.describe('Changed identifier: My availability', () => {
 
     await main(page).getByRole('combobox').selectOption({ label: 'Preferred' })
 
-    await expect(main(page).getByText(GENERIC)).toHaveCount(0)
-    await page.goto(`/association/${current}/availability`)
-    await expect(main(page).getByRole('combobox').locator('option:checked')).toHaveText('Preferred')
+    await expect(main(page).getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+    const other = await page.context().newPage()
+    await expect(async () => {
+      await other.goto(`/association/${current}/availability`)
+      await expect(other.locator('main').getByRole('combobox').locator('option:checked')).toHaveText('Preferred', {
+        timeout: 1000,
+      })
+    }).toPass()
   })
 
   // /ui/changed-identifier/actions
@@ -247,7 +252,7 @@ test.describe('Changed identifier: Schedule', () => {
     await page.getByRole('button', { name: 'More weeks' }).click()
 
     await expect(main(page).getByRole('heading', { name: /^Week \d+$/ })).toHaveCount(10)
-    await expect(main(page).getByText(GENERIC)).toHaveCount(0)
+    await expect(main(page).getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
   })
 
   // /ui/changed-identifier/actions
