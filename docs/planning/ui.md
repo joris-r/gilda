@@ -103,12 +103,28 @@ Actions:
   /planning/operations/set-preference with the user as member, the
   slot and the value; "—" runs /planning/operations/delete-preference
   with the user as member and the slot.
+  - [saved-value] While a save of the selector runs, it shows the last
+    value chosen. Once none runs, it shows the value of the save that
+    succeeded last, in the order the answers came, or else the value
+    it opened with: a refused or failed save does not change it.
 - [add-absence] "Add an absence" opens the dialog "Add an absence":
   From, To, [Add absence]; it runs /planning/operations/add-absence
   with the fields.
+  - [absence-order] /planning/operations/add-absence/order: "The end
+    date can't be before the start date."
+  - [absence-past] /planning/operations/add-absence/past: "The end date
+    can't be before today."
+  - [absence-overlap] /planning/operations/add-absence/overlap: "This
+    absence overlaps another one."
 - [edit-absence] An absence's edit icon opens the dialog "Edit the
   absence", filled with it, with [Save]; it runs
   /planning/operations/edit-absence for it, with the fields.
+  - [edit-absence-order] /planning/operations/edit-absence/order: "The
+    end date can't be before the start date."
+  - [edit-absence-past] /planning/operations/edit-absence/past: "The
+    end date can't be before today."
+  - [edit-absence-overlap] /planning/operations/edit-absence/overlap:
+    "This absence overlaps another one."
 - [delete-absence] An absence's delete icon asks "Delete the absence
   of <first> – <last>?", e.g. "Delete the absence of Mon 9 Nov 2026 –
   Sun 15 Nov 2026?", with [Delete], which runs

@@ -190,6 +190,9 @@ Inputs:
 Cases:
 1. [member] The user is not a member of the association: refused.
 2. [order] Last before first: refused.
+3. [past] Last before today: refused.
+4. [overlap] One of the user's absences in this association covers a
+   date from first to last that is today or later: refused.
 
 Then:
 - [added] After no refusal: an absence is stored as the user's, with
@@ -209,6 +212,9 @@ Cases:
 2. [unknown] The absence is not the user's in this association:
    refused.
 3. [order] Last before first: refused.
+4. [past] Last before today: refused.
+5. [overlap] Another of the user's absences in this association
+   covers a date from first to last that is today or later: refused.
 
 Then:
 - [edited] After no refusal: the absence takes the dates.

@@ -9,12 +9,6 @@ orders and displays.
 Each increment lists the sections it integrates, then the entries it
 settles.
 
-8. My availability: /planning/ui/my-availability,
-   /planning/operations/add-absence, /planning/operations/edit-absence.
-   - My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
-   - Absences with To before From show only the generic error; the former frontend said "Check the dates: the start comes before the end." (its translation is gone with the former frontend's other leftovers).
-   - Absences may overlap each other, with no warning.
-   - Adding or editing an absence that ends before today saves it, but it never shows, with no message.
 9. Schedule settings: /planning/ui/schedule-settings,
    /planning/operations/add-closure, /planning/operations/edit-closure,
    design/schedule-settings.md, design/forms.md (closures may still
