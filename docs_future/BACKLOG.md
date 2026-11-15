@@ -2,8 +2,14 @@
 
 ## Real use feedback
 
+- it's unclear for volunteer if they need to create an account or ask for password on the first use. Make take would to merge both process.
+- make stand out the user own slot on the schedule (new color?)
+- breadcrum miss the homepage first step. Also make it sticky on the screen top
+- auto scroll on the current day on schedule opening
+- sharing of user planning for google agenda or similar
 - pre-filling in slot creation is painful. Better: initally 9:00-10:00, when start change (+X:+Y) move end by the same amount, on new dialog : repeat previous value
 - there is a flash with a red text on assocation creation submission
+- improve homepage by seeing more cleary what is coming soon or later 
 
 ## Main list
 
@@ -30,158 +36,6 @@
 
 
 ## Datastar rewrite feedback
-
-### Possible spec updates
-
-Choices the spec left open, settled by `forgot-password`:
-
-- Reset password: a short password with a bad link shows the generic error first, as the password is checked before the token.
-- Reset password: a missing token on submit shows the invalid link.
-- Forgot password: "Back to Sign in" stays under the message once the form is submitted.
-
-Choices the spec left open, settled by `delete-account`:
-
-- Delete my account: a request that is already signed out leads to Sign in.
-
-Choices the spec left open, settled by `header`:
-
-- Revoke my sign-in link: with no link, it shows the same "revoked" message.
-- Revoke my sign-in link: a request that is already signed out leads to Sign in.
-- Revoke my sign-in link: the message stays until the page reloads.
-
-Choices the spec left open, settled by `sign-in-link`:
-
-- Sign-in link: "Back to Sign in" stays under the message once the form is submitted.
-- Access link: a missing token shows the invalid link.
-- Access link: opening a link in another user's session signs in as the link's user.
-- Access link: the page runs the sign-in once it loads, so fetching the link alone signs no one in.
-
-Choices the spec left open, settled by `my-associations`:
-
-- New association: an empty or missing name or identifier shows the generic error.
-- New association: a request that is already signed out leads to Sign in and creates nothing.
-- New association: the identifier `new` shows the "already taken" message.
-- /core/model/association/derived: an identifier cut at 50 characters loses a hyphen left at its end.
-
-Choices the spec left open, settled by `members-list`:
-
-- Add a member: a missing or invalid field, including the role, shows the generic error.
-- Add a member: "is already a member" names the person as typed; "added" names them as listed, so an existing user (/core/operations/add-member/existing-user) shows under their own display name.
-- Add a member: a request that is already signed out leads to Sign in and adds no one; a volunteer's or a non-member's request adds no one.
-- Add a member: opening the dialog clears its fields and its message.
-- Add a member: Email accepts an address with accents, as the browser does not check it.
-- Members: an unknown association, or one the user is not a member of, answers 200 with its message.
-- Members: display names are ordered ignoring case.
-
-Choices the spec left open, settled by `members-edit`:
-
-- Edit dialog: a missing or invalid role, or a user who is not a member, shows the generic error.
-- Edit dialog: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing.
-- Edit dialog: opening it shows the member's current role and clears its message and the generic error.
-- Remove from the association: removing the last manager closes the confirmation and shows the message in the edit dialog.
-- Save: a manager who demotes themself stays on Members, which then shows no edit icons and no "Add a member".
-
-Choices the spec left open, settled by `members-link`:
-
-- Send link and Revoke link: a user who is not a member shows the generic error.
-- Send link and Revoke link: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing.
-- Send link: when the email can't be sent, no link is created, so Revoke link does not appear; the message shows in the edit dialog, closing the confirmation.
-- Send link and Revoke link: success closes the dialogs and shows the message on Members, with Revoke link appearing or leaving at once.
-
-Choices the spec left open, settled by `members-association`:
-
-- Rename the association: a missing or empty name shows the generic error; a name that only another association has is accepted.
-- Change the association identifier: a missing slug shows the generic error; a malformed slug is refused before a taken one.
-- Rename and Change the association identifier: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing and shows the generic error.
-- Delete the association: only the button checks the typed name; the server deletes on any manager's request.
-- Delete the association: a volunteer's or a non-member's request deletes nothing and reloads Members as it now is.
-- Change the association identifier and Delete the association: their message shows once, on the next page loaded.
-
-Choices the spec left open, settled by `settings-slots`:
-
-- Add a slot and Edit the slot: a missing or invalid field, To not after From included, shows the generic error.
-- Add a slot: Day opens at Monday until a slot is added; /planning/ui/schedule-settings/next-slot lasts until the page reloads, which brings back /planning/ui/schedule-settings/defaults.
-- Add a slot: reopened after Cancel, it opens as /planning/ui/schedule-settings/defaults or /planning/ui/schedule-settings/next-slot say, not with what was typed.
-- Edit the slot and Delete the slot: an unknown slot, or another association's, shows the generic error.
-- Add, Edit and Delete the slot: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing and shows the generic error.
-
-Choices the spec left open, settled by `settings-closures-period`:
-
-- Planning period: the dialog opens filled with the period, or empty when there is none.
-- Planning period, Add a closure and Edit the closure: a missing or invalid date shows the generic error, including To before From.
-- Add a closure: opens empty, also after Cancel or after an add.
-- Add a closure and Edit the closure: an empty or blank Label saves the closure without a label.
-- A one-day closure or period shows one date; a longer one shows "first – last".
-- Edit the closure and Delete the closure: an unknown closure, or another association's, shows the generic error.
-- Planning period, Clear, and the closure actions: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing and shows the generic error.
-
-Choices the spec left open, settled by `availability-preferences`:
-
-- My preferences: a missing or invalid value, an unknown slot or another association's slot shows the generic error.
-- My preferences: "—" on a slot with no preference changes nothing.
-- My preferences: a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
-
-Choices the spec left open, settled by `availability-absences-note`:
-
-- Add an absence and Edit the absence: a missing or invalid date shows the generic error, including To before From.
-- Add an absence: opens empty, also after Cancel or after an add.
-- A one-day absence shows one date, also in "Delete the absence of …?".
-- Edit the absence and Delete the absence: an unknown absence, another member's or another association's shows the generic error.
-- Absences: "today" is the association's timezone's.
-- Note for the managers: the dialog opens with the note as last saved, also after a Save or a Cancel; the note keeps its lines; a note of only spaces shows "None".
-- Absences and the note: a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
-
-Choices the spec left open, settled by `settings-preferences`:
-
-- Members' preferences: with no slot, it shows "None".
-- Members' preferences: a column shows its slot with the short weekday, "Thu 10:00–13:00" ("jeu." in French), as dates do.
-- Members' preferences: adding, editing or deleting a slot updates its columns at once.
-- Members' preferences: a missing or invalid value, an unknown slot or one of another association, or a user who is not a member shows the generic error.
-- Members' preferences: a volunteer's request, even for their own preference, changes nothing and shows the generic error; a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
-
-Choices the spec left open, settled by `schedule-weeks`:
-
-- Schedule: week headings show the ISO week number ("Week 53", then "Week 1").
-- Schedule: the lines show the date in full ("Monday 9 November 2026", "lundi 9 novembre 2026"); day heads show it short, without the year ("Thu 29 Oct", "jeu. 29 oct.").
-- Schedule: the time scale has a mark for every hour; on a narrow screen, every other mark is hidden past six hours.
-- Schedule: an obsolete registration gives its weekday a column, as an occurrence does.
-- Schedule: an occurrence's accessible label is its times, then what it shows, e.g. "10–13 Chloé ?".
-- More weeks: a missing, invalid or reversed range, or one over 520 weeks, shows the generic error; a non-member's request shows none of the weeks; a request that is already signed out leads to Sign in.
-
-Choices the spec left open, settled by `schedule-volunteer-menu`:
-
-- Schedule menu: a missing or invalid date or time, or no occurrence at that time, opens the menu with only the generic error.
-- Sign up: a date before today (/planning/operations/register/past), no matching occurrence, a closed date or a missing field shows the generic error; only /planning/operations/register/taken has its own message, "Someone took this slot in the meantime."
-- Confirm and Cancel registration: an unknown registration, or another association's, shows the generic error.
-- Menu, Sign up, Confirm and Cancel registration: a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
-- Schedule menu: the user's own obsolete registration offers Cancel registration, whether proposed or confirmed, and never Confirm.
-
-Choices the spec left open, settled by `schedule-manager-menu`:
-
-- Absence icon: a one-day absence shows one date, "Absent Thu 12 Nov 2037" ("Absent le jeu. 12 nov. 2037"); when several absences cover the date, the one starting first shows.
-- Propose: a user who is not a member, a missing or invalid field, a date before today, a closed date, or a volunteer proposing to another member shows the generic error; only /planning/operations/register/taken has its own message.
-- Propose: a request that is already signed out leads to Sign in and registers no one; a non-member's request registers no one.
-- Manager's menu: without a planning period, /planning/ui/occurrence-menu/order's tie on registrations counts everyone as 0, so names fall to display name order, ignoring case.
-- Manager's menu: the text shown under the names leaves when the menu opens again.
-
-Choices the spec left open, settled by `share-link`:
-
-- Share link: it shows the absolute URL, built from the site's address as the emails' links are.
-- Share link: "Link copied." stays until the next Create, Replace or Revoke, or a reload.
-- Create a share link, Replace and Revoke: a request that is already signed out leads to Sign in and changes nothing; a volunteer's or a non-member's request changes nothing and shows the generic error.
-- Shared schedule: an unknown, replaced or revoked link answers 200 with its message, under the signed-out header without the association's name.
-- Shared schedule: More weeks with a missing or invalid range, or a link no longer valid, shows the generic error.
-
-Choices the spec left open, settled by `registrations-summary`:
-
-- Confirm and OK: an unknown registration, another association's, someone else's, one already cancelled, or a Confirm on a registration that is obsolete or already confirmed shows the generic error.
-- Confirm and OK: a request that is already signed out leads to Sign in and changes nothing; a non-member's request changes nothing.
-- Confirm and OK: the generic error shows within that association's item, and stays until the next successful action on it or a reload.
-- /home/ui/my-associations/no-registration: a one-day planning period shows one date ("5 Nov").
-
-Choices the spec left open, settled by `finish-rewrite`:
-
-- Not found: any method (POST, PUT, DELETE…) on a path that leads nowhere answers the Not found page, `/api/…` paths included.
 
 ### Possible features or bugs
 
