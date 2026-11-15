@@ -1,13 +1,5 @@
 # UI
 
-## Changed identifier
-
-- [actions] An action on an association or its data, from a screen
-  opened before the association's identifier changed, My associations
-  included, acts as it would from that screen opened after the change;
-  a screen of the association that the action then leads to opens at
-  its current URL.
-
 ## Notices
 
 - [led] A message that an action shows on the screen it leads to,

@@ -68,3 +68,11 @@ Mockup in `design/forms.md`.
   alphabetically, ignoring case and accents, e.g. "émile" and "Émile"
   before "Zoé"; between names that are equal once case and accents are
   ignored, the order is left free.
+
+## Changed identifier
+
+- [actions] An action on an association or its data, from a screen
+  opened before the association's identifier changed, My associations
+  included, acts as it would from that screen opened after the change;
+  a screen of the association that the action then leads to opens at
+  its current URL.

@@ -9,9 +9,6 @@ orders and displays.
 Each increment lists the sections it integrates, then the entries it
 settles.
 
-6. Changed identifier: /ui/changed-identifier.
-   - Change the association identifier breaks every bookmark of the former URLs, with no redirect (`/core/operations/update-association/new-slug`).
-   - Confirm and OK use the slug from page load, so after a change of identifier in another tab they show only the generic error.
 7. Notices: /ui/notices.
    - The one-time notice is kept in the session, so it shows on whichever page loads next, even in another tab.
 8. My availability: /planning/ui/my-availability,
