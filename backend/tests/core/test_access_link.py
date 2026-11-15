@@ -557,17 +557,56 @@ def test_revoke_my_sign_in_link_shows_it_is_revoked(client: Any) -> None:
 # /core/ui/header/revoked
 # /core/ui/header/language
 def test_revoke_my_sign_in_link_follows_the_language(client: Any) -> None:
-    sign_up(client, "Alice")
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+    ask_for_link(client, email)
     client.cookies.set("language", "fr")
 
     assert "Votre lien de connexion est révoqué." in shown(revoke_my_link(client))
 
 
-# /core/ui/header/revoked
-def test_revoke_my_sign_in_link_shows_the_same_without_a_link(client: Any) -> None:
-    sign_up(client, "Alice")
+# /core/ui/header/none
+# /core/operations/revoke-my-access-link/none
+def test_revoke_my_sign_in_link_without_a_link_says_so_and_changes_nothing(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    _, _, chloe_email = manager_with_member(client)
+    ask_for_link(new_client(), chloe_email)
+    token = latest_access_token(chloe_email)
+    alice = new_client()
+    sign_up(alice, "Alice")
 
-    assert "Your sign-in link is revoked." in shown(revoke_my_link(client))
+    page = shown(revoke_my_link(alice))
+
+    assert "You have no sign-in link." in page
+    assert "Your sign-in link is revoked." not in page
+    assert signed_in_as(alice) == "Alice"
+    assert signs_in(new_client(), token)
+
+
+# /core/ui/header/none
+# /core/operations/revoke-my-access-link/none
+def test_revoke_my_sign_in_link_a_second_time_says_there_is_none(client: Any) -> None:
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+    ask_for_link(client, email)
+    shown(revoke_my_link(client))
+
+    assert "You have no sign-in link." in shown(revoke_my_link(client))
+
+
+# /core/operations/request-access-link/unsent
+# /core/operations/revoke-my-access-link/none
+def test_a_request_whose_email_cannot_be_sent_leaves_no_link(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+    break_the_mailer(monkeypatch)
+
+    shown(ask_for_link(client, email))
+
+    assert "You have no sign-in link." in shown(revoke_my_link(client))
 
 
 # /core/ui/header/this-session

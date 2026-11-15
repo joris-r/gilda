@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from tests.core.conftest import (
+    ask_for_link,
     create_association,
     heading,
     names_listed,
@@ -51,7 +52,9 @@ class TestHeader:
     def test_the_menu_has_the_language_selector_revoke_delete_my_account_and_sign_out(
         self, client: Any
     ) -> None:
-        sign_up(client, "Alice")
+        email = unique_email("Alice")
+        sign_up(client, "Alice", email)
+        ask_for_link(client, email)
 
         page = client.get("/").text
 
@@ -60,9 +63,26 @@ class TestHeader:
         assert "Delete my account" in page
         assert "Sign out" in page
 
+    # /core/ui/header/menu
+    def test_the_menu_offers_revoke_my_sign_in_link_only_with_a_link(self, client: Any) -> None:
+        email = unique_email("Alice")
+        sign_up(client, "Alice", email)
+
+        page = client.get("/").text
+
+        assert "Revoke my sign-in link" not in page
+        assert "Delete my account" in page
+        assert "Sign out" in page
+
+        ask_for_link(client, email)
+
+        assert "Revoke my sign-in link" in client.get("/").text
+
     # /core/ui/header/revoke
     def test_revoke_my_sign_in_link_asks_for_confirmation(self, client: Any) -> None:
-        sign_up(client, "Alice")
+        email = unique_email("Alice")
+        sign_up(client, "Alice", email)
+        ask_for_link(client, email)
 
         page = html.unescape(client.get("/").text)
 
@@ -73,7 +93,9 @@ class TestHeader:
     # /core/ui/header/menu
     # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
-        sign_up(client, "Alice")
+        email = unique_email("Alice")
+        sign_up(client, "Alice", email)
+        ask_for_link(client, email)
         client.cookies.set("language", "fr")
 
         page = client.get("/").text

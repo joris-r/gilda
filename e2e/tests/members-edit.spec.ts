@@ -328,6 +328,39 @@ test.describe('Members: Revoke link', () => {
     await expect(page.getByText('This link is no longer valid.')).toBeVisible()
   })
 
+  // /core/ui/members/revoked
+  test('says the link is revoked', async ({ page, request }) => {
+    await withLink(page, request)
+
+    const confirmation = await ask(page, 'Chloé', 'Revoke link', REVOKE_CHLOE)
+    await confirmation.getByRole('button', { name: 'Revoke', exact: true }).click()
+
+    await expect(page.getByText("Chloé's sign-in link is revoked.")).toBeVisible()
+  })
+
+  // /core/ui/members/none
+  // /core/ui/members/link-leaves
+  // /core/operations/revoke-access-link/none
+  test('from a page opened before the link was revoked elsewhere, says there is none', async ({
+    page,
+    request,
+  }) => {
+    await withLink(page, request)
+    const other = await page.context().newPage()
+    await other.goto(page.url())
+    const elsewhere = await ask(other, 'Chloé', 'Revoke link', REVOKE_CHLOE)
+    await elsewhere.getByRole('button', { name: 'Revoke', exact: true }).click()
+    await expect(other.getByText("Chloé's sign-in link is revoked.")).toBeVisible()
+
+    const confirmation = await ask(page, 'Chloé', 'Revoke link', REVOKE_CHLOE)
+    await confirmation.getByRole('button', { name: 'Revoke', exact: true }).click()
+
+    await expect(page.getByText('Chloé has no sign-in link.')).toBeVisible()
+    await expect(page.getByText("Chloé's sign-in link is revoked.")).toHaveCount(0)
+    const dialog = await openEdit(page, 'Chloé')
+    await expect(dialog.getByRole('button', { name: 'Revoke link' })).toHaveCount(0)
+  })
+
   // /ui/forms/cancel
   test('Cancel of the confirmation changes nothing', async ({ page, request }) => {
     await withLink(page, request)

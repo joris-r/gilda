@@ -26,7 +26,9 @@ async function expectStillSignedIn(page: Page) {
 test.describe('Header', () => {
   // /core/ui/header/menu
   test('the display name opens the menu', async ({ page, request }) => {
-    await signedIn(page, request)
+    const email = await signedIn(page, request)
+    await request.post('/sign-in-link', { data: { email } })
+    await page.reload()
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeHidden()
 
     await menuButton(page).click()

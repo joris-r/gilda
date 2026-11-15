@@ -330,6 +330,33 @@ test.describe('Members: Delete the association', () => {
   })
 
   // /core/ui/members/delete
+  // /core/ui/members/deleted-name
+  // /core/operations/delete-association/deleted
+  test('a screen opened before a rename deletes with the name it shows, and says the current one', async ({
+    page,
+    request,
+  }) => {
+    const slug = await openMembers(page, request)
+    const other = await page.context().newPage()
+    await other.goto(`/association/${slug}/members`)
+    await (await open(other, 'Rename the association', 'Rename the association'))
+      .getByLabel('Name', { exact: true })
+      .fill('Les Lilas')
+    await other.getByRole('dialog').getByRole('button', { name: 'Save' }).click()
+    await expect(other.getByText('The association is now Les Lilas.')).toBeVisible()
+
+    const confirmation = await openDelete(page)
+    const field = confirmation.getByLabel("Type the association's name to confirm")
+    await field.fill('Les Lilas')
+    await expect(confirmation.getByRole('button', { name: 'Delete', exact: true })).toBeDisabled()
+    await field.fill(NAME)
+    await expect(confirmation.getByRole('button', { name: 'Delete', exact: true })).toBeEnabled()
+    await confirmation.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    await expect(page.getByText('Les Lilas is deleted.')).toBeVisible()
+  })
+
+  // /core/ui/members/delete
   // /core/operations/delete-association/deleted
   // /core/ui/unknown-association/shown
   test('confirming deletes it, leads to My associations and says so', async ({ page, request }) => {

@@ -1073,6 +1073,7 @@ class TestSignInLinkSection:
 
 class TestRevokingALink:
     # /core/ui/members/revoke-link
+    # /core/ui/members/revoked
     # /core/operations/revoke-access-link/revoked
     def test_revokes_the_link_and_says_so(self, client: Any, new_client: Callable[[], Any]) -> None:
         association, chloe, token = with_link(client, new_client)
@@ -1087,6 +1088,7 @@ class TestRevokingALink:
         assert REVOKE_CHLOE not in html.unescape(members_page(client, association["slug"]))
 
     # /core/ui/members/revoke-link
+    # /core/ui/members/link-leaves
     # /ui/forms/success
     def test_the_dialog_no_longer_offers_revoke_link_at_once(
         self, client: Any, new_client: Callable[[], Any]
@@ -1096,6 +1098,40 @@ class TestRevokingALink:
         text = shown(revoke_member_link(client, association["slug"], chloe))
 
         assert "Chloé" in text
+        assert REVOKE_CHLOE not in text
+
+    # /core/ui/members/none
+    # /core/ui/members/link-leaves
+    # /core/operations/revoke-access-link/none
+    def test_a_member_without_a_link_gets_none_and_no_revoke_link(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, _, token = with_link(client, new_client)
+        bruno_email = unique_email("Bruno")
+        add_member(client, association["slug"], "Bruno", bruno_email)
+        bruno = user_id(client, association, "Bruno")
+
+        text = shown(revoke_member_link(client, association["slug"], bruno))
+
+        assert "Bruno has no sign-in link." in text
+        assert "is revoked." not in text
+        assert "Revoke Bruno's sign-in link?" not in text
+        assert signs_in(new_client(), token)
+        assert REVOKE_CHLOE in html.unescape(members_page(client, association["slug"]))
+
+    # /core/ui/members/none
+    # /core/ui/members/link-leaves
+    # /core/operations/revoke-access-link/none
+    def test_a_link_already_revoked_elsewhere_gets_none(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, chloe, _ = with_link(client, new_client)
+        shown(revoke_member_link(client, association["slug"], chloe))
+
+        text = shown(revoke_member_link(client, association["slug"], chloe))
+
+        assert "Chloé has no sign-in link." in text
+        assert "is revoked." not in text
         assert REVOKE_CHLOE not in text
 
     # /core/operations/revoke-access-link/revoked
@@ -1743,6 +1779,16 @@ class TestDeletingTheAssociation:
         assert names_listed(client) == []
         page = html.unescape(client.get(f"/association/{association['slug']}/members").text)
         assert UNKNOWN in page
+
+    # /core/ui/members/deleted-name
+    # /core/operations/delete-association/deleted
+    def test_says_the_name_it_had_when_deleted(self, client: Any) -> None:
+        association = managed(client)
+        shown(rename_association(client, association["slug"], NEW_NAME))
+
+        shown(delete_association(client, association["slug"]))
+
+        assert f"{NEW_NAME} is deleted." in html.unescape(client.get("/").text)
 
     # /core/operations/delete-association/deleted
     def test_by_any_manager(self, client: Any, new_client: Callable[[], Any]) -> None:

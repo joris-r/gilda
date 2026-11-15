@@ -4,6 +4,7 @@ import { createAccount, latestToken, signIn } from './helpers'
 const GENERIC = 'Something went wrong. Try again.'
 const QUESTION = 'Revoke your sign-in link? Sessions opened with it are signed out.'
 const REVOKED = 'Your sign-in link is revoked.'
+const NONE = 'You have no sign-in link.'
 
 /** Asks for the sign-in link of `email`, and returns its token. */
 async function askForLink(request: APIRequestContext, email: string) {
@@ -37,6 +38,23 @@ test.describe('Header', () => {
     await signIn(page, await createAccount(request))
 
     await expect(page.locator('main').getByText('My associations')).toBeHidden()
+  })
+})
+
+test.describe('Header menu', () => {
+  // /core/ui/header/menu
+  test('offers Revoke my sign-in link only with a sign-in link', async ({ page, request }) => {
+    const email = await createAccount(request)
+    await signIn(page, email)
+    await page.locator('header').getByRole('button', { name: 'Alice' }).click()
+    await expect(page.getByRole('button', { name: 'Delete my account' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Revoke my sign-in link' })).toHaveCount(0)
+
+    await askForLink(request, email)
+    await page.reload()
+    await page.locator('header').getByRole('button', { name: 'Alice' }).click()
+
+    await expect(page.getByRole('button', { name: 'Revoke my sign-in link' })).toBeVisible()
   })
 })
 
@@ -87,7 +105,9 @@ test.describe('Revoke my sign-in link', () => {
   // /ui/forms/failure
   // /ui/errors/generic
   test('on failure, the dialog stays open with its message', async ({ page, request }) => {
-    await signIn(page, await createAccount(request))
+    const email = await createAccount(request)
+    await askForLink(request, email)
+    await signIn(page, email)
     await page.route('**/revoke-access-link', (route) => route.abort())
 
     const dialog = await askToRevoke(page)
@@ -97,18 +117,44 @@ test.describe('Revoke my sign-in link', () => {
     await expect(dialog).toContainText(QUESTION)
   })
 
-  // /core/ui/header/revoked
-  test('it can be confirmed again, after a success', async ({ page, request }) => {
-    await signIn(page, await createAccount(request))
+  // /core/ui/header/leaves
+  test('after a success, the menu no longer offers it', async ({ page, request }) => {
+    const email = await createAccount(request)
+    await askForLink(request, email)
+    await signIn(page, email)
 
     const dialog = await askToRevoke(page)
     await dialog.getByRole('button', { name: 'Confirm' }).click()
     await expect(dialog).toBeHidden()
 
-    const again = await askToRevoke(page)
-    await again.getByRole('button', { name: 'Confirm' }).click()
+    await page.locator('header').getByRole('button', { name: 'Alice' }).click()
+    await expect(page.getByRole('button', { name: 'Delete my account' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Revoke my sign-in link' })).toHaveCount(0)
+  })
 
-    await expect(again).toBeHidden()
-    await expect(page.getByText(REVOKED)).toBeVisible()
+  // /core/ui/header/none
+  // /core/ui/header/leaves
+  // /core/operations/revoke-my-access-link/none
+  test('from a page opened before the link was revoked elsewhere, says there is none', async ({
+    page,
+    request,
+  }) => {
+    const email = await createAccount(request)
+    await askForLink(request, email)
+    await signIn(page, email)
+    const other = await page.context().newPage()
+    await other.goto('/')
+    const elsewhere = await askToRevoke(other)
+    await elsewhere.getByRole('button', { name: 'Confirm' }).click()
+    await expect(other.getByText(REVOKED)).toBeVisible()
+
+    const dialog = await askToRevoke(page)
+    await dialog.getByRole('button', { name: 'Confirm' }).click()
+
+    await expect(page.getByText(NONE)).toBeVisible()
+    await expect(page.getByText(REVOKED)).toHaveCount(0)
+    await expect(dialog).toBeHidden()
+    await page.locator('header').getByRole('button', { name: 'Alice' }).click()
+    await expect(page.getByRole('button', { name: 'Revoke my sign-in link' })).toHaveCount(0)
   })
 })
