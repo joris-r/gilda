@@ -9,8 +9,6 @@ orders and displays.
 Each increment lists the sections it integrates, then the entries it
 settles.
 
-7. Notices: /ui/notices.
-   - The one-time notice is kept in the session, so it shows on whichever page loads next, even in another tab.
 8. My availability: /planning/ui/my-availability,
    /planning/operations/add-absence, /planning/operations/edit-absence.
    - My preferences: when saving fails, the selector keeps the value chosen though it was not saved.
@@ -68,7 +66,6 @@ settles.
 - Sign-in links: an outline item that gives an operation a new outcome (Revoke my sign-in link's "none") needs the existing tests that took the old default reworked (a user with no link used to get "revoked"); five backend tests and the e2e menu tests had to give the user a link first.
 - Sign-in links: when a change removes or makes conditional an element a screen shows, search the tests by its visible text too ("Revoke my sign-in link" in the menu tests, in both languages).
 - Sign-in links: the header's user menu reads `user.has_access_link` on every page, so later items needing the user's link state need no per-page context.
-- Stale data: `docs/README.md`'s line for ui.md now ends "name order, changed identifier"; item 7 adds "notices".
 - Orders: `web/ordering.py` holds `name_key`, which Members and My associations use; item 10's Manager's menu (`planning/pages.py`) uses it in place of `casefold`, with no edit of `docs/`, as `/ui/name-order/names` and `/planning/ui/occurrence-menu/order` already settle it.
 - Tests: search the tests by the visible text of what a change shows, in English and French, and by the helpers that build it (e.g. `label()`, the period strings of `test_the_periods_dates`), not only by the paths they cite; this increment's first Tests phase missed that test.
 - Years: My associations' registration dates now carry the year ("Thu 5 Nov 2026"), through the template helper `full_day`; the Schedule, the Occurrence menu and the other screens keep their year-less forms, which later items must not read as changed.
