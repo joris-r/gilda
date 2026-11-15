@@ -1111,7 +1111,7 @@ class TestMoreWeeks:
         assert GENERIC in text
         assert "Week" not in text
 
-    # /planning/operations/general/member
+    # /planning/operations/get-schedule/member
     def test_a_non_member_sees_none_of_the_weeks(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:

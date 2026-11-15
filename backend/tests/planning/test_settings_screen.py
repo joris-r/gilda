@@ -487,7 +487,7 @@ class TestAddingASlot:
         assert GENERIC in text
         assert slots_shown(client, planning.slug) == []
 
-    # /planning/operations/general/manager
+    # /planning/operations/add-slot/manager
     def test_a_volunteer_adds_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -495,8 +495,7 @@ class TestAddingASlot:
 
         assert slots_shown(client, planning.slug) == []
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/add-slot/manager
     def test_a_non_member_adds_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -629,7 +628,7 @@ class TestEditingASlot:
         assert slots_shown(client, planning.slug) == []
         assert slots_shown(client, other["slug"]) == ["Saturday 14:00–18:00"]
 
-    # /planning/operations/general/manager
+    # /planning/operations/edit-slot/manager
     def test_a_volunteer_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -638,8 +637,7 @@ class TestEditingASlot:
 
         assert slots_shown(client, planning.slug) == ["Thursday 10:00–13:00"]
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/edit-slot/manager
     def test_a_non_member_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -717,7 +715,7 @@ class TestDeletingASlot:
 
         assert slots_shown(client, other["slug"]) == ["Saturday 14:00–18:00"]
 
-    # /planning/operations/general/manager
+    # /planning/operations/delete-slot/manager
     def test_a_volunteer_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -726,8 +724,7 @@ class TestDeletingASlot:
 
         assert slots_shown(client, planning.slug) == ["Thursday 10:00–13:00"]
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/delete-slot/manager
     def test_a_non_member_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         slot = planning.add_slot("thursday", "10:00", "13:00")
@@ -971,7 +968,7 @@ class TestSettingThePlanningPeriod:
         assert GENERIC in text
         assert "None" in period_shown(client, planning.slug)
 
-    # /planning/operations/general/manager
+    # /planning/operations/set-planning-period/manager
     def test_a_volunteer_sets_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -979,8 +976,7 @@ class TestSettingThePlanningPeriod:
 
         assert "None" in period_shown(client, planning.slug)
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/set-planning-period/manager
     def test_a_non_member_sets_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -1019,7 +1015,7 @@ class TestClearingThePlanningPeriod:
         assert "None" in period_shown(client, planning.slug)
         assert "Clear the period" not in section_html(client, planning.slug, "Planning period")
 
-    # /planning/operations/general/manager
+    # /planning/operations/clear-planning-period/manager
     def test_a_volunteer_clears_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         with_period(planning)
@@ -1028,8 +1024,7 @@ class TestClearingThePlanningPeriod:
 
         assert PERIOD_SHOWN in period_shown(client, planning.slug)
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/clear-planning-period/manager
     def test_a_non_member_clears_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         with_period(planning)
@@ -1300,7 +1295,7 @@ class TestAddingAClosure:
         assert GENERIC in text
         assert closures_shown(client, planning.slug) == []
 
-    # /planning/operations/general/manager
+    # /planning/operations/add-closure/manager
     def test_a_volunteer_adds_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -1308,8 +1303,7 @@ class TestAddingAClosure:
 
         assert closures_shown(client, planning.slug) == []
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/add-closure/manager
     def test_a_non_member_adds_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
 
@@ -1435,7 +1429,7 @@ class TestEditingAClosure:
         assert closures_shown(client, planning.slug) == []
         assert closures_shown(client, other["slug"]) == [FETE]
 
-    # /planning/operations/general/manager
+    # /planning/operations/edit-closure/manager
     def test_a_volunteer_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
@@ -1445,8 +1439,7 @@ class TestEditingAClosure:
 
         assert closures_shown(client, planning.slug) == [FETE]
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/edit-closure/manager
     def test_a_non_member_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
@@ -1529,7 +1522,7 @@ class TestDeletingAClosure:
 
         assert closures_shown(client, other["slug"]) == [FETE]
 
-    # /planning/operations/general/manager
+    # /planning/operations/delete-closure/manager
     def test_a_volunteer_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
@@ -1538,8 +1531,7 @@ class TestDeletingAClosure:
 
         assert closures_shown(client, planning.slug) == [FETE]
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/delete-closure/manager
     def test_a_non_member_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         closure = planning.add_closure("2026-11-14", "2026-11-14", "Fête du quartier")
@@ -1954,8 +1946,7 @@ class TestChoosingAMembersPreference:
 
         assert stored(planning) == {("Chloé", THU, "possible")}
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/set-preference/member
     def test_a_non_member_sets_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         thursday = planning.add_slot("thursday", "10:00", "13:00")

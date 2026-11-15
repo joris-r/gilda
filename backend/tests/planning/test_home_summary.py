@@ -697,7 +697,7 @@ class TestConfirm:
         assert "window.location" in text
         assert bruno_lines(planning) == [proposed_line(1)]
 
-    # /planning/operations/general/member
+    # /planning/operations/change-registration/member
     def test_a_non_member_changes_nothing(
         self, planning: Planning, new_client: Callable[[], Any]
     ) -> None:
@@ -791,7 +791,7 @@ class TestOk:
         assert "window.location" in text
         assert bruno_lines(planning) == [obsolete_line(5)]
 
-    # /planning/operations/general/member
+    # /planning/operations/change-registration/member
     def test_a_non_member_changes_nothing(
         self, planning: Planning, new_client: Callable[[], Any]
     ) -> None:

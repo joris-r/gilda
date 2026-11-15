@@ -263,7 +263,7 @@ class TestMenu:
         assert GENERIC in text
         assert "Sign up" not in text
 
-    # /planning/operations/general/member
+    # /planning/operations/get-schedule/member
     def test_a_non_member_is_offered_nothing(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -985,7 +985,7 @@ class TestSignUp:
         assert GENERIC in text
         assert day_shown(client, planning.slug, thursday) == "[]"
 
-    # /planning/operations/general/member
+    # /planning/operations/register/member
     def test_a_non_member_registers_no_one(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1161,7 +1161,7 @@ class TestPropose:
         assert GENERIC in text
         assert day_shown(client, planning.slug, thursday) == "[]"
 
-    # /planning/operations/general/member
+    # /planning/operations/register/member
     def test_a_non_member_registers_no_one(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1302,7 +1302,7 @@ class TestConfirm:
         assert "window.location" in text
         assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"
 
-    # /planning/operations/general/member
+    # /planning/operations/change-registration/member
     def test_a_non_member_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning, thursday, registration = proposed_to_bruno(client, new_client)
 
@@ -1500,7 +1500,7 @@ class TestCancelRegistration:
         assert "window.location" in text
         assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"
 
-    # /planning/operations/general/member
+    # /planning/operations/change-registration/member
     def test_a_non_member_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning, thursday, registration = proposed_to_bruno(client, new_client)
 

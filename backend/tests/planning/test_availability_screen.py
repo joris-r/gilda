@@ -461,8 +461,7 @@ class TestChoosingAPreference:
         assert GENERIC in text
         assert preferences_stored(client, other["slug"]) == set()
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/set-preference/member
     def test_a_non_member_sets_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         thursday = planning.add_slot("thursday", "10:00", "13:00")
@@ -470,6 +469,17 @@ class TestChoosingAPreference:
         set_my_preference(other_user(new_client), planning.slug, thursday["id"], "preferred")
 
         assert stored(planning) == set()
+
+    # /planning/operations/delete-preference/member
+    def test_a_non_member_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        thursday = planning.add_slot("thursday", "10:00", "13:00")
+        chosen(planning, planning.bruno_client, thursday, "preferred")
+
+        text = shown(set_my_preference(other_user(new_client), planning.slug, thursday["id"], ""))
+
+        assert GENERIC in text
+        assert stored(planning) == {("Bruno", THU, "preferred")}
 
     # /core/ui/access/action
     # /core/operations/general/signed-out
@@ -810,8 +820,7 @@ class TestAddingAnAbsence:
         assert GENERIC in text
         assert absences_stored(planning) == set()
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/add-absence/member
     # /planning/model/absence/member
     def test_a_non_member_adds_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
@@ -929,8 +938,7 @@ class TestEditingAnAbsence:
         assert absences_shown(client, planning.slug) == []
         assert absences_shown(client, other["slug"]) == [NOV]
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/edit-absence/member
     def test_a_non_member_changes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         absence = add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
@@ -1031,8 +1039,7 @@ class TestDeletingAnAbsence:
         assert GENERIC in text
         assert absences_shown(client, other["slug"]) == [NOV]
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/delete-absence/member
     def test_a_non_member_deletes_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
         absence = add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
@@ -1250,8 +1257,7 @@ class TestSavingTheNote:
         assert GENERIC in text
         assert notes_stored(planning)[planning.bruno["id"]] == NOTE
 
-    # /planning/operations/general/member
-    # /core/operations/general/unknown-association
+    # /planning/operations/set-note/member
     # /planning/model/note/member
     def test_a_non_member_saves_nothing(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)
