@@ -1,6 +1,7 @@
 <div id="sign-up">
   <h1>{{ t("signUp.title") }}</h1>
   <p>{{ t("signUp.checkEmail", email=email) }}</p>
+  {# No retry: a request that failed is sent again only when the user acts again. #}
   <button type="button" class="link" data-on:click="@post('/signup/resend', {filterSignals: {include: /^email$/}, retryMaxCount: 0})">{{ t("signUp.resend") }}</button>
   <p id="sign-up-resent" hidden></p>
 </div>

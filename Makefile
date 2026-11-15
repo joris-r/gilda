@@ -39,7 +39,7 @@ test-e2e: services-up ## Run the end-to-end tests
 	cd e2e && npm test
 
 lint: ## Run every quality check, changing nothing
-	cd backend && uv run ruff check && uv run ruff format --check && uv run mypy
+	cd backend && uv run ruff check && uv run ruff format --check && uv run mypy && uv run python scripts/check_datastar_once.py
 
 format: ## Fix lint and formatting where possible
 	cd backend && uv run ruff check --fix && uv run ruff format

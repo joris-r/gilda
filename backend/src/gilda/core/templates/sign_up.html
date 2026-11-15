@@ -2,6 +2,7 @@
 {% block main %}
 <div id="sign-up">
   <h1>{{ t("signUp.title") }}</h1>
+  {# No retry: a request that failed is sent again only when the user acts again. #}
   <form class="panel" data-on:submit="@post('/signup', {filterSignals: {exclude: /^language$/}, retryMaxCount: 0})">
     <label>
       {{ t("fields.displayName") }}

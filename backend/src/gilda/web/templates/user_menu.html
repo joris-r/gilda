@@ -4,6 +4,7 @@
   {% include "language_selector.html" %}
   <button type="button" class="link" commandfor="revoke-access-link" command="show-modal">{{ t("accessLink.revoke") }}</button>
   <button type="button" class="link" commandfor="delete-account" command="show-modal">{{ t("account.delete") }}</button>
+  {# No retry: a request that failed is sent again only when the user acts again. #}
   <button type="button" class="link" data-on:click="@post('/sign-out', {retryMaxCount: 0})">{{ t("signOut") }}</button>
 </div>
 {{ confirmation("revoke-access-link", t("accessLink.confirmRevoke"), t("accessLink.confirm"), "/revoke-access-link") }}

@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
 {% block main %}
+{# No retry: a request that failed is sent again only when the page opens again. #}
 <div id="verify-email" data-init='@post("/verify-email", {payload: {token: {{ token|tojson }}}, retryMaxCount: 0})'></div>
 {% endblock %}

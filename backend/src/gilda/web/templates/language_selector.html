@@ -1,5 +1,6 @@
 <label>
   {{ t("language") }}
+  {# No retry: a request that failed is sent again only when the user acts again. #}
   <select
     data-bind:language
     data-on:change="@post('/language', {filterSignals: {include: /^language$/}, retryMaxCount: 0})"

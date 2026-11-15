@@ -78,7 +78,8 @@
     one test per scenario of `scenarios.md`. Tests check text and
     behavior, never screenshots or appearance.
   - Quality: ruff (lint and format) and mypy in strict mode for the
-    backend.
+    backend; a check that every Datastar action in the templates sets
+    `retryMaxCount: 0`.
   - Every run of each suite (pytest, Playwright) reports its total
     duration and its ten slowest tests.
   - All tests and quality checks pass before every hand-over.

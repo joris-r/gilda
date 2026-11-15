@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block main %}
 <h1>{{ t("signIn.title") }}</h1>
+{# No retry: a request that failed is sent again only when the user acts again. #}
 <form class="panel" data-on:submit="@post('/sign-in', {filterSignals: {exclude: /^language$/}, retryMaxCount: 0})">
   <label>
     {{ t("fields.email") }}

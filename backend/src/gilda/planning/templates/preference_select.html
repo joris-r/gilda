@@ -1,5 +1,6 @@
 {# The selector of the member's own preference on `slot`, which saves at once. #}
 {% set value = values.get(slot.id) %}
+{# No retry: a request that failed is sent again only when the user acts again. #}
 <select
   id="preference-{{ slot.id }}"
   {% if value %}class="preference-{{ value }}"{% endif %}
