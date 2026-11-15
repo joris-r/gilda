@@ -2,38 +2,35 @@
 
 ## Add closure
 
-× - [order] Last before first: refused.
-1. [order] Last before first: refused.
-2. [past] Last before today: refused.
+2. [order] Last before first: refused. …
+3. [past] Last before today: refused.
 
 ## Edit closure
 
-2. [order] Last before first: refused. …
-3. [past] Last before today: refused.
+3. [order] Last before first: refused. …
+4. [past] Last before today: refused.
 
 ## Add absence
 
-× - [order] Last before first: refused.
-1. [order] Last before first: refused.
-2. [past] Last before today: refused.
-3. [overlap] One of the signed-in user's absences in this association
-   covers a date from first to last that is today or later: refused.
+2. [order] Last before first: refused. …
+3. [past] Last before today: refused.
+4. [overlap] One of the user's absences in this association covers a
+   date from first to last that is today or later: refused.
 
 ## Edit absence
 
-2. [order] Last before first: refused. …
-3. [past] Last before today: refused.
-4. [overlap] Another of the signed-in user's absences in this
-   association covers a date from first to last that is today or
-   later: refused.
+3. [order] Last before first: refused. …
+4. [past] Last before today: refused.
+5. [overlap] Another of the user's absences in this association
+   covers a date from first to last that is today or later: refused.
 
 ## Set note
 
-× - [set] The signed-in user's note in the association is the text,
-×   replacing the previous one.
-- [set] The signed-in user's note in the association is the text
-  without its leading and trailing spaces, tabs and line breaks,
-  replacing the previous one.
+× 2. [set] Otherwise: the user's note in the association is the text,
+×    replacing the previous one.
+2. [set] Otherwise: the user's note in the association is the text
+   without its leading and trailing spaces, tabs and line breaks,
+   replacing the previous one.
 
 ## Get schedule
 
@@ -52,15 +49,16 @@ between two dates, both included.
 - `replacing: optional /planning/model/registration`, the registration
   it replaces.
 
-× 1. [other] A volunteer registering another member: refused.
-1. [other] A volunteer registering another member, or with `replacing`:
-   refused.
-× 5. [taken] The occurrence already holds a registration that is not
+× 2. [other] The user is a volunteer and the member is not the user:
+×    refused.
+2. [other] The user is a volunteer, and the member is not the user or
+   `replacing` is given: refused.
+× 6. [taken] The occurrence already holds a registration that is not
 ×    cancelled: refused.
-5. [taken] The occurrence already holds a registration that is not
+6. [taken] The occurrence already holds a registration that is not
    cancelled, unless that registration is `replacing` and its user is
-   not `user`: refused.
-   the same, `proposed`. …
+   not the member: refused.
+   `proposed`. …
 
 Then:
 - [replaced] After /planning/operations/register/self or

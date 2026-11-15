@@ -9,12 +9,12 @@
 ## Revoke my access link
 
 Cases:
-× - [revoked] Signed in: the user's AccessLink, if any, is deleted, with
-×   the sessions it opened.
-- [revoked] Signed in, with an AccessLink: it is deleted, with the
+× - [revoked] The user's AccessLink, if any, is deleted, with the
+×   sessions it opened.
+- [revoked] The user has an AccessLink: it is deleted, with the
   sessions it opened.
-- [none] Signed in, without an AccessLink: nothing changes; returns
-  that there was none.
+- [none] The user has no AccessLink: nothing changes; returns that
+  there was none.
 
 ## Revoke access link
 

@@ -32,7 +32,7 @@ The summary of an association shows:
 
 Actions:
 - [confirm] "Confirm" runs /planning/operations/change-registration on
-  the registration, confirming.
+  the registration, in its association, confirming.
 - [acknowledge] "OK" runs /planning/operations/change-registration on
-  the registration, cancelling; it then no longer shows.
+  the registration, in its association, cancelling; it then no longer shows.
 - [choose] "Choose your slots" leads to the association's Schedule.

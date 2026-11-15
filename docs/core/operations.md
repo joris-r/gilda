@@ -2,22 +2,18 @@
 
 ## General
 
-The screens run every operation on the server, as the signed-in user
-of the request.
+The screens run every operation on the server: an input `user` is
+the signed-in user of the request, and an input `association` the
+association of the screen.
 
 - [refused] A refused operation changes nothing.
-- [malformed] An input missing or not of its type, a display name or
-  a name that is empty, or an email that is not valid: refused.
-- [signed-out] Signed out, every operation but Create account, Confirm
-  email, Resend confirmation, Request password reset, Check reset
-  token, Reset password, Sign in, Request access link, Sign in by
-  access link, Sign out, and the operations another domain opens
-  signed in or not: refused.
-- [unknown-association] An operation on an association that does not
-  exist, or of which the signed-in user is not a member: refused.
-- [manager] Update association, Delete association, Add member, Change
-  role, Remove member, Send access link and Revoke access link require
-  a manager of the association: a volunteer's is refused.
+- [malformed] An input other than `user` and `association` missing or
+  not of its type, a display name or a name that is empty, or an email
+  that is not valid: refused.
+- [signed-out] Signed out, an operation with an input `user`:
+  refused.
+- [unknown-association] An input `association` that does not exist:
+  refused.
 
 ## Initial state
 
@@ -128,11 +124,13 @@ Then:
 
 ## Delete account
 
+Inputs:
+- `user: /core/model/user`
+
 Cases:
-- [deleted] Signed in:
-  - the user's `deleted_at` is set to now, their email and password
-    to none, and their tokens, AccessLink and sessions deleted;
-  - each of their memberships ends.
+- [deleted] The user's `deleted_at` is set to now, their email and
+  password to none, their tokens, AccessLink and sessions deleted, and
+  each of their memberships ends.
   - [last-manager] In an association where the user was the only
     manager, every remaining member becomes a manager.
 
@@ -184,9 +182,12 @@ Then:
 
 ## Revoke my access link
 
+Inputs:
+- `user: /core/model/user`
+
 Cases:
-- [revoked] Signed in: the user's AccessLink, if any, is deleted, with
-  the sessions it opened.
+- [revoked] The user's AccessLink, if any, is deleted, with the
+  sessions it opened.
 
 ## Sign out
 
@@ -196,6 +197,7 @@ Cases:
 ## Create association
 
 Inputs:
+- `user: /core/model/user`
 - `name: string`
 - `slug: string`
 
@@ -206,21 +208,23 @@ Cases:
 
 Then:
 - [created] After no refusal: an association is stored with the name,
-  the slug and the timezone, and the signed-in user becomes its
-  manager.
+  the slug and the timezone, and the user becomes its manager.
 
 ## Update association
 
 Changes the name or the slug.
 
 Inputs:
+- `user: /core/model/user`
+- `association: /core/model/association`
 - `name: optional string`
 - `slug: optional string`
 
 Cases:
-- [malformed-slug] Slug given, without the format of
-  /core/model/association/slug-format: refused.
-- [taken] Slug given, of another association or `new`: refused.
+1. [manager] The user is not a manager of the association: refused.
+2. [malformed-slug] Slug given, without the format of
+   /core/model/association/slug-format: refused.
+3. [taken] Slug given, of another association or `new`: refused.
 
 Then:
 - [changed] After no refusal:
@@ -232,23 +236,32 @@ Then:
 
 ## Delete association
 
+Inputs:
+- `user: /core/model/user`
+- `association: /core/model/association`
+
 Cases:
-- [deleted] The association and its memberships are erased.
-  - [silent] Its members stay users, in their other associations if
-    any, and are not told.
+1. [manager] The user is not a manager of the association: refused.
+2. [deleted] Otherwise: the association and its memberships are
+   erased.
+   - [silent] Its members stay users, in their other associations if
+     any, and are not told.
 
 ## Add member
 
 Inputs:
+- `user: /core/model/user`
+- `association: /core/model/association`
 - `display_name: string`
 - `email: string`
 - `role: one of manager, volunteer`
 
 Cases:
-1. [already] A member of the association has this email: refused.
-2. [existing-user] A user has this email: that user becomes a member
+1. [manager] The user is not a manager of the association: refused.
+2. [already] A member of the association has this email: refused.
+3. [existing-user] A user has this email: that user becomes a member
    with the role, their display name unchanged.
-3. [new-user] Otherwise: a user without a password is stored with the
+4. [new-user] Otherwise: a user without a password is stored with the
    display name and email, email not verified, and becomes a member
    with the role.
 
@@ -256,12 +269,16 @@ Cases:
 
 Inputs:
 - `user: /core/model/user`
+- `association: /core/model/association`
+- `member: /core/model/user`
 - `role: one of manager, volunteer`
 
 Cases:
-- [not-member] The user is not a member: refused.
-- [last-manager] The user is the only manager and the role is
-  `volunteer`: refused.
+1. [manager] The user is not a manager of the association: refused.
+2. [not-member] The member is not a member of the association:
+   refused.
+3. [last-manager] The member is the only manager and the role is
+   `volunteer`: refused.
 
 Then:
 - [changed] After no refusal: the member takes the role.
@@ -270,37 +287,49 @@ Then:
 
 Inputs:
 - `user: /core/model/user`
+- `association: /core/model/association`
+- `member: /core/model/user`
 
 Cases:
-- [not-member] The user is not a member: refused.
-- [last-manager] The user is the only manager: refused.
+1. [manager] The user is not a manager of the association: refused.
+2. [not-member] The member is not a member of the association:
+   refused.
+3. [last-manager] The member is the only manager: refused.
 
 Then:
-- [removed] After no refusal: the membership ends. A manager may remove
-  themself.
+- [removed] After no refusal: the member's membership ends, also when
+  the member is the user.
 
 ## Send access link
 
 Inputs:
 - `user: /core/model/user`
+- `association: /core/model/association`
+- `member: /core/model/user`
 
 Cases:
-1. [not-member] The user is not a member: refused.
-2. [not-sent] The email cannot be sent: refused.
+1. [manager] The user is not a manager of the association: refused.
+2. [not-member] The member is not a member of the association:
+   refused.
+3. [not-sent] The email cannot be sent: refused.
 
 Then:
 - [sent] After no refusal: the member is sent the email of
   /core/operations/request-access-link/sent, in the language of
-  /core/operations/create-account/language set by the manager's
+  /core/operations/create-account/language set by the user's
   request, as /core/operations/request-access-link/same.
 
 ## Revoke access link
 
 Inputs:
 - `user: /core/model/user`
+- `association: /core/model/association`
+- `member: /core/model/user`
 
 Cases:
-- [not-member] The user is not a member: refused.
+1. [manager] The user is not a manager of the association: refused.
+2. [not-member] The member is not a member of the association:
+   refused.
 
 Then:
 - [revoked] After no refusal: the member's AccessLink is revoked, as

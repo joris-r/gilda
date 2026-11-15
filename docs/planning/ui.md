@@ -100,8 +100,9 @@ Shows, top to bottom:
 
 Actions:
 - [set] Choosing a value saves it at once, running
-  /planning/operations/set-preference for the user and the slot, with
-  the value; "—" runs /planning/operations/delete-preference.
+  /planning/operations/set-preference with the user as member, the
+  slot and the value; "—" runs /planning/operations/delete-preference
+  with the user as member and the slot.
 - [add-absence] "Add an absence" opens the dialog "Add an absence":
   From, To, [Add absence]; it runs /planning/operations/add-absence
   with the fields.
@@ -186,8 +187,8 @@ Shows:
   any to a manager: "Cancel registration…".
 
 Actions:
-- [sign-up] "Sign up" runs /planning/operations/register for the user,
-  on the occurrence.
+- [sign-up] "Sign up" runs /planning/operations/register with the user
+  as member, on the occurrence.
 - [propose] A member's name runs /planning/operations/register for
   that member, on the occurrence.
 - [taken] /planning/operations/register/taken: "Someone took this

@@ -73,7 +73,7 @@
 
 ## My availability
 
-  the value; "—" runs /planning/operations/delete-preference. …
+  with the user as member and the slot. …
   - [saved-value] While a save of the selector runs, it shows the last
     value chosen. Once none runs, it shows the value of the save that
     succeeded last, in the order the answers came, or else the value

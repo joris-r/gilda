@@ -1,10 +1,16 @@
 # Operations
 
+## General
+
+/core/operations/general applies.
+
 ## List my associations
 
-Cases:
+Inputs:
+- `user: /core/model/user`
 
-- [listed] The associations the signed-in user is a member of, each
+Cases:
+- [listed] The associations the user is a member of, each
   with their role there, their upcoming and obsolete registrations,
   and its planning period, if any.
   - [upcoming] The upcoming registrations are the user's registrations
