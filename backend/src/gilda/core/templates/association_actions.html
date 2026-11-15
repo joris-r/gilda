@@ -46,7 +46,7 @@
   </form>
   {% endcall %}
   {% call form_dialog("identifier", t("association.changeIdentifier")) %}
-  <form data-on:submit="@post('{{ at }}/identifier', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^slug$/}, retryMaxCount: 0})">
+  <form data-on:submit="@post('{{ at }}/identifier', {headers: {'X-Association': '{{ association.id }}', 'X-Tab': window.gildaTab}, filterSignals: {include: /^slug$/}, retryMaxCount: 0})">
     <label>
       {{ t("fields.associationIdentifier") }}
       <span class="slug-field">
@@ -74,7 +74,7 @@
         class="danger"
         disabled
         data-attr:disabled='$_typedName !== {{ association.name | tojson }}'
-        data-on:click="@post('{{ at }}/delete', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^$/}, retryMaxCount: 0})"
+        data-on:click="@post('{{ at }}/delete', {headers: {'X-Association': '{{ association.id }}', 'X-Tab': window.gildaTab}, filterSignals: {include: /^$/}, retryMaxCount: 0})"
       >{{ t("association.delete") }}</button>
       <button type="button" class="link" commandfor="delete-association" command="close">{{ t("dialog.cancel") }}</button>
     </div>

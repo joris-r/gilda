@@ -13,6 +13,7 @@
 
 ## Main list
 
+- Notices: claim the notice by a one-shot POST so a prefetch or retry cannot consume it (`GET /notice` consumes it today), and drop the tab-less path if the backend tests are reworked.
 - Tooling: `make format` runs `ruff format` before `ruff check --fix`, so long lines get wrapped before the check stops.
 - End-to-end: a shorter `actionTimeout`, so a suite failing on a missing screen ends fast.
 - Tests: the regex page helpers (`lines_of`, `line_of`, `section_of`…) would use an HTML parser, as `listed` does, read only the visible elements and unescape the text, so that nested lists, hidden copies and headings with an apostrophe read right.

@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import date
 from pathlib import Path
 from typing import Any, cast
@@ -12,6 +13,11 @@ from gilda.mailer import Language, preferred_language
 LANGUAGE_COOKIE = "language"
 LANGUAGES: tuple[Language, ...] = ("en", "fr")
 _NOTICE_KEY = "notice"
+_NOTICE_TAB_KEY = "notice_tab"
+_NOTICE_TIME_KEY = "notice_time"
+_NOTICE_KEYS = (_NOTICE_KEY, _NOTICE_TAB_KEY, _NOTICE_TIME_KEY)
+_NOTICE_LIFETIME = 60  # seconds a notice kept for a tab waits for its screen
+_TAB_HEADER = "x-tab"
 
 _LOCALES = Path(__file__).parent / "locales"
 _TRANSLATIONS: dict[str, dict[str, Any]] = {
@@ -135,17 +141,49 @@ def _context(request: Request[Any, Any, Any], context: dict[str, Any]) -> dict[s
 
 
 def flash(request: Request[Any, Any, Any], message: str) -> None:
-    """Keeps `message` for the next page the user opens, which shows it as its notice."""
-    request.set_session({**(request.session or {}), _NOTICE_KEY: message})
+    """Keeps `message` for the screen the action leads to, in the tab that ran it.
+
+    A browser's action names its tab in `X-Tab`; a request with none leaves the notice for
+    the next page opened.
+    """
+    tab = request.headers.get(_TAB_HEADER, "")
+    request.set_session(
+        {
+            **(request.session or {}),
+            _NOTICE_KEY: message,
+            _NOTICE_TAB_KEY: tab,
+            _NOTICE_TIME_KEY: time.time(),
+        }
+    )
+
+
+def _stale(session: Any) -> bool:
+    """Whether a notice kept for a tab has waited too long for its screen."""
+    return bool(time.time() - session.get(_NOTICE_TIME_KEY, 0) > _NOTICE_LIFETIME)
+
+
+def claim_notice(request: Request[Any, Any, Any]) -> str:
+    """The notice kept for the tab named in `X-Tab`, which it consumes; else empty."""
+    session = request.session or {}
+    tab = request.headers.get(_TAB_HEADER, "")
+    notice = session.get(_NOTICE_KEY, "")
+    if not (notice and tab and session.get(_NOTICE_TAB_KEY) == tab and not _stale(session)):
+        return ""
+    request.set_session({k: v for k, v in session.items() if k not in _NOTICE_KEYS})
+    return str(notice)
 
 
 def page(request: Request[Any, Any, Any], template: str, **context: Any) -> Template:
-    """A full page, with the notice kept for it, if any."""
+    """A full page; it shows the notice kept for no tab, and asks for the one kept for a tab."""
     session = request.session or {}
     notice = session.get(_NOTICE_KEY, "")
-    if notice:
-        request.set_session({k: v for k, v in session.items() if k != _NOTICE_KEY})
-    return Template(template, context=_context(request, {"notice": notice, **context}))
+    for_tab = bool(session.get(_NOTICE_TAB_KEY))
+    pending = bool(notice and for_tab and not _stale(session))
+    if notice and not pending:
+        request.set_session({k: v for k, v in session.items() if k not in _NOTICE_KEYS})
+    shown = "" if for_tab else notice
+    context = {"notice": shown, "notice_pending": pending, **context}
+    return Template(template, context=_context(request, context))
 
 
 def fragment(request: Request[Any, Any, Any], template: str, **context: Any) -> str:

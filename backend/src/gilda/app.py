@@ -78,7 +78,7 @@ from gilda.planning.pages import (
     shared_schedule_page,
 )
 from gilda.planning.services import end_membership as end_planning_membership
-from gilda.web.pages import choose_language, not_found
+from gilda.web.pages import choose_language, kept_notice, not_found
 
 
 def membership_end_hooks() -> list[MembershipEndHook]:
@@ -160,6 +160,7 @@ def create_app() -> Litestar:
             verify_email_page,
             verify_email,
             choose_language,
+            kept_notice,
         ],
         dependencies={
             "membership_end_hooks": Provide(membership_end_hooks, sync_to_thread=False),

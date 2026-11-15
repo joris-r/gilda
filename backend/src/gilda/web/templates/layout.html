@@ -6,6 +6,15 @@
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/style.css">
     <script type="module" src="/static/datastar.js"></script>
+    <script>
+      try {
+        window.gildaTab = sessionStorage.getItem('tab') || crypto.randomUUID()
+        sessionStorage.setItem('tab', window.gildaTab)
+      } catch (e) {
+        window.name = window.name || crypto.randomUUID()
+        window.gildaTab = window.name
+      }
+    </script>
     <title>Gilda</title>
   </head>
   <body>
@@ -24,6 +33,7 @@
       <main>
         {% block main %}{% endblock %}
         <p id="notice" role="status"{% if not notice %} hidden{% endif %}>{{ notice }}</p>
+        {% if notice_pending %}<div data-init="@get('/notice', {headers: {'X-Tab': window.gildaTab}, retryMaxCount: 0})"></div>{% endif %}
         <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
         {% block after_error %}{% endblock %}
       </main>
