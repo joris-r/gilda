@@ -87,7 +87,7 @@ def format_days(language: Language, first: date, last: date) -> str:
 
 def format_period(language: Language, first: date, last: date) -> str:
     """Days from `first` to `last` without their weekdays, joined by an en dash, with a year or a
-    month they share written once, as R14's reminder shows them."""
+    month they share written once, as My associations' reminder shows them."""
 
     def day_month(value: date) -> str:
         return f"{value.day} {translate(language, f'dates.months.{value.month}')}"

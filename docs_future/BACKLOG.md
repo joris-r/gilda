@@ -20,6 +20,7 @@
 - Tests: the pytest tests that find a dialog by its position on the page would find it by its name.
 - Tests: strengthen weak existing tests found by the migration: the e2e share-link revoke test never asserts "None", the only-member account deletion asserts only status 200, and the Schedule's date order is checked only through the column layout.
 - End-to-end: a helper would look up a display name on the Schedule within the menu (`#occurrence-menu`), since occurrences are buttons named after their registrations.
+- Process: CLAUDE.md would gain a rule to search tests by the visible text (English and French) and by the helpers that build it, not only by cited paths (missed twice: polish-forms, polish-name-order).
 - Process: CLAUDE.md would gain three test rules: a test looks for text within the section or dialog it means, or for its visible copy (replacing the rule on the generic error's hidden copies); a test asserting only an absence also asserts something present; tests read from the database only what no screen shows (ids, rows already erased).
 - Config: rename `FRONTEND_URL`, a name left from the former frontend, to the site's address (e.g. `SITE_URL`), in the code, the README and the hosting provider's settings, alongside another deploy change.
 - Access pages: when Confirm email succeeds on the server but its answer never reaches the browser, [Try again] shows "This link is no longer valid." though the email is confirmed; a pointer to Sign in there would help.
