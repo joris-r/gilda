@@ -33,7 +33,13 @@ from gilda.planning.schemas import (
     SlotCreate,
     Status,
 )
-from gilda.planning.services import PlanningService, TakenException
+from gilda.planning.services import (
+    AbsenceOrderException,
+    AbsenceOverlapException,
+    AbsencePastException,
+    PlanningService,
+    TakenException,
+)
 from gilda.web.rendering import (
     association_ref,
     format_day,
@@ -46,6 +52,12 @@ from gilda.web.rendering import (
 
 # An action that fails on these shows the generic error.
 _REFUSALS = (ClientException, NotFoundException, PermissionDeniedException)
+_ABSENCE_MESSAGES = {
+    AbsenceOrderException: "availability.absenceOrder",
+    AbsencePastException: "availability.absencePast",
+    AbsenceOverlapException: "availability.absenceOverlap",
+}
+_ABSENCE_REFUSALS = tuple(_ABSENCE_MESSAGES)
 
 
 @get("/association/{slug:str}/settings")
@@ -591,16 +603,11 @@ async def choose_preference(
             await service.delete_preference(user, association.id, slot.id, user.id)
     except _REFUSALS:
         return _error(request, error_id, "error")
-    shown = fragment(
-        request,
-        "preference_select.html",
-        association=association,
-        slot=slot,
-        values=await _own_preferences(service, user, association.id),
-    )
     return DatastarResponse(
         [
-            ServerSentEventGenerator.patch_elements(_one_line(shown)),
+            ServerSentEventGenerator.execute_script(
+                f"gildaPreferenceSaved('preference-{slot.id}', '{value}')"
+            ),
             ServerSentEventGenerator.patch_elements(
                 fragment(request, "form_error.html", message="", error_id=error_id)
             ),
@@ -660,6 +667,8 @@ async def add_absence(
             user, association_ref(request, slug)
         )
         await PlanningService(db_session).add_absence(user, association.id, asked.first, asked.last)
+    except _ABSENCE_REFUSALS as refusal:
+        return _error(request, error_id, _ABSENCE_MESSAGES[type(refusal)])
     except _REFUSALS:
         return _error(request, error_id, "error")
     return await _absences_patched(request, db_session, user, association, "add-absence")
@@ -687,6 +696,8 @@ async def edit_absence(
         await PlanningService(db_session).edit_absence(
             user, association.id, _absence_id(absence_id), asked.first, asked.last
         )
+    except _ABSENCE_REFUSALS as refusal:
+        return _error(request, error_id, _ABSENCE_MESSAGES[type(refusal)])
     except _REFUSALS:
         return _error(request, error_id, "error")
     return await _absences_patched(request, db_session, user, association, "edit-absence")

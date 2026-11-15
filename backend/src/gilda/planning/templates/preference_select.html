@@ -1,11 +1,13 @@
 {# The selector of the member's own preference on `slot`, which saves at once. #}
 {% set value = values.get(slot.id) %}
-{# No retry: a request that failed is sent again only when the user acts again. #}
+{# @dev43:unsure #}
+{# No retry: a request that failed is sent again only when the user acts again. The requests of one selector do not cancel each other: the script of availability.html shows the value of the save answered last. #}
 <select
   id="preference-{{ slot.id }}"
+  data-saved="{{ value or '' }}"
   {% if value %}class="preference-{{ value }}"{% endif %}
   aria-label="{{ t('weekdays.' ~ slot.weekday) }} {{ slot.start }}–{{ slot.end }}"
-  data-on:change="$value = el.value; @post('/association/{{ association.slug }}/availability/preferences/{{ slot.id }}', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^value$/}, retryMaxCount: 0})"
+  data-on:change="$value = el.value; @post('/association/{{ association.slug }}/availability/preferences/{{ slot.id }}', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^value$/}, retryMaxCount: 0, requestCancellation: 'disabled'})"
 >
   <option value=""{% if not value %} selected{% endif %}>{{ t("settings.noPreference") }}</option>
   {% for choice in ["preferred", "possible", "unavailable"] %}

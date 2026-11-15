@@ -57,6 +57,18 @@ UPCOMING_DAYS = 27
 SCHEDULE_WEEKS = 6
 
 
+class AbsenceOrderException(ConflictException):
+    pass
+
+
+class AbsencePastException(ConflictException):
+    pass
+
+
+class AbsenceOverlapException(ConflictException):
+    pass
+
+
 class TakenException(ConflictException):
     """The occurrence already holds a registration that is not cancelled (R4)."""
 
@@ -86,8 +98,6 @@ def closure_read(closure: Closure) -> ClosureRead:
 
 
 def set_absence(absence: Absence, first: date, last: date) -> None:
-    if last < first:
-        raise ClientException("The last date must not be before the first.")
     absence.first, absence.last = first, last
 
 
@@ -344,7 +354,8 @@ class PlanningService:
     async def add_absence(
         self, user: User, association_id: UUID, first: date, last: date
     ) -> AbsenceRead:
-        await self._membership_of(user, association_id)
+        membership = await self._membership_of(user, association_id)
+        await self._check_absence_dates(membership, first, last, None)
         absence = Absence(association_id=association_id, user_id=user.id)
         set_absence(absence, first, last)
         return absence_read(await self.absences.add(absence))
@@ -353,8 +364,27 @@ class PlanningService:
         self, user: User, association_id: UUID, absence_id: UUID, first: date, last: date
     ) -> AbsenceRead:
         absence = await self._absence(user, association_id, absence_id)
+        membership = await self._membership_of(user, association_id)
+        await self._check_absence_dates(membership, first, last, absence.id)
         set_absence(absence, first, last)
         return absence_read(await self.absences.update(absence))
+
+    async def _check_absence_dates(
+        self, membership: Membership, first: date, last: date, own_id: UUID | None
+    ) -> None:
+        if last < first:
+            raise AbsenceOrderException("The last date must not be before the first.")
+        today = datetime.now(ZoneInfo(membership.association.timezone)).date()
+        if last < today:
+            raise AbsencePastException("The last date must not be before today.")
+        others = await self.absences.list(
+            Absence.first <= last,
+            Absence.last >= max(first, today),
+            association_id=membership.association_id,
+            user_id=membership.user_id,
+        )
+        if any(other.id != own_id for other in others):
+            raise AbsenceOverlapException("This absence overlaps another one.")
 
     async def delete_absence(self, user: User, association_id: UUID, absence_id: UUID) -> None:
         absence = await self._absence(user, association_id, absence_id)
