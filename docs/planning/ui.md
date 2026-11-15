@@ -9,8 +9,9 @@ At `/association/<slug>/settings`; mockup in
 
 Shows, top to bottom:
 - [period] PLANNING PERIOD: its dates, or "None".
-- [closures] CLOSURES: each closure's dates and label, by first date,
-  or "None".
+- [closures] CLOSURES: the closures ending today or later, each with
+  its dates and label, by first date, or "None"; earlier ones do not
+  show.
 - [slots] SLOTS: each slot's weekday and times, by weekday, then
   start, or "None".
 - [share-link] To managers only, SHARE LINK: the link, or "None". In
@@ -29,20 +30,37 @@ Actions:
 - [edit-period] The period's edit icon opens the dialog "Planning
   period": From, To, [Save]; it runs
   /planning/operations/set-planning-period with the fields.
+  - [period-order] /planning/operations/set-planning-period/order: "The
+    end date can't be before the start date."
 - [clear-period] The period's delete icon shows only when a period is
   set; it asks "Clear the planning period?" with [Clear], which runs
   /planning/operations/clear-planning-period.
 - [add-closure] "Add a closure" opens the dialog "Add a closure": From,
   To, Label, [Add closure]; it runs /planning/operations/add-closure
   with the fields.
+  - [closure-order] /planning/operations/add-closure/order: "The end
+    date can't be before the start date."
+  - [closure-past] /planning/operations/add-closure/past: "The end date
+    can't be before today."
+  - [closure-warning] The dialog shows "Registrations on its dates,
+    from today on, become obsolete."
 - [edit-closure] A closure's edit icon opens the dialog "Edit the
   closure", filled with the closure, with [Save]; it runs
   /planning/operations/edit-closure for it, with the fields.
+  - [edit-closure-order] /planning/operations/edit-closure/order: "The
+    end date can't be before the start date."
+  - [edit-closure-past] /planning/operations/edit-closure/past: "The
+    end date can't be before today."
+  - [edit-closure-warning] The dialog shows "Registrations on its new
+    dates, from today on, become obsolete; those on the dates it no
+    longer covers may stop being obsolete."
 - [delete-closure] A closure's delete icon asks "Delete the closure
-  "<label>"?", or "Delete the closure of <first date>?", e.g. "Delete the closure of
-  Sat 14 Nov 2026?", without a label,
-  with [Delete], which runs /planning/operations/delete-closure for
+  "<label>"?", or, without a label, "Delete the closure of <first
+  date>?", e.g. "Delete the closure of Sat 14 Nov 2026?", with
+  [Delete], which runs /planning/operations/delete-closure for
   it.
+  - [delete-closure-warning] The question goes on with "Registrations
+    on its dates, from today on, may stop being obsolete."
 - [add-slot] "Add a slot" opens the dialog "Add a slot": Day, From,
   To, [Add slot]; it runs /planning/operations/add-slot with the
   fields.
@@ -55,26 +73,52 @@ Actions:
     /planning/ui/schedule-settings/defaults.
   - [exists] /planning/operations/add-slot/exists: "This slot already
     exists."
+  - [order] /planning/operations/add-slot/order: "The end time must be
+    after the start time."
 - [edit-slot] A slot's edit icon opens the dialog "Edit the slot",
   filled with the slot, with [Save]; From and To do not follow each
   other. It runs /planning/operations/edit-slot for it, with the
   fields.
   - [edit-exists] /planning/operations/edit-slot/exists: "This slot
     already exists."
+  - [edit-order] /planning/operations/edit-slot/order: "The end time
+    must be after the start time."
+  - [edit-warning] The dialog shows "Changing the day or times makes
+    its registrations from today on obsolete."
 - [delete-slot] A slot's delete icon asks "Delete the slot <weekday>
   <start>–<end>?" with [Delete], which runs
   /planning/operations/delete-slot for it.
+  - [delete-slot-warning] The question goes on with "Its registrations
+    from today on become obsolete, and the members' preferences on it
+    are deleted."
 - [create-link] "Create a share link" runs
   /planning/operations/create-share-link; when there is a link, it
   first asks "Replace the share link? The current link no longer shows
   the Schedule." with [Replace].
-- [copy] "Copy" copies the link and shows "Link copied."
+- [copy] "Copy" copies the link and shows "Link copied.", in place of
+  the message of an earlier Copy.
+  - [copy-failed] When the browser does not copy it: "The link
+    couldn't be copied. Select it to copy it." instead.
 - [revoke-link] The link's delete icon asks "Revoke the share link? It
   no longer shows the Schedule." with [Revoke], which runs
   /planning/operations/revoke-share-link.
 - [set-preference] A cell of "Members' preferences" saves at once, as
   /planning/ui/my-availability/set, for the row's member and the
-  column's slot.
+  column's slot, and shows its value as
+  /planning/ui/my-availability/saved-value.
+- [preferences-again] When the screen, opened by a manager, shows
+  again after being hidden, once no save of "Members' preferences"
+  runs, the first that holds:
+  1. [preferences-again-signed-out] Signed out by then: it leads to
+     Sign in.
+  2. [preferences-again-failed] The user no longer a manager of the
+     association, or failing: the screen stays as it was, with no
+     message.
+  3. [preferences-again-shown] Otherwise: "Members' preferences" shows
+     again as it now is, its members, slots and values, without a
+     reload; each selector then shows its value as
+     /planning/ui/my-availability/saved-value, with the value it
+     showed again with for the value it opened with.
 
 ## My availability
 

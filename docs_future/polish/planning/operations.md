@@ -1,15 +1,5 @@
 # Operations
 
-## Add closure
-
-2. [order] Last before first: refused. …
-3. [past] Last before today: refused.
-
-## Edit closure
-
-3. [order] Last before first: refused. …
-4. [past] Last before today: refused.
-
 ## Set note
 
 × 2. [set] Otherwise: the user's note in the association is the text,

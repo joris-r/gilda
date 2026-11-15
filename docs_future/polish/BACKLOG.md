@@ -9,20 +9,6 @@ orders and displays.
 Each increment lists the sections it integrates, then the entries it
 settles.
 
-9. Schedule settings: /planning/ui/schedule-settings,
-   /planning/operations/add-closure, /planning/operations/edit-closure,
-   design/schedule-settings.md, design/forms.md (closures may still
-   overlap, with no warning, as Schedule shows each covering closure's
-   label).
-   - Members' preferences: when saving fails, the selector keeps the value chosen though it was not saved, as in My preferences.
-   - Members' preferences: a member added on Members, or a choice made on My availability, shows only after a reload.
-   - Add a slot or Edit the slot with To not after From shows only the generic error; the former frontend said "Check the dates and times: the start comes before the end."
-   - Planning period and closures with To before From show only the generic error, as Slots do.
-   - Edit the slot and Delete the slot don't warn that the slot's registrations become obsolete, nor that deleting it deletes the members' preferences on it.
-   - Add a closure, Edit the closure and Delete the closure don't warn that the registrations on the closed dates become obsolete, or stop being obsolete.
-   - Closures may overlap each other, with no warning.
-   - Closures: past closures stay listed forever; they could be listed from those ending today on, as Absences are.
-   - Share link: "Link copied." shows even when the browser refuses the clipboard.
 10. Occurrence menu: /planning/ui/occurrence-menu,
     /planning/operations/register, /planning/operations/set-note (a
     note of only spaces already shows no note icon, by the menu's note

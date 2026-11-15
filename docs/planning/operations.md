@@ -76,6 +76,7 @@ Inputs:
 Cases:
 1. [manager] The user is not a manager of the association: refused.
 2. [order] Last before first: refused.
+3. [past] Last before today: refused.
 
 Then:
 - [added] After no refusal: a closure is stored with the dates and
@@ -95,6 +96,7 @@ Cases:
 1. [manager] The user is not a manager of the association: refused.
 2. [unknown] The closure is not of this association: refused.
 3. [order] Last before first: refused.
+4. [past] Last before today: refused.
 
 Then:
 - [edited] After no refusal: the closure takes the dates and label.
