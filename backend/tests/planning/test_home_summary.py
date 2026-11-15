@@ -461,30 +461,6 @@ class TestUpcoming:
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
 
-class TestPeriodDates:
-    # /home/ui/my-associations/dates
-    # /home/ui/my-associations/no-registration
-    @pytest.mark.parametrize(
-        ("first", "last", "dates"),
-        [
-            (-2, 21, "2–25 Nov 2026"),
-            (-2, 30, "2 Nov – 4 Dec 2026"),
-            (30, 60, "4 Dec 2026 – 3 Jan 2027"),
-            (60, 70, "3–13 Jan 2027"),
-            (0, 0, "4 Nov 2026"),
-        ],
-    )
-    def test_the_period_writes_a_year_or_a_month_they_share_once(
-        self, planning: Planning, first: int, last: int, dates: str
-    ) -> None:
-        set_period(planning, first, last)
-
-        assert (
-            f"No registration yet for the planning period, {dates}."
-            in entry(planning.bruno_client).text
-        )
-
-
 class TestNoRegistrationYet:
     # /home/ui/my-associations/no-registration
     # /home/ui/my-associations/no-upcoming
@@ -618,9 +594,10 @@ class TestNoRegistrationYet:
     @pytest.mark.parametrize(
         ("first", "last", "english", "french"),
         [
-            (-2, 21, "2–25 Nov", "2–25 nov."),
-            (-7, 21, "28 Oct – 25 Nov", "28 oct. – 25 nov."),
+            (-2, 21, "2–25 Nov 2026", "2–25 nov. 2026"),
+            (-7, 21, "28 Oct – 25 Nov 2026", "28 oct. – 25 nov. 2026"),
             (54, 65, "28 Dec 2026 – 8 Jan 2027", "28 déc. 2026 – 8 janv. 2027"),
+            (0, 0, "4 Nov 2026", "4 nov. 2026"),
         ],
     )
     def test_the_periods_dates(
