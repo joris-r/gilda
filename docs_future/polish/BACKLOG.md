@@ -67,3 +67,8 @@ settles.
 - Stale tests: the stale-screen tests are Playwright two-tab tests (`e2e/tests/changed-identifier.spec.ts`, helper `changeIdentifierElsewhere`); items 7 and 11 can reuse the pattern.
 - Notices: a later action that leads to another screen with a message calls `flash` and its POST sends `X-Tab: window.gildaTab`, or the message shows on any tab-less load.
 - Stale tests: a two-tab test can hold an action's answer with `page.route`, `route.fetch` and `fulfill` (`e2e/tests/notices.spec.ts`, `holdingTheAnswer`) to run something in another tab between the action and its redirect; items 8 to 11 can reuse it.
+- Tests: the two test suites (`make test-backend`, `make test-e2e`) share one test database and never run at once.
+- Tests: a past state (an absence that ended, a past closure or registration) cannot be reached by operations; a test moves rows into the past by SQL, as in `test_availability_screen.py`.
+- Page scripts: a script of a screen goes in a static file (`web/static/availability.js`), not inline, as the tests read the text of the sections of `main`.
+- Tests: in Playwright, the generic error within a dialog is counted with `filter({ visible: true })`, as each dialog holds a hidden copy.
+- Members' preferences (item 9): its selector needs the logic of `web/static/availability.js` (the value shown while a save runs, then the value of the save answered last), and item 9's closure and period checks can follow `_check_absence_dates` of `planning/services.py`.

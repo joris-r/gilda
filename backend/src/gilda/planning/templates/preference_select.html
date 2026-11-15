@@ -1,6 +1,5 @@
 {# The selector of the member's own preference on `slot`, which saves at once. #}
 {% set value = values.get(slot.id) %}
-{# @dev43:unsure #}
 {# No retry: a request that failed is sent again only when the user acts again. The requests of one selector do not cancel each other: the script of availability.html shows the value of the save answered last. #}
 <select
   id="preference-{{ slot.id }}"

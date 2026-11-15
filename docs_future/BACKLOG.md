@@ -13,6 +13,7 @@
 
 ## Main list
 
+- Tests: a clock injected into the services, so tests reach past states without SQL.
 - Notices: claim the notice by a one-shot POST so a prefetch or retry cannot consume it (`GET /notice` consumes it today), and drop the tab-less path if the backend tests are reworked.
 - Tooling: `make format` runs `ruff format` before `ruff check --fix`, so long lines get wrapped before the check stops.
 - End-to-end: a shorter `actionTimeout`, so a suite failing on a missing screen ends fast.

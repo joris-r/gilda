@@ -1,4 +1,3 @@
-// @dev43:unsure
 (() => {
   // A selector shows the value chosen while a save runs, then the value of the save answered last,
   // or the one it opened with: the server tells which value each successful answer saved.
