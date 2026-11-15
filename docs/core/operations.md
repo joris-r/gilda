@@ -159,11 +159,14 @@ Inputs:
 Cases:
 - [sent] A user with this email exists, with or without a password:
   /contents/sign-in-link-email is sent to them with their AccessLink,
-  stored if they have none, as a link to `/access?token=<token>`, in
-  the language of /core/operations/create-account/language.
+  stored, if they have none and the email can be sent, as a link to
+  `/access?token=<token>`, in the language of
+  /core/operations/create-account/language.
   - [same] A user who already has an AccessLink is sent the same
     link.
   - [answer] It succeeds also when the email cannot be sent.
+  - [unsent] When the email cannot be sent, a user who had no
+    AccessLink still has none.
 - [ignored] Otherwise: nothing is sent.
 
 ## Sign in by access link
@@ -186,8 +189,10 @@ Inputs:
 - `user: /core/model/user`
 
 Cases:
-- [revoked] The user's AccessLink, if any, is deleted, with the
+- [revoked] The user has an AccessLink: it is deleted, with the
   sessions it opened.
+- [none] The user has no AccessLink: nothing changes; returns that
+  there was none.
 
 ## Sign out
 
@@ -332,9 +337,11 @@ Cases:
    refused.
 
 Then:
-- [revoked] After no refusal: the member's AccessLink is revoked, as
-  /core/operations/revoke-my-access-link/revoked, in every association
-  they belong to, also when they have none.
+- [revoked] After no refusal, the member having an AccessLink: it is
+  revoked, as /core/operations/revoke-my-access-link/revoked, in every
+  association they belong to.
+- [none] After no refusal, the member having no AccessLink: nothing
+  changes; returns that there was none.
 
 ## Migrate slugs
 

@@ -118,5 +118,6 @@ Confirmations, from the edit dialog:
 
 Messages, above the list: "Chloé added.", "Chloé is now manager.",
 "Chloé's sign-in link is sent.", "Chloé's sign-in link is revoked.",
+"Chloé has no sign-in link.",
 "Chloé is removed.", "The association is now Jardin partagé des
 Lilas.", "The association identifier is now jardin-partage."

@@ -9,15 +9,6 @@ orders and displays.
 Each increment lists the sections it integrates, then the entries it
 settles.
 
-4. Sign-in links and Members: /core/operations/request-access-link,
-   /core/operations/revoke-my-access-link,
-   /core/operations/revoke-access-link, /core/ui/header,
-   /core/ui/members, design/header.md, design/members.md.
-   - Revoke my sign-in link: the menu offers it to a user who has no link, and then says "revoked"; consider showing it only when they have one.
-   - Sign-in link: when the email can't be sent, the link is still created, so the member later shows "Revoke link" for a link nobody received.
-   - Send link drops the link when the email can't be sent, but Sign-in link keeps it; align the two.
-   - Revoke link from a page opened before the member's link was revoked elsewhere still says "revoked".
-   - Rename and Delete check against the name the page was loaded with: after a rename in another tab, Delete stays disabled for the new name until a reload.
 5. Name order and My associations: /readme, /ui/name-order,
    /home/ui/my-associations, design/my-associations.md (Members follows
    the rule with no edit of its own).
@@ -86,6 +77,9 @@ settles.
 
 ## For the human
 
+- Sign-in links: Delete the association's "<name> is deleted." (`/core/ui/members/deleted-name`) uses the name the screen shows, the one Delete checks, so the UI holds it though Delete association returns no name; after a rename in another tab it is the former name.
+- Sign-in links: `/core/ui/members` [renamed], [same-name], [slug-changed] and [same-slug] branch on the association's current name or slug, a condition on the model that `ui.md` states while Update association has no same-value case; a placement point for the human to rule on.
+- Sign-in links: [leaves] (`/core/ui/header/leaves`) and [link-leaves] (`/core/ui/members/link-leaves`) follow from the item's condition and the link's deletion, and "in every association they belong to" (`/core/operations/revoke-access-link/revoked`) has no effect, as an AccessLink belongs to a user; all left as is.
 - Network retries: two saves of the same selector sent in quick succession (My preferences, Members' preferences) may still reach the server out of order, the older overwriting the newer; with no resend this needs a slow network and two changes within one request's time, so it is left unspecified.
 - Failed saves: the outline must cite domain sections (`/planning/ui/…`) for [outline], but check.py's [depends] then reports them, as BACKLOG.md counts as the top level, which declares no domain; a false positive of the Dev43 plugin, worth an issue.
 - Confirmation error: /ui/errors/kept ("What was typed stays.") does not say whether a form opened again after a failed try and Cancel keeps what was typed; /ui/forms/fresh settles only its messages, and the project backlog's Add a slot entry already touches the fields.

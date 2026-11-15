@@ -28,8 +28,8 @@ Shows:
 - [title] Signed in, the location stands for the screen's title;
   screens have no back link.
 - [menu] Signed in, at the right, the user's display name, opening a
-  menu with the language selector, "Revoke my sign-in link", "Delete
-  my account" and "Sign out".
+  menu with the language selector, "Revoke my sign-in link" when the
+  user has an AccessLink, "Delete my account" and "Sign out".
 - [signed-out] Signed out, at the right, the language selector alone.
 
 Actions:
@@ -40,6 +40,10 @@ Actions:
   Sessions opened with it are signed out." with [Confirm]; confirming
   runs /core/operations/revoke-my-access-link:
   - [revoked] it shows "Your sign-in link is revoked.";
+  - [none] /core/operations/revoke-my-access-link/none, a success: it
+    shows "You have no sign-in link.";
+  - [leaves] after either, "Revoke my sign-in link" leaves the menu at
+    once;
   - [this-session] when this session was opened with the link, it
     leads to Sign in.
 - [delete] "Delete my account" asks "Delete your account? You leave
@@ -239,9 +243,12 @@ Actions:
   nothing.
 - [revoke-link] "Revoke link" shows only for a member with an access
   link; it asks "Revoke <name>'s sign-in link?" with [Revoke];
-  confirming runs /core/operations/revoke-access-link for the member
-  and shows
-  "<name>'s sign-in link is revoked."
+  confirming runs /core/operations/revoke-access-link for the member:
+  - [revoked] success: "<name>'s sign-in link is revoked.";
+  - [none] /core/operations/revoke-access-link/none, a success:
+    "<name> has no sign-in link.";
+  - [link-leaves] after either, the member's dialog, opened again,
+    has no "Revoke link".
 - [send-link] "Send link" asks "Send <name>'s sign-in link by email?"
   with [Send]; confirming runs /core/operations/send-access-link for
   the member:
@@ -260,29 +267,37 @@ Actions:
 - [rename] "Rename the association" opens the dialog "Rename the
   association": Name, filled with the name, and [Save], enabled only
   when Name is not empty.
-  - [renamed] Another name runs /core/operations/update-association
+  - [renamed] A name other than the association's current one runs
+    /core/operations/update-association
     with Name alone;
     on success, the header shows the new name, and "The association is
     now <name>."
-  - [same-name] The same name closes the dialog and changes nothing.
+  - [same-name] The association's current name closes the dialog and
+    changes nothing.
 - [change-slug] "Change the association identifier" opens the dialog
   "Change the association identifier": Association identifier, filled
   with the slug, and [Save], enabled only when it is not empty.
-  - [slug-changed] Another slug runs /core/operations/update-association
+  - [slug-changed] A slug other than the association's current one
+    runs /core/operations/update-association
     with Association identifier alone;
     on success, the screen moves to the new URL and shows "The
     association identifier is now <slug>."
-  - [same-slug] The same slug closes the dialog and changes nothing.
+  - [same-slug] The association's current slug closes the dialog and
+    changes nothing.
   - [refused] A malformed or taken slug shows the message of
     /core/ui/new-association/malformed or
     /core/ui/new-association/taken.
 - [delete] "Delete the association" asks "Delete <name>? Its schedule
   and its members' registrations are erased. This cannot be undone."
   with a field "Type the association's name to confirm" and [Delete],
-  enabled only when the field holds exactly the association's name.
+  enabled only when the field holds exactly the <name> of the
+  question, the name the screen shows, even when the association was
+  renamed since the screen opened.
   Confirming runs /core/operations/delete-association, leads to My
   associations and shows "<name> is deleted."
   - [delete-refused] Refused: Members shows again, as it now is.
+  - [deleted-name] The <name> of "<name> is deleted." is the
+    association's name when it was deleted.
 
 ## Unknown association
 
