@@ -9,10 +9,6 @@ orders and displays.
 Each increment lists the sections it integrates, then the entries it
 settles.
 
-1. Network retries: /ui/errors.
-   - Datastar: after a network error, `@post` retries even once its dialog is cancelled, so a failed "Delete my account" could still go through after Cancel; `retry: 'never'` covers only HTTP errors, and only `retryMaxCount: 0` stops it, as the confirmation macro does.
-   - Actions outside a confirmation (Sign out, Create an account, Forgot password…) still retry after a network error, so they could run twice.
-   - My preferences: a selector retries after a network error, so a late retry could overwrite a newer choice on the same slot.
 2. Forms: /ui/forms, design/new-association.md (the title:
    `/core/ui/header/title` as is; mockup, test and code to align; the
    look of a "+" link comes with design.md, in item 11).

@@ -53,3 +53,8 @@ Mockup in `design/forms.md`.
   way to it, where the screen names no message for it: "Something went
   wrong. Try again." on its screen.
 - [kept] What was typed stays.
+- [once] A trigger sends its operation once: after a refusal or a
+  failure, on the server or on the network, nothing sends it again but
+  one of its triggers firing anew: the user acting again, its page
+  opening again when the page runs it on opening, or another event its
+  screen names as a trigger.
