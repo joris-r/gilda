@@ -244,8 +244,8 @@ class AccountService:
     async def link_exists(self, link_id: UUID) -> bool:
         return await self.access_links.exists(id=link_id)
 
-    async def revoke_link(self, user_id: UUID) -> None:
-        await revoke_access_link(self.access_links, user_id)
+    async def revoke_link(self, user_id: UUID) -> bool:
+        return await revoke_access_link(self.access_links, user_id)
 
     async def _issue_token(self, user: User, language: Language) -> None:
         # R8: a new token replaces any pending one.
@@ -279,16 +279,26 @@ async def promote_if_last_manager(memberships: MembershipRepository, leaving: Me
 async def send_access_link(links: AccessLinkRepository, user: User, language: Language) -> None:
     # R25: the same link until it is revoked, so older emails keep working.
     link = await links.get_one_or_none(user_id=user.id)
+    created = link is None
     if link is None:
         link = await links.add(AccessLink(user_id=user.id, token=secrets.token_urlsafe(32)))
-    send_access_link_email(user.address, link.token, language)
+    try:
+        send_access_link_email(user.address, link.token, language)
+    except EmailNotSentError:
+        # The link nobody received is not kept.
+        if created:
+            await links.delete(link.id)
+        raise
 
 
-async def revoke_access_link(links: AccessLinkRepository, user_id: UUID) -> None:
+async def revoke_access_link(links: AccessLinkRepository, user_id: UUID) -> bool:
+    """Deletes the user's link; tells whether they had one."""
     # R23: sessions opened by the link check it still exists (see find_current_user).
     link = await links.get_one_or_none(user_id=user_id)
-    if link is not None:
-        await links.delete(link.id)
+    if link is None:
+        return False
+    await links.delete(link.id)
+    return True
 
 
 def association_read(association: Association) -> AssociationRead:
@@ -431,11 +441,11 @@ class AssociationService:
                 raise ConflictException("An association keeps at least one manager.")
         await end_membership(self.db_session, membership, hooks)
 
-    async def revoke_member_link(self, manager: User, association_id: UUID, user_id: UUID) -> None:
+    async def revoke_member_link(self, manager: User, association_id: UUID, user_id: UUID) -> bool:
         await self._manager_of(manager, association_id)
         if not await self.memberships.exists(user_id=user_id, association_id=association_id):
             raise NotFoundException("Not a member of this association.")
-        await revoke_access_link(self.access_links, user_id)
+        return await revoke_access_link(self.access_links, user_id)
 
     async def _membership_of(self, user: User, association_id: UUID) -> Membership:
         membership = await self.memberships.get_one_or_none(

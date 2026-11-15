@@ -2,7 +2,9 @@
 <button type="button" class="user-button" popovertarget="user-menu">{{ user.display_name }} ▾</button>
 <div id="user-menu" class="user-menu" popover>
   {% include "language_selector.html" %}
-  <button type="button" class="link" commandfor="revoke-access-link" command="show-modal" data-on:click="$_failed = false">{{ t("accessLink.revoke") }}</button>
+  {% if user.has_access_link %}
+  <button type="button" class="link" id="revoke-my-link" commandfor="revoke-access-link" command="show-modal" data-on:click="$_failed = false">{{ t("accessLink.revoke") }}</button>
+  {% endif %}
   <button type="button" class="link" commandfor="delete-account" command="show-modal" data-on:click="$_failed = false">{{ t("account.delete") }}</button>
   {# No retry: a request that failed is sent again only when the user acts again. #}
   <button type="button" class="link" data-on:click="@post('/sign-out', {retryMaxCount: 0})">{{ t("signOut") }}</button>

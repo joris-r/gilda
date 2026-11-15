@@ -64,6 +64,7 @@
     "confirmRevoke": "Révoquer votre lien de connexion ? Les sessions ouvertes avec lui seront déconnectées.",
     "confirm": "Confirmer",
     "revoked": "Votre lien de connexion est révoqué.",
+    "none": "Vous n'avez pas de lien de connexion.",
     "invalid": "Ce lien n'est plus valide.",
     "requestNew": "Demander un nouveau lien"
   },
@@ -100,6 +101,7 @@
     "revokeLink": "Révoquer le lien",
     "confirmRevokeLink": "Révoquer le lien de connexion de {name} ?",
     "linkRevoked": "Le lien de connexion de {name} est révoqué.",
+    "noLink": "{name} n'a pas de lien de connexion.",
     "sendLink": "Envoyer le lien",
     "linkSent": "Le lien de connexion de {name} est envoyé.",
     "linkNotSent": "Le lien de connexion de {name} n'a pas pu être envoyé. Réessayez plus tard.",

@@ -330,11 +330,15 @@ async def revoke_member_link(
     try:
         association = await associations.detail_by_slug(user, slug)
         member = _member(association.members, user_id)
-        await associations.revoke_member_link(user, association.id, user_id)
+        had_link = await associations.revoke_member_link(user, association.id, user_id)
     except (NotFoundException, PermissionDeniedException):
         return _member_error(request, user_id, "error")
     language = interface_language(request)
-    message = translate(language, "association.linkRevoked", name=member.display_name)
+    message = translate(
+        language,
+        "association.linkRevoked" if had_link else "association.noLink",
+        name=member.display_name,
+    )
     return await _members_patched(request, associations, user, association.id, message, user_id)
 
 
@@ -484,12 +488,15 @@ async def revoke_access_link(
     request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
+    had_link = False
     if user is not None:
-        await AccountService(db_session).revoke_link(user.id)
+        had_link = await AccountService(db_session).revoke_link(user.id)
     if user is None or SESSION_LINK_KEY in request.session:
         request.clear_session()
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
-    message = translate(interface_language(request), "accessLink.revoked")
+    message = translate(
+        interface_language(request), "accessLink.revoked" if had_link else "accessLink.none"
+    )
     return DatastarResponse(
         [
             ServerSentEventGenerator.patch_elements(
@@ -498,6 +505,7 @@ async def revoke_access_link(
             ServerSentEventGenerator.execute_script(
                 "document.getElementById('revoke-access-link').close()"
             ),
+            ServerSentEventGenerator.remove_elements("#revoke-my-link"),
         ]
     )
 

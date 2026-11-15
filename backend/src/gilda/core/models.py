@@ -20,6 +20,14 @@ class User(UUIDv7Base):
     email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    access_link: Mapped["AccessLink | None"] = relationship(
+        lazy="selectin", uselist=False, viewonly=True
+    )
+
+    @property
+    def has_access_link(self) -> bool:
+        return self.access_link is not None
+
     @property
     def address(self) -> str:
         """The email of a user whose account is not deleted, as members and signed-in users are."""

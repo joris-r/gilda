@@ -74,6 +74,9 @@ settles.
 - Schedule display: where the Occurrence menu opens is already coded, with CSS anchor positioning (`restore-design`), centred as a last resort; it shows centred where the browser lacks anchor positioning, so the integration of design.md (item 11) needs a placement that works without it. Item 11 also brings the Schedule's columns for closed days, with Get schedule's closed days: `_weeks_view` (`planning/pages.py`) computes its columns from the occurrences and obsolete registrations alone.
 - Dialogs: every opener of a dialog or confirmation must reset `$_failed` (`data-on:click="$_failed = false"`), as `/ui/forms/fresh` requires; later items (My availability, Schedule settings, Occurrence menu) rely on it, and their tests must target the dialog, not `main`, since the hidden dialogs sit inside `main`.
 - Access pages: a page that runs its action on opening shows its running text under `!$_failed` and its [Try again] in the layout's `after_error` block, so that the invalid answer replacing the page's div leaves no button (the button hides once `$_failed` is false). Later items with an action on opening can reuse the block.
+- Sign-in links: an outline item that gives an operation a new outcome (Revoke my sign-in link's "none") needs the existing tests that took the old default reworked (a user with no link used to get "revoked"); five backend tests and the e2e menu tests had to give the user a link first.
+- Sign-in links: when a change removes or makes conditional an element a screen shows, search the tests by its visible text too ("Revoke my sign-in link" in the menu tests, in both languages).
+- Sign-in links: the header's user menu reads `user.has_access_link` on every page, so later items needing the user's link state need no per-page context.
 
 ## For the human
 
@@ -126,3 +129,4 @@ settles.
 - Access pages: the e2e tests leave four gaps, a test-hardening candidate: the [Try again] button hidden while the action runs, and the running text back after [Try again]; [Try again] failing again on Confirm email (only Access link has it); a failure by network abort, not only a 500; and `getByText('My associations')` unscoped in the Confirm email test.
 - Access pages: an action that runs on opening (`data-init`) needs the same `$_failed` handling as a dialog opener; the layout's `after_error` block serves [Try again] today, and a shared failure-with-retry component, rather than one per page, is a backlog candidate.
 - Process: a suggested change of the Dev43 plugin (project gilda, increment polish-access-pages, Dev43 4.6.0): in an ungated Tests phase, run the [faithful] and [cases] agent checks before the Tests exit commit, as tests are read-only after it; otherwise their findings arrive when only a return can fix them.
+- Sign-in links: `User.access_link` is loaded on every user load for the header menu; lazy loading only on pages rendering the menu is a possible refinement.
