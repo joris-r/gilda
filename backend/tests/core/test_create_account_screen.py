@@ -622,6 +622,13 @@ class TestConfirmEmail:
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
 
+    # /core/ui/confirm-email/running
+    def test_the_page_shows_that_it_is_confirming(self, client: Any) -> None:
+        response = client.get("/verify-email?token=anything")
+
+        assert response.status_code == 200
+        assert "Confirming your email…" in response.text
+
     # /core/ui/confirm-email/confirmed
     # /core/operations/confirm-email/confirmed
     def test_success_signs_in_and_leads_to_my_associations(

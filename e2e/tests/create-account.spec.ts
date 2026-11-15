@@ -113,6 +113,55 @@ test.describe('Confirm email', () => {
     await page.getByRole('link', { name: 'Create an account' }).click()
     await expect(page.getByRole('heading', { name: 'Create an account' })).toBeVisible()
   })
+
+  // /core/ui/confirm-email/running
+  test('while it runs: only "Confirming your email…" under the header', async ({ page }) => {
+    await page.route('**/verify-email*', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      return route.continue()
+    })
+
+    await page.goto('/verify-email?token=unknown-token')
+
+    await expect(page.getByText('Confirming your email…')).toBeVisible()
+    await expect(page.getByText('This link is no longer valid.')).toBeHidden()
+    await expect(page.getByText(GENERIC)).toBeHidden()
+    await expect(page.getByText('This link is no longer valid.')).toBeVisible()
+    await expect(page.getByText('Confirming your email…')).toBeHidden()
+  })
+
+  // /core/ui/confirm-email/failed
+  // /ui/errors/generic
+  test('when the server fails: the generic error and Try again, which runs it again', async ({
+    page,
+  }) => {
+    const email = uniqueEmail('Alice')
+    await page.goto('/signup')
+    await submitSignUp(page, 'Alice', email)
+    await expect(page.getByText(`Check ${email} for a confirmation link.`)).toBeVisible()
+    const token = await latestToken(email)
+    let failing = true
+    let sends = 0
+    await page.route('**/verify-email*', (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      sends += 1
+      return failing ? route.fulfill({ status: 500, body: 'failure' }) : route.continue()
+    })
+
+    await page.goto(`/verify-email?token=${token}`)
+
+    await expect(page.getByText(GENERIC)).toBeVisible()
+    await expect(page.getByText('Confirming your email…')).toBeHidden()
+    expect(sends).toBe(1)
+
+    failing = false
+    await page.getByRole('button', { name: 'Try again' }).click()
+
+    await expect(page.getByText('My associations')).toBeVisible()
+    await expect(page).toHaveURL(/\/$/)
+    expect(sends).toBe(2)
+  })
 })
 
 test.describe('Generic error message', () => {

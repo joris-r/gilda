@@ -106,16 +106,64 @@ test.describe('Access link', () => {
     await expect(page.getByRole('heading', { name: 'Sign in with an email link' })).toBeVisible()
   })
 
+  // /core/ui/access-link/running
+  test('while it runs: only "Signing you in…" under the header', async ({ page }) => {
+    await page.route('**/access*', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      return route.continue()
+    })
+
+    await page.goto('/access?token=unknown-token')
+
+    await expect(page.getByText('Signing you in…')).toBeVisible()
+    await expect(page.getByText(LINK_INVALID)).toBeHidden()
+    await expect(page.getByText(GENERIC)).toBeHidden()
+    await expect(page.getByText(LINK_INVALID)).toBeVisible()
+    await expect(page.getByText('Signing you in…')).toBeHidden()
+  })
+
+  // /core/ui/access-link/failed
   // /ui/errors/generic
-  test('when the server fails: the generic error message', async ({ page }) => {
+  test('when the server fails: the generic error and Try again, which runs it again', async ({
+    page,
+    request,
+  }) => {
+    const token = await askForLink(request, uniqueEmail('Alice'))
+    let failing = true
+    let sends = 0
+    await page.route('**/access*', (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      sends += 1
+      return failing ? route.fulfill({ status: 500, body: 'failure' }) : route.continue()
+    })
+
+    await page.goto(`/access?token=${token}`)
+
+    await expect(page.getByText(GENERIC)).toBeVisible()
+    await expect(page.getByText('Signing you in…')).toBeHidden()
+    expect(sends).toBe(1)
+
+    failing = false
+    await page.getByRole('button', { name: 'Try again' }).click()
+
+    await expect(page.locator('header').getByText('My associations')).toBeVisible()
+    expect(sends).toBe(2)
+  })
+
+  // /core/ui/access-link/failed
+  test('Try again, failing again: the error shows again, with Try again', async ({ page }) => {
     await page.route('**/access*', (route) =>
       route.request().method() === 'POST'
         ? route.fulfill({ status: 500, body: 'failure' })
         : route.continue(),
     )
-
     await page.goto('/access?token=unknown-token')
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Try again' }).click()
 
     await expect(page.getByText(GENERIC)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
   })
 })

@@ -426,6 +426,15 @@ class TestAccessLink:
         assert signed_in_as(attacker) is None
 
 
+class TestAccessLinkRunning:
+    # /core/ui/access-link/running
+    def test_the_page_shows_that_it_is_signing_in(self, client: Any) -> None:
+        response = client.get("/access?token=anything")
+
+        assert response.status_code == 200
+        assert "Signing you in…" in response.text
+
+
 class TestAccessLinkInvalid:
     # /core/ui/access-link/invalid
     # /core/operations/sign-in-by-access-link/invalid
