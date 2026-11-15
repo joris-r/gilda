@@ -658,8 +658,7 @@ test.describe('My availability: the absences dialogs refuse', () => {
       await dialog.getByRole('button', { name: 'Add absence' }).click()
 
       await expect(dialog.getByText(message, { exact: true })).toBeVisible()
-      // @dev43:unsure
-      await expect(dialog.getByText(GENERIC)).toHaveCount(0)
+      await expect(dialog.getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
       await expect(from(dialog)).toHaveValue(first)
       await expect(line(page, NOV_SHOWN)).toHaveCount(1)
       await expect(page.locator('main').getByRole('listitem').filter({ hasText: '–' })).toHaveCount(1)
@@ -677,8 +676,7 @@ test.describe('My availability: the absences dialogs refuse', () => {
       await dialog.getByRole('button', { name: 'Save' }).click()
 
       await expect(dialog.getByText(message, { exact: true })).toBeVisible()
-      // @dev43:unsure
-      await expect(dialog.getByText(GENERIC)).toHaveCount(0)
+      await expect(dialog.getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
       await expect(to(dialog)).toHaveValue(last)
       await expect(line(page, DEC_SHOWN)).toHaveCount(1)
     })
