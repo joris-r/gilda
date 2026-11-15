@@ -56,13 +56,13 @@
   </form>
   <h3>{{ t("association.signInLink") }}</h3>
   <div class="dialog-actions">
-    <button type="button" commandfor="send-link-{{ member.user_id }}" command="show-modal">{{ t("association.sendLink") }}</button>
+    <button type="button" commandfor="send-link-{{ member.user_id }}" command="show-modal" data-on:click="$_failed = false">{{ t("association.sendLink") }}</button>
     {% if member.user_id in with_link %}
-    <button type="button" class="link" commandfor="revoke-link-{{ member.user_id }}" command="show-modal">{{ t("association.revokeLink") }}</button>
+    <button type="button" class="link" commandfor="revoke-link-{{ member.user_id }}" command="show-modal" data-on:click="$_failed = false">{{ t("association.revokeLink") }}</button>
     {% endif %}
   </div>
   <div class="dialog-actions">
-    <button type="button" class="link danger" commandfor="remove-{{ member.user_id }}" command="show-modal">{{ t("association.removeMember") }}</button>
+    <button type="button" class="link danger" commandfor="remove-{{ member.user_id }}" command="show-modal" data-on:click="$_failed = false">{{ t("association.removeMember") }}</button>
   </div>
   {% endcall %}
   {{ confirmation(

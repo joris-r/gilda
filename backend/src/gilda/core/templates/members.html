@@ -40,7 +40,7 @@
       class="add"
       commandfor="add-member"
       command="show-modal"
-      data-on:click="$displayName = ''; $email = ''; $role = 'volunteer'; document.getElementById('form-error').hidden = true"
+      data-on:click="$displayName = ''; $email = ''; $role = 'volunteer'; $_failed = false; document.getElementById('form-error').hidden = true"
     >+ {{ t("association.addMember") }}</button>
   </div>
   {% endif %}

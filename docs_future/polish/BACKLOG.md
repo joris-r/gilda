@@ -75,7 +75,6 @@ settles.
 
 ## Lessons
 
-- New association: its integration drops the in-page title from the code and from the test of `/core/ui/new-association/form`, which asserts an `<h1>` "New association" in `main`; the "+ New association" link of My associations needs no code change.
 - Orders: the code sorts names with `casefold` in two places (`core/pages.py` `members_in_order`, and the Occurrence menu's names in `planning/pages.py`); its integration may share one sort key in `web/`, used by My associations too; Members' preferences follows Members' order through `/planning/ui/schedule-settings/preferences-order`, with no change of its own.
 - Orders: a section kept in an earlier item cannot cite a section a later item adds, or `docs/` is not closed after the earlier one; /ui/name-order is therefore stated for every screen that sorts by name, and Members' `[list]` (item 4) is left as is.
 - Stale identifiers: an outline item may not cite by path a section kept in an earlier item, even in a parenthesis, or [outline] counts it in two increments; name it in plain text.
@@ -85,6 +84,7 @@ settles.
 - Warnings: a section kept in an earlier item that gains a message citing a new case of an operation pulls that operation into the earlier item: Add absence and Edit absence go with My availability (item 8) for its overlap message.
 - Past dates: its statements sit in My availability and Schedule settings, which carry them with Add absence and Edit absence (item 8) and Add closure and Edit closure (item 9). Its third entry was already settled in `docs/` before the outline (`/planning/operations/change-registration/past`, tested in `test_schedule_menu.py`), so other entries may also be settled by `docs/` already: check each against `docs/` first.
 - Schedule display: where the Occurrence menu opens is already coded, with CSS anchor positioning (`restore-design`), centred as a last resort; it shows centred where the browser lacks anchor positioning, so the integration of design.md (item 11) needs a placement that works without it. Item 11 also brings the Schedule's columns for closed days, with Get schedule's closed days: `_weeks_view` (`planning/pages.py`) computes its columns from the occurrences and obsolete registrations alone.
+- Dialogs: every opener of a dialog or confirmation must reset `$_failed` (`data-on:click="$_failed = false"`), as `/ui/forms/fresh` requires; later items (My availability, Schedule settings, Occurrence menu) rely on it, and their tests must target the dialog, not `main`, since the hidden dialogs sit inside `main`.
 
 ## For the human
 
@@ -129,3 +129,5 @@ settles.
 - Clipboard: when the browser refuses the clipboard, Copy says "The link couldn't be copied. Select it to copy it." in place of "Link copied.", the link staying shown in full for the user to copy by hand; the page does not select it for them, and which message stays after two Copies whose answers cross is left free.
 - Years on dates: every date of My associations now shows its year, as Schedule settings and My availability already do, a period writing a year it shares once ("2–25 Nov 2026"); showing the year only outside the current year, a lighter summary but a second rule, is the human's call.
 - Years on dates: the Occurrence menu's title ("Thu 29 Oct · 10–13") and the Schedule's day headings still show no year, as their weeks sit under the Schedule's dated Today and planning lines; and Schedule settings writes the period in full ("Mon 2 Nov 2026 – Wed 25 Nov 2026") where My associations shortens it; both left as is.
+- Dialogs: a single reset when a dialog opens (a shared macro or a `toggle` listener), rather than one per opener, would stop an opener from forgetting it (six did); a backlog candidate.
+- Process: when a change removes an element a screen shows, search the tests by its visible text too, not only by cited paths (the e2e test of New association still waited for its heading); no plugin change.

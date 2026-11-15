@@ -15,7 +15,7 @@
     <button type="button" data-on:click="@post('{{ here }}/registrations/{{ menu.registration_id }}/confirm', {payload: { {{- shown -}} }, retryMaxCount: 0})">{{ t("schedule.confirm") }}</button>
     {% endif %}
     {% if menu.cancel %}
-    <button type="button" class="link danger" commandfor="cancel-registration" command="show-modal" data-on:click="document.getElementById('cancel-registration-error').hidden = true">{{ t("schedule.cancel") }}</button>
+    <button type="button" class="link danger" commandfor="cancel-registration" command="show-modal" data-on:click="$_failed = false; document.getElementById('cancel-registration-error').hidden = true">{{ t("schedule.cancel") }}</button>
     {% endif %}
   </div>
   {% endif %}
