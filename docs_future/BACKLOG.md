@@ -28,6 +28,8 @@
 - Association: redirect a former slug to the association, which needs a history of slugs and conflicts with freeing the former slug for another association.
 - Schedule: after "Someone took this slot in the meantime.", the open Occurrence menu would show the occurrence as it now is, not keep "Sign up" (and a manager's names) until it closes.
 - Planning: warn about, or refuse, a closure that overlaps another; the Schedule's Closed line lists every covering closure today.
+- Process: CLAUDE.md's rule on the generic error in `main` would say to filter visible elements in Playwright (`.filter({ visible: true })`), as the header's dialogs hold hidden copies (a return to Tests in polish-changed-identifier).
+- Tests: stale-screen e2e tests (changed identifier in another tab) for Members role/remove/send-link/revoke-link, the period, closure and share-link dialogs, absence edit/delete, propose and cancel; they share the X-Association mechanism.
 
 
 ## Quality
