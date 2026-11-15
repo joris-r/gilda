@@ -19,3 +19,8 @@ shares its header.
 
 On a signed-in screen, a test looks for the generic error within `main`
 or its dialog, as the header's closed dialogs hold hidden copies of it.
+
+When a change alters what a screen shows, search the tests also by the
+visible text (in English and in French) and by the helpers that build
+it, not only by the paths they cite: a test may check the text without
+citing the path.
