@@ -541,3 +541,175 @@ test.describe('My availability: Note for the managers', () => {
     await expect(noteText(dialog)).toHaveValue(NOTE)
   })
 })
+
+/** The date `days` from today in Paris, as the date field takes it. */
+function inDays(days: number) {
+  const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Paris' }))
+  today.setHours(12, 0, 0, 0)
+  today.setDate(today.getDate() + days)
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+}
+
+const ORDER = "The end date can't be before the start date."
+const PAST = "The end date can't be before today."
+const OVERLAP = 'This absence overlaps another one.'
+
+test.describe('My availability: the selector shows the value saved', () => {
+  // /planning/ui/my-availability/saved-value
+  test('a failed save puts the selector back on the value it opened with', async ({ page, request }) => {
+    await openAvailability(page, request, [['thursday', '10:00', '13:00']])
+    await page.route('**/availability/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
+
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toBeVisible()
+    await expect(selector(page, 'Thursday')).toHaveValue('')
+  })
+
+  // /planning/ui/my-availability/saved-value
+  test('a failed save puts the selector back on the value saved last', async ({ page, request }) => {
+    const slug = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
+    await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
+    await expectSaved(page, slug, 'preferred')
+    await page.route('**/availability/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    await selector(page, 'Thursday').selectOption({ label: 'Possible' })
+
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toBeVisible()
+    await expect(selector(page, 'Thursday')).toHaveValue('preferred')
+  })
+
+  // /planning/ui/my-availability/saved-value
+  test('while a save runs, the selector shows the value chosen', async ({ page, request }) => {
+    const slug = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
+    let release: () => void = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    await page.route('**/availability/preferences/**', async (route) => {
+      await held
+      await route.continue()
+    })
+
+    await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
+
+    await expect(selector(page, 'Thursday')).toHaveValue('preferred')
+    release()
+    await expectSaved(page, slug, 'preferred')
+    await expect(selector(page, 'Thursday')).toHaveValue('preferred')
+  })
+
+  // /planning/ui/my-availability/saved-value
+  test('two saves answered in the other order show the value of the answer that came last', async ({
+    page,
+    request,
+  }) => {
+    await openAvailability(page, request, [['thursday', '10:00', '13:00']])
+    const answers: (() => Promise<void>)[] = []
+    await page.route('**/availability/preferences/**', async (route) => {
+      const response = await route.fetch()
+      await new Promise<void>((resolve) =>
+        answers.push(async () => {
+          await route.fulfill({ response })
+          resolve()
+        }),
+      )
+    })
+
+    await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
+    await expect.poll(() => answers.length).toBe(1)
+    await selector(page, 'Thursday').selectOption({ label: 'Possible' })
+    await expect.poll(() => answers.length).toBe(2)
+    await expect(selector(page, 'Thursday')).toHaveValue('possible')
+    await answers[1]()
+    await answers[0]()
+
+    await expect(selector(page, 'Thursday')).toHaveValue('preferred')
+  })
+
+  // /planning/ui/my-availability/saved-value
+  test('a failed "—" puts the selector back on the value saved last', async ({ page, request }) => {
+    const slug = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
+    await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
+    await expectSaved(page, slug, 'preferred')
+    await page.route('**/availability/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    await selector(page, 'Thursday').selectOption({ label: '—' })
+
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toBeVisible()
+    await expect(selector(page, 'Thursday')).toHaveValue('preferred')
+  })
+})
+
+test.describe('My availability: the absences dialogs refuse', () => {
+  const cases = [
+    { name: 'last before first', first: '2037-11-16', last: '2037-11-15', message: ORDER },
+    { name: 'last before today', first: inDays(-7), last: inDays(-1), message: PAST },
+    { name: 'dates another absence covers', first: '2037-11-12', last: '2037-11-20', message: OVERLAP },
+  ]
+  for (const { name, first, last, message } of cases) {
+    // /planning/ui/my-availability/absence-order
+    // /planning/ui/my-availability/absence-past
+    // /planning/ui/my-availability/absence-overlap
+    test(`Add an absence with ${name} says so in the dialog, which stays open`, async ({ page, request }) => {
+      await openAvailability(page, request, [], { absences: [NOV] })
+
+      const dialog = await openAddAbsence(page)
+      await from(dialog).fill(first)
+      await to(dialog).fill(last)
+      await dialog.getByRole('button', { name: 'Add absence' }).click()
+
+      await expect(dialog.getByText(message, { exact: true })).toBeVisible()
+      await expect(dialog.getByText(GENERIC)).toHaveCount(0)
+      await expect(from(dialog)).toHaveValue(first)
+      await expect(line(page, NOV_SHOWN)).toHaveCount(1)
+      await expect(page.locator('main').getByRole('listitem').filter({ hasText: '–' })).toHaveCount(1)
+    })
+
+    // /planning/ui/my-availability/edit-absence-order
+    // /planning/ui/my-availability/edit-absence-past
+    // /planning/ui/my-availability/edit-absence-overlap
+    test(`Edit the absence with ${name} says so in the dialog, which stays open`, async ({ page, request }) => {
+      await openAvailability(page, request, [], { absences: [NOV, DEC] })
+
+      const dialog = await openEditAbsence(page, DEC_SHOWN)
+      await from(dialog).fill(first)
+      await to(dialog).fill(last)
+      await dialog.getByRole('button', { name: 'Save' }).click()
+
+      await expect(dialog.getByText(message, { exact: true })).toBeVisible()
+      await expect(dialog.getByText(GENERIC)).toHaveCount(0)
+      await expect(to(dialog)).toHaveValue(last)
+      await expect(line(page, DEC_SHOWN)).toHaveCount(1)
+    })
+  }
+
+  // /ui/forms/fresh
+  // /planning/ui/my-availability/absence-order
+  test('Add an absence opened again shows no message of the earlier try', async ({ page, request }) => {
+    await openAvailability(page, request, [])
+    let dialog = await openAddAbsence(page)
+    await from(dialog).fill('2037-11-16')
+    await to(dialog).fill('2037-11-15')
+    await dialog.getByRole('button', { name: 'Add absence' }).click()
+    await expect(dialog.getByText(ORDER, { exact: true })).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+
+    dialog = await openAddAbsence(page)
+
+    await expect(dialog.getByText(ORDER, { exact: true })).toBeHidden()
+  })
+
+  // /ui/forms/fresh
+  // /ui/errors/generic
+  test('Edit the absence opened again after a failure shows no error', async ({ page, request }) => {
+    await openAvailability(page, request, [], { absences: [NOV, DEC] })
+    await page.route('**/edit', (route) => route.fulfill({ status: 500, body: 'failure' }))
+    let dialog = await openEditAbsence(page, DEC_SHOWN)
+    await dialog.getByRole('button', { name: 'Save' }).click()
+    await expect(dialog.getByText(GENERIC)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+
+    dialog = await openEditAbsence(page, DEC_SHOWN)
+
+    await expect(dialog.getByText(GENERIC)).toBeHidden()
+  })
+})

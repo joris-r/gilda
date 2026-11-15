@@ -208,7 +208,7 @@ def test_account_deletion_deletes_preferences_absences_and_note(
     slot = planning.add_slot("thursday", *THURSDAY)
     bruno = planning.bruno_client
     chosen(planning, bruno, slot, "preferred")
-    add_absence(bruno, planning, "2026-11-09", "2026-11-15")
+    add_absence(bruno, planning, "2037-11-09", "2037-11-15")
     write_note(bruno, planning, "Pairs, please.")
     assert preferences_held(planning.bruno) == 1
 

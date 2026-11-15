@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from tests.core.conftest import delete_association, unique_slug
+from tests.core.conftest import delete_association, run_sql_rows, unique_slug
 from tests.planning.conftest import (
     GENERIC,
     MONTHS,
@@ -42,6 +42,9 @@ NAME = "Jardin partagé des Lilas"
 UNKNOWN = "This association does not exist or you are not a member."
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 THU = "Thu 10:00–13:00"
+ORDER = "The end date can't be before the start date."
+PAST = "The end date can't be before today."
+OVERLAP = "This absence overlaps another one."
 
 
 def collapsed(fragment: str) -> str:
@@ -624,10 +627,21 @@ class TestAbsences:
         today = paris_today()
         yesterday = today - timedelta(days=1)
         week_ago = today - timedelta(days=7)
-        add_absence(client, planning, "2020-01-06", "2020-01-10")
-        add_absence(client, planning, week_ago.isoformat(), yesterday.isoformat())
+        ended_long_ago = add_absence(client, planning, "2037-03-02", "2037-03-06")
+        ended_yesterday = add_absence(client, planning, "2037-04-06", "2037-04-10")
         add_absence(client, planning, week_ago.isoformat(), today.isoformat())
         add_absence(client, planning, "2037-11-09", "2037-11-15")
+        # Time passes: these two absences now end before today.
+        for absence, first, last in (
+            (ended_long_ago, date(2020, 1, 6), date(2020, 1, 10)),
+            (ended_yesterday, week_ago, yesterday),
+        ):
+            run_sql_rows(
+                "UPDATE absence SET first = :first, last = :last WHERE id = :id",
+                id=absence["id"],
+                first=first,
+                last=last,
+            )
 
         shown_lines = absences_shown(client, planning.slug)
 
@@ -797,15 +811,12 @@ class TestAddingAnAbsence:
         assert absences_shown(planning.bruno_client, planning.slug) == []
 
     # /ui/errors/generic
-    # /planning/operations/add-absence/order
-    # /planning/model/absence/order
     @pytest.mark.parametrize(
         "body",
         [
             {"last": "2037-11-15"},
             {"first": "2037-11-09"},
             {"first": "", "last": "2037-11-15"},
-            {"first": "2037-11-16", "last": "2037-11-15"},
             {"first": "09/11/2037", "last": "2037-11-15"},
         ],
     )
@@ -841,6 +852,246 @@ class TestAddingAnAbsence:
         assert "window.location" in text
         assert absences_stored(planning) == set()
 
+    # /planning/ui/my-availability/absence-order
+    # /planning/operations/add-absence/order
+    # /planning/model/absence/order
+    def test_last_before_first_says_so_and_adds_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(
+            add_absence_on_screen(planning.bruno_client, planning.slug, "2037-11-16", "2037-11-15")
+        )
+
+        assert ORDER in text
+        assert GENERIC not in text
+        assert absences_stored(planning) == set()
+
+    # /planning/ui/my-availability/absence-order
+    # /planning/operations/add-absence/order
+    def test_last_before_first_and_before_today_says_the_order_not_the_past(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        today = paris_today()
+        first = (today - timedelta(days=2)).isoformat()
+        last = (today - timedelta(days=5)).isoformat()
+
+        text = shown(add_absence_on_screen(planning.bruno_client, planning.slug, first, last))
+
+        assert ORDER in text
+        assert PAST not in text
+        assert absences_stored(planning) == set()
+
+    # /planning/ui/my-availability/absence-order
+    # /planning/operations/add-absence/order
+    def test_one_day_is_not_a_reversed_range(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        text = shown(
+            add_absence_on_screen(planning.bruno_client, planning.slug, "2037-11-15", "2037-11-15")
+        )
+
+        assert ORDER not in text
+        assert absences_stored(planning) == {(planning.bruno["id"], "2037-11-15", "2037-11-15")}
+
+    # /planning/ui/my-availability/absence-past
+    # /planning/operations/add-absence/past
+    def test_last_before_today_says_so_and_adds_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        today = paris_today()
+        first = (today - timedelta(days=7)).isoformat()
+        yesterday = (today - timedelta(days=1)).isoformat()
+
+        text = shown(add_absence_on_screen(planning.bruno_client, planning.slug, first, yesterday))
+
+        assert PAST in text
+        assert GENERIC not in text
+        assert absences_stored(planning) == set()
+
+    # /planning/operations/add-absence/past
+    # /planning/operations/add-absence/added
+    @pytest.mark.parametrize("days_before_first", [0, 3])
+    def test_last_today_is_added(
+        self, client: Any, new_client: Callable[[], Any], days_before_first: int
+    ) -> None:
+        planning = Planning(client, new_client)
+        today = paris_today()
+        first = (today - timedelta(days=days_before_first)).isoformat()
+
+        text = shown(
+            add_absence_on_screen(planning.bruno_client, planning.slug, first, today.isoformat())
+        )
+
+        assert PAST not in text
+        assert len(absences_shown(planning.bruno_client, planning.slug)) == 1
+
+    # /planning/ui/my-availability/absence-overlap
+    # /planning/operations/add-absence/overlap
+    @pytest.mark.parametrize(
+        ("first", "last"),
+        [
+            ("2037-11-09", "2037-11-15"),
+            ("2037-11-11", "2037-11-12"),
+            ("2037-11-01", "2037-11-30"),
+            ("2037-11-01", "2037-11-09"),
+            ("2037-11-15", "2037-11-20"),
+        ],
+    )
+    def test_dates_another_absence_of_the_user_covers_say_so_and_add_nothing(
+        self, client: Any, new_client: Callable[[], Any], first: str, last: str
+    ) -> None:
+        planning = Planning(client, new_client)
+        add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+
+        text = shown(add_absence_on_screen(planning.bruno_client, planning.slug, first, last))
+
+        assert OVERLAP in text
+        assert GENERIC not in text
+        assert absences_stored(planning) == {(planning.bruno["id"], "2037-11-09", "2037-11-15")}
+
+    # /planning/ui/my-availability/absence-overlap
+    # /planning/operations/add-absence/overlap
+    def test_it_overlaps_one_of_several_absences(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        add_absence(planning.bruno_client, planning, "2037-11-02", "2037-11-03")
+        add_absence(planning.bruno_client, planning, "2037-12-21", "2038-01-03")
+
+        text = shown(
+            add_absence_on_screen(planning.bruno_client, planning.slug, "2037-12-01", "2037-12-21")
+        )
+
+        assert OVERLAP in text
+        assert len(absences_shown(planning.bruno_client, planning.slug)) == 2
+
+    # /planning/operations/add-absence/overlap
+    # /planning/operations/add-absence/added
+    @pytest.mark.parametrize(
+        ("first", "last"), [("2037-11-16", "2037-11-20"), ("2037-11-02", "2037-11-08")]
+    )
+    def test_dates_next_to_another_absence_are_added(
+        self, client: Any, new_client: Callable[[], Any], first: str, last: str
+    ) -> None:
+        planning = Planning(client, new_client)
+        add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+
+        text = shown(add_absence_on_screen(planning.bruno_client, planning.slug, first, last))
+
+        assert OVERLAP not in text
+        assert absences_stored(planning) == {
+            (planning.bruno["id"], "2037-11-09", "2037-11-15"),
+            (planning.bruno["id"], first, last),
+        }
+
+    # /planning/operations/add-absence/overlap
+    # /planning/operations/add-absence/added
+    def test_the_same_dates_as_another_members_or_another_associations_absence_are_added(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        add_absence(planning.chloe_client, planning, "2037-11-09", "2037-11-15")
+        other, _ = other_associations_absence(planning.bruno_client)
+
+        text = shown(
+            add_absence_on_screen(planning.bruno_client, planning.slug, "2037-11-09", "2037-11-15")
+        )
+
+        assert OVERLAP not in text
+        assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
+        assert absences_shown(planning.bruno_client, other["slug"]) == [NOV]
+
+    # /planning/operations/add-absence/order
+    # /planning/operations/add-absence/overlap
+    def test_last_before_first_over_another_absence_says_the_order(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+
+        text = shown(
+            add_absence_on_screen(planning.bruno_client, planning.slug, "2037-11-14", "2037-11-10")
+        )
+
+        assert ORDER in text
+        assert OVERLAP not in text
+
+    # /planning/operations/add-absence/overlap
+    def test_an_absence_added_again_after_its_deletion_is_added(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        nov = add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+        shown(delete_absence(planning.bruno_client, planning.slug, nov["id"]))
+
+        text = shown(
+            add_absence_on_screen(planning.bruno_client, planning.slug, "2037-11-09", "2037-11-15")
+        )
+
+        assert OVERLAP not in text
+        assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
+
+    # /planning/operations/add-absence/overlap
+    def test_dates_an_absence_ending_today_covers_say_so(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        today = paris_today()
+        add_absence(
+            planning.bruno_client,
+            planning,
+            (today - timedelta(days=3)).isoformat(),
+            today.isoformat(),
+        )
+
+        text = shown(
+            add_absence_on_screen(
+                planning.bruno_client,
+                planning.slug,
+                today.isoformat(),
+                (today + timedelta(days=2)).isoformat(),
+            )
+        )
+
+        assert OVERLAP in text
+        assert len(absences_shown(planning.bruno_client, planning.slug)) == 1
+
+    # /planning/operations/add-absence/overlap
+    # /planning/operations/add-absence/added
+    def test_dates_only_an_absence_that_has_ended_covers_are_added(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        today = paris_today()
+        week_ago = today - timedelta(days=7)
+        ended = add_absence(
+            planning.bruno_client,
+            planning,
+            week_ago.isoformat(),
+            (today + timedelta(days=3)).isoformat(),
+        )
+        # Time passes: the absence now ends before today.
+        run_sql_rows(
+            "UPDATE absence SET last = :last WHERE id = :id",
+            id=ended["id"],
+            last=today - timedelta(days=1),
+        )
+
+        text = shown(
+            add_absence_on_screen(
+                planning.bruno_client, planning.slug, week_ago.isoformat(), today.isoformat()
+            )
+        )
+
+        assert OVERLAP not in text
+        assert len(absences_shown(planning.bruno_client, planning.slug)) == 1
+
 
 class TestEditingAnAbsence:
     # /planning/ui/my-availability/edit-absence
@@ -874,13 +1125,10 @@ class TestEditingAnAbsence:
         assert absences_shown(bruno, planning.slug) == ["Mon 2 Nov 2037 – Tue 3 Nov 2037", NOV]
 
     # /ui/errors/generic
-    # /planning/operations/edit-absence/order
-    # /planning/model/absence/order
     @pytest.mark.parametrize(
         "body",
         [
             {"last": "2037-11-15"},
-            {"first": "2037-11-16", "last": "2037-11-15"},
             {"first": "09/11/2037", "last": "2037-11-15"},
         ],
     )
@@ -962,6 +1210,235 @@ class TestEditingAnAbsence:
 
         assert "window.location" in shown(response)
         assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
+
+    # /planning/ui/my-availability/edit-absence-order
+    # /planning/operations/edit-absence/order
+    # /planning/model/absence/order
+    def test_last_before_first_says_so_and_changes_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        absence = add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+
+        text = shown(
+            edit_absence(
+                planning.bruno_client, planning.slug, absence["id"], "2037-11-16", "2037-11-15"
+            )
+        )
+
+        assert ORDER in text
+        assert GENERIC not in text
+        assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
+
+    # /planning/ui/my-availability/edit-absence-order
+    # /planning/operations/edit-absence/order
+    def test_last_before_first_and_before_today_says_the_order_not_the_past(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        absence = add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+        today = paris_today()
+        first = (today - timedelta(days=2)).isoformat()
+        last = (today - timedelta(days=5)).isoformat()
+
+        text = shown(edit_absence(planning.bruno_client, planning.slug, absence["id"], first, last))
+
+        assert ORDER in text
+        assert PAST not in text
+        assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
+
+    # /planning/ui/my-availability/edit-absence-past
+    # /planning/operations/edit-absence/past
+    def test_last_before_today_says_so_and_changes_nothing(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        absence = add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+        today = paris_today()
+        first = (today - timedelta(days=7)).isoformat()
+        yesterday = (today - timedelta(days=1)).isoformat()
+
+        text = shown(
+            edit_absence(planning.bruno_client, planning.slug, absence["id"], first, yesterday)
+        )
+
+        assert PAST in text
+        assert GENERIC not in text
+        assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
+
+    # /planning/operations/edit-absence/past
+    # /planning/operations/edit-absence/edited
+    def test_last_today_is_saved(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        absence = add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+        today = paris_today()
+
+        text = shown(
+            edit_absence(
+                planning.bruno_client,
+                planning.slug,
+                absence["id"],
+                today.isoformat(),
+                today.isoformat(),
+            )
+        )
+
+        assert PAST not in text
+        assert absences_stored(planning) == {
+            (planning.bruno["id"], today.isoformat(), today.isoformat())
+        }
+
+    # /planning/ui/my-availability/edit-absence-overlap
+    # /planning/operations/edit-absence/overlap
+    @pytest.mark.parametrize(
+        ("first", "last"),
+        [
+            ("2037-11-12", "2037-11-13"),
+            ("2037-11-01", "2037-11-09"),
+            ("2037-11-01", "2038-02-01"),
+            ("2037-11-14", "2037-11-15"),
+            ("2037-11-15", "2037-11-20"),
+        ],
+    )
+    def test_dates_another_absence_of_the_user_covers_say_so_and_change_nothing(
+        self, client: Any, new_client: Callable[[], Any], first: str, last: str
+    ) -> None:
+        planning = Planning(client, new_client)
+        add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+        later = add_absence(planning.bruno_client, planning, "2037-12-21", "2038-01-03")
+
+        text = shown(edit_absence(planning.bruno_client, planning.slug, later["id"], first, last))
+
+        assert OVERLAP in text
+        assert GENERIC not in text
+        assert absences_stored(planning) == {
+            (planning.bruno["id"], "2037-11-09", "2037-11-15"),
+            (planning.bruno["id"], "2037-12-21", "2038-01-03"),
+        }
+
+    # /planning/operations/edit-absence/overlap
+    # /planning/operations/edit-absence/edited
+    @pytest.mark.parametrize(
+        ("first", "last"),
+        [
+            ("2037-12-21", "2038-01-03"),
+            ("2037-12-23", "2038-01-01"),
+            ("2037-12-01", "2038-01-31"),
+            ("2037-11-16", "2037-11-16"),
+        ],
+    )
+    def test_dates_next_to_another_absence_or_its_own_are_saved(
+        self, client: Any, new_client: Callable[[], Any], first: str, last: str
+    ) -> None:
+        planning = Planning(client, new_client)
+        add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+        later = add_absence(planning.bruno_client, planning, "2037-12-21", "2038-01-03")
+
+        text = shown(edit_absence(planning.bruno_client, planning.slug, later["id"], first, last))
+
+        assert OVERLAP not in text
+        assert GENERIC not in text
+        assert absences_stored(planning) == {
+            (planning.bruno["id"], "2037-11-09", "2037-11-15"),
+            (planning.bruno["id"], first, last),
+        }
+
+    # /planning/operations/edit-absence/overlap
+    # /planning/operations/edit-absence/edited
+    def test_the_same_dates_as_another_members_or_another_associations_absence_are_saved(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        add_absence(planning.chloe_client, planning, "2037-11-09", "2037-11-15")
+        bruno = planning.bruno_client
+        other, _ = other_associations_absence(bruno)
+        later = add_absence(bruno, planning, "2037-12-21", "2038-01-03")
+
+        text = shown(edit_absence(bruno, planning.slug, later["id"], "2037-11-09", "2037-11-15"))
+
+        assert OVERLAP not in text
+        assert absences_shown(bruno, planning.slug) == [NOV]
+        assert absences_shown(bruno, other["slug"]) == [NOV]
+
+    # /planning/operations/edit-absence/order
+    # /planning/operations/edit-absence/overlap
+    def test_last_before_first_over_another_absence_says_the_order(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+        later = add_absence(planning.bruno_client, planning, "2037-12-21", "2038-01-03")
+
+        text = shown(
+            edit_absence(
+                planning.bruno_client, planning.slug, later["id"], "2037-11-14", "2037-11-10"
+            )
+        )
+
+        assert ORDER in text
+        assert OVERLAP not in text
+
+    # /planning/operations/edit-absence/overlap
+    def test_dates_an_absence_ending_today_covers_say_so(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        today = paris_today()
+        add_absence(
+            planning.bruno_client,
+            planning,
+            (today - timedelta(days=3)).isoformat(),
+            today.isoformat(),
+        )
+        later = add_absence(planning.bruno_client, planning, "2037-12-21", "2038-01-03")
+
+        text = shown(
+            edit_absence(
+                planning.bruno_client,
+                planning.slug,
+                later["id"],
+                today.isoformat(),
+                (today + timedelta(days=2)).isoformat(),
+            )
+        )
+
+        assert OVERLAP in text
+        assert (planning.bruno["id"], "2037-12-21", "2038-01-03") in absences_stored(planning)
+
+    # /planning/operations/edit-absence/overlap
+    # /planning/operations/edit-absence/edited
+    def test_dates_only_an_absence_that_has_ended_covers_are_saved(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        today = paris_today()
+        week_ago = today - timedelta(days=7)
+        ended = add_absence(
+            planning.bruno_client,
+            planning,
+            week_ago.isoformat(),
+            (today + timedelta(days=3)).isoformat(),
+        )
+        later = add_absence(planning.bruno_client, planning, "2037-12-21", "2038-01-03")
+        # Time passes: the first absence now ends before today.
+        run_sql_rows(
+            "UPDATE absence SET last = :last WHERE id = :id",
+            id=ended["id"],
+            last=today - timedelta(days=1),
+        )
+
+        text = shown(
+            edit_absence(
+                planning.bruno_client,
+                planning.slug,
+                later["id"],
+                week_ago.isoformat(),
+                today.isoformat(),
+            )
+        )
+
+        assert OVERLAP not in text
+        assert len(absences_shown(planning.bruno_client, planning.slug)) == 1
 
 
 class TestDeletingAnAbsence:
