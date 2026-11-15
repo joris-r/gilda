@@ -1,3 +1,0 @@
-# New association
-
-× New association

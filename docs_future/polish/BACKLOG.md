@@ -9,12 +9,6 @@ orders and displays.
 Each increment lists the sections it integrates, then the entries it
 settles.
 
-2. Forms: /ui/forms, design/new-association.md (the title:
-   `/core/ui/header/title` as is; mockup, test and code to align; the
-   look of a "+" link comes with design.md, in item 11).
-   - Confirmation: the generic error probably still shows after Cancel and reopening, until the next try.
-   - New association: its mockup shows a title in the page, but `interface.md` says the header's location stands for the title; the page follows the mockup.
-   - New association: "+ New association" is a link, while `interface.md` describes a button.
 3. Access pages: /core/ui/access-link, /core/ui/confirm-email,
    design/access-link.md, design/confirm-email.md.
    - Access link and Confirm email: the page stays blank while the action runs, and after a server failure only the generic error shows, with no way forward.

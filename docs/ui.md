@@ -22,9 +22,9 @@ At any path that leads nowhere, signed in or not; mockup in
 
 Mockup in `design/forms.md`.
 
-- [create] A button, "+" then its name, opens a form to create, in a
-  dialog or on its own page; with nothing to enter, it creates at
-  once.
+- [create] "+" then its name opens a form to create: a button for a
+  dialog, a link for a form on its own page; with nothing to enter, a
+  button creates at once.
 - [edit] An edit icon on a line opens a form to change it.
 - [delete] A delete icon on a line asks for confirmation.
 - [icon-names] Each icon is named by its action, e.g. "Edit the
@@ -43,6 +43,9 @@ Mockup in `design/forms.md`.
     a failed try.
   - [nested] Confirming one asked from a form's dialog also closes
     that form.
+- [fresh] The message of a refused or failed try in a dialog, the
+  generic error included, shows in that dialog only, until the next
+  try or the dialog closes: opened again, the dialog shows none.
 - [managers] Only managers see the buttons and icons that create, edit
   or delete an association's data; a member's own data, on My
   availability, has them for every member.
