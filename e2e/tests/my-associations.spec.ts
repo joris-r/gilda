@@ -70,13 +70,15 @@ function jardin(page: Page) {
 test.describe('My associations', () => {
   // /home/ui/my-associations/new
   // /core/ui/new-association/cancel
+  // /core/ui/header/title
   // /home/ui/my-associations/none
   test('New association leads to its screen, and Cancel back', async ({ page, request }) => {
     await signedIn(page, request)
 
     await page.getByRole('link', { name: 'New association' }).click()
     await expect(page).toHaveURL(/\/association\/new$/)
-    await expect(page.getByRole('heading', { name: 'New association' })).toBeVisible()
+    await expect(page.locator('header').getByText('New association')).toBeVisible()
+    await expect(page.locator('main').getByRole('heading')).toHaveCount(0)
 
     await page.getByRole('link', { name: 'Cancel' }).click()
     await expect(page).toHaveURL(/\/$/)
