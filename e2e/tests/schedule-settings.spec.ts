@@ -1105,7 +1105,7 @@ test.describe('Schedule settings: Share link', () => {
     await visitor.goto(link)
 
     await expect(visitor.locator('header')).toContainText('Jardin partagé')
-    await expect(visitor.locator('main').getByRole('heading', { name: /^Week \d+$/ }).first()).toBeVisible()
+    await expect(visitor.locator('main').getByRole('button', { name: 'More weeks' })).toBeVisible()
     await visitor.close()
   })
 

@@ -1053,7 +1053,10 @@ class TestClosedDays:
             planning.add_closure("2026-11-06", "2026-12-13", "Vacances")
             entries = schedule_shown(client, planning.slug)
 
-        assert day_in(entries, "2026-11-07") == "Fermé Vacances"
+        days = [text for entry in entries if isinstance(entry, tuple) for text in entry[1]]
+        assert any(
+            text.startswith("sam. 7 nov.") and text.endswith(" Fermé Vacances") for text in days
+        )
 
 
 class TestWeeksAgain:

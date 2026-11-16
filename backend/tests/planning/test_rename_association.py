@@ -15,6 +15,7 @@ def test_rename_the_association_share_link_keeps_working_and_shows_the_new_name(
     client: Any, new_client: Callable[[], Any]
 ) -> None:
     planning = Planning(client, new_client)
+    planning.add_slot("thursday", "10:00", "13:00")
     token = shared_token(planning)
 
     text = shown(rename_association(client, planning.association["slug"], "Jardin des Lilas"))

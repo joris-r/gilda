@@ -231,7 +231,7 @@ test.describe('Shared schedule: once today changes', () => {
     const slug = /\/association\/([^/]+)\/settings/.exec(page.url())![1]
     const visitor = await openSignedOutWithClock(link, browser)
     let refreshes = 0
-    await visitor.route(/\/weeks(\?|$)/, (route) => {
+    await visitor.route(/\/weeks-again\?/, (route) => {
       if (route.request().method() !== 'GET') return route.continue()
       refreshes += 1
       return route.fulfill({ status: 500, body: 'failure' })

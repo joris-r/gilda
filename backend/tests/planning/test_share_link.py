@@ -70,7 +70,7 @@ def shows_the_schedule(token: str, as_client: Any) -> bool:
     if INVALID in page:
         assert "Week" not in text_of(part(page, "main")), page
         return False
-    assert headings_of(schedule_entries(part(page, "main"))), page
+    assert "More weeks" in text_of(part(page, "main")), page
     return True
 
 

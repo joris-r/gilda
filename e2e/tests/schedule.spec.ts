@@ -671,7 +671,7 @@ test.describe('Schedule: once today changes', () => {
   test('when it fails, the Schedule stays as it was, with no message', async ({ page, request }) => {
     const slug = await openScheduleWithClock(page, request)
     let refreshes = 0
-    await page.route(/\/weeks(\?|$)/, (route) => {
+    await page.route(/\/weeks-again\?/, (route) => {
       if (route.request().method() !== 'GET') return route.continue()
       refreshes += 1
       return route.fulfill({ status: 500, body: 'failure' })

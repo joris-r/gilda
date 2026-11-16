@@ -634,7 +634,7 @@ def weeks_again(as_client: Any, slug: str, first: str, last: str) -> Any:
     """The weeks from `first` to `last` of a Schedule that shows them again once today changes
     or the screen shows again: a plain GET of the weeks as an HTML fragment, 401 when signed
     out."""
-    return as_client.get(f"/association/{slug}/weeks", params={"from": first, "to": last})
+    return as_client.get(f"/association/{slug}/weeks-again", params={"from": first, "to": last})
 
 
 def create_share_link(as_client: Any, slug: str) -> Any:
@@ -678,7 +678,7 @@ def shared_weeks_again(as_client: Any, token: str, first: str, last: str) -> Any
     """The weeks from `first` to `last` of a Shared schedule that shows them again once today
     changes: a plain GET of the weeks as an HTML fragment, 404 when the link is no longer
     valid."""
-    return as_client.get(f"/shared/{token}/weeks", params={"from": first, "to": last})
+    return as_client.get(f"/shared/{token}/weeks-again", params={"from": first, "to": last})
 
 
 def shared_weeks(as_client: Any, token: str, first: str, last: str) -> Any:
