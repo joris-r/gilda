@@ -41,6 +41,8 @@
     implementation.
   - A read-only URL may answer a bare HTML fragment with plain status
     codes, where a refresh must fail silently.
+  - Once Datastar has started, the layout sets `data-ready` on the body,
+    by a `data-init`.
   - The interface's language comes from the `language` cookie, set by
     the language selector, then from the `Accept-Language` header.
   - Translations live in one file per language; English is the
