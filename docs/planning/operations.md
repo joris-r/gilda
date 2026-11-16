@@ -245,7 +245,8 @@ Inputs:
 
 Cases:
 1. [member] The user is not a member of the association: refused.
-2. [set] Otherwise: the user's note in the association is the text,
+2. [set] Otherwise: the user's note in the association is the text
+   without its leading and trailing spaces, tabs and line breaks,
    replacing the previous one.
 
 ## Get schedule
@@ -287,22 +288,30 @@ Inputs:
 - `date: date`
 - `start: time`
 - `end: time`
+- `replacing: optional /planning/model/registration`, the registration
+  it replaces.
 
 Cases:
 1. [member] The user is not a member of the association: refused.
-2. [other] The user is a volunteer and the member is not the user:
-   refused.
+2. [other] The user is a volunteer, and the member is not the user or
+   `replacing` is given: refused.
 3. [non-member] The member is not a member of the association:
    refused.
 4. [past] The date is before today: refused.
 5. [no-occurrence] No occurrence has this date, start and end: refused.
 6. [taken] The occurrence already holds a registration that is not
-   cancelled: refused.
+   cancelled, unless that registration is `replacing` and its user is
+   not the member: refused.
 7. [self] The member is the user: a registration is stored for them on
    the occurrence, `confirmed`, created now, with an id no
    registration has.
 8. [proposed] Otherwise, the user being a manager: stored the same,
    `proposed`.
+
+Then:
+- [replaced] After /planning/operations/register/self or
+  /planning/operations/register/proposed: the occurrence's registration
+  that was not cancelled before, if any, becomes `cancelled`.
 
 ## Change registration
 

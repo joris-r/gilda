@@ -9,14 +9,6 @@ orders and displays.
 Each increment lists the sections it integrates, then the entries it
 settles.
 
-10. Occurrence menu: /planning/ui/occurrence-menu,
-    /planning/operations/register, /planning/operations/set-note (a
-    note of only spaces already shows no note icon, by the menu's note
-    case; the menu's mockup comes with item 11).
-    - Manager's menu: names are ordered by `casefold`, not by the language's collation, as on Members.
-    - Manager's menu: a taken occurrence offers no names, so moving it to another member takes a cancel, then a proposal.
-    - Note icon: the whole note is the icon's accessible name, so a long note gives a long screen-reader label.
-    - A note of only spaces is saved as is; the Schedule's note icon (a later item) should treat it as empty.
 11. Schedule: /planning/ui/schedule, /planning/ui/shared-schedule,
     /planning/operations/get-schedule, /design, design/schedule.md,
     design/occurrence-menu.md (a past registration is already refused,

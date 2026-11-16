@@ -51,39 +51,6 @@
   - [new-day-failed] Otherwise refused, or failing: the Schedule stays
     as it was, with no message.
 
-## Occurrence menu
-
-×   - [note] A member whose note holds more than spaces has a note icon,
-×     whose text is the note.
-  - [note] A member whose note holds more than spaces has a note icon
-    named "Note", in French "Note", whose text is the note, given as
-    its description.
-  - [order] The names are sorted by the member's preference for the …
-    registrations, as /planning/model/registration defines the count; …
-×     then by
-×     display name.
-    then by display name, as /ui/name-order.
-  any to a manager: "Cancel registration…". …
-- [taken-names] An occurrence whose registration is not cancelled, to
-  a manager: also the members' display names but that of the
-  registration's member, as /planning/ui/occurrence-menu/free shows
-  them.
-× - [propose] A member's name runs /planning/operations/register for
-×   that member, on the occurrence.
-- [propose] On a free or cancelled occurrence, a member's name runs
-  /planning/operations/register for that member, on the occurrence.
-- [move] On an occurrence whose registration is not cancelled, a
-  member's name asks "Give this slot to <name> instead of <registered
-  name>?" with [Yes, give it] and "Keep it"; "Yes, give it" runs
-  /planning/operations/register for that member, on the occurrence,
-  replacing its registration.
-  - [move-messages] The messages of its tries, "Someone took this slot
-    in the meantime." included, show in its confirmation.
-  slot in the meantime." …
-- [fresh] The message of a refused or failed try shows in the menu
-  until the next try or the menu closes: opened again, the menu shows
-  no message of an earlier try.
-
 ## Shared schedule
 
   no menu. …
