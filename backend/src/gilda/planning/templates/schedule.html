@@ -14,4 +14,13 @@
   {% with menu = None, message = "" %}{% include "schedule_menu.html" %}{% endwith %}
 </div>
 {% with menu = None %}{% include "schedule_cancel.html" %}{% endwith %}
+<template id="menu-loading">
+  <div id="occurrence-menu-body" class="occurrence-menu-body">
+    <p class="menu-title"></p>
+    <p class="menu-loading" data-show="!$_failed">{{ t("schedule.loading") }}</p>
+    <p id="menu-error" hidden></p>
+    <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
+  </div>
+</template>
+<script src="/static/schedule.js" data-url="/association/{{ association.slug }}/weeks" data-association="{{ association.id }}" data-timezone="{{ association.timezone }}"></script>
 {% endblock %}

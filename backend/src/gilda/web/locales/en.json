@@ -298,7 +298,9 @@
     "noteIcon": "Note",
     "askMove": "Give this slot to {name} instead of {registered}?",
     "yesMove": "Yes, give it",
-    "taken": "Someone took this slot in the meantime."
+    "taken": "Someone took this slot in the meantime.",
+    "past": "This day is past.",
+    "loading": "Loading…"
   },
   "tryAgain": "Try again",
   "error": "Something went wrong. Try again.",

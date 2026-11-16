@@ -81,6 +81,10 @@ class AbsenceOverlapException(ConflictException):
     pass
 
 
+class PastException(ConflictException):
+    """The date, or the registration's, is before today."""
+
+
 class TakenException(ConflictException):
     """The occurrence already holds a registration that is not cancelled (R4)."""
 
@@ -521,12 +525,19 @@ class PlanningService:
             ),
             key=lambda r: (r.date, r.start),
         )
+        weekdays = {slot.weekday for slot in slots}
+        closed_days = [
+            day
+            for day in _dates(first, last)
+            if day.weekday() in weekdays and any(c.first <= day <= c.last for c in closures)
+        ]
         return ScheduleRead(
             from_=first,
             to=last,
             occurrences=occurrences,
             obsolete=[registration_read(r) for r in obsolete],
             closures=[closure_read(c) for c in closures],
+            closed_days=closed_days,
         )
 
     async def _default_range(self, association: Association) -> tuple[date, date]:
@@ -641,7 +652,7 @@ class PlanningService:
         if not await self.memberships.exists(user_id=user_id, association_id=association_id):
             raise ClientException("This user is not a member of the association.")
         if day < datetime.now(ZoneInfo(own.association.timezone)).date():
-            raise ConflictException("This date is past.")
+            raise PastException("This date is past.")
         start_time, end_time = parse_clock(start), parse_clock(end)
         if not await self._is_occurrence(association_id, day, start_time, end_time):
             raise ConflictException("There is no opening at this time.")
@@ -691,7 +702,7 @@ class PlanningService:
         if not mine and own.role != "manager":
             raise PermissionDeniedException("Only the member or a manager can change it.")
         if registration.date < datetime.now(ZoneInfo(own.association.timezone)).date():
-            raise ConflictException("This registration is past.")
+            raise PastException("This registration is past.")
         if status == "confirmed":
             if registration.status != "proposed" or not await self._is_occurrence(
                 association_id, registration.date, registration.start, registration.end

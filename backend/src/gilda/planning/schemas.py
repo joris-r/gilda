@@ -109,6 +109,7 @@ class ScheduleRead(msgspec.Struct):
     occurrences: list[OccurrenceRead]
     obsolete: list[RegistrationRead]
     closures: list[ClosureRead]
+    closed_days: list[date]
 
 
 class PlanningSummary(msgspec.Struct):

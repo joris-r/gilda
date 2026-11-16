@@ -1,5 +1,6 @@
 {# The menu's content, filled by the server when it opens on an occurrence or an obsolete registration. #}
 <div id="occurrence-menu-body" class="occurrence-menu-body">
+  {% if asked and not menu %}<p class="menu-title">{{ short_day(asked.date) }} · {{ asked.times }}</p>{% endif %}
   {% if menu %}
   {% set here = "/association/" ~ association.slug %}
   {% set shown = "from: '" ~ weeks["from"] ~ "', to: '" ~ weeks["to"] ~ "'" %}

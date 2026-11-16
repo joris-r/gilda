@@ -298,7 +298,9 @@
     "noteIcon": "Note",
     "askMove": "Donner ce créneau à {name} plutôt qu'à {registered} ?",
     "yesMove": "Oui, le donner",
-    "taken": "Quelqu'un a pris ce créneau entre-temps."
+    "taken": "Quelqu'un a pris ce créneau entre-temps.",
+    "past": "Ce jour est passé.",
+    "loading": "Chargement…"
   },
   "tryAgain": "Réessayer",
   "error": "Une erreur est survenue. Réessayez.",

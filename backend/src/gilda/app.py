@@ -77,6 +77,8 @@ from gilda.planning.pages import (
     settings_page,
     shared_more_weeks,
     shared_schedule_page,
+    shared_weeks_again,
+    weeks_again,
 )
 from gilda.planning.services import end_membership as end_planning_membership
 from gilda.web.pages import choose_language, kept_notice, not_found
@@ -135,10 +137,12 @@ def create_app() -> Litestar:
             save_note,
             schedule_page,
             more_weeks,
+            weeks_again,
             create_share_link,
             revoke_share_link,
             shared_schedule_page,
             shared_more_weeks,
+            shared_weeks_again,
             occurrence_menu,
             schedule_propose,
             schedule_sign_up,

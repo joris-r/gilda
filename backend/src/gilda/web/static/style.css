@@ -855,28 +855,6 @@ button.occ-body:focus-visible {
   color: var(--fg);
 }
 
-/* Beside the occurrence clicked: on its right if it fits, else on its left; inside the window. */
-@supports (position-anchor: --a) {
-  .menu-anchor {
-    anchor-name: --occurrence;
-  }
-
-  .occurrence-menu {
-    position-anchor: --occurrence;
-    inset: auto;
-    top: anchor(top);
-    left: anchor(right);
-    margin: 0 8px;
-    position-try-fallbacks: flip-inline, flip-block, flip-block flip-inline, --centered;
-  }
-}
-
-/* When no side of the occurrence has room: in the middle of the window. */
-@position-try --centered {
-  inset: 0;
-  margin: auto;
-}
-
 .occurrence-menu:popover-open,
 .occurrence-menu-body {
   display: grid;
@@ -920,8 +898,11 @@ button.menu-close {
     inset: auto 16px 16px 16px;
     width: auto;
     margin: 0;
-    position-try-fallbacks: none;
   }
+}
+
+.menu-loading {
+  color: var(--muted);
 }
 
 /* While the menu is open, its own copy of the generic error stands for the page's. */

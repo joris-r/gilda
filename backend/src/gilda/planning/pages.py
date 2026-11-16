@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 import msgspec
 from datastar_py.litestar import DatastarResponse, ServerSentEventGenerator
+from datastar_py.sse import DatastarEvent
 from litestar import Request, get, post
 from litestar.di import NamedDependency
 from litestar.exceptions import ClientException, NotFoundException, PermissionDeniedException
@@ -39,6 +40,7 @@ from gilda.planning.services import (
     AbsencePastException,
     DateOrderException,
     DatePastException,
+    PastException,
     PlanningService,
     TakenException,
     TimeOrderException,
@@ -959,10 +961,15 @@ def _weeks_view(schedule: ScheduleRead, period: PlanningPeriodData | None, today
         for item in items:
             item.top = round((_minutes(item.start) - view.first_hour * 60) / span, 4)
             item.bottom = round((_minutes(item.end) - view.first_hour * 60) / span, 4)
-    columns = sorted({item.date.weekday() for item in items})
+    closed = set(schedule.closed_days)
+    columns = sorted({item.date.weekday() for item in items} | {day.weekday() for day in closed})
     view.columns = len(columns)
     monday = first
     while monday <= last:
+        # With no occurrence, only the weeks that hold a closed day show.
+        if view.empty and not any(monday <= day <= monday + timedelta(days=6) for day in closed):
+            monday += timedelta(weeks=1)
+            continue
         days = []
         for column in columns:
             day = monday + timedelta(days=column)
@@ -1062,6 +1069,42 @@ async def more_weeks(
     return DatastarResponse(ServerSentEventGenerator.patch_elements(_one_line(shown)))
 
 
+def _query_range(request: Request[Any, Any, Any]) -> dict[str, Any]:
+    return {key: request.query_params.get(key) for key in ("from", "to")}
+
+
+@get("/association/{slug:str}/weeks")
+async def weeks_again(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> Response[str]:
+    """The weeks from `from` to `to` as they now are, for a Schedule shown again once today
+    changes: 401 when signed out, any other failure a plain status."""
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return Response("", status_code=401)
+    try:
+        first, last = _shown_range(_query_range(request))
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
+        service = PlanningService(db_session)
+        schedule = await service.schedule(user, association.id, first, last)
+        period = await service.get_planning_period(user, association.id)
+    except NotFoundException:
+        return Response("", status_code=404)
+    except PermissionDeniedException:
+        return Response("", status_code=403)
+    except ClientException:
+        return Response("", status_code=400)
+    shown = fragment(
+        request,
+        "schedule_weeks.html",
+        association=association,
+        view=_weeks_view(schedule, period, _today(association)),
+    )
+    return Response(shown, media_type="text/html")
+
+
 # Shared schedule, read with a share link's token, signed in or not.
 
 
@@ -1082,6 +1125,35 @@ async def shared_schedule_page(
     )
 
 
+def _gone(request: Request[Any, Any, Any]) -> DatastarResponse:
+    """The Shared schedule of a link that is no longer valid, as that link opens."""
+    shown = fragment(request, "shared_gone.html")
+    return DatastarResponse(ServerSentEventGenerator.patch_elements(_one_line(shown)))
+
+
+@get("/shared/{token:str}/weeks")
+async def shared_weeks_again(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: str
+) -> Response[str]:
+    """The weeks from `from` to `to` as they now are, for a Shared schedule shown again once
+    today changes: 404 when the link is no longer valid, any other failure a plain status."""
+    try:
+        first, last = _shown_range(_query_range(request))
+        association, schedule, period = await PlanningService(db_session).shared(token, first, last)
+    except NotFoundException:
+        return Response("", status_code=404)
+    except ClientException:
+        return Response("", status_code=400)
+    shown = fragment(
+        request,
+        "schedule_weeks.html",
+        association=association,
+        shared=token,
+        view=_weeks_view(schedule, period, _today(association)),
+    )
+    return Response(shown, media_type="text/html")
+
+
 @post("/shared/{token:str}/weeks", status_code=200)
 async def shared_more_weeks(
     request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: str
@@ -1091,6 +1163,8 @@ async def shared_more_weeks(
         first -= timedelta(days=first.weekday())
         last += timedelta(days=6 - last.weekday(), weeks=_MORE_WEEKS)
         association, schedule, period = await PlanningService(db_session).shared(token, first, last)
+    except NotFoundException:
+        return _gone(request)
     except _REFUSALS:
         return _error(request, "weeks-error", "error")
     shown = fragment(
@@ -1239,6 +1313,26 @@ def _names(
     )
 
 
+async def _weeks_event(
+    request: Request[Any, Any, Any],
+    service: PlanningService,
+    user: User,
+    association: AssociationDetail,
+    first: date,
+    last: date,
+) -> DatastarEvent:
+    """The weeks from `first` to `last` as they now are."""
+    schedule = await service.schedule(user, association.id, first, last)
+    period = await service.get_planning_period(user, association.id)
+    shown = fragment(
+        request,
+        "schedule_weeks.html",
+        association=association,
+        view=_weeks_view(schedule, period, _today(association)),
+    )
+    return ServerSentEventGenerator.patch_elements(_one_line(shown))
+
+
 async def _weeks_patched(
     request: Request[Any, Any, Any],
     service: PlanningService,
@@ -1250,18 +1344,56 @@ async def _weeks_patched(
 ) -> DatastarResponse:
     """Closes the menu, or the confirmation, then shows the weeks from `first` to `last` as
     they now are."""
-    schedule = await service.schedule(user, association.id, first, last)
-    period = await service.get_planning_period(user, association.id)
-    shown = fragment(
-        request,
-        "schedule_weeks.html",
-        association=association,
-        view=_weeks_view(schedule, period, _today(association)),
-    )
     return DatastarResponse(
         [
             ServerSentEventGenerator.execute_script(close),
-            ServerSentEventGenerator.patch_elements(_one_line(shown)),
+            await _weeks_event(request, service, user, association, first, last),
+        ]
+    )
+
+
+async def _refused_weeks(
+    request: Request[Any, Any, Any],
+    service: PlanningService,
+    user: User,
+    association: AssociationDetail,
+    first: date,
+    last: date,
+    error_id: str,
+    key: str,
+) -> DatastarResponse:
+    """The message of a refused try, whose menu or confirmation stays open, and the weeks as
+    they now are."""
+    message = translate(interface_language(request), key)
+    error = ServerSentEventGenerator.patch_elements(
+        fragment(request, "form_error.html", message=message, error_id=error_id)
+    )
+    return DatastarResponse(
+        [error, await _weeks_event(request, service, user, association, first, last)]
+    )
+
+
+def _menu_message(request: Request[Any, Any, Any], asked: _Menu | None, key: str) -> DatastarEvent:
+    """The menu with its title and a message only."""
+    message = translate(interface_language(request), key)
+    body = fragment(request, "schedule_menu.html", menu=None, asked=asked, message=message)
+    return ServerSentEventGenerator.patch_elements(_one_line(body))
+
+
+async def _past_in_menu(
+    request: Request[Any, Any, Any],
+    service: PlanningService,
+    user: User,
+    association: AssociationDetail,
+    first: date,
+    last: date,
+    asked: _Menu,
+) -> DatastarResponse:
+    """The menu shows only its title and "This day is past.", and the weeks as they now are."""
+    return DatastarResponse(
+        [
+            _menu_message(request, asked, "schedule.past"),
+            await _weeks_event(request, service, user, association, first, last),
         ]
     )
 
@@ -1277,12 +1409,11 @@ async def occurrence_menu(
     user = await find_current_user(request, db_session)
     if user is None:
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
-    show = ServerSentEventGenerator.execute_script(
-        "document.getElementById('occurrence-menu').showPopover()"
-    )
+    asked: _Menu | None = None
     try:
         signals = await read_signals_dict(request)
         day, start, end = _asked_occurrence(signals)
+        asked = _Menu(date=day, start=start, end=end)
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
@@ -1292,9 +1423,11 @@ async def occurrence_menu(
         else:
             opened = await service.schedule(user, association.id, None, None)
             first, last = opened.from_, opened.to
+        if day < _today(association):
+            return await _past_in_menu(request, service, user, association, first, last, asked)
         schedule = await service.schedule(user, association.id, day, day)
         manages = association.role == "manager"
-        menu = _menu_of(schedule, user, manages, _Menu(date=day, start=start, end=end))
+        menu = _menu_of(schedule, user, manages, asked)
         if manages and (menu.sign_up or menu.taken_by is not None):
             facts = await service.member_facts(user, association.id, day, start, end)
             facts = [f for f in facts if f.user_id != menu.taken_by]
@@ -1304,9 +1437,7 @@ async def occurrence_menu(
                     (m.display_name for m in association.members if m.user_id == menu.taken_by), ""
                 )
     except _REFUSALS:
-        message = translate(interface_language(request), "error")
-        body = fragment(request, "schedule_menu.html", menu=None, message=message)
-        return DatastarResponse([ServerSentEventGenerator.patch_elements(_one_line(body)), show])
+        return DatastarResponse(_menu_message(request, asked, "error"))
     weeks = {"from": first.isoformat(), "to": last.isoformat()}
     context = {"association": association, "menu": menu, "weeks": weeks, "message": ""}
     events = [
@@ -1320,7 +1451,7 @@ async def occurrence_menu(
                 _one_line(fragment(request, "schedule_cancel.html", **context))
             )
         )
-    return DatastarResponse([*events, show])
+    return DatastarResponse(events)
 
 
 @post("/association/{slug:str}/sign-up", status_code=200)
@@ -1340,7 +1471,12 @@ async def schedule_sign_up(
         service = PlanningService(db_session)
         await service.register(user, association.id, user.id, day, start, end)
     except TakenException:
-        return _error(request, "menu-error", "schedule.taken")
+        return await _refused_weeks(
+            request, service, user, association, first, last, "menu-error", "schedule.taken"
+        )
+    except PastException:
+        asked = _Menu(date=day, start=start, end=end)
+        return await _past_in_menu(request, service, user, association, first, last, asked)
     except _REFUSALS:
         return _error(request, "menu-error", "error")
     return await _weeks_patched(request, service, user, association, first, last, _CLOSE_MENU)
@@ -1375,7 +1511,16 @@ async def schedule_propose(
         service = PlanningService(db_session)
         await service.register(user, association.id, user_id, day, start, end, replaced)
     except TakenException:
-        return _error(request, error_id, "schedule.taken")
+        return await _refused_weeks(
+            request, service, user, association, first, last, error_id, "schedule.taken"
+        )
+    except PastException:
+        if error_id == "menu-error":
+            asked = _Menu(date=day, start=start, end=end)
+            return await _past_in_menu(request, service, user, association, first, last, asked)
+        return await _refused_weeks(
+            request, service, user, association, first, last, error_id, "schedule.past"
+        )
     except _REFUSALS:
         return _error(request, error_id, "error")
     return await _weeks_patched(request, service, user, association, first, last, close)
@@ -1404,6 +1549,10 @@ async def _status_changed(
         )
         service = PlanningService(db_session)
         await service.change_status(user, association.id, registration, status)
+    except PastException:
+        return await _refused_weeks(
+            request, service, user, association, first, last, error_id, "schedule.past"
+        )
     except _REFUSALS:
         return _error(request, error_id, "error")
     close = _CLOSE_MENU if status == "confirmed" else _CLOSE_CANCEL
