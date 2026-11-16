@@ -505,9 +505,13 @@ def propose(
     start: str,
     end: str,
     weeks: dict[str, str] | None = None,
+    replacing: str | None = None,
 ) -> Any:
     """Clicks the display name of the member `user_id` in the menu of an occurrence, on a
-    Schedule that shows `weeks`."""
+    Schedule that shows `weeks`; with `replacing`, the id of the registration of the
+    occurrence, confirms "Yes, give it" to the member instead."""
+    # @dev43:unsure the move goes through the name's action, with a `replacing` signal
+    extra = {} if replacing is None else {"replacing": replacing}
     return as_client.post(
         f"/association/{slug}/propose",
         json={
@@ -516,6 +520,7 @@ def propose(
             "start": start,
             "end": end,
             **(weeks or opened_weeks()),
+            **extra,
         },
     )
 
@@ -526,15 +531,29 @@ Name = tuple[str, list[str]]
 def menu_names(fragment: str) -> list[Name]:
     """The members' names a menu offers, in order: each one's text, its count included, e.g.
     "Alice (2)", and the text of each of its icons, e.g. ["Absent Mon 9 Nov 2026"]. A name is
-    an `<li>` of the menu; an icon, an element in it with an aria-label, whose text that is."""
+    an `<li>` of the menu; an icon, an element in it with an aria-label, whose text is its title
+    (its hover text, which is also its description)."""
+    # @dev43:unsure an icon's text is its `title`, placed after its `aria-label` in the markup
     fragment = re.sub(r"^data: elements ", "", fragment, flags=re.MULTILINE)
     names: list[Name] = []
     for item in re.findall(r"<li[ >].*?</li>", without_dialogs(fragment), re.DOTALL):
-        icons = re.findall(r'<[a-z]+[^>]*\saria-label="([^"]*)"', item)
+        icons = re.findall(r'<[a-z]+[^>]*\saria-label="[^"]*"[^>]*\stitle="([^"]*)"', item)
         labelled = r'<([a-z]+)[^>]*\saria-label="[^"]*"[^>]*>.*?</\1>'
         text = re.sub(labelled, "", item, flags=re.DOTALL)
         names.append((" ".join(text_of(text).split()), [html.unescape(icon) for icon in icons]))
     return names
+
+
+def icon_names_of(as_client: Any, slug: str, day: str, name: str) -> list[str]:
+    """The accessible name of each icon of the name `name` in the menu of the occurrence of
+    `day` from 10:00 to 13:00."""
+    response = open_menu(as_client, slug, day, "10:00", "13:00")
+    fragment = re.sub(r"^data: elements ", "", shown(response), flags=re.MULTILINE)
+    for item in re.findall(r"<li[ >].*?</li>", without_dialogs(fragment), re.DOTALL):
+        if re.search(rf">\s*{re.escape(name)}\b", item):
+            icons = re.findall(r'\saria-label="([^"]*)"[^>]*\stitle=', item)
+            return [html.unescape(icon) for icon in icons]
+    raise AssertionError(f"no name {name}")
 
 
 def names_offered(

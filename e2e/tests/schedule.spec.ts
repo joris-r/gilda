@@ -6,11 +6,14 @@ import {
   createAssociation,
   saveNote,
   signUpFor,
+  propose,
   signedIn,
   uniqueEmail,
+  userIdOf,
 } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
+const TAKEN = 'Someone took this slot in the meantime.'
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -258,6 +261,7 @@ async function openManagersSchedule(page: Page, request: APIRequestContext) {
   await saveNote(page.request, slug, NOTE)
   await page.reload()
   await expect(weekHeadings(page).first()).toBeVisible()
+  return slug
 }
 
 /** The text of Alice's absence icon: the week two weeks ahead, from Monday to Sunday. */
@@ -304,7 +308,7 @@ test.describe("Schedule menu: the manager's part", () => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
 
-    await expect(menu(page).getByRole('button', { name: NOTE, exact: true })).toHaveAttribute('title', NOTE)
+    await expect(menu(page).getByRole('button', { name: 'Note', exact: true })).toHaveAttribute('title', NOTE)
     await expect(menu(page).getByRole('button', { name: absenceText(), exact: true })).toHaveAttribute(
       'title',
       absenceText(),
@@ -317,7 +321,7 @@ test.describe("Schedule menu: the manager's part", () => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
 
-    await menu(page).getByRole('button', { name: NOTE, exact: true }).click()
+    await menu(page).getByRole('button', { name: 'Note', exact: true }).click()
 
     await expect(page.getByText(NOTE, { exact: true })).toBeVisible()
     await expect(menuTitle(page, 2)).toBeVisible()
@@ -328,7 +332,7 @@ test.describe("Schedule menu: the manager's part", () => {
   test('clicking the icon again hides its text', async ({ page, request }) => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
-    const icon = menu(page).getByRole('button', { name: NOTE, exact: true })
+    const icon = menu(page).getByRole('button', { name: 'Note', exact: true })
 
     await icon.click()
     await expect(page.getByText(NOTE, { exact: true })).toBeVisible()
@@ -344,7 +348,7 @@ test.describe("Schedule menu: the manager's part", () => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
 
-    await menu(page).getByRole('button', { name: NOTE, exact: true }).click()
+    await menu(page).getByRole('button', { name: 'Note', exact: true }).click()
     await menu(page).getByRole('button', { name: absenceText(), exact: true }).click()
 
     await expect(page.getByText(absenceText(), { exact: true })).toBeVisible()
@@ -355,7 +359,7 @@ test.describe("Schedule menu: the manager's part", () => {
   test('the text shown leaves when the menu opens on another occurrence', async ({ page, request }) => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
-    await menu(page).getByRole('button', { name: NOTE, exact: true }).click()
+    await menu(page).getByRole('button', { name: 'Note', exact: true }).click()
     await expect(page.getByText(NOTE, { exact: true })).toBeVisible()
     await page.keyboard.press('Escape')
 
@@ -363,5 +367,100 @@ test.describe("Schedule menu: the manager's part", () => {
 
     await expect(menuTitle(page, 3)).toBeVisible()
     await expect(page.getByText(NOTE, { exact: true })).toBeHidden()
+  })
+})
+
+test.describe('Schedule menu: the Occurrence menu of a manager', () => {
+  // /planning/ui/occurrence-menu/note
+  test('the note icon is named "Note" and its description is the note', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    const icon = menu(page).getByRole('button', { name: 'Note', exact: true })
+
+    await expect(icon).toHaveAccessibleName('Note')
+    await expect(icon).toHaveAccessibleDescription(NOTE)
+  })
+
+  // /planning/ui/occurrence-menu/taken-names
+  test('a taken occurrence offers the names of the other members', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await dayGroup(page, 1).getByRole('listitem').click()
+
+    await expect(menu(page).getByRole('button', { name: 'Cancel registration…' })).toBeVisible()
+    await expect(menu(page).getByRole('button', { name: 'Bruno', exact: true })).toBeVisible()
+    await expect(menu(page).getByRole('button', { name: 'Alice', exact: true })).toBeHidden()
+  })
+
+  // /planning/ui/occurrence-menu/move
+  test('a name on a taken occurrence asks to give the slot; "Keep it" changes nothing', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await dayGroup(page, 1).getByRole('listitem').click()
+
+    await menu(page).getByRole('button', { name: 'Bruno', exact: true }).click()
+    const dialog = page.getByRole('dialog').filter({ hasText: 'Give this slot to Bruno instead of Alice?' })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('button', { name: 'Keep it' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText('Alice')
+    await page.reload()
+    await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText('Alice')
+  })
+
+  // /planning/ui/occurrence-menu/move
+  // /planning/operations/register/replaced
+  // /planning/operations/register/proposed
+  test('"Yes, give it" gives the slot to that member, proposed', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await dayGroup(page, 1).getByRole('listitem').click()
+
+    await menu(page).getByRole('button', { name: 'Bruno', exact: true }).click()
+    const dialog = page.getByRole('dialog').filter({ hasText: 'Give this slot to Bruno instead of Alice?' })
+    await dialog.getByRole('button', { name: 'Yes, give it' }).click()
+
+    await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)
+    await expect(menuTitle(page, 1)).toBeHidden()
+    await page.reload()
+    await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)
+  })
+
+  // /planning/ui/occurrence-menu/move-messages
+  // /planning/operations/register/taken
+  test('"Someone took this slot in the meantime." shows in the confirmation', async ({ page, request }) => {
+    await openManagersSchedule(page, request)
+    await dayGroup(page, 1).getByRole('listitem').click()
+    await menu(page).getByRole('button', { name: 'Bruno', exact: true }).click()
+    const dialog = page.getByRole('dialog').filter({ hasText: 'Give this slot to Bruno instead of Alice?' })
+    await expect(dialog).toBeVisible()
+    const other = await page.context().newPage()
+    await other.goto(page.url())
+    await other.locator('main').getByRole('group', { name: dayOfWeek(4, 1).label, exact: true }).getByRole('listitem').click()
+    await other.getByRole('button', { name: 'Cancel registration…' }).click()
+    await other.getByRole('button', { name: 'Yes, cancel' }).click()
+    await other.locator('main').getByRole('group', { name: dayOfWeek(4, 1).label, exact: true }).getByRole('listitem').click()
+    await other.getByRole('button', { name: 'Sign up' }).click()
+    await expect(other.locator('main').getByRole('group', { name: dayOfWeek(4, 1).label, exact: true }).getByRole('listitem')).toHaveText('Alice')
+
+    await dialog.getByRole('button', { name: 'Yes, give it' }).click()
+
+    await expect(dialog.getByText(TAKEN).filter({ visible: true })).toBeVisible()
+    await expect(dialog.getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+  })
+
+  // /planning/ui/occurrence-menu/fresh
+  test('opened again, the menu shows no message of an earlier try', async ({ page, request }) => {
+    const slug = await openManagersSchedule(page, request)
+    await dayGroup(page, 2).getByRole('listitem').click()
+    await expect(menuTitle(page, 2)).toBeVisible()
+    await propose(page.request, slug, await userIdOf(page.request, slug, 'Bruno'), dayOfWeek(4, 2).iso, '10:00', '13:00')
+    await menu(page).getByRole('button', { name: 'Alice', exact: true }).click()
+    await expect(menu(page).getByText(TAKEN).filter({ visible: true })).toBeVisible()
+    await page.keyboard.press('Escape')
+
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await expect(menuTitle(page, 2)).toBeVisible()
+    await expect(page.getByText(TAKEN).filter({ visible: true })).toHaveCount(0)
   })
 })

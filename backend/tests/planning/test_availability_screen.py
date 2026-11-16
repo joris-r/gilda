@@ -1680,6 +1680,41 @@ class TestSavingTheNote:
         assert stored_text == "Mornings only.\nNever on Sundays."
 
     # /planning/operations/set-note/set
+    def test_trims_its_leading_and_trailing_spaces_tabs_and_line_breaks(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        shown(save_note(planning.bruno_client, planning.slug, " \t\n Pairs, please.\n\t "))
+
+        assert notes_stored(planning)[planning.bruno["id"]] == "Pairs, please."
+        assert note_shown(planning.bruno_client, planning.slug) == (
+            "Note for the managers Pairs, please."
+        )
+
+    # /planning/operations/set-note/set
+    def test_keeps_the_spaces_inside(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+
+        shown(save_note(planning.bruno_client, planning.slug, "\nMornings  only.\n\nNever. "))
+
+        stored_text = notes_stored(planning)[planning.bruno["id"]]
+        assert stored_text == "Mornings  only.\n\nNever."
+
+    # /planning/operations/set-note/set
+    # /planning/ui/my-availability/none
+    def test_a_text_of_only_spaces_tabs_and_line_breaks_empties_it(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        write_note(planning.bruno_client, planning, NOTE)
+
+        shown(save_note(planning.bruno_client, planning.slug, " \t\n  \n"))
+
+        assert note_shown(planning.bruno_client, planning.slug) == "Note for the managers None"
+        assert notes_stored(planning)[planning.bruno["id"]] == ""
+
+    # /planning/operations/set-note/set
     # /planning/model/note/single
     def test_replaces_the_previous_one(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning = Planning(client, new_client)

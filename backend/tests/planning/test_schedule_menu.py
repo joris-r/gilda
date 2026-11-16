@@ -23,6 +23,7 @@ from tests.planning.conftest import (
     day_of_week,
     day_shown,
     headings_of,
+    icon_names_of,
     names_offered,
     open_menu,
     opened_weeks,
@@ -355,13 +356,51 @@ class TestManagersMenu:
         assert "Alice" not in text
         assert "Chloé" not in text
 
-    # /planning/ui/occurrence-menu/free
-    def test_a_taken_occurrence_offers_no_names(
+    # /planning/ui/occurrence-menu/taken-names
+    def test_a_taken_occurrence_offers_the_names_but_the_registered_members(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning, thursday, _ = proposed_to_bruno(client, new_client)
 
-        assert names_offered(client, planning.slug, thursday) == []
+        assert texts_offered(client, planning.slug, thursday) == ["Alice", "Chloé"]
+
+    # /planning/ui/occurrence-menu/taken-names
+    def test_a_confirmed_occurrence_offers_the_names_but_the_registered_members(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        planning.registered(planning.chloe_client, planning.chloe, thursday, "10:00", "13:00")
+
+        assert texts_offered(client, planning.slug, thursday) == ["Alice", "Bruno"]
+
+    # /planning/ui/occurrence-menu/taken-names
+    # /planning/ui/occurrence-menu/free
+    # /planning/ui/occurrence-menu/count
+    # /planning/ui/occurrence-menu/absent
+    # /planning/ui/occurrence-menu/order
+    def test_the_names_of_a_taken_occurrence_show_as_those_of_a_free_one(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        with_period(planning)
+        planning.registered(client, planning.alice, day_of_week("thursday", 1), "10:00", "13:00")
+        planning.registered(planning.chloe_client, planning.chloe, thursday, "10:00", "13:00")
+        add_absence(planning.bruno_client, planning, thursday, thursday)
+
+        names = names_offered(client, planning.slug, thursday)
+
+        assert [text for text, _ in names] == ["Alice (1)", "Bruno (0)"]
+        assert names[0][1] == []
+        assert names[1][1] == [f"Absent {day_label(thursday)} {thursday[:4]}"]
+
+    # /planning/ui/occurrence-menu/taken-names
+    def test_a_volunteer_is_offered_no_names_on_a_taken_occurrence(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        planning.registered(planning.chloe_client, planning.chloe, thursday, "10:00", "13:00")
+
+        assert names_offered(planning.bruno_client, planning.slug, thursday) == []
 
     # /planning/ui/occurrence-menu/confirm
     # /planning/ui/occurrence-menu/cancel
@@ -611,6 +650,23 @@ class TestNameOrder:
         ]
 
     # /planning/ui/occurrence-menu/order
+    # /ui/name-order/names
+    def test_then_by_display_name_ignoring_case_and_accents(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        planning._volunteer(new_client, "Zoé")
+        planning._volunteer(new_client, "émile")
+
+        assert texts_offered(client, planning.slug, thursday) == [
+            "Alice",
+            "Bruno",
+            "Chloé",
+            "émile",
+            "Zoé",
+        ]
+
+    # /planning/ui/occurrence-menu/order
     def test_then_by_display_name(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning, thursday = free_thursday(client, new_client)
         prefer(planning, planning.chloe, "possible")
@@ -706,6 +762,39 @@ class TestNoteIcon:
 
         assert icons_of(client, planning.slug, thursday, "Bruno") == [NOTE]
         assert icons_of(client, planning.slug, thursday, "Chloé") == []
+
+    # /planning/ui/occurrence-menu/note
+    def test_the_note_icon_is_named_note(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        write_note(planning.bruno_client, planning, NOTE)
+
+        assert icon_names_of(client, planning.slug, thursday, "Bruno") == ["Note"]
+
+    # /planning/ui/occurrence-menu/note
+    def test_the_note_icon_is_named_note_in_french(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
+        write_note(planning.bruno_client, planning, NOTE)
+        client.cookies.set("language", "fr")
+
+        names = icon_names_of(client, planning.slug, "2037-11-12", "Bruno")
+
+        assert len(names) == 2
+        assert "Note" in names
+        assert any(name.startswith("Absent du ") for name in names)
+
+    # /planning/ui/occurrence-menu/note
+    # /planning/operations/set-note/set
+    def test_a_note_of_only_tabs_and_line_breaks_shows_no_icon(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = free_thursday(client, new_client)
+        write_note(planning.bruno_client, planning, "\t\n  \n")
+
+        assert icons_of(client, planning.slug, thursday, "Bruno") == []
 
     # /planning/ui/occurrence-menu/note
     def test_the_note_keeps_its_lines(self, client: Any, new_client: Callable[[], Any]) -> None:
@@ -1507,3 +1596,159 @@ class TestCancelRegistration:
         cancel_registration(other_user(new_client), planning.slug, registration["id"])
 
         assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"
+
+
+def give(
+    as_client: Any,
+    planning: Planning,
+    registration: dict[str, Any],
+    member: dict[str, Any],
+    day: str,
+    weeks: dict[str, str] | None = None,
+) -> str:
+    """Confirms "Yes, give it" in the menu of the occurrence of `day` from 10:00 to 13:00, to
+    `member` instead of the registration's member."""
+    response = propose(
+        as_client, planning.slug, member["id"], day, "10:00", "13:00", weeks, registration["id"]
+    )
+    return shown(response)
+
+
+class TestMove:
+    # /planning/ui/occurrence-menu/move
+    # /planning/operations/register/proposed
+    # /planning/operations/register/replaced
+    def test_a_manager_gives_a_confirmed_registration_to_another_member(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+
+        text = give(client, planning, registration, planning.bruno, thursday)
+
+        assert GENERIC not in text
+        assert TAKEN not in text
+        assert day_in(schedule_entries(text), thursday) == "[Bruno ?]"
+        assert day_shown(planning.chloe_client, planning.slug, thursday) == "[Bruno ?]"
+
+    # /planning/operations/register/replaced
+    # /planning/operations/register/proposed
+    def test_a_proposed_registration_is_given_too(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday, registration = proposed_to_bruno(client, new_client)
+
+        text = give(client, planning, registration, planning.chloe, thursday)
+
+        assert day_in(schedule_entries(text), thursday) == "[Chloé ?]"
+
+    # /planning/operations/register/replaced
+    # /planning/operations/register/self
+    def test_a_manager_gives_it_to_themself_confirmed(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday, registration = proposed_to_bruno(client, new_client)
+
+        text = give(client, planning, registration, planning.alice, thursday)
+
+        assert day_in(schedule_entries(text), thursday) == "[Alice]"
+
+    # /planning/operations/register/replaced
+    # /planning/ui/occurrence-menu/count
+    def test_the_given_registration_is_cancelled_and_the_others_stay(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        with_period(planning)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+        later = day_of_week("thursday", 2)
+        planning.registered(planning.chloe_client, planning.chloe, later, "10:00", "13:00")
+
+        give(client, planning, registration, planning.bruno, thursday)
+
+        assert day_shown(client, planning.slug, later) == "[Chloé]"
+        assert texts_offered(client, planning.slug, day_of_week("thursday", 3)) == [
+            "Alice (0)",
+            "Bruno (1)",
+            "Chloé (1)",
+        ]
+
+    # /planning/operations/register/taken
+    def test_a_registration_taken_since_is_not_replaced(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday, registration = proposed_to_bruno(client, new_client)
+        planning.cancel(client, registration)
+        planning.registered(planning.chloe_client, planning.chloe, thursday, "10:00", "13:00")
+
+        text = give(client, planning, registration, planning.alice, thursday)
+
+        assert TAKEN in text
+        assert GENERIC not in text
+        assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+
+    # /planning/operations/register/taken
+    def test_a_registration_cannot_be_given_to_its_own_member(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+
+        text = give(client, planning, registration, planning.chloe, thursday)
+
+        assert TAKEN in text
+        assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+
+    # /planning/operations/register/taken
+    def test_replacing_another_occurrences_registration_does_not_free_this_one(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        later = day_of_week("thursday", 2)
+        elsewhere = planning.registered(
+            planning.bruno_client, planning.bruno, later, "10:00", "13:00"
+        )
+        planning.registered(planning.chloe_client, planning.chloe, thursday, "10:00", "13:00")
+
+        text = give(client, planning, elsewhere, planning.alice, thursday)
+
+        assert TAKEN in text
+        assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+        assert day_shown(client, planning.slug, later) == "[Bruno]"
+
+    # /planning/operations/register/other
+    # /ui/errors/generic
+    def test_a_volunteer_cannot_replace_even_for_themself(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+
+        text = give(planning.bruno_client, planning, registration, planning.bruno, thursday)
+
+        assert GENERIC in text
+        assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+
+    # /planning/operations/register/replaced
+    def test_a_free_occurrence_with_a_replacing_of_another_keeps_that_one(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        later = day_of_week("thursday", 2)
+        elsewhere = planning.registered(
+            planning.bruno_client, planning.bruno, later, "10:00", "13:00"
+        )
+
+        text = give(client, planning, elsewhere, planning.chloe, thursday)
+
+        assert GENERIC not in text
+        assert day_in(schedule_entries(text), thursday) == "[Chloé ?]"
+        assert day_shown(client, planning.slug, later) == "[Bruno]"
