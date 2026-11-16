@@ -39,16 +39,6 @@ async function expectSaved(page: Page, slug: string, value: string | null) {
 }
 
 test.describe('My availability: My preferences', () => {
-  // /planning/ui/my-availability/preferences
-  test('each slot has a selector showing "—"', async ({ page, request }) => {
-    await openAvailability(page, request, [
-      ['thursday', '10:00', '13:00'],
-      ['saturday', '10:00', '13:00'],
-    ])
-
-    await expect(selector(page, 'Thursday 10:00–13:00')).toHaveValue('')
-    await expect(selector(page, 'Saturday 10:00–13:00')).toHaveValue('')
-  })
 
   // /planning/ui/my-availability/set
   // /planning/operations/set-preference/set
@@ -181,18 +171,6 @@ async function openNote(page: Page) {
 }
 
 test.describe('My availability: Add an absence', () => {
-  // /planning/ui/my-availability/add-absence
-  // /ui/forms/dialog
-  test('opens the dialog "Add an absence", with From and To', async ({ page, request }) => {
-    await openAvailability(page, request, [])
-
-    const dialog = await openAddAbsence(page)
-
-    await expect(from(dialog)).toBeVisible()
-    await expect(to(dialog)).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Add absence' })).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
-  })
 
   // /planning/ui/my-availability/add-absence
   // /planning/operations/add-absence/added

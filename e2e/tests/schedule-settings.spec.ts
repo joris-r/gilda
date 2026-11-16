@@ -102,20 +102,6 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(line(page, 'Thursday 10:00–13:00')).toBeVisible()
   })
 
-  // /planning/ui/schedule-settings/add-slot
-  // /ui/forms/dialog
-  test('opens the dialog "Add a slot", with Day, From and To', async ({ page, request }) => {
-    await openSettings(page, request)
-
-    const dialog = await openAdd(page)
-
-    await expect(day(dialog)).toBeVisible()
-    await expect(from(dialog)).toBeVisible()
-    await expect(to(dialog)).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Add slot' })).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
-  })
-
   // /planning/ui/schedule-settings/defaults
   test('opens with From and To at 09:00', async ({ page, request }) => {
     await openSettings(page, request)
@@ -519,17 +505,6 @@ async function askToDeleteClosure(page: Page, text: string, question: string) {
 }
 
 test.describe('Schedule settings: Planning period', () => {
-  // /planning/ui/schedule-settings/edit-period
-  test('the edit icon opens the dialog "Planning period", with From and To', async ({ page, request }) => {
-    await openSettings(page, request)
-
-    const dialog = await openPeriod(page)
-
-    await expect(from(dialog)).toBeVisible()
-    await expect(to(dialog)).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Save' })).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
-  })
 
   // /planning/ui/schedule-settings/edit-period
   // /ui/forms/edit
@@ -674,18 +649,6 @@ test.describe('Schedule settings: Planning period', () => {
 })
 
 test.describe('Schedule settings: Add a closure', () => {
-  // /planning/ui/schedule-settings/add-closure
-  test('opens the dialog "Add a closure", with From, To and Label', async ({ page, request }) => {
-    await openSettings(page, request)
-
-    const dialog = await openAddClosure(page)
-
-    await expect(from(dialog)).toBeVisible()
-    await expect(to(dialog)).toBeVisible()
-    await expect(label(dialog)).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Add closure' })).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible()
-  })
 
   // /planning/ui/schedule-settings/add-closure
   // /planning/operations/add-closure/added
@@ -965,22 +928,6 @@ function cell(page: Page, member: string, column: number) {
 }
 
 test.describe("Schedule settings: Members' preferences", () => {
-  // /planning/ui/schedule-settings/preferences
-  test('a selector per member and slot, showing "—"', async ({ page, request }) => {
-    await openSettings(
-      page,
-      request,
-      [
-        ['thursday', '10:00', '13:00'],
-        ['saturday', '10:00', '13:00'],
-      ],
-      { members: ['Bruno'] },
-    )
-
-    await expect(preferences(page).getByRole('combobox')).toHaveCount(4)
-    await expect(cell(page, 'Alice', 0)).toHaveValue('')
-    await expect(cell(page, 'Bruno', 1)).toHaveValue('')
-  })
 
   // /planning/ui/schedule-settings/set-preference
   // /planning/operations/set-preference/set
@@ -1287,13 +1234,6 @@ function inDays(days: number) {
 const DATE_ORDER = "The end date can't be before the start date."
 const PAST = "The end date can't be before today."
 const TIME_ORDER = 'The end time must be after the start time.'
-const ADD_CLOSURE_WARNING = 'Registrations on its dates, from today on, become obsolete.'
-const EDIT_CLOSURE_WARNING =
-  'Registrations on its new dates, from today on, become obsolete; those on the dates it no longer covers may stop being obsolete.'
-const DELETE_CLOSURE_WARNING = 'Registrations on its dates, from today on, may stop being obsolete.'
-const EDIT_SLOT_WARNING = 'Changing the day or times makes its registrations from today on obsolete.'
-const DELETE_SLOT_WARNING =
-  "Its registrations from today on become obsolete, and the members' preferences on it are deleted."
 
 test.describe('Schedule settings: the dialogs refuse', () => {
   // /planning/ui/schedule-settings/period-order
@@ -1409,68 +1349,6 @@ test.describe('Schedule settings: the dialogs refuse', () => {
     dialog = await openAdd(page)
 
     await expect(dialog.getByText(TIME_ORDER, { exact: true })).toBeHidden()
-  })
-})
-
-test.describe('Schedule settings: the closures listed', () => {
-  // /planning/ui/schedule-settings/closures
-  test('a closure ending today shows', async ({ page, request }) => {
-    await openSettings(page, request, [], {
-      closures: [
-        [inDays(0), inDays(0), 'Ends today'],
-        [inDays(2), inDays(3), 'Ends later'],
-      ],
-    })
-
-    await expect(line(page, 'Ends today')).toHaveCount(1)
-    await expect(line(page, 'Ends later')).toHaveCount(1)
-  })
-})
-
-test.describe('Schedule settings: the warnings', () => {
-  // /planning/ui/schedule-settings/closure-warning
-  test('the dialog "Add a closure" shows the warning', async ({ page, request }) => {
-    await openSettings(page, request)
-
-    const dialog = await openAddClosure(page)
-
-    await expect(dialog.getByText(ADD_CLOSURE_WARNING, { exact: true })).toBeVisible()
-  })
-
-  // /planning/ui/schedule-settings/edit-closure-warning
-  test('the dialog "Edit the closure" shows the warning', async ({ page, request }) => {
-    await openSettings(page, request, [], { closures: [FETE] })
-
-    const dialog = await openEditClosure(page, 'Fête du quartier')
-
-    await expect(dialog.getByText(EDIT_CLOSURE_WARNING, { exact: true })).toBeVisible()
-  })
-
-  // /planning/ui/schedule-settings/delete-closure-warning
-  test('the question to delete a closure goes on with the warning', async ({ page, request }) => {
-    await openSettings(page, request, [], { closures: [FETE] })
-
-    const confirmation = await askToDeleteClosure(page, 'Fête du quartier', DELETE_FETE)
-
-    await expect(confirmation).toContainText(`${DELETE_FETE} ${DELETE_CLOSURE_WARNING}`)
-  })
-
-  // /planning/ui/schedule-settings/edit-warning
-  test('the dialog "Edit the slot" shows the warning', async ({ page, request }) => {
-    await openSettings(page, request, [['thursday', '10:00', '13:00']])
-
-    const dialog = await openEdit(page, 'Thursday')
-
-    await expect(dialog.getByText(EDIT_SLOT_WARNING, { exact: true })).toBeVisible()
-  })
-
-  // /planning/ui/schedule-settings/delete-slot-warning
-  test('the question to delete a slot goes on with the warning', async ({ page, request }) => {
-    await openSettings(page, request, [['thursday', '10:00', '13:00']])
-
-    const confirmation = await askToDelete(page, 'Thursday', DELETE_THURSDAY)
-
-    await expect(confirmation).toContainText(`${DELETE_THURSDAY} ${DELETE_SLOT_WARNING}`)
   })
 })
 

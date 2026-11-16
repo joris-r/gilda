@@ -570,6 +570,22 @@ class TestTimeScale:
 
 class TestOccurrences:
     # /planning/ui/schedule/occurrence
+    def test_each_day_is_a_group_named_by_its_day(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        thursday = day_of_week("thursday")
+        planning.registered(planning.bruno_client, planning.bruno, thursday, "10:00", "13:00")
+
+        page = schedule_page(planning.bruno_client, planning.slug)
+
+        names = re.findall(r'role="group"\s+aria-label="([^"]*)"', page)
+        assert names
+        assert day_label(thursday) in names
+        assert len(set(names)) == len(names)
+
+    # /planning/ui/schedule/occurrence
     def test_without_a_registration_an_occurrence_is_empty(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:

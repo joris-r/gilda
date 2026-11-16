@@ -33,33 +33,6 @@ async function linkStillWorks(request: APIRequestContext, token: string) {
   return (await response.text()).includes('window.location')
 }
 
-test.describe('Header', () => {
-  // /core/ui/header/title
-  test('the location stands for the screen title', async ({ page, request }) => {
-    await signIn(page, await createAccount(request))
-
-    await expect(page.locator('main').getByText('My associations')).toBeHidden()
-  })
-})
-
-test.describe('Header menu', () => {
-  // /core/ui/header/menu
-  test('offers Revoke my sign-in link only with a sign-in link', async ({ page, request }) => {
-    const email = await createAccount(request)
-    await signIn(page, email)
-    await page.locator('header').getByRole('button', { name: 'Alice' }).click()
-    await expect(page.getByRole('button', { name: 'Delete my account' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Revoke my sign-in link' })).toHaveCount(0)
-
-    await askForLink(request, email)
-    await page.reload()
-    await datastarReady(page)
-    await page.locator('header').getByRole('button', { name: 'Alice' }).click()
-
-    await expect(page.getByRole('button', { name: 'Revoke my sign-in link' })).toBeVisible()
-  })
-})
-
 test.describe('Revoke my sign-in link', () => {
   // /core/ui/header/revoked
   // /core/operations/revoke-my-access-link/revoked

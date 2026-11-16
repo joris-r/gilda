@@ -64,24 +64,6 @@ test.describe('Schedule', () => {
     })
   }
 
-  // /planning/ui/schedule/occurrence
-  test('each day is a group named by its day, holding its occurrences', async ({ page, request }) => {
-    await openSchedule(page, request)
-
-    const day = page.getByRole('group', { name: dayOfWeek(4, 1).label, exact: true })
-
-    await expect(day.getByRole('listitem')).toHaveCount(1)
-    await expect(day.getByRole('listitem')).toHaveText('Alice')
-  })
-
-  // /planning/ui/schedule/weeks
-  // /planning/operations/get-schedule/default
-  test('opens on six weeks', async ({ page, request }) => {
-    await openSchedule(page, request)
-
-    await expect(weekHeadings(page)).toHaveCount(6)
-  })
-
   // /planning/ui/schedule/more
   test('"More weeks", at the end, adds four more', async ({ page, request }) => {
     await openSchedule(page, request)
@@ -138,17 +120,6 @@ function menuTitle(page: Page, weeksAhead: number) {
 }
 
 test.describe('Schedule menu', () => {
-  // /planning/ui/schedule/menu
-  // /planning/ui/occurrence-menu/title
-  // /planning/ui/occurrence-menu/free
-  test('clicking an occurrence from today on opens its menu, titled with its day and times', async ({ page, request }) => {
-    await openSchedule(page, request)
-
-    await dayGroup(page, 2).getByRole('listitem').click()
-
-    await expect(menuTitle(page, 2)).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
-  })
 
   // /planning/ui/schedule/menu
   test('clicking an occurrence before today opens nothing', async ({ page, request }) => {

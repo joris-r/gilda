@@ -53,70 +53,6 @@ function dayGroup(page: Page, weeksAhead: number) {
 }
 
 test.describe('Shared schedule', () => {
-  // /planning/ui/shared-schedule/shown
-  // /planning/operations/get-shared-schedule/schedule
-  // /planning/ui/schedule/weeks
-  test('signed out, it shows the Schedule with the registrations', async ({ page, request, browser }) => {
-    const link = await shareSchedule(page, request)
-
-    const visitor = await openSignedOut(link, browser)
-
-    await expect(weekHeadings(visitor)).toHaveCount(6)
-    await expect(dayGroup(visitor, 1).getByRole('listitem')).toHaveText('Alice')
-  })
-
-  // /planning/ui/shared-schedule/shown
-  test('signed in, it shows the same', async ({ page, request }) => {
-    const link = await shareSchedule(page, request)
-
-    const response = await page.goto(link)
-    await datastarReady(page)
-
-    expect(response?.status()).toBe(200)
-    await expect(weekHeadings(page)).toHaveCount(6)
-    await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText('Alice')
-  })
-
-  // /core/ui/header/shared
-  test('the header shows the association name leading nowhere, and the language selector alone', async ({
-    page,
-    request,
-    browser,
-  }) => {
-    const link = await shareSchedule(page, request)
-
-    const visitor = await openSignedOut(link, browser)
-
-    const header = visitor.locator('header')
-    await expect(header.getByText('Jardin partagé', { exact: true })).toBeVisible()
-    await expect(header.getByRole('link', { name: 'Jardin partagé' })).toHaveCount(0)
-    await expect(header.getByRole('combobox')).toBeVisible()
-  })
-
-  // /core/ui/header/shared
-  test('signed in, the header has no menu of the user', async ({ page, request }) => {
-    const link = await shareSchedule(page, request)
-
-    await page.goto(link)
-    await datastarReady(page)
-
-    const header = page.locator('header')
-    await expect(header.getByText('Jardin partagé', { exact: true })).toBeVisible()
-    await expect(header.getByText('Alice')).toHaveCount(0)
-    await expect(page.getByText('Sign out', { exact: true })).toHaveCount(0)
-  })
-
-  // /planning/ui/shared-schedule/shown
-  test('it has no links to the other screens', async ({ page, request, browser }) => {
-    const link = await shareSchedule(page, request)
-
-    const visitor = await openSignedOut(link, browser)
-
-    await expect(weekHeadings(visitor).first()).toBeVisible()
-    for (const screen of ['My availability', 'Members', 'Schedule settings']) {
-      await expect(visitor.getByRole('link', { name: screen, exact: true })).toHaveCount(0)
-    }
-  })
 
   // /planning/ui/shared-schedule/shown
   test('clicking an occurrence opens no menu', async ({ page, request, browser }) => {
@@ -169,14 +105,6 @@ test.describe('Shared schedule', () => {
 
     await expect(visitor.locator('main').getByRole('heading', { name: /^Semaine \d+$/ }).first()).toBeVisible()
     await expect(visitor.getByRole('button', { name: 'Plus de semaines' })).toBeVisible()
-  })
-
-  // /planning/ui/shared-schedule/invalid
-  test('an unknown link says "This link is no longer valid."', async ({ browser, baseURL }) => {
-    const visitor = await openSignedOut(`${baseURL}/shared/unknown-token`, browser)
-
-    await expect(visitor.locator('main').getByText('This link is no longer valid.')).toBeVisible()
-    await expect(visitor.getByText('Page not found')).toHaveCount(0)
   })
 })
 

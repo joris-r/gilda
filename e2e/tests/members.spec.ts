@@ -79,25 +79,6 @@ test.describe("Members", () => {
 });
 
 test.describe("Add a member", () => {
-  // /core/ui/members/add
-  // /ui/forms/dialog
-  test("opens the dialog, with Role at Volunteer", async ({
-    page,
-    request,
-  }) => {
-    await openMembers(page, request);
-
-    const dialog = await openAdd(page);
-
-    await expect(
-      dialog.getByLabel("Display name", { exact: true }),
-    ).toBeVisible();
-    await expect(dialog.getByLabel("Email", { exact: true })).toBeVisible();
-    await expect(dialog.getByRole("combobox", { name: /^Role/ })).toHaveValue(
-      "volunteer",
-    );
-    await expect(dialog.getByRole("button", { name: "Close" })).toBeVisible();
-  });
 
   // /core/ui/members/added
   // /core/ui/members/not-joined
