@@ -46,3 +46,16 @@ What was done: a one-off run on 60 of the 230 possible mutants of `planning/serv
 - Serves 4, a weak spot: the values returned by `edit_slot` and `edit_closure` are replaced by `None` without a failure, as the tests observe only the screens. Low risk.
 - The fifth survivor, `_is_occurrence` returning `None` instead of `False`, is an equivalent mutant: nothing to fix.
 - Serves any later standing mutation check: not worth it for now. The planning tests are strong and a run is slow; revisit after the `new_client` fixture is fixed.
+
+### Coverage of the backend tests (coverage-probe)
+
+What was done: a one-off measure of line and branch coverage of `backend/src/gilda` by the whole backend suite (1,214 tests, xdist), in a scratch copy; nothing was added to the project. Result: 97% (52 of 2,505 statements and 30 of 418 branches missed). Templates, JavaScript and the end-to-end suite are not measured.
+
+- Serves any later coverage check, a standing one included: with coverage.py's defaults the result is 67%, a wrong figure, as SQLAlchemy's async code runs in greenlets and the lines after an `await` are lost (the line after `await self._manager_of(...)` read as missed). The `.coveragerc` needs `concurrency = greenlet,thread` and `branch = true`; `pytest-cov` runs with xdist.
+- Serves 4, no backend test reaches these, though the end-to-end tests may:
+  - the `POST /language` and `GET /notice` routes (`web/pages.py`) and the notice claim of `web/rendering.py`;
+  - the preferences route of the Members screen shown again after being hidden (`planning/pages.py`, 401, 404 and 403 answers);
+  - the sendmail fallback and the quality parse of the language header (`mailer.py`).
+- Serves 4, defensive guards no test reaches, where each would be either tested or removed as dead code: the "Not a member of this association." and "Association not found." re-checks of `core/services.py`, `planning/services.py` and `home/services.py`; "Give a name or a slug."; "Give both from and to, or neither."; the preference's missing slot, member and manager-only refusals; a registration going back to proposed.
+- Serves 4, the Schedule layout's reuse of a free lane (`planning/pages.py`) and the choice of the take-over error in the dialog are never reached.
+- Coverage does not replace the mutation run: the mutants that survived (`end_membership`, `_default_range`) sit on covered lines, as the tests run the code without asserting the boundary.
