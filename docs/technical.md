@@ -74,13 +74,18 @@
     - Tests run in parallel with pytest-xdist, one worker per CPU; each
       test sees only the data it creates.
     - Tests hash passwords with Argon2 at its minimal cost parameters.
-  - Screens: pytest, through Litestar's test client, on the HTML and
-    the SSE responses, for what the server decides (content, what each
-    role sees, messages); Playwright for what only happens in the
-    browser (e.g. Escape closing a dialog).
-  - End-to-end: Playwright against the running backend and database,
-    one test per scenario of `scenarios.md`. Tests check text and
-    behavior, never screenshots or appearance.
+  - Test levels:
+    - Backend: pytest, through Litestar's test client, against a real
+      PostgreSQL. It observes what the server decides: the status, the
+      HTML and SSE responses (content, what each role sees, messages),
+      the database, the sent emails read from Mailpit. It cannot
+      observe what happens in the browser.
+    - End-to-end: Playwright against the running backend and database,
+      one test per scenario of `scenarios.md`, plus the behaviors only
+      a browser shows (e.g. Escape closing a dialog, focus, navigation,
+      a Datastar patch applied to the page). It checks text and
+      behavior, never screenshots or appearance, and does not repeat
+      what a backend test establishes.
   - Quality: ruff (lint and format) and mypy in strict mode for the
     backend; a check that every Datastar action in the templates sets
     `retryMaxCount: 0`.

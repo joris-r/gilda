@@ -36,7 +36,7 @@
 - Tests: stale-screen e2e tests (changed identifier in another tab) for Members role/remove/send-link/revoke-link, the period, closure and share-link dialogs, absence edit/delete, propose and cancel; they share the X-Association mechanism.
 - End-to-end: `make test-e2e` would take arguments (e.g. a spec file or a grep) to run one spec.
 - End-to-end: `tsc --noEmit` reports three type errors in errors-once.spec.ts (Promise<string[]> not assignable to Promise<void>).
-- End-to-end: prune the Playwright tests that repeat what a backend test establishes for the same tag; keep only what the browser alone can observe.
+- End-to-end: remove the Playwright tests that repeat a backend test (see the test levels in `technical.md`); keep only what the browser alone can observe.
 
 
 ## Quality
