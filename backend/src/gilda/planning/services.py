@@ -430,6 +430,7 @@ class PlanningService:
 
     async def set_note(self, user: User, association_id: UUID, text: str) -> NoteData:
         await self._membership_of(user, association_id)
+        text = text.strip(" \t\r\n")
         await self.notes.set_text(association_id, user.id, text)
         return NoteData(text=text)
 
@@ -624,11 +625,18 @@ class PlanningService:
     # Registrations
 
     async def register(
-        self, user: User, association_id: UUID, user_id: UUID, day: date, start: str, end: str
+        self,
+        user: User,
+        association_id: UUID,
+        user_id: UUID,
+        day: date,
+        start: str,
+        end: str,
+        replacing: UUID | None = None,
     ) -> RegistrationRead:
         own = await self._membership_of(user, association_id)
         myself = user_id == user.id
-        if not myself and own.role != "manager":
+        if own.role != "manager" and (not myself or replacing is not None):
             raise PermissionDeniedException("Only managers can register another member.")
         if not await self.memberships.exists(user_id=user_id, association_id=association_id):
             raise ClientException("This user is not a member of the association.")
@@ -640,6 +648,21 @@ class PlanningService:
         try:
             # A savepoint, so that the request's transaction survives a refusal.
             async with self.registrations.session.begin_nested():
+                if replacing is not None:
+                    given = await self.registrations.get_one_or_none(
+                        id=replacing,
+                        association_id=association_id,
+                        date=day,
+                        start=start_time,
+                        end=end_time,
+                    )
+                    if (
+                        given is not None
+                        and given.status != "cancelled"
+                        and given.user_id != user_id
+                    ):
+                        given.status = "cancelled"
+                        await self.registrations.update(given)
                 registration = await self.registrations.add(
                     Registration(
                         association_id=association_id,

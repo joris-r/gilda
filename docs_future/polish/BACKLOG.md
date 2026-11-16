@@ -24,7 +24,7 @@ settles.
 
 ## Lessons
 
-- Orders: the code sorts names with `casefold` in two places (`core/pages.py` `members_in_order`, and the Occurrence menu's names in `planning/pages.py`); its integration may share one sort key in `web/`, used by My associations too; Members' preferences follows Members' order through `/planning/ui/schedule-settings/preferences-order`, with no change of its own.
+- Orders: Members' preferences follows Members' order through `/planning/ui/schedule-settings/preferences-order`, with no change of its own.
 - Orders: a section kept in an earlier item cannot cite a section a later item adds, or `docs/` is not closed after the earlier one; /ui/name-order is therefore stated for every screen that sorts by name, and Members' `[list]` (item 4) is left as is.
 - Stale identifiers: an outline item may not cite by path a section kept in an earlier item, even in a parenthesis, or [outline] counts it in two increments; name it in plain text.
 - Stale identifiers: every action of an association screen carries the association's id in an `X-Association` header (`headers: {'X-Association': '{{ association.id }}'}` on its `@post`; the URLs keep their slug), and its handler resolves it with `association_ref` and `detail_by_ref`; later items' new actions on an association screen must carry it, and a redirect to an association screen must use the current slug (`current_slug`).
@@ -38,7 +38,6 @@ settles.
 - Sign-in links: an outline item that gives an operation a new outcome (Revoke my sign-in link's "none") needs the existing tests that took the old default reworked (a user with no link used to get "revoked"); five backend tests and the e2e menu tests had to give the user a link first.
 - Sign-in links: when a change removes or makes conditional an element a screen shows, search the tests by its visible text too ("Revoke my sign-in link" in the menu tests, in both languages).
 - Sign-in links: the header's user menu reads `user.has_access_link` on every page, so later items needing the user's link state need no per-page context.
-- Orders: `web/ordering.py` holds `name_key`, which Members and My associations use; item 10's Manager's menu (`planning/pages.py`) uses it in place of `casefold`, with no edit of `docs/`, as `/ui/name-order/names` and `/planning/ui/occurrence-menu/order` already settle it.
 - Tests: search the tests by the visible text of what a change shows, in English and French, and by the helpers that build it (e.g. `label()`, the period strings of `test_the_periods_dates`), not only by the paths they cite; this increment's first Tests phase missed that test.
 - Years: My associations' registration dates now carry the year ("Thu 5 Nov 2026"), through the template helper `full_day`; the Schedule, the Occurrence menu and the other screens keep their year-less forms, which later items must not read as changed.
 - Soundness: the third [soundness] check was not re-read after its fixes on Members' preferences shown again (`/planning/ui/schedule-settings/preferences-again`, rewritten to wait until no save runs, as a numbered list ending in "Otherwise") and on the menu's loading (`[opens]`, `[latest]` and `[load]` of `/planning/ui/schedule`, rewritten per click, the past date judged when the load ends); the integrating increments re-read them.
@@ -54,3 +53,7 @@ settles.
 - Tests: Playwright simulates a screen hidden then shown by overriding `document.hidden` and `visibilityState` and dispatching `visibilitychange` (`hideThenShow` in `schedule-settings.spec.ts`).
 - Dialogs: a confirmation's accessible name is its question, so text appended to a question (the warnings) changes it; e2e helpers match it without `exact`, and items 10 and 11 should expect the same.
 - Share link: Copy's status is one `data-text` signal holding the message, as a second hidden paragraph would break `toHaveCount(0)` checks; a `data-on` expression holds no `>` (no arrow function, use `function () {}`), as page tests strip tags with `<[^>]+>`.
+- Occurrence menu: a name on a taken occurrence opens a per-name dialog (`move-<id>`) rendered with the menu body; later items with a confirmation in the menu can follow it.
+- Occurrence menu: the menu's `[fresh]` comes from re-rendering its body on each open, so no message of an earlier try survives.
+- Schedule (item 11): the move's "Someone took this slot in the meantime." does not refresh the Schedule; the Schedule's `[taken]` in item 11 brings that.
+- Occurrence menu (item 11): `design/occurrence-menu.md` still lacks the taken-names and move mockups, which item 11 brings.

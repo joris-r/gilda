@@ -295,6 +295,9 @@
     "close": "Fermer",
     "absentOn": "Absent le {date}",
     "absentFrom": "Absent du {first} au {last}",
+    "noteIcon": "Note",
+    "askMove": "Donner ce créneau à {name} plutôt qu'à {registered} ?",
+    "yesMove": "Oui, le donner",
     "taken": "Quelqu'un a pris ce créneau entre-temps."
   },
   "tryAgain": "Réessayer",

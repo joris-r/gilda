@@ -43,6 +43,7 @@ from gilda.planning.services import (
     TakenException,
     TimeOrderException,
 )
+from gilda.web.ordering import name_key
 from gilda.web.rendering import (
     association_ref,
     format_day,
@@ -784,9 +785,10 @@ async def save_note(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).set_note(user, association.id, text)
+        saved = await PlanningService(db_session).set_note(user, association.id, text)
     except _REFUSALS:
         return _error(request, error_id, "error")
+    text = saved.text
     shown = fragment(request, "availability_note.html", note=text)
     # The note's lines are <br> in `shown`, so putting it on one line keeps them.
     return _patched("edit-note", shown, ServerSentEventGenerator.patch_signals({"_note": text}))
@@ -1137,6 +1139,9 @@ class _Menu:
     sign_up: bool = False
     confirm: bool = False
     cancel: bool = False
+    # The member whose registration the occurrence holds, when it is not cancelled.
+    taken_by: UUID | None = None
+    taken_by_name: str = ""
     names: list[_Name] = field(default_factory=list)
 
     @property
@@ -1166,6 +1171,7 @@ def _menu_of(schedule: ScheduleRead, user: User, manages: bool, asked: _Menu) ->
             asked.sign_up = True
             return asked
         allowed = manages or registration.user_id == user.id
+        asked.taken_by = registration.user_id
         asked.registration_id = registration.id
         asked.confirm = allowed and registration.status == "proposed"
         asked.cancel = allowed
@@ -1228,7 +1234,7 @@ def _names(
             bool(n.absence),
             0 if n.absence else _PREFERENCE_ORDER[n.preference],
             n.count or 0,
-            n.name.casefold(),
+            name_key(n.name),
         ),
     )
 
@@ -1289,9 +1295,14 @@ async def occurrence_menu(
         schedule = await service.schedule(user, association.id, day, day)
         manages = association.role == "manager"
         menu = _menu_of(schedule, user, manages, _Menu(date=day, start=start, end=end))
-        if manages and menu.sign_up:
+        if manages and (menu.sign_up or menu.taken_by is not None):
             facts = await service.member_facts(user, association.id, day, start, end)
+            facts = [f for f in facts if f.user_id != menu.taken_by]
             menu.names = _names(interface_language(request), association, facts)
+            if menu.taken_by is not None:
+                menu.taken_by_name = next(
+                    (m.display_name for m in association.members if m.user_id == menu.taken_by), ""
+                )
     except _REFUSALS:
         message = translate(interface_language(request), "error")
         body = fragment(request, "schedule_menu.html", menu=None, message=message)
@@ -1342,24 +1353,32 @@ async def schedule_propose(
     user = await find_current_user(request, db_session)
     if user is None:
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
+    error_id, close = "menu-error", _CLOSE_MENU
     try:
         signals = await read_signals_dict(request)
         day, start, end = _asked_occurrence(signals)
         first, last = _shown_range(signals)
+        if "replacing" in signals:
+            error_id = f"move-error-{signals.get('user_id')}"
         try:
             user_id = UUID(signals.get("user_id"))
+            replacing = signals.get("replacing")
+            replaced = None if replacing is None else UUID(replacing)
         except (TypeError, ValueError) as error:
             raise ClientException("Give the member's user_id.") from error
+        if replaced is not None:
+            error_id = f"move-error-{user_id}"
+            close = f"document.getElementById('move-{user_id}').close(); {_CLOSE_MENU}"
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
         service = PlanningService(db_session)
-        await service.register(user, association.id, user_id, day, start, end)
+        await service.register(user, association.id, user_id, day, start, end, replaced)
     except TakenException:
-        return _error(request, "menu-error", "schedule.taken")
+        return _error(request, error_id, "schedule.taken")
     except _REFUSALS:
-        return _error(request, "menu-error", "error")
-    return await _weeks_patched(request, service, user, association, first, last, _CLOSE_MENU)
+        return _error(request, error_id, "error")
+    return await _weeks_patched(request, service, user, association, first, last, close)
 
 
 async def _status_changed(

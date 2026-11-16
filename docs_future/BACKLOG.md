@@ -14,6 +14,7 @@
 ## Main list
 
 - Notes: one definition of whitespace for an empty note: the Occurrence menu says "more than spaces", Set note trims spaces, tabs and line breaks, My availability calls it the empty note.
+- Frontend: a failed signal per dialog, so a dialog's generic error does not also show in the screen or menu behind it (the move and cancel dialogs of the Occurrence menu).
 - Tests: a clock injected into the services, so tests reach past states without SQL.
 - Notices: claim the notice by a one-shot POST so a prefetch or retry cannot consume it (`GET /notice` consumes it today), and drop the tab-less path if the backend tests are reworked.
 - Tooling: `make format` runs `ruff format` before `ruff check --fix`, so long lines get wrapped before the check stops.

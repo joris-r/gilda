@@ -510,7 +510,6 @@ def propose(
     """Clicks the display name of the member `user_id` in the menu of an occurrence, on a
     Schedule that shows `weeks`; with `replacing`, the id of the registration of the
     occurrence, confirms "Yes, give it" to the member instead."""
-    # @dev43:unsure the move goes through the name's action, with a `replacing` signal
     extra = {} if replacing is None else {"replacing": replacing}
     return as_client.post(
         f"/association/{slug}/propose",
@@ -533,7 +532,6 @@ def menu_names(fragment: str) -> list[Name]:
     "Alice (2)", and the text of each of its icons, e.g. ["Absent Mon 9 Nov 2026"]. A name is
     an `<li>` of the menu; an icon, an element in it with an aria-label, whose text is its title
     (its hover text, which is also its description)."""
-    # @dev43:unsure an icon's text is its `title`, placed after its `aria-label` in the markup
     fragment = re.sub(r"^data: elements ", "", fragment, flags=re.MULTILINE)
     names: list[Name] = []
     for item in re.findall(r"<li[ >].*?</li>", without_dialogs(fragment), re.DOTALL):

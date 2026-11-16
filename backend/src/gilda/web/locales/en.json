@@ -295,6 +295,9 @@
     "close": "Close",
     "absentOn": "Absent {date}",
     "absentFrom": "Absent {first} – {last}",
+    "noteIcon": "Note",
+    "askMove": "Give this slot to {name} instead of {registered}?",
+    "yesMove": "Yes, give it",
     "taken": "Someone took this slot in the meantime."
   },
   "tryAgain": "Try again",
