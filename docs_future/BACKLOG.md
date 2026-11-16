@@ -38,6 +38,7 @@
 - End-to-end: run the suite on Firefox and WebKit too; the menu and dialog rely on `popover`, `commandfor` and CSS anchor positioning.
 - Accessibility: audit the screens with a screen reader and axe (e.g. in the e2e tests); the Schedule's occurrence labels, for one, cannot say that a registration is cancelled.
 - Cleanup: one helper for "today in the association's timezone", computed in five places of planning/services.py.
+- Tooling: measure the test coverage (backend tests, and the end-to-end suite if feasible) before any further mutation testing, and find the untested code first; the mutation-probe lessons in `docs_future/test-quality/BACKLOG.md` hold the findings so far.
 - Create an account and Forgot password: a failed send keeps the previous link working.
 - Sessions: ask Litestar for a way to renew the session ID (e.g. on `set_session`), then drop the `SessionBackend` subclass.
 
