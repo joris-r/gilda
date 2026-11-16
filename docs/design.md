@@ -5,6 +5,7 @@
 - Header: a long location is shortened on a narrow screen.
 - Forms: on a narrow screen, a dialog spans the screen's width at its
   bottom.
+- Forms: a "+" link to a form on its own page looks like a button.
 - Registrations, on Schedule and My associations: green when
   confirmed, orange when proposed. On Schedule, red for a free
   occurrence and when cancelled; on My associations, red when
@@ -15,10 +16,13 @@
 - Members' preferences: when it scrolls horizontally, the member names
   stay in view.
 - Schedule:
-  - each week has one column per weekday on which an occurrence of the
-    shown weeks falls; time runs down, on the same scale in every
-    week, from the earliest start to the latest end of the shown
-    occurrences, rounded to whole hours;
+  - each week has one column per weekday on which an occurrence or an
+    obsolete registration of the shown weeks falls, or a closed day:
+    a date of the shown weeks that a closure covers, on a slot's
+    weekday; time runs down,
+    on the same scale in every week, from the earliest start to the
+    latest end of the shown occurrences and obsolete registrations,
+    rounded to whole hours, on a scale left free when none is shown;
   - an occurrence, or an obsolete registration, is placed and sized by
     its start and end; those of a day that overlap sit side by side;
   - on a narrow screen, each week has one row per such weekday, and
@@ -31,3 +35,7 @@
 - Occurrence menu: each member's name has the background colour of
   their preference for the occurrence's slot, none when they have
   stated none, or grey when they are absent.
+- Occurrence menu: it opens beside the occurrence clicked, on its
+  right when it fits, else on its left, above or below, inside the
+  window; on a narrow screen, it spans the screen's width at its
+  bottom, as a dialog does.
