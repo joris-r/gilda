@@ -25,7 +25,7 @@
           aria-label="{{ t('settings.deleteSlot') }}"
           commandfor="delete-slot"
           command="show-modal"
-          data-question="{{ t('settings.confirmDeleteSlot', slot=shown) }}"
+          data-question="{{ t('settings.confirmDeleteSlot', slot=shown) }} {{ t('settings.deleteSlotWarning') }}"
           data-on:click="$_slot = '{{ slot.id }}'; $_question = el.dataset.question; $_failed = false; document.getElementById('delete-slot-error').hidden = true"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>

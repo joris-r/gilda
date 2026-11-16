@@ -12,7 +12,7 @@
   }
   document.addEventListener('datastar-fetch', (event) => {
     const { el, type } = event.detail
-    if (!(el instanceof HTMLSelectElement) || !el.id.startsWith('preference-')) return
+    if (!(el instanceof HTMLSelectElement) || !/^(member-)?preference-/.test(el.id)) return
     const state = stateOf(el)
     if (type === 'started') state.running += 1
     if (type === 'finished' && (state.running -= 1) === 0) {

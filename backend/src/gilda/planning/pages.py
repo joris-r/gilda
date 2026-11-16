@@ -11,7 +11,7 @@ from datastar_py.litestar import DatastarResponse, ServerSentEventGenerator
 from litestar import Request, get, post
 from litestar.di import NamedDependency
 from litestar.exceptions import ClientException, NotFoundException, PermissionDeniedException
-from litestar.response import Template
+from litestar.response import Response, Template
 from markupsafe import Markup, escape
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,8 +37,11 @@ from gilda.planning.services import (
     AbsenceOrderException,
     AbsenceOverlapException,
     AbsencePastException,
+    DateOrderException,
+    DatePastException,
     PlanningService,
     TakenException,
+    TimeOrderException,
 )
 from gilda.web.rendering import (
     association_ref,
@@ -58,6 +61,11 @@ _ABSENCE_MESSAGES = {
     AbsenceOverlapException: "availability.absenceOverlap",
 }
 _ABSENCE_REFUSALS = tuple(_ABSENCE_MESSAGES)
+_DATE_MESSAGES = {
+    DateOrderException: "settings.dateOrder",
+    DatePastException: "settings.datePast",
+}
+_DATE_REFUSALS = tuple(_DATE_MESSAGES)
 
 
 @get("/association/{slug:str}/settings")
@@ -171,6 +179,8 @@ async def add_slot(
         added = await PlanningService(db_session).add_slot(
             user, association.id, asked.weekday, asked.start, asked.end
         )
+    except TimeOrderException:
+        return _error(request, "add-slot-error", "settings.timeOrder")
     except ConflictException:
         return _error(request, "add-slot-error", "settings.slotExists")
     except _REFUSALS:
@@ -211,6 +221,8 @@ async def edit_slot(
         await PlanningService(db_session).edit_slot(
             user, association.id, _slot_id(slot_id), asked.weekday, asked.start, asked.end
         )
+    except TimeOrderException:
+        return _error(request, error_id, "settings.timeOrder")
     except ConflictException:
         return _error(request, error_id, "settings.slotExists")
     except _REFUSALS:
@@ -239,6 +251,35 @@ async def delete_slot(
 
 
 # Members' preferences
+
+
+@get("/association/{slug:str}/settings/preferences")
+async def members_preferences(
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+) -> Response[str]:
+    """Members' preferences as they now are, for the screen shown again after being hidden: 401
+    when signed out, 404 or 403 when the user no longer manages the association."""
+    user = await find_current_user(request, db_session)
+    if user is None:
+        return Response("", status_code=401)
+    try:
+        association = await AssociationService(db_session).detail_by_ref(
+            user, association_ref(request, slug)
+        )
+    except NotFoundException:
+        return Response("", status_code=404)
+    if association.role != "manager":
+        return Response("", status_code=403)
+    service = PlanningService(db_session)
+    shown = fragment(
+        request,
+        "settings_preferences.html",
+        association=association,
+        slots=await service.list_slots(user, association.id),
+        members=members_in_order(association.members),
+        values=await _all_preferences(service, user, association),
+    )
+    return Response(shown, media_type="text/html")
 
 
 @post("/association/{slug:str}/settings/preferences/{slot_id:str}/{user_id:str}", status_code=200)
@@ -277,17 +318,11 @@ async def choose_member_preference(
             await service.delete_preference(user, association.id, slot.id, member.user_id)
     except _REFUSALS:
         return _error(request, error_id, "error")
-    shown = fragment(
-        request,
-        "member_preference_select.html",
-        association=association,
-        slot=slot,
-        member=member,
-        values=await _all_preferences(service, user, association),
-    )
     return DatastarResponse(
         [
-            ServerSentEventGenerator.patch_elements(_one_line(shown)),
+            ServerSentEventGenerator.execute_script(
+                f"gildaPreferenceSaved('member-preference-{member.user_id}-{slot.id}', '{value}')"
+            ),
             ServerSentEventGenerator.patch_elements(
                 fragment(request, "form_error.html", message="", error_id=error_id)
             ),
@@ -331,6 +366,8 @@ async def set_period(
         await PlanningService(db_session).set_planning_period(
             user, association.id, asked.first, asked.last
         )
+    except DateOrderException:
+        return _error(request, error_id, "settings.dateOrder")
     except _REFUSALS:
         return _error(request, error_id, "error")
     return await _period_patched(request, db_session, user, association, "edit-period")
@@ -405,6 +442,8 @@ async def add_closure(
         await PlanningService(db_session).add_closure(
             user, association.id, asked.first, asked.last, asked.label
         )
+    except _DATE_REFUSALS as refusal:
+        return _error(request, error_id, _DATE_MESSAGES[type(refusal)])
     except _REFUSALS:
         return _error(request, error_id, "error")
     return await _closures_patched(request, db_session, user, association, "add-closure")
@@ -432,6 +471,8 @@ async def edit_closure(
         await PlanningService(db_session).edit_closure(
             user, association.id, _closure_id(closure_id), asked.first, asked.last, asked.label
         )
+    except _DATE_REFUSALS as refusal:
+        return _error(request, error_id, _DATE_MESSAGES[type(refusal)])
     except _REFUSALS:
         return _error(request, error_id, "error")
     return await _closures_patched(request, db_session, user, association, "edit-closure")

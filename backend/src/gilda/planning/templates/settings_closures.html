@@ -29,7 +29,7 @@
           aria-label="{{ t('settings.deleteClosure') }}"
           commandfor="delete-closure"
           command="show-modal"
-          data-question="{{ t('settings.confirmDeleteClosure', label=closure.label) if closure.label else t('settings.confirmDeleteUnlabelledClosure', date=dates) }}"
+          data-question="{{ t('settings.confirmDeleteClosure', label=closure.label) if closure.label else t('settings.confirmDeleteUnlabelledClosure', date=dates) }} {{ t('settings.deleteClosureWarning') }}"
           data-on:click="$_closure = '{{ closure.id }}'; $_question = el.dataset.question; $_failed = false; document.getElementById('delete-closure-error').hidden = true"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>

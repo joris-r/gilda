@@ -72,3 +72,5 @@
 - Performance: Members' preferences renders a selector for each member and slot, so the page grows with the association.
 - Performance: More weeks, Sign up, Propose, Confirm and Cancel registration resend every shown week, so each response grows with the weeks already shown.
 - Performance: My associations builds each association's summary with its own queries, so the page slows as a user joins more associations.
+- Tooling: e2e should not reuse a server already running on its port, or `make test-e2e` should check the port first.
+- Frontend: a long-lived SSE stream per screen (Datastar) with a broadcaster (in-process or Postgres LISTEN/NOTIFY), replacing the refresh on return of Members' preferences and the Schedule, so screens update live.

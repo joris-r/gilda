@@ -19,7 +19,7 @@
     <button
       type="button"
       class="add"
-      data-on:click="$_copied = false; @post('{{ action }}', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^$/}, retryMaxCount: 0})"
+      data-on:click="$_copy = ''; @post('{{ action }}', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^$/}, retryMaxCount: 0})"
     >+ {{ t("settings.createShareLink") }}</button>
     {% endif %}
   </div>
@@ -31,7 +31,9 @@
         <button
           type="button"
           data-link="{{ link }}"
-          data-on:click="navigator.clipboard.writeText(el.dataset.link); $_copied = true"
+          data-copied="{{ t('settings.linkCopied') }}"
+          data-not-copied="{{ t('settings.linkNotCopied') }}"
+          data-on:click="$_copy = ''; (navigator.clipboard ? navigator.clipboard.writeText(el.dataset.link) : Promise.reject()).then(function () { $_copy = el.dataset.copied }, function () { $_copy = el.dataset.notCopied })"
         >{{ t("settings.copy") }}</button>
         <button
           type="button"

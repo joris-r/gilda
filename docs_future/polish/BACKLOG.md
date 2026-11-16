@@ -58,3 +58,7 @@ settles.
 - Page scripts: a script of a screen goes in a static file (`web/static/availability.js`), not inline, as the tests read the text of the sections of `main`.
 - Tests: in Playwright, the generic error within a dialog is counted with `filter({ visible: true })`, as each dialog holds a hidden copy.
 - Members' preferences (item 9): its selector needs the logic of `web/static/availability.js` (the value shown while a save runs, then the value of the save answered last), and item 9's closure and period checks can follow `_check_absence_dates` of `planning/services.py`.
+- Shown again (item 9): a refresh after the screen was hidden is a plain GET answering a fragment with status codes (401 leads to Sign in, any other failure is silent), by `web/static/settings.js`, which waits for no running save and fetches again if a save began meanwhile; item 11's new-day refresh can reuse the pattern.
+- Tests: Playwright simulates a screen hidden then shown by overriding `document.hidden` and `visibilityState` and dispatching `visibilitychange` (`hideThenShow` in `schedule-settings.spec.ts`).
+- Dialogs: a confirmation's accessible name is its question, so text appended to a question (the warnings) changes it; e2e helpers match it without `exact`, and items 10 and 11 should expect the same.
+- Share link: Copy's status is one `data-text` signal holding the message, as a second hidden paragraph would break `toHaveCount(0)` checks; a `data-on` expression holds no `>` (no arrow function, use `function () {}`), as page tests strip tags with `<[^>]+>`.

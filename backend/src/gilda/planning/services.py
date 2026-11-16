@@ -57,6 +57,18 @@ UPCOMING_DAYS = 27
 SCHEDULE_WEEKS = 6
 
 
+class DateOrderException(ConflictException):
+    """The last date is before the first."""
+
+
+class DatePastException(ConflictException):
+    """The last date is before today."""
+
+
+class TimeOrderException(ConflictException):
+    """The start is not before the end."""
+
+
 class AbsenceOrderException(ConflictException):
     pass
 
@@ -88,8 +100,6 @@ def slot_read(slot: Slot) -> SlotRead:
 
 
 def set_closure(closure: Closure, first: date, last: date, label: str | None) -> None:
-    if last < first:
-        raise ClientException("The last date must not be before the first.")
     closure.first, closure.last, closure.label = first, last, label
 
 
@@ -190,7 +200,7 @@ class PlanningService:
         """Gives `slot` these values, unless they are invalid or another slot has them."""
         start_time, end_time = parse_clock(start), parse_clock(end)
         if start_time >= end_time:
-            raise ClientException("The start must be before the end.")
+            raise TimeOrderException("The start must be before the end.")
         weekday_index = WEEKDAYS.index(weekday)
         same = await self.slots.get_one_or_none(
             association_id=slot.association_id,
@@ -307,14 +317,17 @@ class PlanningService:
     # Closures
 
     async def list_closures(self, user: User, association_id: UUID) -> list[ClosureRead]:
-        await self._membership_of(user, association_id)
-        closures = await self.closures.list(association_id=association_id)
+        """The closures ending today or later, by first date."""
+        membership = await self._membership_of(user, association_id)
+        today = datetime.now(ZoneInfo(membership.association.timezone)).date()
+        closures = await self.closures.list(Closure.last >= today, association_id=association_id)
         return [closure_read(c) for c in sorted(closures, key=lambda c: (c.first, c.last))]
 
     async def add_closure(
         self, user: User, association_id: UUID, first: date, last: date, label: str | None
     ) -> ClosureRead:
-        await self._manager_of(user, association_id)
+        membership = await self._manager_of(user, association_id)
+        self._check_closure_dates(membership, first, last)
         closure = Closure(association_id=association_id)
         set_closure(closure, first, last, label)
         return closure_read(await self.closures.add(closure))
@@ -328,8 +341,9 @@ class PlanningService:
         last: date,
         label: str | None,
     ) -> ClosureRead:
-        await self._manager_of(user, association_id)
+        membership = await self._manager_of(user, association_id)
         closure = await self._closure(association_id, closure_id)
+        self._check_closure_dates(membership, first, last)
         set_closure(closure, first, last, label)
         return closure_read(await self.closures.update(closure))
 
@@ -337,6 +351,14 @@ class PlanningService:
         await self._manager_of(user, association_id)
         closure = await self._closure(association_id, closure_id)
         await self.closures.delete(closure.id)
+
+    @staticmethod
+    def _check_closure_dates(membership: Membership, first: date, last: date) -> None:
+        if last < first:
+            raise DateOrderException("The last date must not be before the first.")
+        today = datetime.now(ZoneInfo(membership.association.timezone)).date()
+        if last < today:
+            raise DatePastException("The last date must not be before today.")
 
     async def _closure(self, association_id: UUID, closure_id: UUID) -> Closure:
         closure = await self.closures.get_one_or_none(id=closure_id, association_id=association_id)
@@ -425,7 +447,7 @@ class PlanningService:
     ) -> PlanningPeriodData:
         await self._manager_of(user, association_id)
         if last < first:
-            raise ClientException("The last date must not be before the first.")
+            raise DateOrderException("The last date must not be before the first.")
         period = await self.planning_periods.get_one_or_none(association_id=association_id)
         if period is None:
             await self.planning_periods.add(

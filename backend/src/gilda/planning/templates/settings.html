@@ -62,6 +62,7 @@
   {# No retry: a request that failed after adding would add the closure twice. #}
   <form data-on:submit="@post('{{ settings }}/closures', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^(first|last|label)$/}, retryMaxCount: 0})">
     {% include "closure_fields.html" %}
+    <p class="hint">{{ t("settings.addClosureWarning") }}</p>
     {% with error_id = "add-closure-error", message = "" %}{% include "form_error.html" %}{% endwith %}
     <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
     <div class="dialog-actions">
@@ -73,6 +74,7 @@
   {% call form_dialog("edit-closure", t("settings.editClosure")) %}
   <form data-on:submit="@post('{{ settings }}/closures/' + $_closure + '/edit', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^(first|last|label)$/}, retryMaxCount: 0})">
     {% include "closure_fields.html" %}
+    <p class="hint">{{ t("settings.editClosureWarning") }}</p>
     {% with error_id = "edit-closure-error", message = "" %}{% include "form_error.html" %}{% endwith %}
     <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
     <div class="dialog-actions">
@@ -129,6 +131,7 @@
   {# No retry: a request that failed must not go through later, once the dialog is cancelled. #}
   <form data-on:submit="@post('{{ base }}/' + $_slot + '/edit', {headers: {'X-Association': '{{ association.id }}'}, filterSignals: {include: /^(weekday|start|end)$/}, retryMaxCount: 0})">
     {% with follows = false %}{% include "slot_fields.html" %}{% endwith %}
+    <p class="hint">{{ t("settings.editSlotWarning") }}</p>
     {% with error_id = "edit-slot-error", message = "" %}{% include "form_error.html" %}{% endwith %}
     <p class="error" style="display: none" data-show="$_failed">{{ t("error") }}</p>
     <div class="dialog-actions">
@@ -160,5 +163,7 @@
   {% include "settings_preferences.html" %}
   {% with error_id = "members-preferences-error", message = "" %}{% include "form_error.html" %}{% endwith %}
 </section>
+<script src="/static/availability.js"></script>
+<script src="/static/settings.js" data-url="{{ settings }}/preferences" data-association="{{ association.id }}"></script>
 {% endif %}
 {% endblock %}
