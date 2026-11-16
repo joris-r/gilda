@@ -85,7 +85,7 @@ async function askToDelete(page: Page, text: string, question: string) {
 }
 
 test.describe('Schedule settings: Add a slot', () => {
-  // /technical/web-interface
+  // /technical
   test('adds a slot although Datastar starts late, once the page is ready', async ({ page, request }) => {
     await signedIn(page, request)
     const slug = await createAssociation(page.request)

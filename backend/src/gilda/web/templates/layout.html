@@ -21,6 +21,7 @@
     <div
       id="app"
       data-signals="{_failed: false}"
+      data-init__delay.1ms="document.body.dataset.ready = '1'"
       data-on:datastar-fetch="$_failed = evt.detail.type === 'started' ? false : ['error', 'retrying', 'retries-failed'].includes(evt.detail.type) || $_failed"
     >
       <header class="top">
