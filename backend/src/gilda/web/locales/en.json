@@ -298,6 +298,9 @@
     "noteIcon": "Note",
     "askMove": "Give this slot to {name} instead of {registered}?",
     "yesMove": "Yes, give it",
+    "takeOver": "Take over this slot…",
+    "askTakeOver": "Take this slot from {registered}?",
+    "yesTakeOver": "Yes, take it",
     "taken": "Someone took this slot in the meantime.",
     "past": "This day is past.",
     "loading": "Loading…"

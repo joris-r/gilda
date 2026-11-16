@@ -1218,6 +1218,8 @@ class _Menu:
     sign_up: bool = False
     confirm: bool = False
     cancel: bool = False
+    # A volunteer may take over the registration of another member.
+    take_over: bool = False
     # The member whose registration the occurrence holds, when it is not cancelled.
     taken_by: UUID | None = None
     taken_by_name: str = ""
@@ -1254,6 +1256,7 @@ def _menu_of(schedule: ScheduleRead, user: User, manages: bool, asked: _Menu) ->
         asked.registration_id = registration.id
         asked.confirm = allowed and registration.status == "proposed"
         asked.cancel = allowed
+        asked.take_over = not allowed
         return asked
     for obsolete in schedule.obsolete:
         if (obsolete.start, obsolete.end) == (asked.start, asked.end):
@@ -1437,14 +1440,20 @@ async def occurrence_menu(
             facts = await service.member_facts(user, association.id, day, start, end)
             facts = [f for f in facts if f.user_id != menu.taken_by]
             menu.names = _names(interface_language(request), association, facts)
-            if menu.taken_by is not None:
-                menu.taken_by_name = next(
-                    (m.display_name for m in association.members if m.user_id == menu.taken_by), ""
-                )
+        if menu.taken_by is not None:
+            menu.taken_by_name = next(
+                (m.display_name for m in association.members if m.user_id == menu.taken_by), ""
+            )
     except _REFUSALS:
         return DatastarResponse(_menu_message(request, asked, "error"))
     weeks = {"from": first.isoformat(), "to": last.isoformat()}
-    context = {"association": association, "menu": menu, "weeks": weeks, "message": ""}
+    context = {
+        "association": association,
+        "menu": menu,
+        "weeks": weeks,
+        "message": "",
+        "user_id": user.id,
+    }
     events = [
         ServerSentEventGenerator.patch_elements(
             _one_line(fragment(request, "schedule_menu.html", **context))
@@ -1507,12 +1516,18 @@ async def schedule_propose(
             replaced = None if replacing is None else UUID(replacing)
         except (TypeError, ValueError) as error:
             raise ClientException("Give the member's user_id.") from error
-        if replaced is not None:
+        take_over_close = f"document.getElementById('take-over').close(); {_CLOSE_MENU}"
+        if replaced is not None and signals.get("take_over") is True:
+            error_id, close = "take-over-error", take_over_close
+        elif replaced is not None:
             error_id = f"move-error-{user_id}"
             close = f"document.getElementById('move-{user_id}').close(); {_CLOSE_MENU}"
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
+        # Without the flag, a volunteer replacing for themself can only be taking over.
+        if replaced is not None and user_id == user.id and association.role != "manager":
+            error_id, close = "take-over-error", take_over_close
         service = PlanningService(db_session)
         await service.register(user, association.id, user_id, day, start, end, replaced)
     except TakenException:

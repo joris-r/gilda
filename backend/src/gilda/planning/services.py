@@ -647,7 +647,7 @@ class PlanningService:
     ) -> RegistrationRead:
         own = await self._membership_of(user, association_id)
         myself = user_id == user.id
-        if own.role != "manager" and (not myself or replacing is not None):
+        if own.role != "manager" and not myself:
             raise PermissionDeniedException("Only managers can register another member.")
         if not await self.memberships.exists(user_id=user_id, association_id=association_id):
             raise ClientException("This user is not a member of the association.")

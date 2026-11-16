@@ -298,6 +298,9 @@
     "noteIcon": "Note",
     "askMove": "Donner ce créneau à {name} plutôt qu'à {registered} ?",
     "yesMove": "Oui, le donner",
+    "takeOver": "Prendre ce créneau…",
+    "askTakeOver": "Prendre ce créneau à {registered} ?",
+    "yesTakeOver": "Oui, je le prends",
     "taken": "Quelqu'un a pris ce créneau entre-temps.",
     "past": "Ce jour est passé.",
     "loading": "Chargement…"
