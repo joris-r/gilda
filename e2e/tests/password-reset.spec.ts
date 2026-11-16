@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { PASSWORD, createAccount, latestToken, uniqueEmail } from './helpers'
+import { PASSWORD, createAccount, latestToken, uniqueEmail, datastarReady } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const LINK_INVALID = 'This link is no longer valid.'
@@ -24,6 +24,7 @@ test.describe('Forgot password', () => {
   // /core/ui/forgot-password/form
   test('Sign in leads to it, and it leads back to Sign in', async ({ page }) => {
     await page.goto('/')
+    await datastarReady(page)
 
     await page.getByRole('link', { name: 'Forgot your password?' }).click()
     await expect(page.getByRole('heading', { name: 'Forgot your password?' })).toBeVisible()
@@ -36,6 +37,7 @@ test.describe('Forgot password', () => {
   test('submitting replaces the form with the message', async ({ page }) => {
     const email = uniqueEmail('Nobody')
     await page.goto('/forgot-password')
+    await datastarReady(page)
 
     await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByRole('button', { name: 'Send a reset link' }).click()
@@ -58,6 +60,7 @@ test.describe('Forgot password', () => {
         : route.continue(),
     )
     await page.goto('/forgot-password')
+    await datastarReady(page)
 
     await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByRole('button', { name: 'Send a reset link' }).click()
@@ -78,6 +81,7 @@ test.describe('Reset password', () => {
     const token = await askForResetLink(request, email)
 
     await page.goto(`/reset-password?token=${token}`)
+    await datastarReady(page)
     await submitNewPassword(page, NEW_PASSWORD)
 
     await expect(page.getByText('My associations')).toBeVisible()
@@ -99,6 +103,7 @@ test.describe('Reset password', () => {
     page,
   }) => {
     await page.goto('/reset-password?token=unknown-token')
+    await datastarReady(page)
 
     await expect(page.getByText(LINK_INVALID)).toBeVisible()
     await expect(page.getByRole('button', { name: 'Set password' })).toBeHidden()
@@ -116,6 +121,7 @@ test.describe('Reset password', () => {
     const email = uniqueEmail('Alice')
     const token = await askForResetLink(request, email)
     await page.goto(`/reset-password?token=${token}`)
+    await datastarReady(page)
     await request.post('/reset-password', { data: { token, password: 'another password' } })
 
     await submitNewPassword(page, NEW_PASSWORD)
@@ -131,6 +137,7 @@ test.describe('Reset password', () => {
   test('the browser refuses a password of fewer than 8 characters', async ({ page, request }) => {
     const token = await askForResetLink(request, uniqueEmail('Alice'))
     await page.goto(`/reset-password?token=${token}`)
+    await datastarReady(page)
 
     await submitNewPassword(page, '1234567')
 
@@ -151,6 +158,7 @@ test.describe('Reset password', () => {
         : route.continue(),
     )
     await page.goto(`/reset-password?token=${token}`)
+    await datastarReady(page)
 
     await submitNewPassword(page, NEW_PASSWORD)
 

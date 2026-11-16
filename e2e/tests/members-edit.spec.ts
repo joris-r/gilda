@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
-import { addMember, createAssociation, latestToken, signedIn, uniqueEmail } from './helpers'
+import { addMember, createAssociation, latestToken, signedIn, uniqueEmail, datastarReady } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const LAST_MANAGER = 'An association keeps at least one manager.'
@@ -25,6 +25,7 @@ async function openMembers(
     await addMember(page.request, slug, displayName, email, role)
   }
   await page.goto(`/association/${slug}/members`)
+  await datastarReady(page)
   await expect(page.locator('header').getByText('Members')).toBeVisible()
   return chloe
 }
@@ -103,6 +104,7 @@ test.describe('Members: the edit dialog', () => {
 
       await expect(dialog).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       await expect(line(page, 'Chloé')).toContainText(/volunteer/i)
     })
   }
@@ -159,6 +161,7 @@ test.describe('Members: changing the role', () => {
     await expect(dialog.getByText(LAST_MANAGER)).toBeVisible()
     await expect(dialog).toBeVisible()
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Alice')).toContainText(/manager/i)
   })
 
@@ -192,6 +195,7 @@ test.describe('Members: Remove from the association', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(line(page, 'Chloé')).toHaveCount(0)
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Chloé')).toHaveCount(0)
   })
 
@@ -204,6 +208,7 @@ test.describe('Members: Remove from the association', () => {
 
     await expect(confirmation).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Chloé')).toBeVisible()
   })
 
@@ -221,6 +226,7 @@ test.describe('Members: Remove from the association', () => {
 
     await expect(page.getByText(LAST_MANAGER).filter({ visible: true })).toBeVisible()
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Alice')).toContainText(/manager/i)
   })
 
@@ -282,6 +288,7 @@ test.describe('Members: Send link', () => {
 
     await expect(confirmation).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     const dialog = await openEdit(page, 'Chloé')
     await expect(dialog.getByRole('button', { name: 'Revoke link' })).toHaveCount(0)
   })
@@ -307,6 +314,7 @@ test.describe('Members: Revoke link', () => {
     expect((await request.post('/sign-in-link', { data: { email: chloe } })).status()).toBe(200)
     const token = await latestToken(chloe)
     await page.reload()
+    await datastarReady(page)
     return token
   }
 
@@ -325,6 +333,7 @@ test.describe('Members: Revoke link', () => {
     const dialog = await openEdit(page, 'Chloé')
     await expect(dialog.getByRole('button', { name: 'Revoke link' })).toHaveCount(0)
     await page.goto(`/access?token=${token}`)
+    await datastarReady(page)
     await expect(page.getByText('This link is no longer valid.')).toBeVisible()
   })
 
@@ -348,6 +357,7 @@ test.describe('Members: Revoke link', () => {
     await withLink(page, request)
     const other = await page.context().newPage()
     await other.goto(page.url())
+    await datastarReady(other)
     const elsewhere = await ask(other, 'Chloé', 'Revoke link', REVOKE_CHLOE)
     await elsewhere.getByRole('button', { name: 'Revoke', exact: true }).click()
     await expect(other.getByText("Chloé's sign-in link is revoked.")).toBeVisible()
@@ -370,6 +380,7 @@ test.describe('Members: Revoke link', () => {
 
     await expect(confirmation).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     const dialog = await openEdit(page, 'Chloé')
     await expect(dialog.getByRole('button', { name: 'Revoke link' })).toBeVisible()
   })

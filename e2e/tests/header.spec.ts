@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { createAccount, latestToken, signIn } from './helpers'
+import { createAccount, latestToken, signIn, datastarReady } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const QUESTION = 'Revoke your sign-in link? Sessions opened with it are signed out.'
@@ -15,6 +15,7 @@ async function askForLink(request: APIRequestContext, email: string) {
 /** Opens the session of `page` with the link. */
 async function signInWithLink(page: Page, token: string) {
   await page.goto(`/access?token=${token}`)
+  await datastarReady(page)
   await expect(page.locator('header').getByText('My associations')).toBeVisible()
 }
 
@@ -52,6 +53,7 @@ test.describe('Header menu', () => {
 
     await askForLink(request, email)
     await page.reload()
+    await datastarReady(page)
     await page.locator('header').getByRole('button', { name: 'Alice' }).click()
 
     await expect(page.getByRole('button', { name: 'Revoke my sign-in link' })).toBeVisible()
@@ -73,6 +75,7 @@ test.describe('Revoke my sign-in link', () => {
     await expect(dialog).toBeHidden()
     expect(await linkStillWorks(request, token)).toBe(false)
     await page.reload()
+    await datastarReady(page)
     await expect(page.locator('header').getByText('My associations')).toBeVisible()
   })
 
@@ -144,6 +147,7 @@ test.describe('Revoke my sign-in link', () => {
     await signIn(page, email)
     const other = await page.context().newPage()
     await other.goto('/')
+    await datastarReady(other)
     const elsewhere = await askToRevoke(other)
     await elsewhere.getByRole('button', { name: 'Confirm' }).click()
     await expect(other.getByText(REVOKED)).toBeVisible()

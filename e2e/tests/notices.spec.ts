@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { createAssociation, signedIn, uniqueSlug } from './helpers'
+import { createAssociation, signedIn, uniqueSlug, datastarReady } from './helpers'
 
 const NAME = 'Jardin partagé'
 
@@ -23,6 +23,7 @@ async function holdingTheAnswer(
 async function openOtherTab(page: Page, path: string) {
   const other = await page.context().newPage()
   await other.goto(path)
+  await datastarReady(other)
   await expect(other.locator('header').getByText('My associations')).toBeVisible()
   await other.waitForLoadState('networkidle')
   return other
@@ -37,6 +38,7 @@ test.describe('Notices', () => {
     await signedIn(page, request)
     const slug = await createAssociation(page.request, NAME)
     await page.goto(`/association/${slug}/members`)
+    await datastarReady(page)
     await page.getByRole('button', { name: 'Delete the association', exact: true }).click()
     const confirmation = page.getByRole('dialog', { name: /^Delete Jardin partagé\?/ })
     await confirmation.getByLabel("Type the association's name to confirm").fill(NAME)
@@ -64,6 +66,7 @@ test.describe('Notices', () => {
     const slug = await createAssociation(page.request, NAME)
     const changed = uniqueSlug()
     await page.goto(`/association/${slug}/members`)
+    await datastarReady(page)
     await page.getByRole('button', { name: 'Change the association identifier', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: 'Change the association identifier', exact: true })
     await dialog.getByLabel('Association identifier').fill(changed)
@@ -83,6 +86,7 @@ test.describe('Notices', () => {
     await expect(page.getByText(notice)).toBeVisible()
 
     await page.goto('/')
+    await datastarReady(page)
     await expect(page).toHaveURL(/\/$/)
     await expect(page.getByText(notice)).toHaveCount(0)
   })

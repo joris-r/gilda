@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { createAssociation, signedIn, uniqueSlug } from './helpers'
+import { createAssociation, signedIn, uniqueSlug, datastarReady } from './helpers'
 
 const NAME = 'Jardin partagé'
 const GENERIC = 'Something went wrong. Try again.'
@@ -13,6 +13,7 @@ async function openMembers(page: Page, request: APIRequestContext) {
   await signedIn(page, request)
   const slug = await createAssociation(page.request, NAME)
   await page.goto(`/association/${slug}/members`)
+  await datastarReady(page)
   await expect(page.locator('header').getByText('Members')).toBeVisible()
   return slug
 }
@@ -21,6 +22,7 @@ async function openMembers(page: Page, request: APIRequestContext) {
 async function inFrench(page: Page) {
   await page.context().addCookies([{ name: 'language', value: 'fr', url: page.url() }])
   await page.reload()
+  await datastarReady(page)
 }
 
 /** Clicks the action `name` on Members and returns the dialog it opens, named `title`. */
@@ -73,6 +75,7 @@ test.describe('Members: Rename the association', () => {
     await expect(page.getByText('The association is now Jardin des Lilas.')).toBeVisible()
     await expect(page.locator('header').getByRole('link', { name: 'Jardin des Lilas' })).toBeVisible()
     await page.reload()
+    await datastarReady(page)
     await expect(page.locator('header').getByRole('link', { name: 'Jardin des Lilas' })).toBeVisible()
     await expect((await openRename(page)).getByLabel('Name', { exact: true })).toHaveValue(
       'Jardin des Lilas',
@@ -100,6 +103,7 @@ test.describe('Members: Rename the association', () => {
 
     await expect(dialog).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     await expect(page.locator('header').getByRole('link', { name: NAME })).toBeVisible()
   })
 
@@ -272,6 +276,7 @@ test.describe('Members: Change the association identifier', () => {
 
     await expect(dialog).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     await expect(page).toHaveURL(new RegExp(`/association/${slug}/members$`))
     await expect(page.locator('header').getByText('Members')).toBeVisible()
   })
@@ -339,6 +344,7 @@ test.describe('Members: Delete the association', () => {
     const slug = await openMembers(page, request)
     const other = await page.context().newPage()
     await other.goto(`/association/${slug}/members`)
+    await datastarReady(other)
     await (await open(other, 'Rename the association', 'Rename the association'))
       .getByLabel('Name', { exact: true })
       .fill('Les Lilas')
@@ -371,6 +377,7 @@ test.describe('Members: Delete the association', () => {
     await expect(page.getByText(`${NAME} is deleted.`)).toBeVisible()
     await expect(page.locator('main').getByRole('link', { name: NAME, exact: true })).toHaveCount(0)
     await page.goto(`/association/${slug}/members`)
+    await datastarReady(page)
     await expect(
       page.getByText('This association does not exist or you are not a member.'),
     ).toBeVisible()
@@ -386,6 +393,7 @@ test.describe('Members: Delete the association', () => {
 
     await expect(confirmation).toBeHidden()
     await page.goto(`/association/${slug}/members`)
+    await datastarReady(page)
     await expect(page.locator('header').getByText('Members')).toBeVisible()
   })
 

@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, signIn, uniqueEmail } from './helpers'
+import { PASSWORD, latestToken, signIn, uniqueEmail, datastarReady } from './helpers'
 
 async function signUp(page: Page, displayName: string, email: string) {
   await page.goto('/')
+  await datastarReady(page)
   await page.getByText('Create an account', { exact: true }).click()
   await page.getByLabel('Display name', { exact: true }).fill(displayName)
   await page.getByLabel('Email', { exact: true }).fill(email)
@@ -12,6 +13,7 @@ async function signUp(page: Page, displayName: string, email: string) {
 
   const token = await latestToken(email)
   await page.goto(`/verify-email?token=${token}`)
+  await datastarReady(page)
   await expect(page.getByText('My associations')).toBeVisible()
 }
 
@@ -238,6 +240,7 @@ test.describe('Scenarios', () => {
       await page.waitForTimeout(10) // Mailpit orders by Created, at millisecond precision.
       const token = await latestToken(alice)
       await page.goto(`/reset-password?token=${token}`)
+      await datastarReady(page)
       await page.getByLabel('New password', { exact: true }).fill(newPassword)
       await page.getByRole('button', { name: 'Set password' }).click()
       await expect(page.getByText('My associations')).toBeVisible()
@@ -280,6 +283,7 @@ test.describe('Scenarios', () => {
       await expect(page.getByText(`If ${chloe} is known here`)).toBeVisible()
       link = `/access?token=${await latestToken(chloe)}`
       await page.goto(link)
+      await datastarReady(page)
       await expect(page.getByText('My associations')).toBeVisible()
       await expect(page.getByRole('listitem').filter({ hasText: association })).toContainText(
         /volunteer/i,
@@ -289,6 +293,7 @@ test.describe('Scenarios', () => {
 
     await test.step('3. Chloé opens the link again and is signed in', async () => {
       await page.goto(link)
+      await datastarReady(page)
       await expect(page.getByText('My associations')).toBeVisible()
       await signOut(page)
     })
@@ -308,6 +313,7 @@ test.describe('Scenarios', () => {
 
     await test.step('5. The link is no longer valid', async () => {
       await page.goto(link)
+      await datastarReady(page)
       await expect(page.getByText('This link is no longer valid.')).toBeVisible()
     })
   })
@@ -351,6 +357,7 @@ test.describe('Scenarios', () => {
 
     await test.step('3. Signed out, the link shows her name on Thursday', async () => {
       await page.goto(link)
+      await datastarReady(page)
       await expect(page.locator('header')).toContainText(association)
       await expect(occurrence(page, thursday.label, '10–13')).toContainText('Alice')
     })
@@ -367,6 +374,7 @@ test.describe('Scenarios', () => {
 
     await test.step('5. The link is no longer valid', async () => {
       await page.goto(link)
+      await datastarReady(page)
       await expect(page.getByText('This link is no longer valid.')).toBeVisible()
     })
   })

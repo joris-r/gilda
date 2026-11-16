@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
-import { createAccount, latestToken, uniqueEmail } from './helpers'
+import { createAccount, latestToken, uniqueEmail, datastarReady } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const LINK_INVALID = 'This link is no longer valid.'
@@ -18,6 +18,7 @@ test.describe('Sign-in link', () => {
   // /core/ui/sign-in-link/form
   test('Sign in leads to it, and it leads back to Sign in', async ({ page }) => {
     await page.goto('/')
+    await datastarReady(page)
 
     await page.getByRole('link', { name: 'Sign in with an email link' }).click()
     await expect(page.getByRole('heading', { name: 'Sign in with an email link' })).toBeVisible()
@@ -30,6 +31,7 @@ test.describe('Sign-in link', () => {
   test('submitting replaces the form with the message', async ({ page }) => {
     const email = uniqueEmail('Nobody')
     await page.goto('/sign-in-link')
+    await datastarReady(page)
 
     await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByRole('button', { name: 'Send me a link' }).click()
@@ -44,6 +46,7 @@ test.describe('Sign-in link', () => {
   // /core/operations/general/malformed
   test('the browser refuses an invalid email', async ({ page }) => {
     await page.goto('/sign-in-link')
+    await datastarReady(page)
 
     await page.getByLabel('Email', { exact: true }).fill('not-an-email')
     await page.getByRole('button', { name: 'Send me a link' }).click()
@@ -64,6 +67,7 @@ test.describe('Sign-in link', () => {
         : route.continue(),
     )
     await page.goto('/sign-in-link')
+    await datastarReady(page)
 
     await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByRole('button', { name: 'Send me a link' }).click()
@@ -83,6 +87,7 @@ test.describe('Access link', () => {
     const token = await askForLink(request, uniqueEmail('Alice'))
 
     await page.goto(`/access?token=${token}`)
+    await datastarReady(page)
 
     await expect(page.locator('header').getByText('My associations')).toBeVisible()
     await expect(page).toHaveURL(/\/$/)
@@ -92,6 +97,7 @@ test.describe('Access link', () => {
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
 
     await page.goto(`/access?token=${token}`)
+    await datastarReady(page)
 
     await expect(page.locator('header').getByText('My associations')).toBeVisible()
   })
@@ -99,6 +105,7 @@ test.describe('Access link', () => {
   // /core/ui/access-link/invalid
   test('an unknown link shows the message and a way to Sign-in link', async ({ page }) => {
     await page.goto('/access?token=unknown-token')
+    await datastarReady(page)
 
     await expect(page.getByText(LINK_INVALID)).toBeVisible()
 
@@ -115,6 +122,7 @@ test.describe('Access link', () => {
     })
 
     await page.goto('/access?token=unknown-token')
+    await datastarReady(page)
 
     await expect(page.getByText('Signing you in…')).toBeVisible()
     await expect(page.getByText(LINK_INVALID)).toBeHidden()
@@ -139,6 +147,7 @@ test.describe('Access link', () => {
     })
 
     await page.goto(`/access?token=${token}`)
+    await datastarReady(page)
 
     await expect(page.getByText(GENERIC)).toBeVisible()
     await expect(page.getByText('Signing you in…')).toBeHidden()
@@ -159,6 +168,7 @@ test.describe('Access link', () => {
         : route.continue(),
     )
     await page.goto('/access?token=unknown-token')
+    await datastarReady(page)
     await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Try again' }).click()

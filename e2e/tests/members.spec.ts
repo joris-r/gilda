@@ -4,7 +4,7 @@ import {
   type APIRequestContext,
   type Page,
 } from "@playwright/test";
-import { createAssociation, signedIn, uniqueEmail } from "./helpers";
+import { createAssociation, datastarReady, signedIn, uniqueEmail } from "./helpers";
 
 const GENERIC = "Something went wrong. Try again.";
 
@@ -13,6 +13,7 @@ async function openMembers(page: Page, request: APIRequestContext) {
   await signedIn(page, request);
   const slug = await createAssociation(page.request);
   await page.goto(`/association/${slug}/members`);
+  await datastarReady(page);
   await expect(page.locator("header").getByText("Members")).toBeVisible();
   return slug;
 }
@@ -61,6 +62,7 @@ test.describe("Members", () => {
       await expect(dialog).toBeHidden();
     }
     await page.reload();
+    await datastarReady(page);
 
     for (const name of ["Alice", "Bruno", "Chloé", "David", "Emma"]) {
       await expect(line(page, name)).toBeVisible();
@@ -157,6 +159,7 @@ test.describe("Add a member", () => {
 
       await expect(dialog).toBeHidden();
       await page.reload();
+      await datastarReady(page);
       await expect(page.locator("main")).not.toContainText(email);
     });
   }

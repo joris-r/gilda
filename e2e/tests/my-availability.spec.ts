@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
-import { addAbsence, addSlot, createAssociation, saveNote, signedIn } from './helpers'
+import { addAbsence, addSlot, createAssociation, saveNote, signedIn, datastarReady } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 
@@ -18,6 +18,7 @@ async function openAvailability(
   for (const [first, last] of setup.absences ?? []) await addAbsence(page.request, slug, first, last)
   if (setup.note !== undefined) await saveNote(page.request, slug, setup.note)
   await page.goto(`/association/${slug}/availability`)
+  await datastarReady(page)
   await expect(page.locator('header').getByText('My availability')).toBeVisible()
   return slug
 }
@@ -31,6 +32,7 @@ async function expectSaved(page: Page, slug: string, value: string | null) {
   const other = await page.context().newPage()
   await expect(async () => {
     await other.goto(`/association/${slug}/availability`)
+    await datastarReady(other)
     await expect(other.locator('main').getByRole('combobox')).toHaveValue(value ?? '', { timeout: 1000 })
   }).toPass()
   await other.close()
@@ -57,6 +59,7 @@ test.describe('My availability: My preferences', () => {
 
     await expectSaved(page, slug, 'preferred')
     await page.reload()
+    await datastarReady(page)
     await expect(selector(page, 'Thursday')).toHaveValue('preferred')
   })
 
@@ -83,6 +86,7 @@ test.describe('My availability: My preferences', () => {
 
     await expectSaved(page, slug, null)
     await page.reload()
+    await datastarReady(page)
     await expect(selector(page, 'Thursday')).toHaveValue('')
   })
 
@@ -99,6 +103,7 @@ test.describe('My availability: My preferences', () => {
 
     await expect(async () => {
       await page.reload()
+      await datastarReady(page)
       await expect(selector(page, 'Thursday')).toHaveValue('unavailable', { timeout: 1000 })
       await expect(selector(page, 'Saturday')).toHaveValue('possible', { timeout: 1000 })
     }).toPass()
@@ -205,6 +210,7 @@ test.describe('My availability: Add an absence', () => {
     await expect(line(page, NOV_SHOWN)).toHaveCount(1)
     await expect(line(page, DEC_SHOWN)).toHaveCount(1)
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, NOV_SHOWN)).toHaveCount(1)
   })
 
@@ -222,6 +228,7 @@ test.describe('My availability: Add an absence', () => {
 
       await expect(dialog).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       await expect(line(page, NOV_SHOWN)).toHaveCount(0)
     })
   }
@@ -302,6 +309,7 @@ test.describe('My availability: Edit the absence', () => {
     await expect(line(page, 'Mon 9 Nov 2037 – Fri 20 Nov 2037')).toHaveCount(1)
     await expect(line(page, NOV_SHOWN)).toHaveCount(0)
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Mon 9 Nov 2037 – Fri 20 Nov 2037')).toHaveCount(1)
   })
 
@@ -328,6 +336,7 @@ test.describe('My availability: Edit the absence', () => {
 
     await expect(dialog).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, NOV_SHOWN)).toHaveCount(1)
   })
 
@@ -372,6 +381,7 @@ test.describe('My availability: Delete the absence', () => {
     await expect(line(page, NOV_SHOWN)).toHaveCount(0)
     await expect(line(page, DEC_SHOWN)).toHaveCount(1)
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, NOV_SHOWN)).toHaveCount(0)
   })
 
@@ -393,6 +403,7 @@ test.describe('My availability: Delete the absence', () => {
 
       await expect(confirmation).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       await expect(line(page, NOV_SHOWN)).toHaveCount(1)
     })
   }
@@ -448,6 +459,7 @@ test.describe('My availability: Note for the managers', () => {
     await expect(dialog).toBeHidden()
     await expect(inNote(page, NOTE)).toBeVisible()
     await page.reload()
+    await datastarReady(page)
     await expect(inNote(page, NOTE)).toBeVisible()
   })
 
@@ -463,6 +475,8 @@ test.describe('My availability: Note for the managers', () => {
     await expect(dialog).toBeHidden()
 
     await page.reload()
+
+    await datastarReady(page)
     dialog = await openNote(page)
 
     await expect(noteText(dialog)).toHaveValue('Mornings only.\nNever on Sundays.')
@@ -507,6 +521,7 @@ test.describe('My availability: Note for the managers', () => {
 
       await expect(dialog).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       await expect(inNote(page, NOTE)).toBeVisible()
     })
   }

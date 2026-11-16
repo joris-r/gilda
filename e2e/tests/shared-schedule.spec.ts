@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
-import { addSlot, createAssociation, signUpFor, signedIn } from './helpers'
+import { addSlot, createAssociation, signUpFor, signedIn, datastarReady } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -25,6 +25,7 @@ async function shareSchedule(page: Page, request: APIRequestContext) {
   await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
   await signUpFor(page.request, slug, dayOfWeek(4, 1).iso, '10:00', '13:00')
   await page.goto(`/association/${slug}/settings`)
+  await datastarReady(page)
   await page.getByRole('button', { name: 'Create a share link' }).click()
   const shown = page.locator('main').getByText(/\/shared\/[\w-]+/)
   await expect(shown).toBeVisible()
@@ -38,6 +39,7 @@ async function openSignedOut(link: string, browser: Browser) {
   const context = await browser.newContext()
   const visitor = await context.newPage()
   const response = await visitor.goto(link)
+  await datastarReady(visitor)
   expect(response?.status()).toBe(200)
   return visitor
 }
@@ -68,6 +70,7 @@ test.describe('Shared schedule', () => {
     const link = await shareSchedule(page, request)
 
     const response = await page.goto(link)
+    await datastarReady(page)
 
     expect(response?.status()).toBe(200)
     await expect(weekHeadings(page)).toHaveCount(6)
@@ -95,6 +98,7 @@ test.describe('Shared schedule', () => {
     const link = await shareSchedule(page, request)
 
     await page.goto(link)
+    await datastarReady(page)
 
     const header = page.locator('header')
     await expect(header.getByText('Jardin partagé', { exact: true })).toBeVisible()
@@ -182,6 +186,7 @@ async function openSignedOutWithClock(link: string, browser: Browser) {
   const visitor = await context.newPage()
   await visitor.clock.install()
   const response = await visitor.goto(link)
+  await datastarReady(visitor)
   expect(response?.status()).toBe(200)
   await expect(weekHeadings(visitor).first()).toBeVisible()
   return visitor

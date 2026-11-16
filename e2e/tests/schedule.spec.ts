@@ -10,6 +10,7 @@ import {
   signedIn,
   uniqueEmail,
   userIdOf,
+  datastarReady,
 } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
@@ -37,6 +38,7 @@ async function openSchedule(page: Page, request: APIRequestContext) {
   await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
   await signUpFor(page.request, slug, dayOfWeek(4, 1).iso, '10:00', '13:00')
   await page.goto(`/association/${slug}`)
+  await datastarReady(page)
   await expect(page.locator('main').getByRole('heading', { name: /^Week \d+$/ }).first()).toBeVisible()
   return slug
 }
@@ -181,6 +183,7 @@ test.describe('Schedule menu', () => {
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('Alice')
     await expect(menuTitle(page, 2)).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('Alice')
   })
 
@@ -223,6 +226,7 @@ test.describe('Schedule menu', () => {
 
     await expect(dialog).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     await dayGroup(page, 1).getByRole('listitem').click()
     await expect(page.getByRole('button', { name: 'Cancel registration…' })).toBeVisible()
   })
@@ -260,6 +264,7 @@ async function openManagersSchedule(page: Page, request: APIRequestContext) {
   await addAbsence(page.request, slug, dayOfWeek(1, 2).iso, dayOfWeek(0, 2).iso)
   await saveNote(page.request, slug, NOTE)
   await page.reload()
+  await datastarReady(page)
   await expect(weekHeadings(page).first()).toBeVisible()
   return slug
 }
@@ -285,6 +290,7 @@ test.describe("Schedule menu: the manager's part", () => {
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)
     await expect(menuTitle(page, 2)).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)
   })
 
@@ -405,6 +411,7 @@ test.describe('Schedule menu: the Occurrence menu of a manager', () => {
     await expect(dialog).toBeHidden()
     await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText('Alice')
     await page.reload()
+    await datastarReady(page)
     await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText('Alice')
   })
 
@@ -422,6 +429,7 @@ test.describe('Schedule menu: the Occurrence menu of a manager', () => {
     await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)
     await expect(menuTitle(page, 1)).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)
   })
 
@@ -435,6 +443,7 @@ test.describe('Schedule menu: the Occurrence menu of a manager', () => {
     await expect(dialog).toBeVisible()
     const other = await page.context().newPage()
     await other.goto(page.url())
+    await datastarReady(other)
     await other.locator('main').getByRole('group', { name: dayOfWeek(4, 1).label, exact: true }).getByRole('listitem').click()
     await other.getByRole('button', { name: 'Cancel registration…' }).click()
     await other.getByRole('button', { name: 'Yes, cancel' }).click()
@@ -551,6 +560,7 @@ test.describe('Schedule menu: its load', () => {
     await openSchedule(page, request)
     const other = await page.context().newPage()
     await other.goto('/')
+    await datastarReady(other)
     await other.locator('header').getByRole('button', { name: 'Alice' }).click()
     await other.getByRole('button', { name: 'Sign out' }).click()
     await expect(other.getByRole('button', { name: 'Sign in' })).toBeVisible()
@@ -657,6 +667,7 @@ test.describe('Schedule: once today changes', () => {
     await openScheduleWithClock(page, request)
     const other = await page.context().newPage()
     await other.goto('/')
+    await datastarReady(other)
     await other.locator('header').getByRole('button', { name: 'Alice' }).click()
     await other.getByRole('button', { name: 'Sign out' }).click()
     await expect(other.getByRole('button', { name: 'Sign in' })).toBeVisible()

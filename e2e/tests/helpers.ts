@@ -29,6 +29,11 @@ export async function latestToken(email: string, timeout = 5000): Promise<string
   }
 }
 
+/** Waits for Datastar to have started on `page`, so that what the test does next is not lost. */
+export async function datastarReady(page: Page) {
+  await page.locator('body[data-ready]').waitFor({ state: 'attached' })
+}
+
 const GENERIC = 'Something went wrong. Try again.'
 
 export function uniqueSlug() {
@@ -51,10 +56,12 @@ export async function createAccount(
 /** Signs in on `page` with Sign in, and waits for My associations. */
 export async function signIn(page: Page, email: string, password = PASSWORD) {
   await page.goto('/')
+  await datastarReady(page)
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.locator('header').getByText('My associations')).toBeVisible()
+  await datastarReady(page)
 }
 
 /** Creates Alice's account and signs her in on `page`; returns her email. */

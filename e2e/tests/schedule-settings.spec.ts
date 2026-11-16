@@ -9,6 +9,7 @@ import {
   signedIn,
   uniqueEmail,
   userIdOf,
+  datastarReady,
 } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
@@ -31,6 +32,7 @@ async function openSettings(
   if (setup.period) await setPeriod(page.request, slug, ...setup.period)
   for (const displayName of setup.members ?? []) await addMember(page.request, slug, displayName)
   await page.goto(`/association/${slug}/settings`)
+  await datastarReady(page)
   await expect(page.locator('header').getByText('Schedule settings')).toBeVisible()
   return slug
 }
@@ -83,6 +85,23 @@ async function askToDelete(page: Page, text: string, question: string) {
 }
 
 test.describe('Schedule settings: Add a slot', () => {
+  // /technical/web-interface
+  test('adds a slot although Datastar starts late, once the page is ready', async ({ page, request }) => {
+    await signedIn(page, request)
+    const slug = await createAssociation(page.request)
+    await page.route('**/static/datastar.js', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await route.continue()
+    })
+    await page.goto(`/association/${slug}/settings`, { waitUntil: 'commit' })
+    await expect(page.locator('body[data-ready]')).toHaveCount(0)
+    await datastarReady(page)
+
+    await addSlot(page, 'Thursday', '10:00', '13:00')
+
+    await expect(line(page, 'Thursday 10:00–13:00')).toBeVisible()
+  })
+
   // /planning/ui/schedule-settings/add-slot
   // /ui/forms/dialog
   test('opens the dialog "Add a slot", with Day, From and To', async ({ page, request }) => {
@@ -140,6 +159,7 @@ test.describe('Schedule settings: Add a slot', () => {
     await expect(line(page, 'Friday')).toContainText('16:00–19:00')
     await expect(line(page, 'Thursday')).toContainText('10:00–13:00')
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Friday')).toContainText('16:00–19:00')
   })
 
@@ -212,6 +232,7 @@ test.describe('Schedule settings: Add a slot', () => {
 
       await expect(dialog).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       await expect(line(page, 'Friday')).toHaveCount(0)
     })
   }
@@ -317,6 +338,7 @@ test.describe('Schedule settings: Edit the slot', () => {
     await expect(line(page, 'Friday')).toContainText('10:00–14:00')
     await expect(line(page, 'Thursday')).toHaveCount(0)
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Friday')).toContainText('10:00–14:00')
   })
 
@@ -365,6 +387,7 @@ test.describe('Schedule settings: Edit the slot', () => {
 
     await expect(dialog).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Thursday')).toContainText('10:00–13:00')
   })
 
@@ -413,6 +436,7 @@ test.describe('Schedule settings: Delete the slot', () => {
     await expect(line(page, 'Thursday')).toHaveCount(0)
     await expect(line(page, 'Saturday')).toHaveCount(1)
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Thursday')).toHaveCount(0)
   })
 
@@ -427,6 +451,7 @@ test.describe('Schedule settings: Delete the slot', () => {
 
       await expect(confirmation).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       await expect(line(page, 'Thursday')).toHaveCount(1)
     })
   }
@@ -534,6 +559,7 @@ test.describe('Schedule settings: Planning period', () => {
     await expect(period(page)).toBeVisible()
     await expect(page.getByRole('button', { name: 'Clear the period' })).toBeVisible()
     await page.reload()
+    await datastarReady(page)
     await expect(period(page)).toBeVisible()
   })
 
@@ -565,6 +591,7 @@ test.describe('Schedule settings: Planning period', () => {
 
       await expect(dialog).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       await expect(period(page)).toBeVisible()
     })
   }
@@ -613,6 +640,7 @@ test.describe('Schedule settings: Planning period', () => {
     await expect(period(page)).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Clear the period' })).toHaveCount(0)
     await page.reload()
+    await datastarReady(page)
     await expect(period(page)).toHaveCount(0)
   })
 
@@ -627,6 +655,7 @@ test.describe('Schedule settings: Planning period', () => {
 
       await expect(confirmation).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       await expect(period(page)).toBeVisible()
     })
   }
@@ -674,6 +703,7 @@ test.describe('Schedule settings: Add a closure', () => {
     await expect(line(page, 'Fête du quartier')).toContainText('Sat 14 Nov 2037')
     await expect(line(page, "Fêtes de fin d'année")).toBeVisible()
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Fête du quartier')).toContainText('Sat 14 Nov 2037')
   })
 
@@ -706,6 +736,7 @@ test.describe('Schedule settings: Add a closure', () => {
 
       await expect(dialog).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       await expect(line(page, 'Fête du quartier')).toHaveCount(0)
     })
   }
@@ -802,6 +833,7 @@ test.describe('Schedule settings: Edit the closure', () => {
     await expect(line(page, 'Fête élargie')).toContainText('Sat 14 Nov 2037 – Sun 15 Nov 2037')
     await expect(line(page, 'Fête du quartier')).toHaveCount(0)
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Fête élargie')).toContainText('Sat 14 Nov 2037 – Sun 15 Nov 2037')
   })
 
@@ -828,6 +860,7 @@ test.describe('Schedule settings: Edit the closure', () => {
 
     await expect(dialog).toBeHidden()
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Fête du quartier')).toHaveCount(1)
   })
 
@@ -874,6 +907,7 @@ test.describe('Schedule settings: Delete the closure', () => {
     await expect(line(page, 'Fête du quartier')).toHaveCount(0)
     await expect(line(page, "Fêtes de fin d'année")).toHaveCount(1)
     await page.reload()
+    await datastarReady(page)
     await expect(line(page, 'Fête du quartier')).toHaveCount(0)
   })
 
@@ -902,6 +936,7 @@ test.describe('Schedule settings: Delete the closure', () => {
 
       await expect(confirmation).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       await expect(line(page, 'Fête du quartier')).toHaveCount(1)
     })
   }
@@ -964,6 +999,7 @@ test.describe("Schedule settings: Members' preferences", () => {
 
     await expect(async () => {
       await page.reload()
+      await datastarReady(page)
       await expect(cell(page, 'Bruno', 1)).toHaveValue('unavailable', { timeout: 1000 })
     }).toPass()
     await expect(cell(page, 'Bruno', 0)).toHaveValue('')
@@ -977,6 +1013,7 @@ test.describe("Schedule settings: Members' preferences", () => {
     await cell(page, 'Bruno', 0).selectOption({ label: 'Possible' })
     await expect(async () => {
       await page.reload()
+      await datastarReady(page)
       await expect(cell(page, 'Bruno', 0)).toHaveValue('possible', { timeout: 1000 })
     }).toPass()
 
@@ -984,6 +1021,7 @@ test.describe("Schedule settings: Members' preferences", () => {
 
     await expect(async () => {
       await page.reload()
+      await datastarReady(page)
       await expect(cell(page, 'Bruno', 0)).toHaveValue('', { timeout: 1000 })
     }).toPass()
   })
@@ -1081,6 +1119,7 @@ test.describe('Schedule settings: Share link', () => {
     await expect(page.getByRole('button', { name: 'Copy', exact: true })).toBeVisible()
     const link = await shownLink(page)
     await page.reload()
+    await datastarReady(page)
     expect(await shownLink(page)).toBe(link)
   })
 
@@ -1103,6 +1142,7 @@ test.describe('Schedule settings: Share link', () => {
 
     const visitor = await browser.newPage()
     await visitor.goto(link)
+    await datastarReady(visitor)
 
     await expect(visitor.locator('header')).toContainText('Jardin partagé')
     await expect(visitor.locator('main').getByRole('button', { name: 'More weeks' })).toBeVisible()
@@ -1123,6 +1163,7 @@ test.describe('Schedule settings: Share link', () => {
     await expect(async () => expect(await shownLink(page)).not.toBe(previous)).toPass()
     const visitor = await browser.newPage()
     await visitor.goto(previous)
+    await datastarReady(visitor)
     await expect(visitor.getByText('This link is no longer valid.')).toBeVisible()
     await visitor.close()
   })
@@ -1139,6 +1180,7 @@ test.describe('Schedule settings: Share link', () => {
 
       await expect(confirmation).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       expect(await shownLink(page)).toBe(link)
     })
   }
@@ -1160,6 +1202,7 @@ test.describe('Schedule settings: Share link', () => {
     await expect(page.getByRole('button', { name: 'Revoke the share link' })).toBeHidden()
     const visitor = await browser.newPage()
     await visitor.goto(link)
+    await datastarReady(visitor)
     await expect(visitor.getByText('This link is no longer valid.')).toBeVisible()
     await visitor.close()
   })
@@ -1190,6 +1233,7 @@ test.describe('Schedule settings: Share link', () => {
 
       await expect(confirmation).toBeHidden()
       await page.reload()
+      await datastarReady(page)
       expect(await shownLink(page)).toBe(link)
     })
   }
@@ -1519,6 +1563,7 @@ test.describe("Schedule settings: Members' preferences show the value saved", ()
     const other = await page.context().newPage()
     await expect(async () => {
       await other.goto(`/association/${slug}/settings`)
+      await datastarReady(other)
       await expect(cell(other, 'Bruno', 0)).toHaveValue(value, { timeout: 1000 })
     }).toPass()
     await other.close()
@@ -1714,6 +1759,7 @@ test.describe("Schedule settings: Members' preferences shown again", () => {
     await openSettings(page, request, SLOTS, { members: ['Bruno'] })
     const other = await page.context().newPage()
     await other.goto('/')
+    await datastarReady(other)
     await other.locator('header').getByRole('button', { name: 'Alice' }).click()
     await other.getByRole('button', { name: 'Sign out' }).click()
     await expect(other.getByRole('button', { name: 'Sign in' })).toBeVisible()

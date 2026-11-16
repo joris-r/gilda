@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, uniqueEmail } from './helpers'
+import { PASSWORD, latestToken, uniqueEmail, datastarReady } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 
@@ -19,6 +19,7 @@ test.describe('Create an account', () => {
   // /core/ui/create-an-account/form
   test('Sign in leads to it, and it leads back to Sign in', async ({ page }) => {
     await page.goto('/')
+    await datastarReady(page)
 
     await page.getByRole('link', { name: 'Create an account' }).click()
     await expect(page.getByRole('heading', { name: 'Create an account' })).toBeVisible()
@@ -31,6 +32,7 @@ test.describe('Create an account', () => {
   test('success replaces the form with the message', async ({ page }) => {
     const email = uniqueEmail('Alice')
     await page.goto('/signup')
+    await datastarReady(page)
 
     await submitSignUp(page, 'Alice', email)
 
@@ -44,6 +46,7 @@ test.describe('Create an account', () => {
   test('Resend the email shows "Email sent." and the new link works', async ({ page }) => {
     const email = uniqueEmail('Alice')
     await page.goto('/signup')
+    await datastarReady(page)
     await submitSignUp(page, 'Alice', email)
     await expect(page.getByText(`Check ${email} for a confirmation link.`)).toBeVisible()
     const first = await latestToken(email)
@@ -53,6 +56,7 @@ test.describe('Create an account', () => {
     await expect(page.getByText('Email sent.')).toBeVisible()
     await expect.poll(() => latestToken(email)).not.toBe(first)
     await page.goto(`/verify-email?token=${await latestToken(email)}`)
+    await datastarReady(page)
     await expect(page.getByText('My associations')).toBeVisible()
   })
 
@@ -65,6 +69,7 @@ test.describe('Create an account', () => {
     })
     await request.post('/verify-email', { data: { token: await latestToken(email) } })
     await page.goto('/signup')
+    await datastarReady(page)
 
     await submitSignUp(page, 'Other', email)
 
@@ -79,6 +84,7 @@ test.describe('Create an account', () => {
   test('the browser refuses a password of fewer than 8 characters', async ({ page }) => {
     const email = uniqueEmail('Alice')
     await page.goto('/signup')
+    await datastarReady(page)
 
     await fillSignUp(page, 'Alice', email, '1234567')
     await page.getByRole('button', { name: 'Create account' }).click()
@@ -94,10 +100,12 @@ test.describe('Confirm email', () => {
   test('the link signs in and leads to My associations', async ({ page }) => {
     const email = uniqueEmail('Alice')
     await page.goto('/signup')
+    await datastarReady(page)
     await submitSignUp(page, 'Alice', email)
     await expect(page.getByText(`Check ${email} for a confirmation link.`)).toBeVisible()
 
     await page.goto(`/verify-email?token=${await latestToken(email)}`)
+    await datastarReady(page)
 
     await expect(page.getByText('My associations')).toBeVisible()
     await expect(page.getByText('Alice')).toBeVisible()
@@ -107,6 +115,7 @@ test.describe('Confirm email', () => {
   // /core/ui/confirm-email/invalid
   test('an unknown link shows the message and a way to Create an account', async ({ page }) => {
     await page.goto('/verify-email?token=unknown-token')
+    await datastarReady(page)
 
     await expect(page.getByText('This link is no longer valid.')).toBeVisible()
 
@@ -123,6 +132,7 @@ test.describe('Confirm email', () => {
     })
 
     await page.goto('/verify-email?token=unknown-token')
+    await datastarReady(page)
 
     await expect(page.getByText('Confirming your email…')).toBeVisible()
     await expect(page.getByText('This link is no longer valid.')).toBeHidden()
@@ -138,6 +148,7 @@ test.describe('Confirm email', () => {
   }) => {
     const email = uniqueEmail('Alice')
     await page.goto('/signup')
+    await datastarReady(page)
     await submitSignUp(page, 'Alice', email)
     await expect(page.getByText(`Check ${email} for a confirmation link.`)).toBeVisible()
     const token = await latestToken(email)
@@ -150,6 +161,7 @@ test.describe('Confirm email', () => {
     })
 
     await page.goto(`/verify-email?token=${token}`)
+    await datastarReady(page)
 
     await expect(page.getByText(GENERIC)).toBeVisible()
     await expect(page.getByText('Confirming your email…')).toBeHidden()
@@ -168,6 +180,7 @@ test.describe('Generic error message', () => {
   // /ui/errors/generic
   test('is hidden until an action fails', async ({ page }) => {
     await page.goto('/')
+    await datastarReady(page)
 
     await expect(page.getByText(GENERIC)).toBeHidden()
   })
@@ -178,6 +191,7 @@ test.describe('Generic error message', () => {
     const email = uniqueEmail('Alice')
     await page.route('**/sign-in', (route) => route.fulfill({ status: 500, body: 'failure' }))
     await page.goto('/')
+    await datastarReady(page)
 
     await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
@@ -191,6 +205,7 @@ test.describe('Generic error message', () => {
   test('Sign in, on the way to the server: shown', async ({ page }) => {
     await page.route('**/sign-in', (route) => route.abort())
     await page.goto('/')
+    await datastarReady(page)
 
     await page.getByLabel('Email', { exact: true }).fill(uniqueEmail('Alice'))
     await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
@@ -209,6 +224,7 @@ test.describe('Generic error message', () => {
         : route.continue(),
     )
     await page.goto('/signup')
+    await datastarReady(page)
 
     await submitSignUp(page, 'Alice', email)
 
@@ -221,6 +237,7 @@ test.describe('Generic error message', () => {
   test('leaves when the next try gets its own answer', async ({ page }) => {
     await page.route('**/sign-in', (route) => route.fulfill({ status: 500, body: 'failure' }))
     await page.goto('/')
+    await datastarReady(page)
     await page.getByLabel('Email', { exact: true }).fill(uniqueEmail('Nobody'))
     await page.getByLabel('Password', { exact: true }).fill('not the password')
     await page.getByRole('button', { name: 'Sign in' }).click()
@@ -239,6 +256,7 @@ test.describe('Not found', () => {
   // /ui/not-found/shown
   test('shows the page, and its link leads to the home page', async ({ page }) => {
     const response = await page.goto('/nothing-here')
+    await datastarReady(page)
 
     expect(response?.status()).toBe(404)
     await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
@@ -250,6 +268,7 @@ test.describe('Not found', () => {
   // /core/ui/header/language
   test('the language selector works on it', async ({ page }) => {
     await page.goto('/nothing-here')
+    await datastarReady(page)
 
     await page.getByLabel('Language').selectOption({ label: 'Français' })
 

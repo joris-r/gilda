@@ -12,6 +12,7 @@ import {
   uniqueEmail,
   uniqueSlug,
   userIdOf,
+  datastarReady,
 } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
@@ -61,6 +62,7 @@ async function proposedToAlice(page: Page, request: APIRequestContext) {
   await createAccount(request, 'Bruno', bruno)
   await propose(request, slug, alice, nextThursday().iso, '10:00', '13:00')
   await page.goto('/')
+  await datastarReady(page)
 }
 
 function jardin(page: Page) {
@@ -92,6 +94,7 @@ test.describe('My associations', () => {
   }) => {
     await signedIn(page, request)
     await page.goto('/association/new')
+    await datastarReady(page)
 
     await page.locator('header').getByRole('link', { name: 'My associations' }).click()
 
@@ -103,11 +106,13 @@ test.describe('My associations', () => {
     await signedIn(page, request)
     const slug = uniqueSlug()
     await page.goto('/association/new')
+    await datastarReady(page)
     await nameField(page).fill('Jardin partagé')
     await identifierField(page).fill(slug)
     await createButton(page).click()
     await expect(page).toHaveURL(new RegExp(`/association/${slug}$`))
     await page.goto('/')
+    await datastarReady(page)
 
     await page.getByRole('link', { name: 'Jardin partagé' }).click()
 
@@ -144,6 +149,7 @@ test.describe('Registrations summary', () => {
     await signUpFor(page.request, slug, thursday, '10:00', '13:00')
     await addClosure(page.request, slug, thursday, thursday)
     await page.goto('/')
+    await datastarReady(page)
     await expect(jardin(page)).toContainText('this slot no longer takes place.')
 
     await jardin(page).getByRole('button', { name: 'OK', exact: true }).click()
@@ -159,6 +165,7 @@ test.describe('Registrations summary', () => {
     const slug = await withAssociation(page, request)
     await setPeriod(page.request, slug, nextThursday().iso, nextThursday().iso)
     await page.goto('/')
+    await datastarReady(page)
 
     await jardin(page).getByRole('link', { name: 'Choose your slots' }).click()
 
@@ -184,6 +191,7 @@ test.describe('New association', () => {
   test.beforeEach(async ({ page, request }) => {
     await signedIn(page, request)
     await page.goto('/association/new')
+    await datastarReady(page)
   })
 
   // /core/ui/new-association/follows
@@ -244,6 +252,7 @@ test.describe('New association', () => {
 
     await expect(page).toHaveURL(new RegExp(`/association/${slug}$`))
     await page.goto('/')
+    await datastarReady(page)
     const line = page.getByRole('listitem').filter({ hasText: name })
     await expect(line).toContainText(/manager/i)
   })

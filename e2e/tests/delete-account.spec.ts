@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { PASSWORD, signedIn } from './helpers'
+import { PASSWORD, signedIn, datastarReady } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const QUESTION =
@@ -20,6 +20,7 @@ async function askToDelete(page: Page) {
 
 async function expectStillSignedIn(page: Page) {
   await page.reload()
+  await datastarReady(page)
   await expect(page.getByText('My associations')).toBeVisible()
 }
 
@@ -29,6 +30,7 @@ test.describe('Header', () => {
     const email = await signedIn(page, request)
     await request.post('/sign-in-link', { data: { email } })
     await page.reload()
+    await datastarReady(page)
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeHidden()
 
     await menuButton(page).click()

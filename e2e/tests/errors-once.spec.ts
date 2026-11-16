@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { PASSWORD, addSlot, createAccount, createAssociation, latestToken, signedIn, uniqueEmail } from './helpers'
+import { PASSWORD, addSlot, createAccount, createAssociation, latestToken, signedIn, uniqueEmail, datastarReady } from './helpers'
 
 // Datastar's first retry comes about one second after a failure; this leaves room for it.
 const RETRY_WINDOW = 3000
@@ -54,6 +54,7 @@ const TRIGGERS: Trigger[] = [
     name: 'Sign in',
     open: async (page) => {
       await page.goto('/')
+      await datastarReady(page)
       await fillSignIn(page, uniqueEmail('Nobody'))
       return /^\/sign-in$/
     },
@@ -74,6 +75,7 @@ const TRIGGERS: Trigger[] = [
     name: 'the language selector',
     open: async (page) => {
       await page.goto('/')
+      await datastarReady(page)
       return /^\/language$/
     },
     fire: (page) => page.getByLabel('Language').selectOption({ label: 'Français' }),
@@ -82,6 +84,7 @@ const TRIGGERS: Trigger[] = [
     name: 'Create account',
     open: async (page) => {
       await page.goto('/signup')
+      await datastarReady(page)
       await page.getByLabel('Display name', { exact: true }).fill('Alice')
       await fillSignIn(page, uniqueEmail('Alice'))
       return /^\/signup$/
@@ -92,6 +95,7 @@ const TRIGGERS: Trigger[] = [
     name: 'Resend the email',
     open: async (page) => {
       await page.goto('/signup')
+      await datastarReady(page)
       await page.getByLabel('Display name', { exact: true }).fill('Alice')
       await fillSignIn(page, uniqueEmail('Alice'))
       await page.getByRole('button', { name: 'Create account' }).click()
@@ -104,6 +108,7 @@ const TRIGGERS: Trigger[] = [
     name: 'Send a reset link',
     open: async (page) => {
       await page.goto('/forgot-password')
+      await datastarReady(page)
       await page.getByLabel('Email', { exact: true }).fill(uniqueEmail('Nobody'))
       return /^\/forgot-password$/
     },
@@ -115,6 +120,7 @@ const TRIGGERS: Trigger[] = [
       const email = await createAccount(request)
       expect((await request.post('/forgot-password', { data: { email } })).status()).toBe(200)
       await page.goto(`/reset-password?token=${await latestToken(email)}`)
+      await datastarReady(page)
       await page.getByLabel('New password', { exact: true }).fill('another horse')
       return /^\/reset-password$/
     },
@@ -124,6 +130,7 @@ const TRIGGERS: Trigger[] = [
     name: 'Send me a link',
     open: async (page) => {
       await page.goto('/sign-in-link')
+      await datastarReady(page)
       await page.getByLabel('Email', { exact: true }).fill(uniqueEmail('Nobody'))
       return /^\/sign-in-link$/
     },
@@ -134,6 +141,7 @@ const TRIGGERS: Trigger[] = [
     open: async (page, request) => {
       const slug = await associationWithSlot(page, request)
       await page.goto(`/association/${slug}/availability`)
+      await datastarReady(page)
       return new RegExp(`^/association/${slug}/availability/preferences/`)
     },
     fire: (page) =>
@@ -145,6 +153,7 @@ const TRIGGERS: Trigger[] = [
     open: async (page, request) => {
       const slug = await associationWithSlot(page, request)
       await page.goto(`/association/${slug}/settings`)
+      await datastarReady(page)
       return new RegExp(`^/association/${slug}/settings/preferences/`)
     },
     fire: (page) =>
@@ -163,6 +172,7 @@ const TRIGGERS: Trigger[] = [
       await signedIn(page, request)
       const slug = await createAssociation(page.request)
       await page.goto(`/association/${slug}/availability`)
+      await datastarReady(page)
       await page.getByRole('button', { name: 'Add an absence' }).click()
       const dialog = page.getByRole('dialog', { name: 'Add an absence' })
       await dialog.getByLabel('From', { exact: true }).fill('2099-03-02')
@@ -205,6 +215,7 @@ test.describe('Errors: a trigger sends its operation once', () => {
       if (sent.method() === 'POST' && new URL(sent.url()).pathname === '/sign-in') sends += 1
     })
     await page.goto('/')
+    await datastarReady(page)
     await fillSignIn(page, uniqueEmail('Nobody'), 'not the password')
 
     await page.getByRole('button', { name: 'Sign in' }).click()
@@ -217,6 +228,7 @@ test.describe('Errors: a trigger sends its operation once', () => {
   // /ui/errors/once
   test('Sign in, triggered again after a failure, sends again', async ({ page }) => {
     await page.goto('/')
+    await datastarReady(page)
     await fillSignIn(page, uniqueEmail('Nobody'))
     const sends = await failEverySend(page, /^\/sign-in$/, 'network')
     await page.getByRole('button', { name: 'Sign in' }).click()
@@ -233,6 +245,7 @@ test.describe('Errors: a trigger sends its operation once', () => {
       const sends = await failEverySend(page, /^\/access$/, failure)
 
       await page.goto('/access?token=unknown-token')
+      await datastarReady(page)
 
       await expectSends(page, sends)
     })
@@ -242,6 +255,7 @@ test.describe('Errors: a trigger sends its operation once', () => {
       const sends = await failEverySend(page, /^\/verify-email$/, failure)
 
       await page.goto('/verify-email?token=unknown-token')
+      await datastarReady(page)
 
       await expectSends(page, sends)
     })
@@ -251,9 +265,12 @@ test.describe('Errors: a trigger sends its operation once', () => {
   test('Access link, opened again after a failure, sends again', async ({ page }) => {
     const sends = await failEverySend(page, /^\/access$/, 'network')
     await page.goto('/access?token=unknown-token')
+    await datastarReady(page)
     await expectSends(page, sends)
 
     await page.reload()
+
+    await datastarReady(page)
 
     await expectSends(page, sends, 2)
   })

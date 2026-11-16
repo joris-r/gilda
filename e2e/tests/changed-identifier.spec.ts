@@ -11,6 +11,7 @@ import {
   uniqueEmail,
   uniqueSlug,
   userIdOf,
+  datastarReady,
 } from './helpers'
 
 const NAME = 'Jardin partagé'
@@ -33,6 +34,7 @@ async function changeIdentifierElsewhere(page: Page, slug: string) {
   const changed = uniqueSlug()
   const other = await page.context().newPage()
   await other.goto(`/association/${slug}/members`)
+  await datastarReady(other)
   await other.getByRole('button', { name: 'Change the association identifier', exact: true }).click()
   const dialog = other.getByRole('dialog', { name: 'Change the association identifier', exact: true })
   await dialog.getByLabel('Association identifier').fill(changed)
@@ -48,6 +50,7 @@ async function openScreen(page: Page, request: APIRequestContext, screen: string
   const slug = await createAssociation(page.request, NAME)
   return { slug, open: async () => {
     await page.goto(`/association/${slug}${screen}`)
+    await datastarReady(page)
     if (header) await expect(page.locator('header').getByText(header)).toBeVisible()
   } }
 }
@@ -159,6 +162,7 @@ test.describe('Changed identifier: Members', () => {
     const brunoPage = await brunoContext.newPage()
     await createAccount(brunoContext.request, 'Bruno', bruno)
     await brunoPage.goto(`/association/${slug}/members`)
+    await datastarReady(brunoPage)
     await expect(brunoPage.getByRole('button', { name: 'Delete the association', exact: true })).toBeVisible()
     const brunoId = await userIdOf(page.request, slug, 'Bruno')
     await page.request.post(`/association/${slug}/members/${brunoId}/role`, { data: { role: 'volunteer' } })
@@ -211,6 +215,7 @@ test.describe('Changed identifier: My availability', () => {
     const other = await page.context().newPage()
     await expect(async () => {
       await other.goto(`/association/${current}/availability`)
+      await datastarReady(other)
       await expect(other.locator('main').getByRole('combobox').locator('option:checked')).toHaveText('Preferred', {
         timeout: 1000,
       })
@@ -240,6 +245,7 @@ test.describe('Changed identifier: Schedule', () => {
     await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
     await signUpFor(page.request, slug, thursday(1).iso, '10:00', '13:00')
     await page.goto(`/association/${slug}`)
+    await datastarReady(page)
     await expect(main(page).getByRole('heading', { name: /^Week \d+$/ }).first()).toBeVisible()
     return slug
   }
@@ -284,6 +290,7 @@ test.describe('Changed identifier: My associations', () => {
     await createAccount(request, 'Bruno', bruno)
     await propose(request, slug, alice, thursday(1).iso, '10:00', '13:00')
     await page.goto('/')
+    await datastarReady(page)
     await expect(jardin(page)).toContainText('10:00–13:00 Alice ?')
     await changeIdentifierElsewhere(page, slug)
 
@@ -302,6 +309,7 @@ test.describe('Changed identifier: My associations', () => {
     await signUpFor(page.request, slug, thursday(1).iso, '10:00', '13:00')
     await addClosure(page.request, slug, thursday(1).iso, thursday(1).iso)
     await page.goto('/')
+    await datastarReady(page)
     await expect(jardin(page)).toContainText('this slot no longer takes place.')
     await changeIdentifierElsewhere(page, slug)
 
