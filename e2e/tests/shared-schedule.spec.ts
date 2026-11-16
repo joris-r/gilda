@@ -175,3 +175,105 @@ test.describe('Shared schedule', () => {
     await expect(visitor.getByText('Page not found')).toHaveCount(0)
   })
 })
+
+/** Opens `link` in a new browser context, signed out, with a clock that the test moves. */
+async function openSignedOutWithClock(link: string, browser: Browser) {
+  const context = await browser.newContext()
+  const visitor = await context.newPage()
+  await visitor.clock.install()
+  const response = await visitor.goto(link)
+  expect(response?.status()).toBe(200)
+  await expect(weekHeadings(visitor).first()).toBeVisible()
+  return visitor
+}
+
+/** Moves the browser's clock two days on and lets a minute pass, as a page left open past
+ * midnight. */
+async function nextDay(page: Page) {
+  await page.clock.fastForward('48:00:00')
+  await page.clock.runFor(60_000)
+}
+
+/** Alice revokes the share link, from the Schedule settings she has open on `page`. */
+async function revokeLink(page: Page) {
+  const slug = /\/association\/([^/]+)\/settings/.exec(page.url())![1]
+  const response = await page.request.post(`/association/${slug}/settings/share-link/revoke`, { data: {} })
+  expect(response.status()).toBe(200)
+  return slug
+}
+
+const INVALID = 'This link is no longer valid.'
+
+test.describe('Shared schedule: once today changes', () => {
+  // /planning/ui/shared-schedule/new-day
+  // /planning/ui/schedule/new-day
+  test('it shows what changed elsewhere without a reload, with the weeks shown', async ({ page, request, browser }) => {
+    const link = await shareSchedule(page, request)
+    const slug = /\/association\/([^/]+)\/settings/.exec(page.url())![1]
+    const visitor = await openSignedOutWithClock(link, browser)
+    await visitor.getByRole('button', { name: 'More weeks' }).click()
+    await expect(weekHeadings(visitor)).toHaveCount(10)
+    await visitor.evaluate(() => ((window as unknown as { sameDocument: boolean }).sameDocument = true))
+    await signUpFor(page.request, slug, dayOfWeek(4, 3).iso, '10:00', '13:00')
+    await expect(dayGroup(visitor, 3).getByRole('listitem')).toHaveText('')
+
+    await nextDay(visitor)
+
+    await expect(dayGroup(visitor, 3).getByRole('listitem')).toHaveText('Alice')
+    await expect(weekHeadings(visitor)).toHaveCount(10)
+    await expect(visitor.getByRole('button', { name: 'Sign up' })).toHaveCount(0)
+    expect(await visitor.evaluate(() => (window as unknown as { sameDocument?: boolean }).sameDocument)).toBe(true)
+  })
+
+  // /planning/ui/shared-schedule/new-day
+  test('when it fails, it stays as it was, with no message', async ({ page, request, browser }) => {
+    const link = await shareSchedule(page, request)
+    const slug = /\/association\/([^/]+)\/settings/.exec(page.url())![1]
+    const visitor = await openSignedOutWithClock(link, browser)
+    let refreshes = 0
+    await visitor.route(/\/weeks(\?|$)/, (route) => {
+      if (route.request().method() !== 'GET') return route.continue()
+      refreshes += 1
+      return route.fulfill({ status: 500, body: 'failure' })
+    })
+    await signUpFor(page.request, slug, dayOfWeek(4, 3).iso, '10:00', '13:00')
+
+    await nextDay(visitor)
+    await visitor.waitForTimeout(500)
+
+    expect(refreshes).toBeGreaterThan(0)
+    await expect(dayGroup(visitor, 3).getByRole('listitem')).toHaveText('')
+    await expect(weekHeadings(visitor)).toHaveCount(6)
+    await expect(visitor.locator('main').getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+    await expect(visitor.locator('main').getByText(INVALID)).toHaveCount(0)
+  })
+
+  // /planning/ui/shared-schedule/gone
+  // /planning/ui/shared-schedule/new-day
+  test('a link revoked meanwhile shows as no longer valid', async ({ page, request, browser }) => {
+    const link = await shareSchedule(page, request)
+    const visitor = await openSignedOutWithClock(link, browser)
+    await revokeLink(page)
+
+    await nextDay(visitor)
+
+    await expect(visitor.locator('main').getByText(INVALID)).toBeVisible()
+    await expect(weekHeadings(visitor)).toHaveCount(0)
+    await expect(visitor.locator('main').getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+  })
+})
+
+test.describe('Shared schedule: a link that is gone', () => {
+  // /planning/ui/shared-schedule/gone
+  test('"More weeks" shows "This link is no longer valid." and no generic error', async ({ page, request, browser }) => {
+    const link = await shareSchedule(page, request)
+    const visitor = await openSignedOut(link, browser)
+    await revokeLink(page)
+
+    await visitor.getByRole('button', { name: 'More weeks' }).click()
+
+    await expect(visitor.locator('main').getByText(INVALID)).toBeVisible()
+    await expect(visitor.locator('main').getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+    await expect(weekHeadings(visitor)).toHaveCount(0)
+  })
+})

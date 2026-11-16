@@ -439,6 +439,18 @@ def schedule_entries(fragment: str) -> list[str | Week]:
     return entries
 
 
+def opens_menu(fragment: str, day: str) -> bool:
+    """Whether the occurrence on `day` in the weeks of `fragment` can be clicked to open the
+    menu: a button, not plain text."""
+    found = re.search(
+        rf'aria-label="{re.escape(day_label(day))}"(.*?)(?=role="group"|</section>)',
+        fragment,
+        re.DOTALL,
+    )
+    assert found, (day, fragment)
+    return "<button" in found.group(1)
+
+
 def schedule_shown(as_client: Any, slug: str) -> list[str | Week]:
     """The lines and weeks the Schedule shows, as schedule_entries reads them."""
     return schedule_entries(without_dialogs(part(schedule_page(as_client, slug), "main")))
@@ -474,11 +486,18 @@ def opened_weeks() -> dict[str, str]:
     return {"from": day_of_week("monday", -1), "to": day_of_week("sunday", 4)}
 
 
-def open_menu(as_client: Any, slug: str, day: str, start: str, end: str) -> Any:
+def open_menu(
+    as_client: Any,
+    slug: str,
+    day: str,
+    start: str,
+    end: str,
+    weeks: dict[str, str] | None = None,
+) -> Any:
     """Clicks the occurrence, or the obsolete registration, of `day` from `start` to `end` on
-    the Schedule."""
+    the Schedule, which shows `weeks` when given."""
     return as_client.post(
-        f"/association/{slug}/menu", json={"date": day, "start": start, "end": end}
+        f"/association/{slug}/menu", json={"date": day, "start": start, "end": end, **(weeks or {})}
     )
 
 
@@ -610,6 +629,14 @@ def more_weeks(as_client: Any, slug: str, first: str, last: str) -> Any:
     return as_client.post(f"/association/{slug}/weeks", json={"from": first, "to": last})
 
 
+# @dev43:unsure
+def weeks_again(as_client: Any, slug: str, first: str, last: str) -> Any:
+    """The weeks from `first` to `last` of a Schedule that shows them again once today changes
+    or the screen shows again: a plain GET of the weeks as an HTML fragment, 401 when signed
+    out."""
+    return as_client.get(f"/association/{slug}/weeks", params={"from": first, "to": last})
+
+
 def create_share_link(as_client: Any, slug: str) -> Any:
     """Clicks "Create a share link" on Schedule settings, confirming "Replace" when there is
     one."""
@@ -645,6 +672,13 @@ def shared_token(planning: Planning) -> str:
 def shared_page(as_client: Any, token: str) -> Any:
     """Opens the share link of `token`."""
     return as_client.get(f"/shared/{token}")
+
+
+def shared_weeks_again(as_client: Any, token: str, first: str, last: str) -> Any:
+    """The weeks from `first` to `last` of a Shared schedule that shows them again once today
+    changes: a plain GET of the weeks as an HTML fragment, 404 when the link is no longer
+    valid."""
+    return as_client.get(f"/shared/{token}/weeks", params={"from": first, "to": last})
 
 
 def shared_weeks(as_client: Any, token: str, first: str, last: str) -> Any:

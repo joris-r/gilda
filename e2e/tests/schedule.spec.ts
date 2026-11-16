@@ -464,3 +464,226 @@ test.describe('Schedule menu: the Occurrence menu of a manager', () => {
     await expect(page.getByText(TAKEN).filter({ visible: true })).toHaveCount(0)
   })
 })
+
+/** Holds the answers of the menu's loads until the test releases them, in the order of the
+ * clicks. */
+async function holdMenuLoads(page: Page) {
+  const held: (() => void)[] = []
+  await page.route('**/menu', async (route) => {
+    await new Promise<void>((resolve) => held.push(resolve))
+    await route.continue()
+  })
+  return {
+    pending: () => held.length,
+    release: (n: number) => held[n](),
+  }
+}
+
+test.describe('Schedule menu: its load', () => {
+  // /planning/ui/schedule/opens
+  // /planning/ui/schedule/load
+  // /planning/ui/schedule/load-shown
+  test('the menu opens at once with its title; the rest shows when the load ends', async ({ page, request }) => {
+    await openSchedule(page, request)
+    const loads = await holdMenuLoads(page)
+
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await expect(menuTitle(page, 2)).toBeVisible()
+    await expect.poll(() => loads.pending()).toBe(1)
+    await expect(page.getByRole('button', { name: 'Sign up' })).toHaveCount(0)
+    loads.release(0)
+    await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
+    await expect(menuTitle(page, 2)).toBeVisible()
+  })
+
+  // /planning/ui/schedule/latest
+  test('the load of an earlier click changes nothing once a later click opened the menu', async ({ page, request }) => {
+    await openSchedule(page, request)
+    const loads = await holdMenuLoads(page)
+    await dayGroup(page, 2).getByRole('listitem').click()
+    await expect.poll(() => loads.pending()).toBe(1)
+    await page.keyboard.press('Escape')
+    await expect(menuTitle(page, 2)).toBeHidden()
+    await dayGroup(page, 3).getByRole('listitem').click()
+    await expect.poll(() => loads.pending()).toBe(2)
+
+    loads.release(1)
+    await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
+    loads.release(0)
+    await page.waitForTimeout(500)
+
+    await expect(menuTitle(page, 3)).toBeVisible()
+    await expect(menuTitle(page, 2)).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Sign up' })).toHaveCount(1)
+  })
+
+  // /planning/ui/schedule/latest
+  test('the load of a click ending after the menu closed shows nothing', async ({ page, request }) => {
+    await openSchedule(page, request)
+    const loads = await holdMenuLoads(page)
+    await dayGroup(page, 2).getByRole('listitem').click()
+    await expect.poll(() => loads.pending()).toBe(1)
+    await page.keyboard.press('Escape')
+    await expect(menuTitle(page, 2)).toBeHidden()
+
+    loads.release(0)
+    await page.waitForTimeout(500)
+
+    await expect(menuTitle(page, 2)).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Sign up' })).toBeHidden()
+  })
+
+  // /planning/ui/schedule/load-failed
+  test('a load that fails shows only its title and the generic error', async ({ page, request }) => {
+    await openSchedule(page, request)
+    await page.route('**/menu', (route) => route.fulfill({ status: 500, body: 'failure' }))
+
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await expect(menuTitle(page, 2)).toBeVisible()
+    await expect(menu(page).getByText(GENERIC).filter({ visible: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Sign up' })).toBeHidden()
+  })
+
+  // /planning/ui/schedule/load-signed-out
+  test('signed out meanwhile, it leads to Sign in', async ({ page, request }) => {
+    await openSchedule(page, request)
+    const other = await page.context().newPage()
+    await other.goto('/')
+    await other.locator('header').getByRole('button', { name: 'Alice' }).click()
+    await other.getByRole('button', { name: 'Sign out' }).click()
+    await expect(other.getByRole('button', { name: 'Sign in' })).toBeVisible()
+    await other.close()
+
+    await dayGroup(page, 2).getByRole('listitem').click()
+
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
+  })
+})
+
+test.describe('Schedule menu: taken', () => {
+  // /planning/ui/schedule/taken
+  // /planning/ui/occurrence-menu/taken
+  test('after "Someone took this slot in the meantime." the Schedule shows who took it, the menu staying open', async ({
+    page,
+    request,
+  }) => {
+    const slug = await openManagersSchedule(page, request)
+    await dayGroup(page, 2).getByRole('listitem').click()
+    await expect(menuTitle(page, 2)).toBeVisible()
+    await propose(page.request, slug, await userIdOf(page.request, slug, 'Bruno'), dayOfWeek(4, 2).iso, '10:00', '13:00')
+    await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('')
+
+    await menu(page).getByRole('button', { name: 'Alice', exact: true }).click()
+
+    await expect(menu(page).getByText(TAKEN).filter({ visible: true })).toBeVisible()
+    await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)
+    await expect(menuTitle(page, 2)).toBeVisible()
+  })
+})
+
+/** Moves the browser's clock two days on and lets a minute pass, as a page left open past
+ * midnight. The page must have been loaded after `page.clock.install()`. */
+async function nextDay(page: Page) {
+  await page.clock.fastForward('48:00:00')
+  await page.clock.runFor(60_000)
+}
+
+/** Simulates a screen hidden, then shown again. */
+async function setHidden(page: Page, hidden: boolean) {
+  await page.evaluate((value) => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => value })
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => (value ? 'hidden' : 'visible'),
+    })
+    document.dispatchEvent(new Event('visibilitychange'))
+  }, hidden)
+}
+
+/** The Schedule of `openManagersSchedule`, opened with a clock that the test moves. */
+async function openScheduleWithClock(page: Page, request: APIRequestContext) {
+  await page.clock.install()
+  return await openManagersSchedule(page, request)
+}
+
+test.describe('Schedule: once today changes', () => {
+  // /planning/ui/schedule/new-day
+  test('it shows what changed elsewhere without a reload, an open menu staying open', async ({ page, request }) => {
+    const slug = await openScheduleWithClock(page, request)
+    await page.evaluate(() => ((window as unknown as { sameDocument: boolean }).sameDocument = true))
+    await dayGroup(page, 2).getByRole('listitem').click()
+    await expect(menuTitle(page, 2)).toBeVisible()
+    await signUpFor(page.request, slug, dayOfWeek(4, 3).iso, '10:00', '13:00')
+    await expect(dayGroup(page, 3).getByRole('listitem')).toHaveText('')
+
+    await nextDay(page)
+
+    await expect(dayGroup(page, 3).getByRole('listitem')).toHaveText('Alice')
+    await expect(menuTitle(page, 2)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
+    expect(await page.evaluate(() => (window as unknown as { sameDocument?: boolean }).sameDocument)).toBe(true)
+  })
+
+  // /planning/ui/schedule/new-day
+  test('it keeps the weeks shown, More weeks included', async ({ page, request }) => {
+    const slug = await openScheduleWithClock(page, request)
+    await page.getByRole('button', { name: 'More weeks' }).click()
+    await expect(weekHeadings(page)).toHaveCount(10)
+    await signUpFor(page.request, slug, dayOfWeek(4, 8).iso, '10:00', '13:00')
+
+    await nextDay(page)
+
+    await expect(dayGroup(page, 8).getByRole('listitem')).toHaveText('Alice')
+    await expect(weekHeadings(page)).toHaveCount(10)
+  })
+
+  // /planning/ui/schedule/new-day
+  test('a screen hidden then shown again after the change shows it within a minute', async ({ page, request }) => {
+    const slug = await openScheduleWithClock(page, request)
+    await setHidden(page, true)
+    await signUpFor(page.request, slug, dayOfWeek(4, 3).iso, '10:00', '13:00')
+    await nextDay(page)
+
+    await setHidden(page, false)
+    await page.clock.runFor(60_000)
+
+    await expect(dayGroup(page, 3).getByRole('listitem')).toHaveText('Alice')
+  })
+
+  // /planning/ui/schedule/new-day-signed-out
+  test('signed out meanwhile, it leads to Sign in', async ({ page, request }) => {
+    await openScheduleWithClock(page, request)
+    const other = await page.context().newPage()
+    await other.goto('/')
+    await other.locator('header').getByRole('button', { name: 'Alice' }).click()
+    await other.getByRole('button', { name: 'Sign out' }).click()
+    await expect(other.getByRole('button', { name: 'Sign in' })).toBeVisible()
+    await other.close()
+
+    await nextDay(page)
+
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
+  })
+
+  // /planning/ui/schedule/new-day-failed
+  test('when it fails, the Schedule stays as it was, with no message', async ({ page, request }) => {
+    const slug = await openScheduleWithClock(page, request)
+    let refreshes = 0
+    await page.route(/\/weeks(\?|$)/, (route) => {
+      if (route.request().method() !== 'GET') return route.continue()
+      refreshes += 1
+      return route.fulfill({ status: 500, body: 'failure' })
+    })
+    await signUpFor(page.request, slug, dayOfWeek(4, 3).iso, '10:00', '13:00')
+
+    await nextDay(page)
+    await page.waitForTimeout(500)
+
+    expect(refreshes).toBeGreaterThan(0)
+    await expect(dayGroup(page, 3).getByRole('listitem')).toHaveText('')
+    await expect(weekHeadings(page)).toHaveCount(6)
+    await expect(page.locator('main').getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+  })
+})

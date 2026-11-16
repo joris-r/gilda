@@ -22,6 +22,7 @@ from tests.planning.conftest import (
     day_shown,
     headings_of,
     more_weeks,
+    opens_menu,
     part,
     schedule_entries,
     schedule_page,
@@ -31,6 +32,7 @@ from tests.planning.conftest import (
     sign_up,
     text_of,
     unique_email,
+    weeks_again,
     without_dialogs,
 )
 
@@ -777,6 +779,72 @@ class TestNoOpenings:
 
         assert "Aucune ouverture sur ces semaines." in main
 
+    # /planning/ui/schedule/empty
+    def test_without_a_slot_no_week_shows_and_no_today_line(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+
+        with time_machine.travel(NOW, tick=False):
+            entries = schedule_shown(client, planning.slug)
+
+        assert entries == []
+
+    # /planning/ui/schedule/empty
+    # /planning/ui/schedule/closed-days
+    def test_with_only_closed_days_says_so_above_the_weeks_that_hold_one(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("saturday", "10:00", "13:00")
+
+        with time_machine.travel(NOW, tick=False):
+            planning.add_closure("2026-11-02", "2026-12-13", "Vacances")
+            main = collapsed(without_dialogs(part(schedule_page(client, planning.slug), "main")))
+            entries = schedule_shown(client, planning.slug)
+
+        assert EMPTY in main
+        assert main.index(EMPTY) < main.index("Week 45")
+        saturdays = ["Nov 7", "Nov 14", "Nov 21", "Nov 28", "Dec 5", "Dec 12"]
+        days = [f"Sat {s.split()[1]} {s.split()[0]} Closed Vacances" for s in saturdays]
+        assert entries == [
+            ("Week 45", [days[0]]),
+            "Today · Monday 9 November 2026",
+            ("Week 46", [days[1]]),
+            ("Week 47", [days[2]]),
+            ("Week 48", [days[3]]),
+            ("Week 49", [days[4]]),
+            ("Week 50", [days[5]]),
+        ]
+
+    # /planning/ui/schedule/empty
+    def test_with_a_closed_day_and_an_occurrence_says_nothing_of_it(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+
+        with time_machine.travel(NOW, tick=False):
+            planning.add_closure("2026-11-12", "2026-11-12", "Travaux")
+            page = schedule_page(client, planning.slug)
+
+        assert EMPTY not in page
+
+    # /planning/ui/schedule/empty
+    # /core/ui/header/language
+    def test_with_only_closed_days_follows_the_language(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("saturday", "10:00", "13:00")
+        client.cookies.set("language", "fr")
+
+        with time_machine.travel(NOW, tick=False):
+            planning.add_closure("2026-11-02", "2026-12-13", "Vacances")
+            main = collapsed(without_dialogs(part(schedule_page(client, planning.slug), "main")))
+
+        assert main.index("Aucune ouverture sur ces semaines.") < main.index("Semaine 45")
+
 
 class TestClosures:
     # /planning/ui/schedule/closed
@@ -897,6 +965,181 @@ class TestClosures:
 
         days = [text for entry in entries if isinstance(entry, tuple) for text in entry[1]]
         assert any(text.endswith(" Fermé Fête") for text in days), days
+
+
+class TestClosedDays:
+    # /planning/operations/get-schedule/closed-days
+    # /planning/ui/schedule/closed-days
+    def test_a_closed_day_shows_though_no_occurrence_falls_on_its_weekday(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        planning.add_slot("saturday", "10:00", "13:00")
+
+        with time_machine.travel(NOW, tick=False):
+            planning.add_closure("2026-11-06", "2026-12-13", "Vacances")
+            entries = schedule_shown(planning.bruno_client, planning.slug)
+
+        saturdays = ["2026-11-07", "2026-11-14", "2026-11-21", "2026-11-28", "2026-12-05"]
+        assert [day_in(entries, day) for day in saturdays] == ["Closed Vacances"] * 5
+        assert day_in(entries, "2026-12-12") == "Closed Vacances"
+        assert day_in(entries, "2026-11-05") == "[]"
+        assert day_in(entries, "2026-11-12") == "Closed Vacances"
+
+    # /planning/operations/get-schedule/closed-days
+    # /planning/ui/schedule/closed-days
+    def test_a_date_that_is_not_on_a_slots_weekday_is_not_a_closed_day(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+
+        with time_machine.travel(NOW, tick=False):
+            planning.add_closure("2026-11-14", "2026-11-18", "Travaux")
+            entries = schedule_shown(planning.bruno_client, planning.slug)
+
+        assert day_in(entries, "2026-11-19") == "[]"
+        days = [text for entry in entries if isinstance(entry, tuple) for text in entry[1]]
+        assert all(text.startswith("Thu ") for text in days), days
+
+    # /planning/operations/get-schedule/closed-days
+    # /planning/ui/schedule/closed-days
+    def test_a_closure_after_the_shown_weeks_shows_once_they_are_added(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        planning.add_slot("saturday", "10:00", "13:00")
+
+        with time_machine.travel(NOW, tick=False):
+            planning.add_closure("2026-12-14", "2026-12-20", "Fêtes")
+            before = schedule_shown(planning.bruno_client, planning.slug)
+            more = schedule_entries(
+                shown(more_weeks(planning.bruno_client, planning.slug, "2026-11-02", "2026-12-13"))
+            )
+
+        assert "Closed" not in str(before)
+        assert day_in(more, "2026-12-19") == "Closed Fêtes"
+
+    # /planning/ui/schedule/closed-days
+    # /planning/operations/get-schedule/closed-days
+    def test_the_weeks_added_show_the_closed_days_of_the_whole_range(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("saturday", "10:00", "13:00")
+
+        with time_machine.travel(NOW, tick=False):
+            planning.add_closure("2026-11-02", "2026-12-13", "Vacances")
+            text = shown(
+                more_weeks(planning.bruno_client, planning.slug, "2026-11-02", "2026-12-13")
+            )
+
+        entries = schedule_entries(text)
+        assert len(headings_of(entries)) == 10
+        assert day_in(entries, "2026-11-07") == "Closed Vacances"
+        assert day_in(entries, "2026-12-19") == "[]"
+
+    # /planning/ui/schedule/closed-days
+    # /core/ui/header/language
+    def test_follows_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        planning.add_slot("saturday", "10:00", "13:00")
+        client.cookies.set("language", "fr")
+
+        with time_machine.travel(NOW, tick=False):
+            planning.add_closure("2026-11-06", "2026-12-13", "Vacances")
+            entries = schedule_shown(client, planning.slug)
+
+        assert day_in(entries, "2026-11-07") == "Fermé Vacances"
+
+
+class TestWeeksAgain:
+    """The weeks shown again once today changes: a Schedule that stays open, as it now is."""
+
+    FIRST, LAST = "2026-11-02", "2026-12-13"
+
+    # /planning/ui/schedule/new-day
+    # /planning/operations/get-schedule/range
+    def test_shows_the_same_weeks_as_they_now_are(self, thursdays_on_now: Planning) -> None:
+        planning = thursdays_on_now
+        planning.registered(planning.chloe_client, planning.chloe, "2026-11-12", "10:00", "13:00")
+
+        response = weeks_again(planning.bruno_client, planning.slug, self.FIRST, self.LAST)
+
+        assert response.status_code == 200
+        entries = schedule_entries(response.text)
+        assert headings_of(entries) == WEEKS_OPENED
+        assert day_in(entries, "2026-11-12") == "[Chloé]"
+        assert "Today · Monday 9 November 2026" in entries
+
+    # /planning/ui/schedule/new-day
+    def test_keeps_the_weeks_added_by_more_weeks(self, thursdays_on_now: Planning) -> None:
+        response = weeks_again(
+            thursdays_on_now.bruno_client, thursdays_on_now.slug, self.FIRST, "2027-01-10"
+        )
+
+        assert response.status_code == 200
+        assert len(headings_of(schedule_entries(response.text))) == 10
+
+    # /planning/ui/schedule/new-day
+    # /planning/model/time-zone
+    def test_follows_the_new_today(self, thursdays_on_now: Planning) -> None:
+        planning = thursdays_on_now
+        before = weeks_again(planning.bruno_client, planning.slug, self.FIRST, self.LAST).text
+        assert opens_menu(before, "2026-11-12")
+
+        # 00:30 in Paris on Friday 13 November, still Thursday in UTC.
+        with time_machine.travel(datetime(2026, 11, 12, 23, 30, tzinfo=UTC), tick=False):
+            after = weeks_again(planning.bruno_client, planning.slug, self.FIRST, self.LAST).text
+
+        assert "Today · Monday 9 November 2026" in schedule_entries(before)
+        assert "Today · Friday 13 November 2026" in schedule_entries(after)
+        assert not opens_menu(after, "2026-11-12")
+        assert opens_menu(after, "2026-11-19")
+
+    # /planning/ui/schedule/new-day
+    def test_a_volunteer_and_a_manager_get_the_same_weeks(self, thursdays_on_now: Planning) -> None:
+        planning = thursdays_on_now
+
+        manager = weeks_again(planning.alice_client, planning.slug, self.FIRST, self.LAST)
+        volunteer = weeks_again(planning.bruno_client, planning.slug, self.FIRST, self.LAST)
+
+        assert headings_of(schedule_entries(manager.text)) == WEEKS_OPENED
+        assert schedule_entries(manager.text) == schedule_entries(volunteer.text)
+
+    # /planning/ui/schedule/new-day-signed-out
+    def test_signed_out_is_refused_as_such(
+        self, thursdays_on_now: Planning, new_client: Callable[[], Any]
+    ) -> None:
+        response = weeks_again(new_client(), thursdays_on_now.slug, self.FIRST, self.LAST)
+
+        assert response.status_code == 401
+        assert "Week" not in response.text
+
+    # /planning/ui/schedule/new-day-failed
+    # /planning/operations/get-schedule/member
+    def test_a_user_who_is_not_a_member_is_refused_otherwise(
+        self, thursdays_on_now: Planning, new_client: Callable[[], Any]
+    ) -> None:
+        response = weeks_again(other_user(new_client), thursdays_on_now.slug, self.FIRST, self.LAST)
+
+        assert response.status_code >= 400
+        assert response.status_code != 401
+        assert "Week" not in response.text
+
+    # /planning/ui/schedule/new-day-failed
+    # /planning/operations/get-schedule/reversed
+    def test_reversed_dates_are_refused_otherwise(self, thursdays_on_now: Planning) -> None:
+        response = weeks_again(
+            thursdays_on_now.bruno_client, thursdays_on_now.slug, self.LAST, self.FIRST
+        )
+
+        assert response.status_code >= 400
+        assert response.status_code != 401
+        assert "Week" not in response.text
 
 
 class TestObsoleteRegistrations:

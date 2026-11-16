@@ -1,4 +1,5 @@
 # ruff: noqa: RUF001  (menu titles are written with a middle dot and times with an en dash)
+import re
 from collections.abc import Callable
 from datetime import UTC, date, datetime
 from typing import Any
@@ -27,6 +28,7 @@ from tests.planning.conftest import (
     names_offered,
     open_menu,
     opened_weeks,
+    opens_menu,
     propose,
     save_note,
     schedule_entries,
@@ -38,11 +40,35 @@ from tests.planning.conftest import (
     sign_up_for,
     text_of,
     unique_email,
+    without_hidden,
     write_note,
 )
 
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 TAKEN = "Someone took this slot in the meantime."
+PAST = "This day is past."
+
+
+def after(day: str, hour: int, minute: int = 0) -> datetime:
+    """`hour`:`minute` in Paris on the day after `day`."""
+    next_day = date.fromordinal(date.fromisoformat(day).toordinal() + 1)
+    return datetime.fromisoformat(f"{next_day}T{hour:02}:{minute:02}").replace(
+        tzinfo=ZoneInfo("Europe/Paris")
+    )
+
+
+def assert_in_element(text: str, element_id: str, message: str) -> None:
+    """The message shows in the element of a confirmation, which keeps its place in the page."""
+    assert re.search(rf'id="{re.escape(element_id)}"[^>]*>\s*{re.escape(message)}\s*<', text), text
+
+
+def assert_stays_open_with_weeks(text: str, day: str) -> None:
+    """The answer of a refused try closes no menu or confirmation, and shows the weeks again,
+    `day` among them."""
+    assert "hidePopover" not in text
+    assert ".close()" not in text
+    assert headings_of(schedule_entries(text)), text
+    assert re.search(re.escape(day_label(day)), text), text
 
 
 def thursday_planning(client: Any, new_client: Callable[[], Any]) -> tuple[Planning, str]:
@@ -275,12 +301,145 @@ class TestMenu:
         assert "Sign up" not in response.text
 
     # /core/ui/access/action
+    # /planning/ui/schedule/load-signed-out
     def test_signed_out_leads_to_sign_in(self, client: Any, new_client: Callable[[], Any]) -> None:
         planning, thursday = thursday_planning(client, new_client)
 
         text = shown(open_menu(new_client(), planning.slug, thursday, "10:00", "13:00"))
 
         assert "window.location" in text
+        assert "Sign up" not in text
+
+
+class TestLoadOfTheMenu:
+    @staticmethod
+    def title(day: str) -> str:
+        return f"{day_label(day)} · 10–13"
+
+    # /planning/ui/schedule/load-shown
+    # /planning/ui/occurrence-menu/title
+    def test_a_day_from_today_on_shows_the_rest(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+
+        text = shown(open_menu(planning.bruno_client, planning.slug, thursday, "10:00", "13:00"))
+
+        assert self.title(thursday) in text
+        assert "Sign up" in text
+        assert GENERIC not in without_hidden(text)
+        assert PAST not in text
+
+    # /planning/ui/schedule/menu-past
+    # /planning/model/time-zone
+    @pytest.mark.parametrize("by_manager", [False, True])
+    def test_a_day_past_when_the_load_ends_shows_only_its_title_and_the_message(
+        self, client: Any, new_client: Callable[[], Any], by_manager: bool
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        as_client = client if by_manager else planning.bruno_client
+        weeks = opened_weeks()
+
+        # 00:30 in Paris on the day after, still the Thursday in UTC.
+        with time_machine.travel(after(thursday, 0, 30), tick=False):
+            text = shown(open_menu(as_client, planning.slug, thursday, "10:00", "13:00", weeks))
+
+        assert self.title(thursday) in text
+        assert PAST in text
+        assert GENERIC not in without_hidden(text)
+        assert "Sign up" not in text
+        assert "Bruno" not in text
+        assert "Chloé" not in text
+
+    # /planning/ui/schedule/menu-past
+    def test_the_weeks_then_show_again_at_once_with_no_menu_on_the_past_day(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        weeks = opened_weeks()
+
+        with time_machine.travel(after(thursday, 0, 30), tick=False):
+            text = shown(
+                open_menu(planning.bruno_client, planning.slug, thursday, "10:00", "13:00", weeks)
+            )
+
+        entries = schedule_entries(text)
+        assert day_in(entries, thursday) == "[]"
+        assert len(headings_of(entries)) == 6
+        assert not opens_menu(text, thursday)
+
+    # /planning/ui/schedule/menu-past
+    # /core/ui/header/language
+    def test_the_past_message_follows_the_language(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        planning.bruno_client.cookies.set("language", "fr")
+
+        with time_machine.travel(after(thursday, 0, 30), tick=False):
+            text = shown(
+                open_menu(
+                    planning.bruno_client, planning.slug, thursday, "10:00", "13:00", opened_weeks()
+                )
+            )
+
+        assert "Ce jour est passé." in text
+
+    # /planning/ui/schedule/load
+    # /planning/ui/schedule/menu-past
+    def test_a_past_day_wins_over_a_failed_load(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        weeks = opened_weeks()
+
+        with time_machine.travel(after(thursday, 0, 30), tick=False):
+            response = open_menu(
+                planning.bruno_client, planning.slug, thursday, "14:00", "15:00", weeks
+            )
+            text = shown(response)
+
+        assert PAST in text
+        assert GENERIC not in without_hidden(text)
+
+    # /planning/ui/schedule/load
+    # /planning/ui/schedule/menu-past
+    def test_today_is_not_past(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
+        today = today_in_paris()
+        planning.add_slot(WEEKDAYS[today.weekday()], "23:00", "23:30")
+
+        text = shown(
+            open_menu(planning.bruno_client, planning.slug, today.isoformat(), "23:00", "23:30")
+        )
+
+        assert "Sign up" in text
+        assert PAST not in text
+
+    # /planning/ui/schedule/load-failed
+    # /ui/errors/generic
+    def test_an_occurrence_that_does_not_exist_shows_only_its_title_and_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+
+        text = shown(open_menu(planning.bruno_client, planning.slug, thursday, "14:00", "15:00"))
+
+        assert f"{day_label(thursday)} · 14–15" in text
+        assert GENERIC in without_hidden(text)
+        assert "Sign up" not in text
+
+    # /planning/ui/schedule/load-failed
+    # /planning/operations/get-schedule/member
+    def test_a_user_who_is_not_a_member_gets_only_its_title_and_the_generic_error(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+
+        text = shown(open_menu(other_user(new_client), planning.slug, thursday, "10:00", "13:00"))
+
+        assert self.title(thursday) in text
+        assert GENERIC in without_hidden(text)
         assert "Sign up" not in text
 
 
@@ -887,6 +1046,7 @@ class TestSignUp:
         assert day_in(entries, late_thursday) == "[Bruno]"
 
     # /planning/ui/occurrence-menu/taken
+    # /planning/ui/schedule/taken
     # /planning/operations/register/taken
     # /planning/model/registration/single
     def test_a_taken_occurrence_says_someone_took_it(
@@ -898,10 +1058,13 @@ class TestSignUp:
         text = shown(sign_up_for(planning.bruno_client, planning.slug, thursday, "10:00", "13:00"))
 
         assert TAKEN in text
-        assert GENERIC not in text
+        assert GENERIC not in without_hidden(text)
         assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+        assert day_in(schedule_entries(text), thursday) == "[Chloé]"
+        assert "hidePopover" not in text
 
     # /planning/ui/occurrence-menu/taken
+    # /planning/ui/schedule/taken
     # /planning/operations/register/taken
     # /planning/model/registration/single
     def test_also_when_it_holds_a_proposed_registration(
@@ -913,6 +1076,7 @@ class TestSignUp:
 
         assert TAKEN in text
         assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"
+        assert day_in(schedule_entries(text), thursday) == "[Bruno ?]"
 
     # /planning/ui/occurrence-menu/taken
     # /core/ui/header/language
@@ -943,8 +1107,8 @@ class TestSignUp:
         assert day_in(schedule_entries(text), thursday) == "[Bruno]"
 
     # /planning/operations/register/past
-    # /ui/errors/generic
-    def test_an_occurrence_before_today_shows_the_generic_error(
+    # /planning/ui/schedule/past
+    def test_an_occurrence_before_today_says_the_day_is_past(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning, _ = thursday_planning(client, new_client)
@@ -952,8 +1116,31 @@ class TestSignUp:
 
         text = shown(sign_up_for(planning.bruno_client, planning.slug, past, "10:00", "13:00"))
 
-        assert GENERIC in text
+        assert PAST in text
+        assert GENERIC not in without_hidden(text)
         assert day_shown(client, planning.slug, past) == "[]"
+        assert_stays_open_with_weeks(text, past)
+        assert not opens_menu(text, past)
+
+    # /planning/ui/schedule/past
+    # /core/ui/header/language
+    def test_the_past_message_follows_the_language(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, _ = thursday_planning(client, new_client)
+        planning.bruno_client.cookies.set("language", "fr")
+
+        text = shown(
+            sign_up_for(
+                planning.bruno_client,
+                planning.slug,
+                day_of_week("thursday", -1),
+                "10:00",
+                "13:00",
+            )
+        )
+
+        assert "Ce jour est passé." in text
 
     # /planning/operations/register/past
     def test_today_is_not_before_today(self, client: Any, new_client: Callable[[], Any]) -> None:
@@ -1160,6 +1347,7 @@ class TestPropose:
         assert day_in(entries, late_thursday) == "[Bruno ?]"
 
     # /planning/ui/occurrence-menu/taken
+    # /planning/ui/schedule/taken
     # /planning/operations/register/taken
     def test_a_taken_occurrence_says_someone_took_it(
         self, client: Any, new_client: Callable[[], Any]
@@ -1170,8 +1358,10 @@ class TestPropose:
         text = shown(propose_bruno(client, planning, thursday))
 
         assert TAKEN in text
-        assert GENERIC not in text
+        assert GENERIC not in without_hidden(text)
         assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+        assert day_in(schedule_entries(text), thursday) == "[Chloé]"
+        assert "hidePopover" not in text
 
     # /planning/operations/register/taken
     # /planning/operations/register/proposed
@@ -1189,8 +1379,8 @@ class TestPropose:
         assert day_in(schedule_entries(text), thursday) == "[Bruno ?]"
 
     # /planning/operations/register/past
-    # /ui/errors/generic
-    def test_an_occurrence_before_today_shows_the_generic_error(
+    # /planning/ui/schedule/past
+    def test_an_occurrence_before_today_says_the_day_is_past(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning, _ = thursday_planning(client, new_client)
@@ -1198,8 +1388,11 @@ class TestPropose:
 
         text = shown(propose_bruno(client, planning, past))
 
-        assert GENERIC in text
+        assert PAST in text
+        assert GENERIC not in without_hidden(text)
         assert day_shown(client, planning.slug, past) == "[]"
+        assert_stays_open_with_weeks(text, past)
+        assert not opens_menu(text, past)
 
     # /planning/operations/register/no-occurrence
     # /ui/errors/generic
@@ -1416,7 +1609,7 @@ class TestChangeAPastRegistration:
 
     # /planning/operations/change-registration/past
     # /planning/model/time-zone
-    # /ui/errors/generic
+    # /planning/ui/schedule/past
     def test_a_past_proposed_registration_cannot_be_confirmed(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1428,11 +1621,13 @@ class TestChangeAPastRegistration:
                 confirm_registration(planning.bruno_client, planning.slug, registration["id"])
             )
 
-            assert GENERIC in text
+            assert PAST in text
+            assert GENERIC not in without_hidden(text)
             assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"
+            assert_stays_open_with_weeks(text, thursday)
 
     # /planning/operations/change-registration/past
-    # /ui/errors/generic
+    # /planning/ui/schedule/past
     @pytest.mark.parametrize("by_manager", [False, True])
     def test_a_past_registration_cannot_be_cancelled(
         self, client: Any, new_client: Callable[[], Any], by_manager: bool
@@ -1446,8 +1641,11 @@ class TestChangeAPastRegistration:
         with time_machine.travel(self.on(self.the_day_after(thursday), 10), tick=False):
             text = shown(cancel_registration(as_client, planning.slug, registration["id"]))
 
-            assert GENERIC in text
+            assert PAST in text
+            assert GENERIC not in without_hidden(text)
             assert day_shown(client, planning.slug, thursday) == "[Bruno]"
+            assert_in_element(text, "cancel-registration-error", PAST)
+            assert_stays_open_with_weeks(text, thursday)
 
     # /planning/operations/change-registration/past
     # /planning/operations/change-registration/confirm
@@ -1677,7 +1875,31 @@ class TestMove:
             "Chloé (1)",
         ]
 
+    # /planning/operations/register/past
+    # /planning/ui/schedule/past
+    # /planning/ui/occurrence-menu/move-messages
+    def test_a_registration_of_a_past_day_is_not_replaced(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+
+        with time_machine.travel(
+            TestChangeAPastRegistration.on(TestChangeAPastRegistration.the_day_after(thursday), 10),
+            tick=False,
+        ):
+            text = give(client, planning, registration, planning.bruno, thursday)
+
+            assert PAST in text
+            assert GENERIC not in without_hidden(text)
+            assert_in_element(text, f"move-error-{planning.bruno['id']}", PAST)
+            assert_stays_open_with_weeks(text, thursday)
+            assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+
     # /planning/operations/register/taken
+    # /planning/ui/schedule/taken
     def test_a_registration_taken_since_is_not_replaced(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -1688,8 +1910,10 @@ class TestMove:
         text = give(client, planning, registration, planning.alice, thursday)
 
         assert TAKEN in text
-        assert GENERIC not in text
+        assert GENERIC not in without_hidden(text)
         assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+        assert day_in(schedule_entries(text), thursday) == "[Chloé]"
+        assert "hidePopover" not in text
 
     # /planning/operations/register/taken
     def test_a_registration_cannot_be_given_to_its_own_member(

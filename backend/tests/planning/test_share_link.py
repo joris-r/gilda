@@ -1,9 +1,11 @@
 import html
 import re
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
+import time_machine
 
 from tests.planning.conftest import (
     GENERIC,
@@ -25,6 +27,7 @@ from tests.planning.conftest import (
     shared_page,
     shared_token,
     shared_weeks,
+    shared_weeks_again,
     shown,
     sign_up,
     text_of,
@@ -604,6 +607,7 @@ class TestSharedMoreWeeks:
 
     # /planning/operations/get-shared-schedule/unknown
     # /planning/operations/revoke-share-link/revoked
+    # /planning/ui/shared-schedule/gone
     def test_a_revoked_link_shows_none_of_the_weeks(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -619,3 +623,146 @@ class TestSharedMoreWeeks:
 
         assert "Bruno" not in response.text
         assert "Week" not in response.text
+
+    # /planning/ui/shared-schedule/gone
+    # /planning/ui/shared-schedule/invalid
+    @pytest.mark.parametrize("how", ["revoked", "replaced", "unknown"])
+    def test_more_weeks_on_a_link_that_is_gone_shows_that_it_is_no_longer_valid(
+        self, client: Any, new_client: Callable[[], Any], how: str
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        token = shared_token(planning)
+        if how == "revoked":
+            shown(revoke_share_link(client, planning.slug))
+        elif how == "replaced":
+            shared_token(planning)
+        else:
+            token = "unknown-token"
+
+        text = shown(
+            shared_weeks(new_client(), token, day_of_week("monday", -1), day_of_week("sunday", 4))
+        )
+
+        assert INVALID in text
+        assert GENERIC not in text
+        assert not headings_of(schedule_entries(text))
+
+    # /planning/ui/shared-schedule/gone
+    # /core/ui/header/language
+    def test_the_message_of_a_gone_link_follows_the_language(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        token = shared_token(planning)
+        shown(revoke_share_link(client, planning.slug))
+        visitor = new_client()
+        visitor.cookies.set("language", "fr")
+
+        text = shown(
+            shared_weeks(visitor, token, day_of_week("monday", -1), day_of_week("sunday", 4))
+        )
+
+        assert "Ce lien n'est plus valide." in text
+
+
+class TestSharedWeeksAgain:
+    """The weeks shown again once today changes, on a Shared schedule that stays open."""
+
+    NOW = datetime(2026, 11, 8, 23, 30, tzinfo=UTC)
+    FIRST, LAST = "2026-11-02", "2026-12-13"
+
+    # /planning/ui/shared-schedule/new-day
+    # /planning/operations/get-shared-schedule/schedule
+    def test_shows_the_same_weeks_as_they_now_are(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        token = shared_token(planning)
+        with time_machine.travel(self.NOW, tick=False):
+            planning.registered(
+                planning.chloe_client, planning.chloe, "2026-11-12", "10:00", "13:00"
+            )
+
+            response = shared_weeks_again(new_client(), token, self.FIRST, self.LAST)
+
+        assert response.status_code == 200
+        entries = schedule_entries(response.text)
+        assert len(headings_of(entries)) == 6
+        assert day_in(entries, "2026-11-12") == "[Chloé]"
+        assert "Today · Monday 9 November 2026" in entries
+        assert f"/association/{planning.slug}" not in response.text
+
+    # /planning/ui/shared-schedule/new-day
+    # /planning/ui/schedule/new-day
+    def test_keeps_the_weeks_added_and_follows_the_new_today(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        token = shared_token(planning)
+
+        with time_machine.travel(datetime(2026, 11, 12, 23, 30, tzinfo=UTC), tick=False):
+            response = shared_weeks_again(new_client(), token, self.FIRST, "2027-01-10")
+
+        entries = schedule_entries(response.text)
+        assert len(headings_of(entries)) == 10
+        assert "Today · Friday 13 November 2026" in entries
+        assert "<button" not in re.sub(r"<button[^>]*>\s*More weeks\s*</button>", "", response.text)
+
+    # /planning/ui/shared-schedule/new-day
+    # /planning/ui/shared-schedule/gone
+    @pytest.mark.parametrize("how", ["revoked", "replaced", "unknown"])
+    def test_a_link_that_is_gone_is_refused_as_unknown(
+        self, client: Any, new_client: Callable[[], Any], how: str
+    ) -> None:
+        planning = Planning(client, new_client)
+        token = shared_token(planning)
+        if how == "revoked":
+            shown(revoke_share_link(client, planning.slug))
+        elif how == "replaced":
+            shared_token(planning)
+        else:
+            token = "unknown-token"
+
+        response = shared_weeks_again(new_client(), token, self.FIRST, self.LAST)
+
+        assert response.status_code == 404
+        assert "Week" not in response.text
+
+    # /planning/ui/shared-schedule/new-day
+    # /planning/operations/get-schedule/reversed
+    def test_reversed_dates_fail_without_saying_it_is_gone(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        token = shared_token(planning)
+
+        response = shared_weeks_again(new_client(), token, self.LAST, self.FIRST)
+
+        assert response.status_code >= 400
+        assert response.status_code != 404
+        assert "Week" not in response.text
+
+
+class TestSharedClosedDays:
+    # /planning/ui/schedule/closed-days
+    # /planning/ui/shared-schedule/shown
+    def test_a_closed_day_shows_as_a_member_sees_it(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        planning.add_slot("thursday", "10:00", "13:00")
+        planning.add_slot("saturday", "10:00", "13:00")
+        token = shared_token(planning)
+
+        with time_machine.travel(datetime(2026, 11, 8, 23, 30, tzinfo=UTC), tick=False):
+            planning.add_closure("2026-11-06", "2026-12-13", "Vacances")
+            entries = shared_entries(new_client(), token)
+            members = schedule_shown(planning.bruno_client, planning.slug)
+
+        assert entries == members
+        assert day_in(entries, "2026-11-07") == "Closed Vacances"
+        assert day_in(entries, "2026-12-12") == "Closed Vacances"
+        assert day_in(entries, "2026-11-05") == "[]"
