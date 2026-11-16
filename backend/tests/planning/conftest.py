@@ -629,7 +629,6 @@ def more_weeks(as_client: Any, slug: str, first: str, last: str) -> Any:
     return as_client.post(f"/association/{slug}/weeks", json={"from": first, "to": last})
 
 
-# @dev43:unsure
 def weeks_again(as_client: Any, slug: str, first: str, last: str) -> Any:
     """The weeks from `first` to `last` of a Schedule that shows them again once today changes
     or the screen shows again: a plain GET of the weeks as an HTML fragment, 401 when signed

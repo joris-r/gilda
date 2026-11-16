@@ -1073,7 +1073,7 @@ def _query_range(request: Request[Any, Any, Any]) -> dict[str, Any]:
     return {key: request.query_params.get(key) for key in ("from", "to")}
 
 
-@get("/association/{slug:str}/weeks")
+@get("/association/{slug:str}/weeks-again")
 async def weeks_again(
     request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
 ) -> Response[str]:
@@ -1128,10 +1128,15 @@ async def shared_schedule_page(
 def _gone(request: Request[Any, Any, Any]) -> DatastarResponse:
     """The Shared schedule of a link that is no longer valid, as that link opens."""
     shown = fragment(request, "shared_gone.html")
-    return DatastarResponse(ServerSentEventGenerator.patch_elements(_one_line(shown)))
+    return DatastarResponse(
+        [
+            ServerSentEventGenerator.patch_elements(_one_line(shown)),
+            ServerSentEventGenerator.execute_script("window.location.reload()"),
+        ]
+    )
 
 
-@get("/shared/{token:str}/weeks")
+@get("/shared/{token:str}/weeks-again")
 async def shared_weeks_again(
     request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: str
 ) -> Response[str]:

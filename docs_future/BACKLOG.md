@@ -34,6 +34,7 @@
 - Planning: warn about, or refuse, a closure that overlaps another; the Schedule's Closed line lists every covering closure today.
 - Process: CLAUDE.md's rule on the generic error in `main` would say to filter visible elements in Playwright (`.filter({ visible: true })`), as the header's dialogs hold hidden copies (a return to Tests in polish-changed-identifier).
 - Tests: stale-screen e2e tests (changed identifier in another tab) for Members role/remove/send-link/revoke-link, the period, closure and share-link dialogs, absence edit/delete, propose and cancel; they share the X-Association mechanism.
+- End-to-end: the scenarios test 'the schedule is filled / shared' fails about one run in two on Schedule settings' Add a slot step (the dialog keeps its defaults, the slot never appears); also seen in earlier increments; to investigate.
 
 
 ## Quality

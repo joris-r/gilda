@@ -3,7 +3,7 @@
   shared is the share link's token, and occurrences open no menu.
 #}
 {% set weeks_action = "/shared/" ~ shared ~ "/weeks" if shared else "/association/" ~ association.slug ~ "/weeks" %}
-<div id="weeks" class="weeks" data-today="{{ view.today }}" data-from="{{ view.first }}" data-to="{{ view.last }}">
+<div id="weeks" class="weeks" data-from="{{ view.first }}" data-to="{{ view.last }}">
   {% if view.empty %}<p class="hint">{{ t("schedule.empty") }}</p>{% endif %}
   {% for week in view.weeks %}
   {% if week.today %}<p class="line">{{ t("schedule.today", date=long_day(view.today)) }}</p>{% endif %}

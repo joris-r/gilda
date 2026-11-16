@@ -13,10 +13,12 @@
   // window. On a narrow screen, the stylesheet spans the screen's width at its bottom.
   const place = () => {
     if (!menu) return
-    if (narrow.matches || !anchor || !anchor.isConnected || !menu.matches(':popover-open')) {
+    if (narrow.matches || !anchor || !menu.matches(':popover-open')) {
       menu.style.cssText = ''
       return
     }
+    // A refresh may have replaced the occurrence clicked: the menu keeps its place.
+    if (!anchor.isConnected) return
     const rect = anchor.getBoundingClientRect()
     const width = document.documentElement.clientWidth
     const height = window.innerHeight
@@ -73,7 +75,7 @@
     if (el.dataset.click !== String(latest) || !menu || !menu.matches(':popover-open')) {
       event.stopImmediatePropagation()
     }
-  })
+  }, true)
 
   // The weeks show again as they now are once today changes, or once the screen shows again
   // after being hidden then. It is fetched apart from Datastar's actions, so that a failure
