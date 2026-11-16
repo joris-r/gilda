@@ -205,7 +205,9 @@ class TestMenu:
     # /planning/ui/occurrence-menu/free
     # /planning/ui/occurrence-menu/confirm
     # /planning/ui/occurrence-menu/cancel
-    def test_another_members_registration_offers_a_volunteer_nothing(
+    # /planning/ui/occurrence-menu/take-over
+    # /planning/ui/occurrence-menu/take-over-ask
+    def test_another_members_registration_offers_a_volunteer_only_to_take_it_over(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning, thursday, _ = proposed_to_bruno(client, new_client)
@@ -213,6 +215,8 @@ class TestMenu:
         text = menu_text(planning.chloe_client, planning.slug, thursday)
 
         assert f"{day_label(thursday)} · 10–13" in text
+        assert TAKE_OVER in text
+        assert "Take this slot from Bruno?" in text
         for absent in ["Sign up", "Confirm", "Cancel registration"]:
             assert absent not in text
 
@@ -1812,6 +1816,242 @@ def give(
     return shown(response)
 
 
+def take_over(
+    as_client: Any,
+    planning: Planning,
+    registration: dict[str, Any],
+    member: dict[str, Any],
+    day: str,
+    weeks: dict[str, str] | None = None,
+) -> str:
+    """`member`, signed in on `as_client`, confirms "Yes, take it" in the menu of the occurrence
+    of `day` from 10:00 to 13:00, replacing its registration."""
+    response = propose(
+        as_client, planning.slug, member["id"], day, "10:00", "13:00", weeks, registration["id"]
+    )
+    return shown(response)
+
+
+TAKE_OVER = "Take over this slot…"
+TAKE_OVER_ERROR = "take-over-error"
+
+
+class TestTakeOver:
+    # /planning/ui/occurrence-menu/take-over
+    # /planning/ui/occurrence-menu/take-over-ask
+    def test_a_volunteer_is_offered_to_take_over_another_members_registration(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        planning.registered(planning.chloe_client, planning.chloe, thursday, "10:00", "13:00")
+
+        text = menu_text(planning.bruno_client, planning.slug, thursday)
+
+        assert TAKE_OVER in text
+        assert "Take this slot from Chloé?" in text
+        assert "Yes, take it" in text
+        assert "Keep it" in text
+        assert "Sign up" not in text
+        assert "Cancel registration…" not in text
+
+    # /planning/ui/occurrence-menu/take-over
+    def test_not_on_another_members_obsolete_registration(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday, _ = proposed_to_bruno(client, new_client)
+        planning.delete_slot(planning.slots[0])
+
+        text = menu_text(planning.chloe_client, planning.slug, thursday)
+
+        assert f"{day_label(thursday)} · 10–13" in text
+        assert TAKE_OVER not in text
+
+    # /planning/ui/occurrence-menu/take-over
+    def test_not_on_the_volunteers_own_registration(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        planning.registered(planning.bruno_client, planning.bruno, thursday, "10:00", "13:00")
+
+        text = menu_text(planning.bruno_client, planning.slug, thursday)
+
+        assert "Cancel registration…" in text
+        assert TAKE_OVER not in text
+
+    # /planning/ui/occurrence-menu/take-over
+    def test_not_on_a_free_or_cancelled_occurrence(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        later = day_of_week("thursday", 2)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, later, "10:00", "13:00"
+        )
+        planning.cancel(planning.chloe_client, registration)
+
+        free = menu_text(planning.bruno_client, planning.slug, thursday)
+        cancelled = menu_text(planning.bruno_client, planning.slug, later)
+
+        assert "Sign up" in free
+        assert TAKE_OVER not in free
+        assert "Sign up" in cancelled
+        assert TAKE_OVER not in cancelled
+
+    # /planning/ui/occurrence-menu/take-over
+    def test_not_to_a_manager(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        planning.registered(planning.chloe_client, planning.chloe, thursday, "10:00", "13:00")
+
+        text = menu_text(client, planning.slug, thursday)
+
+        assert "Cancel registration…" in text
+        assert TAKE_OVER not in text
+
+    # /planning/ui/occurrence-menu/take-over-ask
+    # /planning/operations/register/other
+    # /planning/operations/register/self
+    # /planning/operations/register/replaced
+    def test_yes_take_it_registers_the_volunteer_confirmed_in_place_of_the_holder(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+
+        text = take_over(planning.bruno_client, planning, registration, planning.bruno, thursday)
+
+        assert GENERIC not in without_hidden(text)
+        assert TAKEN not in text
+        assert day_in(schedule_entries(text), thursday) == "[Bruno]"
+        assert day_shown(planning.chloe_client, planning.slug, thursday) == "[Bruno]"
+        assert day_shown(client, planning.slug, thursday) == "[Bruno]"
+
+    # /planning/operations/register/self
+    # /planning/operations/register/replaced
+    def test_a_proposed_registration_is_taken_over_too(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday, registration = proposed_to_bruno(client, new_client)
+
+        text = take_over(planning.chloe_client, planning, registration, planning.chloe, thursday)
+
+        assert day_in(schedule_entries(text), thursday) == "[Chloé]"
+        assert day_shown(planning.bruno_client, planning.slug, thursday) == "[Chloé]"
+
+    # /planning/operations/register/replaced
+    def test_only_the_registration_taken_over_is_cancelled(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        with_period(planning)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+        later = day_of_week("thursday", 2)
+        planning.registered(planning.chloe_client, planning.chloe, later, "10:00", "13:00")
+
+        take_over(planning.bruno_client, planning, registration, planning.bruno, thursday)
+
+        assert day_shown(client, planning.slug, later) == "[Chloé]"
+        assert texts_offered(client, planning.slug, day_of_week("thursday", 3)) == [
+            "Alice (0)",
+            "Bruno (1)",
+            "Chloé (1)",
+        ]
+
+    # /planning/operations/register/other
+    # /ui/errors/generic
+    def test_a_volunteer_still_cannot_give_a_slot_to_another_member(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+
+        text = give(planning.bruno_client, planning, registration, planning.alice, thursday)
+
+        assert GENERIC in without_hidden(text)
+        assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+
+    # /planning/operations/register/taken
+    def test_a_volunteer_cannot_take_over_their_own_registration(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.bruno_client, planning.bruno, thursday, "10:00", "13:00"
+        )
+
+        text = take_over(planning.bruno_client, planning, registration, planning.bruno, thursday)
+
+        assert TAKEN in text
+        assert day_shown(client, planning.slug, thursday) == "[Bruno]"
+
+    # /planning/operations/register/taken
+    # /planning/ui/occurrence-menu/take-over-messages
+    # /planning/ui/schedule/taken
+    def test_a_slot_taken_meanwhile_says_so_in_the_confirmation(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+        planning.cancel(planning.chloe_client, registration)
+        planning.registered(client, planning.alice, thursday, "10:00", "13:00")
+
+        text = take_over(planning.bruno_client, planning, registration, planning.bruno, thursday)
+
+        assert GENERIC not in without_hidden(text)
+        assert_in_element(text, TAKE_OVER_ERROR, TAKEN)
+        assert_stays_open_with_weeks(text, thursday)
+        assert day_in(schedule_entries(text), thursday) == "[Alice]"
+        assert day_shown(client, planning.slug, thursday) == "[Alice]"
+
+    # /planning/operations/register/no-occurrence
+    # /planning/ui/occurrence-menu/take-over-messages
+    # /ui/errors/generic
+    def test_a_slot_deleted_meanwhile_shows_the_generic_error_in_the_confirmation(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+        planning.delete_slot(planning.slots[0])
+
+        text = take_over(planning.bruno_client, planning, registration, planning.bruno, thursday)
+
+        assert_in_element(text, TAKE_OVER_ERROR, GENERIC)
+        assert "hidePopover" not in text
+
+    # /planning/operations/register/past
+    # /planning/ui/schedule/past
+    # /planning/ui/occurrence-menu/take-over-messages
+    def test_a_registration_of_a_past_day_is_not_taken_over(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning, thursday = thursday_planning(client, new_client)
+        registration = planning.registered(
+            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
+        )
+
+        with time_machine.travel(
+            TestChangeAPastRegistration.on(TestChangeAPastRegistration.the_day_after(thursday), 10),
+            tick=False,
+        ):
+            text = take_over(
+                planning.bruno_client, planning, registration, planning.bruno, thursday
+            )
+
+            assert GENERIC not in without_hidden(text)
+            assert_in_element(text, TAKE_OVER_ERROR, PAST)
+            assert_stays_open_with_weeks(text, thursday)
+            assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+
+
 class TestMove:
     # /planning/ui/occurrence-menu/move
     # /planning/operations/register/proposed
@@ -1945,21 +2185,6 @@ class TestMove:
         assert TAKEN in text
         assert day_shown(client, planning.slug, thursday) == "[Chloé]"
         assert day_shown(client, planning.slug, later) == "[Bruno]"
-
-    # /planning/operations/register/other
-    # /ui/errors/generic
-    def test_a_volunteer_cannot_replace_even_for_themself(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning, thursday = thursday_planning(client, new_client)
-        registration = planning.registered(
-            planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
-        )
-
-        text = give(planning.bruno_client, planning, registration, planning.bruno, thursday)
-
-        assert GENERIC in text
-        assert day_shown(client, planning.slug, thursday) == "[Chloé]"
 
     # /planning/operations/register/replaced
     def test_a_free_occurrence_with_a_replacing_of_another_keeps_that_one(

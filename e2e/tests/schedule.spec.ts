@@ -3,11 +3,13 @@ import {
   addAbsence,
   addMember,
   addSlot,
+  createAccount,
   createAssociation,
   saveNote,
   signUpFor,
   propose,
   signedIn,
+  signIn,
   uniqueEmail,
   userIdOf,
   datastarReady,
@@ -246,6 +248,57 @@ function absenceText() {
   const sunday = dayOfWeek(0, 2)
   return `Absent ${monday.label} ${monday.iso.slice(0, 4)} – ${sunday.label} ${sunday.iso.slice(0, 4)}`
 }
+
+/** The Schedule of `openSchedule`, opened by Bruno, a volunteer, Alice holding next week's
+ * Thursday. */
+async function openVolunteersSchedule(page: Page, request: APIRequestContext) {
+  const slug = await openSchedule(page, request)
+  const email = uniqueEmail('Bruno')
+  await addMember(page.request, slug, 'Bruno', email)
+  await createAccount(request, 'Bruno', email)
+  await page.context().clearCookies()
+  await signIn(page, email)
+  await page.goto(`/association/${slug}`)
+  await datastarReady(page)
+  await expect(weekHeadings(page).first()).toBeVisible()
+  return slug
+}
+
+test.describe('Schedule menu: taking over a slot', () => {
+  // /planning/ui/occurrence-menu/take-over-ask
+  test('"Take over this slot…" asks first; "Keep it" changes nothing', async ({ page, request }) => {
+    await openVolunteersSchedule(page, request)
+    await dayGroup(page, 1).getByRole('listitem').click()
+
+    await menu(page).getByRole('button', { name: 'Take over this slot…' }).click()
+    const dialog = page.getByRole('dialog').filter({ hasText: 'Take this slot from Alice?' })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('button', { name: 'Keep it' }).click()
+
+    await expect(dialog).toBeHidden()
+    await page.reload()
+    await datastarReady(page)
+    await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText('Alice')
+  })
+
+  // /planning/ui/occurrence-menu/take-over-ask
+  // /planning/ui/occurrence-menu/closes
+  test('"Yes, take it" closes the menu and the occurrence shows the volunteer', async ({ page, request }) => {
+    await openVolunteersSchedule(page, request)
+    await dayGroup(page, 1).getByRole('listitem').click()
+
+    await menu(page).getByRole('button', { name: 'Take over this slot…' }).click()
+    const dialog = page.getByRole('dialog').filter({ hasText: 'Take this slot from Alice?' })
+    await dialog.getByRole('button', { name: 'Yes, take it' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(menuTitle(page, 1)).toBeHidden()
+    await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText('Bruno')
+    await page.reload()
+    await datastarReady(page)
+    await expect(dayGroup(page, 1).getByRole('listitem')).toHaveText('Bruno')
+  })
+})
 
 test.describe("Schedule menu: the manager's part", () => {
   // /planning/ui/occurrence-menu/propose
