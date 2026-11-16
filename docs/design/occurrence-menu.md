@@ -75,14 +75,31 @@ David clicked:
 └───────────────────────────────────────────────┘
 ```
 
-To a volunteer, on another member's registration:
+To a volunteer, on Bruno's registration:
 
 ```
 ┌ Thu 5 Nov · 10–13 ───────────────────────── ✕ ┐
+│ Take over this slot…                          │
 └───────────────────────────────────────────────┘
 ```
 
-On an obsolete registration:
+Take over this slot… clicked:
+
+```
+┌ Thu 5 Nov · 10–13 ───────────────────────── ✕ ┐
+│ Take this slot from Bruno?                    │
+│ [Yes, take it]  Keep it                       │
+└───────────────────────────────────────────────┘
+```
+
+To a volunteer, on another member's obsolete registration:
+
+```
+┌ Thu 12 Nov · 10–13 ──────────────────────── ✕ ┐
+└───────────────────────────────────────────────┘
+```
+
+On an obsolete registration, the user's own or to a manager:
 
 ```
 ┌ Thu 12 Nov · 10–13 ──────────────────────── ✕ ┐

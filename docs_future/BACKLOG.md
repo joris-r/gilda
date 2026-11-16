@@ -10,6 +10,7 @@
 - pre-filling in slot creation is painful. Better: initally 9:00-10:00, when start change (+X:+Y) move end by the same amount, on new dialog : repeat previous value
 - there is a flash with a red text on assocation creation submission
 - improve homepage by seeing more cleary what is coming soon or later 
+- two volunteers cannot easily swap their registrations without a manager: today each must cancel theirs, then sign up for the other's, and someone else may take a freed slot in between; e.g. one proposes the swap, the other accepts, and both registrations change at once.
 
 ## Main list
 

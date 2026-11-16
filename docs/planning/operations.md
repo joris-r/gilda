@@ -295,8 +295,8 @@ Inputs:
 
 Cases:
 1. [member] The user is not a member of the association: refused.
-2. [other] The user is a volunteer, and the member is not the user or
-   `replacing` is given: refused.
+2. [other] The user is a volunteer, and the member is not the user:
+   refused.
 3. [non-member] The member is not a member of the association:
    refused.
 4. [past] The date is before today: refused.
