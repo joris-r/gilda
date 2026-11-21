@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 import time_machine
 
+from tests.page import buttons_named, dialog_named, dialog_opened_by
 from tests.planning.conftest import (
     GENERIC,
     Planning,
@@ -32,7 +33,6 @@ from tests.planning.conftest import (
     sign_up,
     text_of,
     unique_email,
-    without_dialogs,
 )
 
 NAME = "Jardin partagé des Lilas"
@@ -135,10 +135,9 @@ class TestShareLink:
         planning = Planning(client, new_client)
         shared_token(planning)
 
-        main = html.unescape(part(settings_page(client, planning.slug), "main"))
+        dialog = dialog_named(settings_page(client, planning.slug), REPLACE)
 
-        assert REPLACE in main
-        assert re.search(r"<button[^>]*>\s*Replace\s*</button>", main)
+        assert re.search(r"<button[^>]*>\s*Replace\s*</button>", dialog.html)
 
     # /planning/ui/schedule-settings/revoke-link
     def test_its_delete_icon_asks_to_revoke_it(
@@ -147,10 +146,12 @@ class TestShareLink:
         planning = Planning(client, new_client)
         shared_token(planning)
 
-        main = html.unescape(part(settings_page(client, planning.slug), "main"))
+        page = settings_page(client, planning.slug)
 
-        assert REVOKE in main
-        assert re.search(r"<button[^>]*>\s*Revoke\s*</button>", main)
+        [icon] = buttons_named(part(page, "main"), "Revoke the share link")
+        dialog = dialog_opened_by(page, icon)
+        assert dialog_named(page, REVOKE).get("id") == dialog.get("id")
+        assert re.search(r"<button[^>]*>\s*Revoke\s*</button>", dialog.html)
 
     # /planning/ui/schedule-settings/share-link
     # /core/ui/header/language
@@ -173,7 +174,7 @@ class TestShareLink:
 
         headings = re.findall(
             r"<h2[^>]*>\s*(.*?)\s*</h2>",
-            without_dialogs(part(html.unescape(settings_page(client, planning.slug)), "main")),
+            part(html.unescape(settings_page(client, planning.slug)), "main"),
         )
 
         assert headings.index("Slots") < headings.index("Share link")
@@ -355,7 +356,7 @@ def filled(planning: Planning) -> None:
 
 
 def shared_entries(as_client: Any, token: str) -> Any:
-    return schedule_entries(without_dialogs(part(shared(as_client, token), "main")))
+    return schedule_entries(part(shared(as_client, token), "main"))
 
 
 class TestSharedSchedule:
@@ -435,7 +436,7 @@ class TestSharedSchedule:
         planning.add_slot("thursday", "10:00", "13:00")
         token = shared_token(planning)
 
-        main = without_dialogs(part(shared(new_client(), token), "main"))
+        main = part(shared(new_client(), token), "main")
 
         button = re.search(r"<button[^>]*>\s*More weeks\s*</button>", main)
         assert button

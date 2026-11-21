@@ -1,4 +1,3 @@
-import html
 import re
 from collections.abc import Callable
 from datetime import date, timedelta
@@ -9,11 +8,19 @@ from tests.core.conftest import (  # noqa: F401  (fixtures used by the planning 
     client,
     create_association,
     new_client,
+    patched,
     run_sql,
     run_sql_rows,
     shown,
     sign_up,
     unique_email,
+)
+from tests.page import (
+    Element,
+    lines_of,
+    parse,
+    part,
+    text_of,
 )
 
 GENERIC = "Something went wrong. Try again."
@@ -29,44 +36,17 @@ def day_of_week(weekday: str, weeks_ahead: int = 1) -> str:
     return (monday + timedelta(days=WEEKDAYS.index(weekday))).isoformat()
 
 
-def part(page: str, tag: str) -> str:
-    match = re.search(rf"<{tag}[ >].*</{tag}>", page, re.DOTALL)
-    assert match, f"no {tag} in {page}"
-    return match.group(0)
-
-
-def text_of(fragment: str) -> str:
-    """What a piece of HTML shows, without its tags and attributes."""
-    return html.unescape(re.sub(r"<[^>]+>", " ", fragment))
-
-
-def without_dialogs(fragment: str) -> str:
-    return re.sub(r"<dialog.*?</dialog>", "", fragment, flags=re.DOTALL)
-
-
-def lines_of(fragment: str) -> list[str]:
-    """The text of each list item outside the dialogs, in order, its spaces collapsed."""
-    items = re.findall(r"<li.*?</li>", without_dialogs(fragment), re.DOTALL)
-    return [" ".join(text_of(item).split()) for item in items]
-
-
-def without_hidden(fragment: str) -> str:
-    """The HTML without its hidden paragraphs, such as the errors and notice not shown yet."""
-    return re.sub(
-        r'<p(?=[^>]*(\shidden[\s>]|style="display: none"))[^>]*>.*?</p>',
-        "",
-        fragment,
-        flags=re.DOTALL,
-    )
-
-
 def section_of(page: str, heading: str) -> str:
-    """What main shows, outside the dialogs, from the `heading` title to the next one."""
-    main = without_hidden(without_dialogs(part(page, "main")))
-    for chunk in re.split(r"(?=<h2[ >])", main):
-        if re.match(rf"<h2[^>]*>\s*{re.escape(heading)}\s*</h2>", chunk):
-            return chunk
-    raise AssertionError(f"no section {heading} in {main}")
+    """The HTML of the section that main shows under the `heading` title, with only what it
+    shows."""
+    main = parse(page).first("main")
+    titles = [title for title in main.elements("h2") if title.text == heading]
+    assert len(titles) == 1, f"no section {heading} in {main.html}"
+    section = titles[0].parent
+    while section is not None and section.tag != "section":
+        section = section.parent
+    assert section is not None, f"{heading} heads no section"
+    return section.html
 
 
 def settings_page(as_client: Any, slug: str) -> str:
@@ -77,7 +57,7 @@ def settings_page(as_client: Any, slug: str) -> str:
 
 def settings_section(as_client: Any, slug: str, heading: str) -> str:
     """The text that the `heading` section of Schedule settings shows, its spaces collapsed."""
-    return " ".join(text_of(section_of(settings_page(as_client, slug), heading)).split())
+    return text_of(section_of(settings_page(as_client, slug), heading))
 
 
 def settings_lines(as_client: Any, slug: str, heading: str) -> list[str]:
@@ -262,30 +242,44 @@ def set_member_preference(as_client: Any, slug: str, slot_id: str, user_id: str,
     )
 
 
+def _selected(select: Element) -> tuple[str, str]:
+    options = list(select.elements("option"))
+    assert options, select
+    chosen = [option for option in options if option.has("selected")]
+    assert len(chosen) <= 1, select
+    option = chosen[0] if chosen else options[0]
+    return option.get("value") or "", option.text
+
+
 def selected_option(select: str) -> tuple[str, str]:
     """The value and label of the option a selector shows chosen, or of its first one."""
-    options = re.findall(r'<option[^>]*?value="([^"]*)"([^>]*)>(.*?)</option>', select, re.DOTALL)
-    assert options, select
-    chosen = [(value, label) for value, attributes, label in options if " selected" in attributes]
-    assert len(chosen) <= 1, select
-    value, label = chosen[0] if chosen else (options[0][0], options[0][2])
-    return value, " ".join(text_of(label).split())
+    return _selected(parse(select).first("select"))
+
+
+def _preference_rows(section: str) -> tuple[list[str], list[tuple[str, list[Element]]]]:
+    """The slot of each column of a grid of preferences, and each row's member with its
+    selectors."""
+    rows = list(parse(section).elements("tr"))
+    if not rows:
+        return [], []
+    columns = [cell.text for cell in rows[0].elements("th")][1:]
+    members = []
+    for row in rows[1:]:
+        selects = list(row.elements("select"))
+        members.append((row.text_with(lambda e: "" if e.tag == "select" else None), selects))
+    return columns, members
 
 
 def preferences_grid(as_client: Any, slug: str) -> tuple[list[str], list[tuple[str, list[str]]]]:
     """Members' preferences on Schedule settings: the slot of each column, and each row's member
     with the label that each of its selectors shows."""
     section = section_of(settings_page(as_client, slug), "Members' preferences")
-    rows = re.findall(r"<tr.*?</tr>", section, re.DOTALL)
-    assert rows, section
-    head = re.findall(r"<th.*?</th>", rows[0], re.DOTALL)
-    columns = [" ".join(text_of(cell).split()) for cell in head[1:]]
+    columns, rows = _preference_rows(section)
+    assert columns or rows, section
     members = []
-    for row in rows[1:]:
-        selects = re.findall(r"<select.*?</select>", row, re.DOTALL)
-        assert len(selects) == len(columns), row
-        name = " ".join(text_of(re.sub(r"<select.*?</select>", "", row, flags=re.DOTALL)).split())
-        members.append((name, [selected_option(select)[1] for select in selects]))
+    for name, selects in rows:
+        assert len(selects) == len(columns), (name, selects)
+        members.append((name, [_selected(select)[1] for select in selects]))
     return columns, members
 
 
@@ -293,17 +287,11 @@ def preferences_stored(as_client: Any, slug: str) -> set[tuple[str, str, str]]:
     """The preferences of the association, as a manager's Members' preferences shows them: each
     member's name, the slot's column and the value of each selector not on "—"."""
     section = section_of(settings_page(as_client, slug), "Members' preferences")
-    rows = re.findall(r"<tr.*?</tr>", section, re.DOTALL)
-    if not rows:
-        return set()
-    head = re.findall(r"<th.*?</th>", rows[0], re.DOTALL)
-    columns = [" ".join(text_of(cell).split()) for cell in head[1:]]
+    columns, rows = _preference_rows(section)
     stored = set()
-    for row in rows[1:]:
-        selects = re.findall(r"<select.*?</select>", row, re.DOTALL)
-        name = " ".join(text_of(re.sub(r"<select.*?</select>", "", row, flags=re.DOTALL)).split())
+    for name, selects in rows:
         for column, select in zip(columns, selects, strict=True):
-            value = selected_option(select)[0]
+            value = _selected(select)[0]
             if value:
                 stored.add((name, column, value))
     return stored
@@ -324,7 +312,7 @@ def set_my_preference(as_client: Any, slug: str, slot_id: str, value: str) -> An
 
 def availability_section(as_client: Any, slug: str, heading: str) -> str:
     """The text that the `heading` section of My availability shows, its spaces collapsed."""
-    return " ".join(text_of(section_of(availability_page(as_client, slug), heading)).split())
+    return text_of(section_of(availability_page(as_client, slug), heading))
 
 
 def availability_lines(as_client: Any, slug: str, heading: str) -> list[str]:
@@ -397,11 +385,11 @@ def schedule_page(as_client: Any, slug: str) -> str:
     return str(response.text)
 
 
-def _occurrence_text(item: str) -> str:
+def _occurrence_text(item: Element) -> str:
     """What an occurrence or an obsolete registration shows, between brackets, a struck name
     between ~~."""
-    struck = re.sub(r"<s[ >](.*?)</s>", lambda m: f"~~{text_of(m.group(1)).strip()}~~", item)
-    return "[" + " ".join(text_of(struck).split()) + "]"
+    struck = item.text_with(lambda e: f"~~{e.text}~~" if e.tag == "s" else None)
+    return f"[{struck}]"
 
 
 Week = tuple[str, list[str]]
@@ -413,47 +401,37 @@ def schedule_entries(fragment: str) -> list[str | Week]:
     "Sat 31 Oct [~~Bruno~~]"]). A day is an element with role="group"; it shows its label, then
     a closure's "Closed" and label, then each occurrence or obsolete registration, an `<li>`,
     between brackets. A line is a `<p class="line">`, a week a `<section class="week">`."""
-    fragment = re.sub(r"^data: elements ", "", fragment, flags=re.MULTILINE)
     entries: list[str | Week] = []
-    pattern = (
-        r'<p[^>]*class="line[^"]*"[^>]*>.*?</p>'
-        r'|<section[^>]*class="week[^"]*"[^>]*>.*?</section>'
-    )
-    for match in re.finditer(pattern, fragment, re.DOTALL):
-        found = match.group(0)
-        if found.startswith("<p"):
-            entries.append(" ".join(text_of(found).split()))
-            continue
-        heading = re.search(r"<h2[^>]*>(.*?)</h2>", found, re.DOTALL)
-        assert heading, found
-        days = []
-        for chunk in re.split(r'(?=<[a-z]+[^>]*\srole="group")', found)[1:]:
-            items = re.sub(
-                r"<li[ >].*?</li>",
-                lambda m: f" {_occurrence_text(m.group(0))} ",
-                chunk,
-                flags=re.DOTALL,
-            )
-            days.append(" ".join(text_of(items).split()))
-        entries.append((" ".join(text_of(heading.group(1)).split()), days))
+    for element in parse(fragment).elements():
+        if element.tag == "p" and "line" in element.classes:
+            entries.append(element.text)
+        elif element.tag == "section" and "week" in element.classes:
+            days = [
+                day.text_with(lambda e: _occurrence_text(e) if e.tag == "li" else None)
+                for day in element.elements()
+                if day.get("role") == "group"
+            ]
+            entries.append((element.first("h2").text, days))
     return entries
+
+
+def _day_group(fragment: str, day: str) -> Element:
+    label = day_label(day)
+    found = [e for e in parse(fragment).elements() if e.get("role") == "group"]
+    found = [e for e in found if e.get("aria-label") == label]
+    assert len(found) == 1, (day, fragment)
+    return found[0]
 
 
 def opens_menu(fragment: str, day: str) -> bool:
     """Whether the occurrence on `day` in the weeks of `fragment` can be clicked to open the
     menu: a button, not plain text."""
-    found = re.search(
-        rf'aria-label="{re.escape(day_label(day))}"(.*?)(?=role="group"|</section>)',
-        fragment,
-        re.DOTALL,
-    )
-    assert found, (day, fragment)
-    return "<button" in found.group(1)
+    return next(_day_group(fragment, day).elements("button"), None) is not None
 
 
 def schedule_shown(as_client: Any, slug: str) -> list[str | Week]:
     """The lines and weeks the Schedule shows, as schedule_entries reads them."""
-    return schedule_entries(without_dialogs(part(schedule_page(as_client, slug), "main")))
+    return schedule_entries(part(schedule_page(as_client, slug), "main"))
 
 
 def headings_of(entries: list[str | Week]) -> list[str]:
@@ -546,18 +524,25 @@ def propose(
 Name = tuple[str, list[str]]
 
 
+def _icons(item: Element) -> list[Element]:
+    """The icons of a name of a menu: the elements in it with an aria-label and a title."""
+    return [e for e in item.elements() if e.has("aria-label") and e.has("title")]
+
+
+def _menu_items(fragment: str) -> list[Element]:
+    """The names of the menu in a piece of HTML: the `<li>` it shows."""
+    return list(parse(fragment).elements("li"))
+
+
 def menu_names(fragment: str) -> list[Name]:
     """The members' names a menu offers, in order: each one's text, its count included, e.g.
     "Alice (2)", and the text of each of its icons, e.g. ["Absent Mon 9 Nov 2026"]. A name is
     an `<li>` of the menu; an icon, an element in it with an aria-label, whose text is its title
     (its hover text, which is also its description)."""
-    fragment = re.sub(r"^data: elements ", "", fragment, flags=re.MULTILINE)
     names: list[Name] = []
-    for item in re.findall(r"<li[ >].*?</li>", without_dialogs(fragment), re.DOTALL):
-        icons = re.findall(r'<[a-z]+[^>]*\saria-label="[^"]*"[^>]*\stitle="([^"]*)"', item)
-        labelled = r'<([a-z]+)[^>]*\saria-label="[^"]*"[^>]*>.*?</\1>'
-        text = re.sub(labelled, "", item, flags=re.DOTALL)
-        names.append((" ".join(text_of(text).split()), [html.unescape(icon) for icon in icons]))
+    for item in _menu_items(fragment):
+        text = item.text_with(lambda e: "" if e.has("aria-label") else None)
+        names.append((text, [icon.get("title") or "" for icon in _icons(item)]))
     return names
 
 
@@ -565,11 +550,9 @@ def icon_names_of(as_client: Any, slug: str, day: str, name: str) -> list[str]:
     """The accessible name of each icon of the name `name` in the menu of the occurrence of
     `day` from 10:00 to 13:00."""
     response = open_menu(as_client, slug, day, "10:00", "13:00")
-    fragment = re.sub(r"^data: elements ", "", shown(response), flags=re.MULTILINE)
-    for item in re.findall(r"<li[ >].*?</li>", without_dialogs(fragment), re.DOTALL):
-        if re.search(rf">\s*{re.escape(name)}\b", item):
-            icons = re.findall(r'\saria-label="([^"]*)"[^>]*\stitle=', item)
-            return [html.unescape(icon) for icon in icons]
+    for item in _menu_items(patched(response)):
+        if re.match(rf"{re.escape(name)}\b", item.text):
+            return [icon.get("aria-label") or "" for icon in _icons(item)]
     raise AssertionError(f"no name {name}")
 
 
@@ -580,7 +563,7 @@ def names_offered(
     them."""
     response = open_menu(as_client, slug, day, start, end)
     assert response.status_code == 200
-    return menu_names(shown(response))
+    return menu_names(patched(response))
 
 
 def notes_offered(planning: Planning) -> dict[str, str]:

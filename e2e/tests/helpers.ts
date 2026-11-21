@@ -29,6 +29,13 @@ export async function latestToken(email: string, timeout = 5000): Promise<string
   }
 }
 
+/** The button of the display name `name` in the Schedule's menu (`#occurrence-menu`): the
+ * occurrences of the Schedule are buttons too, named after their registrations, so a name is
+ * looked up within the menu. */
+export function nameInMenu(page: Page, name: string) {
+  return page.locator('#occurrence-menu').getByRole('button', { name, exact: true })
+}
+
 /** Waits for Datastar to have started on `page`, so that what the test does next is not lost. */
 export async function datastarReady(page: Page) {
   await page.locator('body[data-ready]').waitFor({ state: 'attached' })

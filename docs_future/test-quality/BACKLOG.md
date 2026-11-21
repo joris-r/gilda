@@ -27,6 +27,12 @@ to the test policy of `technical.md` the rule it finds worth keeping.
 
 ## Lessons
 
+### Sturdy page reading (sturdy-page-reading)
+
+- Serves 3 and 4: pytest reads pages through `backend/tests/page.py`; a new reader goes there, never as a regular expression on tags, and parses `patched(response)`, not `shown()`, which is already unescaped.
+- Serves 4: Members shows its first five members until "Show all", and the page readers see only those.
+- Serves 4: the delete questions held in `data-question` reach their dialog only in the browser, so the end-to-end tests are where they are seen shown.
+
 ### Mutation testing of `planning/services.py` (mutation-probe)
 
 What was done: a one-off run on 60 of the 230 possible mutants of `planning/services.py` (random sample; comparison flips, `and`/`or`, `not` removal, `+`/`-`, boolean and integer constants, return values replaced by `None`, negated `if` conditions). Each mutant was applied to a scratch copy, and the 722 planning tests were run with `-x`. 55 mutants were killed (92%), 5 survived, none timed out.
@@ -51,3 +57,8 @@ What was done: a one-off measure of line and branch coverage of `backend/src/gil
 - Serves 4, defensive guards no test reaches, where each would be either tested or removed as dead code: the "Not a member of this association." and "Association not found." re-checks of `core/services.py`, `planning/services.py` and `home/services.py`; "Give a name or a slug."; "Give both from and to, or neither."; the preference's missing slot, member and manager-only refusals; a registration going back to proposed.
 - Serves 4, the Schedule layout's reuse of a free lane (`planning/pages.py`) and the choice of the take-over error in the dialog are never reached.
 - Coverage does not replace the mutation run: the mutants that survived (`end_membership`, `_default_range`) sit on covered lines, as the tests run the code without asserting the boundary.
+
+## For the human
+
+- Remove `_one_line()` from `planning/pages.py`, now that `shown()` rebuilds patches (`code-only`).
+- Tests read action responses through `patched()` and the page readers, not raw `in shown()` / `unescape(page)` text (`tests-only`).

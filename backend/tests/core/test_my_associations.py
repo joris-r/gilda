@@ -16,6 +16,7 @@ from tests.core.conftest import (
     unique_email,
     unique_slug,
 )
+from tests.page import part, text_of
 
 NAME = "Jardin partagé des Lilas"
 GENERIC = "Something went wrong. Try again."
@@ -29,17 +30,6 @@ MALFORMED_FR = (
 TAKEN_EN = "This association identifier is already taken."
 TAKEN_FR = "Cet identifiant d'association est déjà pris."
 FR_NONE = "Vous n'êtes membre d'aucune association."
-
-
-def part(page: str, tag: str) -> str:
-    match = re.search(rf"<{tag}[ >].*</{tag}>", page, re.DOTALL)
-    assert match, f"no {tag} in {page}"
-    return match.group(0)
-
-
-def text_of(fragment: str) -> str:
-    """What a piece of HTML shows, without its tags and attributes."""
-    return html.unescape(re.sub(r"<[^>]+>", " ", fragment))
 
 
 def line_of(page: str, name: str) -> str:

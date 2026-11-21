@@ -10,6 +10,7 @@ import pytest
 import time_machine
 
 from tests.core.conftest import delete_association, run_sql_rows, unique_slug
+from tests.page import parse
 from tests.planning.conftest import (
     GENERIC,
     WEEKDAYS,
@@ -33,7 +34,6 @@ from tests.planning.conftest import (
     text_of,
     unique_email,
     weeks_again,
-    without_dialogs,
 )
 
 NAME = "Jardin partagé des Lilas"
@@ -110,8 +110,9 @@ class TestScheduleHeader:
     ) -> None:
         planning = Planning(client, new_client)
 
-        main = text_of(without_dialogs(part(schedule_page(client, planning.slug), "main")))
+        main = text_of(part(schedule_page(client, planning.slug), "main"))
 
+        assert "My availability" in main
         assert NAME not in main
 
     # /planning/ui/schedule/links
@@ -556,15 +557,12 @@ class TestTimeScale:
 
         page = schedule_page(planning.bruno_client, planning.slug)
 
-        weeks = re.findall(
-            r'<section[^>]*class="week[^"]*"[^>]*>.*?</section>',
-            without_dialogs(part(page, "main")),
-            re.DOTALL,
-        )
+        main = parse(page).first("main")
+        weeks = [e for e in main.elements("section") if "week" in e.classes]
         assert len(weeks) == 6
         for week in weeks:
-            before_days = re.split(r'(?=<[a-z]+[^>]*\srole="group")', week)[0]
-            ticks = re.findall(r"\b\d{1,2}h\b", text_of(before_days))
+            [axis] = [e for e in week.elements("div") if "axis" in e.classes]
+            ticks = [tick.text for tick in axis.elements("span") if "tick" in tick.classes]
             assert ticks == [f"{hour}h" for hour in range(10, 18)], week
 
 
@@ -692,7 +690,7 @@ class TestOccurrences:
         planning.registered(planning.bruno_client, planning.bruno, thursday, "11:00", "12:00")
         planning.delete_slot(obsolete)
 
-        main = without_dialogs(part(schedule_page(client, planning.slug), "main"))
+        main = part(schedule_page(client, planning.slug), "main")
         groups = re.split(r'(?=<[a-z]+[^>]*\srole="group")', main)[1:]
         shown_in_order = [
             html.unescape(label)
@@ -761,7 +759,7 @@ class TestNoOpenings:
     ) -> None:
         planning = Planning(client, new_client)
 
-        main = collapsed(without_dialogs(part(schedule_page(client, planning.slug), "main")))
+        main = collapsed(part(schedule_page(client, planning.slug), "main"))
 
         assert EMPTY in main
 
@@ -791,7 +789,7 @@ class TestNoOpenings:
         planning = Planning(client, new_client)
         client.cookies.set("language", "fr")
 
-        main = collapsed(without_dialogs(part(schedule_page(client, planning.slug), "main")))
+        main = collapsed(part(schedule_page(client, planning.slug), "main"))
 
         assert "Aucune ouverture sur ces semaines." in main
 
@@ -816,7 +814,7 @@ class TestNoOpenings:
 
         with time_machine.travel(NOW, tick=False):
             planning.add_closure("2026-11-02", "2026-12-13", "Vacances")
-            main = collapsed(without_dialogs(part(schedule_page(client, planning.slug), "main")))
+            main = collapsed(part(schedule_page(client, planning.slug), "main"))
             entries = schedule_shown(client, planning.slug)
 
         assert EMPTY in main
@@ -857,7 +855,7 @@ class TestNoOpenings:
 
         with time_machine.travel(NOW, tick=False):
             planning.add_closure("2026-11-02", "2026-12-13", "Vacances")
-            main = collapsed(without_dialogs(part(schedule_page(client, planning.slug), "main")))
+            main = collapsed(part(schedule_page(client, planning.slug), "main"))
 
         assert main.index("Aucune ouverture sur ces semaines.") < main.index("Semaine 45")
 
@@ -1271,7 +1269,7 @@ class TestMoreWeeks:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
 
-        main = without_dialogs(part(schedule_page(planning.bruno_client, planning.slug), "main"))
+        main = part(schedule_page(planning.bruno_client, planning.slug), "main")
 
         button = re.search(r"<button[^>]*>\s*More weeks\s*</button>", main)
         assert button

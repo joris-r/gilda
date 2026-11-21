@@ -5,6 +5,7 @@ import {
   addSlot,
   createAccount,
   createAssociation,
+  nameInMenu,
   saveNote,
   signUpFor,
   propose,
@@ -309,7 +310,7 @@ test.describe("Schedule menu: the manager's part", () => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 2).getByRole('listitem').click()
 
-    await menu(page).getByRole('button', { name: 'Bruno', exact: true }).click()
+    await nameInMenu(page, 'Bruno').click()
 
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)
     await expect(menuTitle(page, 2)).toBeHidden()
@@ -324,7 +325,7 @@ test.describe("Schedule menu: the manager's part", () => {
     await page.route('**/propose', (route) => route.fulfill({ status: 500, body: 'failure' }))
     await dayGroup(page, 2).getByRole('listitem').click()
 
-    await menu(page).getByRole('button', { name: 'Bruno', exact: true }).click()
+    await nameInMenu(page, 'Bruno').click()
 
     await expect(page.getByText(GENERIC).filter({ visible: true })).toBeVisible()
     await expect(menuTitle(page, 2)).toBeVisible()
@@ -418,8 +419,8 @@ test.describe('Schedule menu: the Occurrence menu of a manager', () => {
     await dayGroup(page, 1).getByRole('listitem').click()
 
     await expect(menu(page).getByRole('button', { name: 'Cancel registration…' })).toBeVisible()
-    await expect(menu(page).getByRole('button', { name: 'Bruno', exact: true })).toBeVisible()
-    await expect(menu(page).getByRole('button', { name: 'Alice', exact: true })).toBeHidden()
+    await expect(nameInMenu(page, 'Bruno')).toBeVisible()
+    await expect(nameInMenu(page, 'Alice')).toBeHidden()
   })
 
   // /planning/ui/occurrence-menu/move
@@ -427,7 +428,7 @@ test.describe('Schedule menu: the Occurrence menu of a manager', () => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 1).getByRole('listitem').click()
 
-    await menu(page).getByRole('button', { name: 'Bruno', exact: true }).click()
+    await nameInMenu(page, 'Bruno').click()
     const dialog = page.getByRole('dialog').filter({ hasText: 'Give this slot to Bruno instead of Alice?' })
     await expect(dialog).toBeVisible()
     await dialog.getByRole('button', { name: 'Keep it' }).click()
@@ -446,7 +447,7 @@ test.describe('Schedule menu: the Occurrence menu of a manager', () => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 1).getByRole('listitem').click()
 
-    await menu(page).getByRole('button', { name: 'Bruno', exact: true }).click()
+    await nameInMenu(page, 'Bruno').click()
     const dialog = page.getByRole('dialog').filter({ hasText: 'Give this slot to Bruno instead of Alice?' })
     await dialog.getByRole('button', { name: 'Yes, give it' }).click()
 
@@ -462,7 +463,7 @@ test.describe('Schedule menu: the Occurrence menu of a manager', () => {
   test('"Someone took this slot in the meantime." shows in the confirmation', async ({ page, request }) => {
     await openManagersSchedule(page, request)
     await dayGroup(page, 1).getByRole('listitem').click()
-    await menu(page).getByRole('button', { name: 'Bruno', exact: true }).click()
+    await nameInMenu(page, 'Bruno').click()
     const dialog = page.getByRole('dialog').filter({ hasText: 'Give this slot to Bruno instead of Alice?' })
     await expect(dialog).toBeVisible()
     const other = await page.context().newPage()
@@ -487,7 +488,7 @@ test.describe('Schedule menu: the Occurrence menu of a manager', () => {
     await dayGroup(page, 2).getByRole('listitem').click()
     await expect(menuTitle(page, 2)).toBeVisible()
     await propose(page.request, slug, await userIdOf(page.request, slug, 'Bruno'), dayOfWeek(4, 2).iso, '10:00', '13:00')
-    await menu(page).getByRole('button', { name: 'Alice', exact: true }).click()
+    await nameInMenu(page, 'Alice').click()
     await expect(menu(page).getByText(TAKEN).filter({ visible: true })).toBeVisible()
     await page.keyboard.press('Escape')
 
@@ -609,7 +610,7 @@ test.describe('Schedule menu: taken', () => {
     await propose(page.request, slug, await userIdOf(page.request, slug, 'Bruno'), dayOfWeek(4, 2).iso, '10:00', '13:00')
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText('')
 
-    await menu(page).getByRole('button', { name: 'Alice', exact: true }).click()
+    await nameInMenu(page, 'Alice').click()
 
     await expect(menu(page).getByText(TAKEN).filter({ visible: true })).toBeVisible()
     await expect(dayGroup(page, 2).getByRole('listitem')).toHaveText(/^\s*Bruno\s*\?\s*$/)

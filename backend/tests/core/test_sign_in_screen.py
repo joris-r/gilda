@@ -10,6 +10,7 @@ from tests.core.conftest import (
     add_member,
     create_account,
     create_association,
+    heading,
     latest_verification_token,
     shown,
     sign_up,
@@ -19,12 +20,6 @@ from tests.core.conftest import (
 
 WRONG_EN = "Wrong email or password."
 WRONG_FR = "E-mail ou mot de passe incorrect."
-
-
-def heading(response: Any) -> str:
-    match = re.search(r"<h1[^>]*>\s*(.*?)\s*</h1>", response.text, re.DOTALL)
-    assert match, f"no heading in {response.text}"
-    return match.group(1)
 
 
 def sign_in(client: Any, email: str, password: str = PASSWORD, **kwargs: Any) -> Any:

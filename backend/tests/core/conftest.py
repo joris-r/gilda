@@ -6,7 +6,6 @@ import time
 import uuid
 from collections.abc import Callable
 from datetime import datetime
-from html.parser import HTMLParser
 from typing import Any, NamedTuple
 
 import httpx
@@ -14,6 +13,8 @@ import pytest
 from litestar.testing import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
+
+from tests.page import Element, heading_of, lines_of, parse, part
 
 PASSWORD = "correct horse"
 MAILPIT_URL = os.environ.get("MAILPIT_URL", "http://localhost:18025")
@@ -124,17 +125,34 @@ def open_link(client: Any, token: str) -> Any:
     return client.post("/access", json={"token": token})
 
 
-def shown(response: Any) -> str:
-    """The text of an action's response, as the browser shows it."""
+def patched(response: Any) -> str:
+    """The events of an action's response, each `datastar-patch-elements` one with the HTML it
+    patches in, rebuilt from its `data: elements` lines as the browser does, after its other
+    lines."""
     assert response.status_code == 200, response.text
     assert response.headers["content-type"].startswith("text/event-stream")
-    return html.unescape(response.text)
+    events = []
+    for event in response.text.split("\n\n"):
+        lines = event.split("\n")
+        if "event: datastar-patch-elements" not in lines:
+            events.append(event)
+            continue
+        prefix = "data: elements "
+        elements = [line.removeprefix(prefix) for line in lines if line.startswith(prefix)]
+        others = [line for line in lines if not line.startswith(prefix)]
+        events.append("\n".join([*others, "\n".join(elements)]))
+    return "\n\n".join(events)
+
+
+def shown(response: Any) -> str:
+    """The events of an action's response, as `patched` gives them, unescaped: what the browser
+    is sent to show."""
+    return html.unescape(patched(response))
 
 
 def heading(response: Any) -> str:
-    match = re.search(r"<h1[^>]*>\s*(.*?)\s*</h1>", response.text, re.DOTALL)
-    assert match, f"no heading in {response.text}"
-    return match.group(1)
+    """The text of the first heading the page shows."""
+    return heading_of(response.text)
 
 
 def break_the_mailer(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -198,11 +216,12 @@ def signed_in_as(client: Any) -> str | None:
     shows Sign in."""
     response = client.get("/")
     assert response.status_code == 200
-    match = re.search(r'class="user-button"[^>]*>(.*?) ▾</button>', response.text, re.DOTALL)
-    if match is None:
+    buttons = [b for b in parse(response.text).elements("button") if "user-button" in b.classes]
+    if not buttons:
         assert heading(response) == "Sign in", response.text
         return None
-    return html.unescape(match.group(1).strip())
+    assert len(buttons) == 1, buttons
+    return buttons[0].text.removesuffix(" ▾")
 
 
 def unique_slug() -> str:
@@ -237,30 +256,28 @@ def add_member(
 
 def member_line(client: Any, slug: str, email: str) -> str:
     """What the line of the member with `email` shows on Members, its spaces collapsed, e.g.
-    "Chloé not joined yet chloe@example.org Volunteer"."""
+    "Chloé not joined yet chloe@example.org Volunteer"; Members shows the first five lines only,
+    until "Show all"."""
     response = client.get(f"/association/{slug}/members")
     assert response.status_code == 200
-    main = re.search(r"<main[ >].*</main>", response.text, re.DOTALL)
-    assert main, response.text
-    items = re.findall(r"<li[ >].*?</li>", main.group(0), re.DOTALL)
-    texts = [" ".join(html.unescape(re.sub(r"<[^>]+>", " ", item)).split()) for item in items]
+    texts = lines_of(part(response.text, "main"))
     found = [text for text in texts if f" {email} " in f" {text} "]
     assert len(found) == 1, f"{email} in {texts}"
     return found[0]
 
 
 def members_roles(client: Any, slug: str) -> dict[str, str]:
-    """The role of each member that Members lists, by display name, e.g. {"Alice": "manager"}."""
+    """The role of each member that Members shows, by display name, e.g. {"Alice": "manager"}:
+    the first five only, until "Show all"."""
     response = client.get(f"/association/{slug}/members")
     assert response.status_code == 200
-    main = re.search(r"<main[ >].*</main>", response.text, re.DOTALL)
-    assert main, response.text
     roles = {}
-    for item in re.findall(r"<li[ >].*?</li>", main.group(0), re.DOTALL):
-        name = re.search(r"<div>\s*(.*?)\s*<(?:span|div) class=", item, re.DOTALL)
-        role = re.search(r'<span class="role (\w+)">', item)
-        assert name and role, item
-        roles[html.unescape(name.group(1))] = role.group(1)
+    for item in parse(response.text).first("main").outermost("li"):
+        found = [e for e in item.elements("span") if "role" in e.classes]
+        assert len(found) == 1, item
+        [role] = [name for name in found[0].classes if name != "role"]
+        name = item.first("div").text_with(lambda e: "" if e.tag in ("span", "div") else None)
+        roles[name] = role
     return roles
 
 
@@ -310,80 +327,33 @@ class Listed(NamedTuple):
     """What each of its registrations shows, in order, its spaces collapsed."""
 
 
-class _ListedParser(HTMLParser):
-    """Reads each outermost list item, leaving out dialogs and hidden elements."""
-
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.items: list[tuple[list[str], list[str], list[list[str]]]] = []
-        self.depth = 0
-        self.skipped: tuple[str, int] | None = None
-        self.in_link = False
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if self.skipped:
-            if tag == self.skipped[0]:
-                self.skipped = (tag, self.skipped[1] + 1)
-            return
-        attributes = dict(attrs)
-        if tag == "dialog" or "hidden" in attributes or attributes.get("style") == "display: none":
-            if tag not in ("input", "br", "img"):
-                self.skipped = (tag, 1)
-            return
-        if tag == "li":
-            self.depth += 1
-            if self.depth == 1:
-                self.items.append(([], [], []))
-            elif self.depth == 2:
-                self.items[-1][2].append([])
-        elif tag == "a" and self.depth == 1 and not self.items[-1][0]:
-            self.in_link = True
-
-    def handle_endtag(self, tag: str) -> None:
-        if self.skipped:
-            if tag == self.skipped[0]:
-                count = self.skipped[1] - 1
-                self.skipped = (tag, count) if count else None
-            return
-        if tag == "li" and self.depth:
-            self.depth -= 1
-        elif tag == "a":
-            self.in_link = False
-
-    def handle_data(self, data: str) -> None:
-        if self.skipped or not self.depth:
-            return
-        name, text, lines = self.items[-1]
-        if self.in_link:
-            name.append(data)
-        if self.depth == 1:
-            text.append(data)
-        else:
-            lines[-1].append(data)
-
-
 def listed(fragment: str) -> list[Listed]:
     """The associations that a piece of HTML lists, each an outermost `<li>` whose nested `<li>`
     are its registrations."""
-    parser = _ListedParser()
-    parser.feed(fragment)
-    return [
-        Listed(
-            " ".join("".join(name).split()),
-            " ".join("".join(text).split()),
-            [" ".join("".join(line).split()) for line in lines],
-        )
-        for name, text, lines in parser.items
-    ]
+    associations = []
+    for item in parse(fragment).outermost("li"):
+        registrations = item.outermost("li")
+        links = [link for link in item.elements("a") if not _within(link, registrations)]
+        name = links[0].text if links else ""
+        text = item.text_with(lambda e: "" if e.tag == "li" else None)
+        associations.append(Listed(name, text, [line.text for line in registrations]))
+    return associations
+
+
+def _within(element: Element, ancestors: list[Element]) -> bool:
+    parent = element.parent
+    while parent is not None:
+        if any(parent is ancestor for ancestor in ancestors):
+            return True
+        parent = parent.parent
+    return False
 
 
 def my_associations_listed(client: Any) -> list[Listed]:
     """The associations that My associations lists to the signed-in user."""
     response = client.get("/")
     assert response.status_code == 200
-    main = re.search(r"<main[ >].*</main>", response.text, re.DOTALL)
-    assert main, response.text
-    return listed(main.group(0))
+    return listed(part(response.text, "main"))
 
 
 def names_listed(client: Any) -> list[str]:

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, signIn, uniqueEmail, datastarReady } from './helpers'
+import { PASSWORD, latestToken, nameInMenu, signIn, uniqueEmail, datastarReady } from './helpers'
 
 async function signUp(page: Page, displayName: string, email: string) {
   await page.goto('/')
@@ -191,7 +191,7 @@ test.describe('Scenarios', () => {
       await signIn(page, alice)
       await openSchedule(page, association)
       await occurrence(page, saturday.label, '10–13').click()
-      await page.locator('#occurrence-menu').getByRole('button', { name: 'Chloé', exact: true }).click()
+      await nameInMenu(page, 'Chloé').click()
       await expect(occurrence(page, saturday.label, '10–13')).toContainText(/Chloé\s*\?/)
       await signOut(page)
     })

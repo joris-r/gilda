@@ -15,14 +15,9 @@ from tests.core.conftest import (
     unique_email,
     unique_slug,
 )
+from tests.page import part
 
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
-
-
-def part(page: str, tag: str) -> str:
-    match = re.search(rf"<{tag}[ >].*</{tag}>", page, re.DOTALL)
-    assert match, f"no {tag} in {page}"
-    return match.group(0)
 
 
 class TestHeader:

@@ -23,6 +23,7 @@ from tests.core.conftest import (
     members_roles,
     names_listed,
     open_link,
+    patched,
     remove_member,
     rename_association,
     revoke_member_link,
@@ -35,6 +36,7 @@ from tests.core.conftest import (
     unique_email,
     unique_slug,
 )
+from tests.page import dialog_named, dialogs_named, lines_of, part, text_of
 
 NAME = "Jardin partagé des Lilas"
 GENERIC = "Something went wrong. Try again."
@@ -51,22 +53,15 @@ TAKEN_SLUG = "This association identifier is already taken."
 CONFIRM_DELETE = (
     f"Delete {NAME}? Its schedule and its members' registrations are erased. This cannot be undone."
 )
-
-
-def part(page: str, tag: str) -> str:
-    match = re.search(rf"<{tag}[ >].*</{tag}>", page, re.DOTALL)
-    assert match, f"no {tag} in {page}"
-    return match.group(0)
-
-
-def text_of(fragment: str) -> str:
-    """What a piece of HTML shows, without its tags and attributes."""
-    return html.unescape(re.sub(r"<[^>]+>", " ", fragment))
+CONFIRM_DELETE_FR = (
+    f"Supprimer {NAME} ? Son planning et les inscriptions de ses membres sont effacés. "
+    "Cette action est irréversible."
+)
 
 
 def lines(page: str) -> list[str]:
     """The text of each list item of main, in order."""
-    return [text_of(item) for item in re.findall(r"<li.*?</li>", part(page, "main"), re.DOTALL)]
+    return lines_of(part(page, "main"))
 
 
 def line_of(page: str, name: str) -> str:
@@ -93,7 +88,7 @@ def add_on_screen(
 
 
 def member_count(client: Any, association: dict[str, Any]) -> int:
-    """The number of members that Members lists."""
+    """The number of members that Members shows: five at most, until "Show all"."""
     return len(members_roles(client, association["slug"]))
 
 
@@ -290,8 +285,9 @@ class TestMembersHeader:
         association = managed(client)
 
         main = part(members_page(client, association["slug"]), "main")
-        shown_in_main = text_of(re.sub(r"<dialog.*?</dialog>", "", main, flags=re.DOTALL))
+        shown_in_main = text_of(main)
 
+        assert "Add a member" in shown_in_main
         assert "Members" not in shown_in_main
         assert NAME not in shown_in_main
 
@@ -396,12 +392,8 @@ class TestAsAManager:
     def test_the_add_a_member_dialog_has_its_title_fields_and_buttons(self, client: Any) -> None:
         association = managed(client)
 
-        main = part(members_page(client, association["slug"]), "main")
+        form = dialog_named(members_page(client, association["slug"]), "Add a member").html
 
-        dialog = re.search(r"<dialog.*?</dialog>", main, re.DOTALL)
-        assert dialog, main
-        form = dialog.group(0)
-        assert re.search(r"<h2[^>]*>\s*Add a member\s*</h2>", form)
         assert re.search(r'<button[^>]*aria-label="Close"', form)
         assert re.search(r"<label[^>]*>\s*Display name\b", form)
         assert re.search(r"<label[^>]*>\s*Email\b", form)
@@ -709,9 +701,10 @@ class TestChangingTheRole:
         add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
         chloe = user_id(client, association, "Chloé")
 
-        text = shown(change_role(client, association["slug"], chloe, "manager"))
+        response = change_role(client, association["slug"], chloe, "manager")
+        text = shown(response)
 
-        listed = [line for line in map(text_of, re.findall(r"<li.*?</li>", text, re.DOTALL))]
+        listed = lines_of(patched(response))
         assert any("Chloé" in line and "manager" in line.lower() for line in listed), text
 
     # /core/ui/members/changed
@@ -888,9 +881,10 @@ class TestRemovingAMember:
         association, _ = with_volunteer(client, new_client)
 
         member = user_id(client, association, "Bruno")
-        text = shown(remove_member(client, association["slug"], member))
+        response = remove_member(client, association["slug"], member)
+        text = shown(response)
 
-        listed = [text_of(item) for item in re.findall(r"<li.*?</li>", text, re.DOTALL)]
+        listed = lines_of(patched(response))
         assert any("Alice" in line for line in listed), text
         assert not any("Bruno" in line for line in listed)
 
@@ -1040,12 +1034,13 @@ class TestSignInLinkSection:
     def test_the_edit_dialog_offers_send_link_with_its_confirmation(self, client: Any) -> None:
         association, _, _ = with_member(client)
 
-        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+        page = members_page(client, association["slug"])
 
-        assert re.search(r">\s*Sign-in link\s*<", main, re.IGNORECASE)
-        assert re.search(r"<button[^>]*>\s*Send link\s*</button>", main)
-        assert "Send Chloé's sign-in link by email?" in main
-        assert re.search(r"<button[^>]*>\s*Send\s*</button>", main)
+        edit = dialog_named(page, "Chloé")
+        assert re.search(r">\s*Sign-in link\s*<", edit.html, re.IGNORECASE)
+        assert re.search(r"<button[^>]*>\s*Send link\s*</button>", edit.html)
+        confirmation = dialog_named(page, "Send Chloé's sign-in link by email?")
+        assert re.search(r"<button[^>]*>\s*Send\s*</button>", confirmation.html)
 
     # /core/ui/members/revoke-link
     def test_revoke_link_shows_only_for_a_member_with_an_access_link(
@@ -1057,10 +1052,11 @@ class TestSignInLinkSection:
 
         ask_for_link(new_client(), email)
 
-        main = html.unescape(part(members_page(client, slug), "main"))
-        assert REVOKE_CHLOE in main
-        assert re.search(r"<button[^>]*>\s*Revoke link\s*</button>", main)
-        assert re.search(r"<button[^>]*>\s*Revoke\s*</button>", main)
+        page = members_page(client, slug)
+        edit = dialog_named(page, "Chloé")
+        assert re.search(r"<button[^>]*>\s*Revoke link\s*</button>", edit.html)
+        confirmation = dialog_named(page, REVOKE_CHLOE)
+        assert re.search(r"<button[^>]*>\s*Revoke\s*</button>", confirmation.html)
 
     # /core/ui/members/edit
     # /core/ui/members/send-link
@@ -1070,11 +1066,12 @@ class TestSignInLinkSection:
         association, _, _ = with_link(client, new_client)
         client.cookies.set("language", "fr")
 
-        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+        page = members_page(client, association["slug"])
 
-        assert re.search(r">\s*Lien de connexion\s*<", main, re.IGNORECASE)
-        assert "Envoyer le lien de connexion de Chloé par e-mail ?" in main
-        assert "Révoquer le lien de connexion de Chloé ?" in main
+        edit = dialog_named(page, "Chloé")
+        assert re.search(r">\s*Lien de connexion\s*<", edit.html, re.IGNORECASE)
+        assert dialogs_named(page, "Envoyer le lien de connexion de Chloé par e-mail ?")
+        assert dialogs_named(page, "Révoquer le lien de connexion de Chloé ?")
 
     # /core/ui/members/volunteer
     def test_a_volunteer_sees_none(self, client: Any, new_client: Callable[[], Any]) -> None:
@@ -1432,30 +1429,28 @@ class TestAssociationActions:
     def test_rename_the_association_opens_its_dialog(self, client: Any) -> None:
         association = managed(client)
 
-        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+        dialog = dialog_named(members_page(client, association["slug"]), "Rename the association")
 
-        assert re.search(r"<h2[^>]*>\s*Rename the association\s*</h2>", main)
-        assert re.search(r"<label[^>]*>\s*Name\b", main)
+        assert re.search(r"<label[^>]*>\s*Name\b", dialog.html)
 
     # /core/ui/members/change-slug
     def test_change_the_association_identifier_opens_its_dialog(self, client: Any) -> None:
         association = managed(client)
 
-        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+        page = members_page(client, association["slug"])
 
-        assert re.search(r"<h2[^>]*>\s*Change the association identifier\s*</h2>", main)
-        assert re.search(r"<label[^>]*>\s*Association identifier\b", main)
-        assert "/association/" in text_of(main)
+        dialog = dialog_named(page, "Change the association identifier")
+        assert re.search(r"<label[^>]*>\s*Association identifier\b", dialog.html)
+        assert "/association/" in dialog.text
 
     # /core/ui/members/delete
     def test_delete_the_association_asks_with_its_name(self, client: Any) -> None:
         association = managed(client)
 
-        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+        dialog = dialog_named(members_page(client, association["slug"]), CONFIRM_DELETE)
 
-        assert CONFIRM_DELETE in main
-        assert "Type the association's name to confirm" in main
-        assert re.search(r"<button[^>]*>\s*Delete\s*</button>", main)
+        assert "Type the association's name to confirm" in dialog.text
+        assert re.search(r"<button[^>]*>\s*Delete\s*</button>", dialog.html)
 
     # /core/ui/members/manager
     # /core/ui/members/delete
@@ -1464,13 +1459,14 @@ class TestAssociationActions:
         association = managed(client)
         client.cookies.set("language", "fr")
 
-        main = html.unescape(part(members_page(client, association["slug"]), "main"))
+        page = members_page(client, association["slug"])
 
+        main = text_of(part(page, "main"))
         assert "Renommer l'association" in main
         assert "Modifier l'identifiant de l'association" in main
         assert "Supprimer l'association" in main
-        assert f"Supprimer {NAME} ? Son planning" in main
-        assert "Saisissez le nom de l'association pour confirmer" in main
+        dialog = dialog_named(page, CONFIRM_DELETE_FR)
+        assert "Saisissez le nom de l'association pour confirmer" in dialog.text
 
 
 class TestRenamingTheAssociation:

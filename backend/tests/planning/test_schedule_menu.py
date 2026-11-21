@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 import pytest
 import time_machine
 
+from tests.page import dialog_named, dialogs_named
 from tests.planning.conftest import (
     GENERIC,
     WEEKDAYS,
@@ -29,6 +30,7 @@ from tests.planning.conftest import (
     open_menu,
     opened_weeks,
     opens_menu,
+    patched,
     propose,
     save_note,
     schedule_entries,
@@ -40,13 +42,13 @@ from tests.planning.conftest import (
     sign_up_for,
     text_of,
     unique_email,
-    without_hidden,
     write_note,
 )
 
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 TAKEN = "Someone took this slot in the meantime."
 PAST = "This day is past."
+ASK_BRUNO = "Take this slot from Bruno?"
 
 
 def after(day: str, hour: int, minute: int = 0) -> datetime:
@@ -92,10 +94,16 @@ def other_user(new_client: Callable[[], Any]) -> Any:
     return other
 
 
+def menu_patch(as_client: Any, slug: str, day: str) -> str:
+    """The HTML that opening the menu of the occurrence of `day` from 10:00 to 13:00 patches
+    in."""
+    return patched(open_menu(as_client, slug, day, "10:00", "13:00"))
+
+
 def menu_text(as_client: Any, slug: str, day: str) -> str:
     """What the menu of the occurrence of `day` from 10:00 to 13:00 shows, its spaces
     collapsed."""
-    return " ".join(text_of(shown(open_menu(as_client, slug, day, "10:00", "13:00"))).split())
+    return text_of(menu_patch(as_client, slug, day))
 
 
 def today_in_paris() -> date:
@@ -216,7 +224,7 @@ class TestMenu:
 
         assert f"{day_label(thursday)} · 10–13" in text
         assert TAKE_OVER in text
-        assert "Take this slot from Bruno?" in text
+        assert dialogs_named(menu_patch(planning.chloe_client, planning.slug, thursday), ASK_BRUNO)
         for absent in ["Sign up", "Confirm", "Cancel registration"]:
             assert absent not in text
 
@@ -331,7 +339,7 @@ class TestLoadOfTheMenu:
 
         assert self.title(thursday) in text
         assert "Sign up" in text
-        assert GENERIC not in without_hidden(text)
+        assert GENERIC not in text_of(text)
         assert PAST not in text
 
     # /planning/ui/schedule/menu-past
@@ -350,7 +358,7 @@ class TestLoadOfTheMenu:
 
         assert self.title(thursday) in text
         assert PAST in text
-        assert GENERIC not in without_hidden(text)
+        assert GENERIC not in text_of(text)
         assert "Sign up" not in text
         assert "Bruno" not in text
         assert "Chloé" not in text
@@ -404,7 +412,7 @@ class TestLoadOfTheMenu:
             text = shown(response)
 
         assert PAST in text
-        assert GENERIC not in without_hidden(text)
+        assert GENERIC not in text_of(text)
 
     # /planning/ui/schedule/load
     # /planning/ui/schedule/menu-past
@@ -430,7 +438,7 @@ class TestLoadOfTheMenu:
         text = shown(open_menu(planning.bruno_client, planning.slug, thursday, "14:00", "15:00"))
 
         assert f"{day_label(thursday)} · 14–15" in text
-        assert GENERIC in without_hidden(text)
+        assert GENERIC in text_of(text)
         assert "Sign up" not in text
 
     # /planning/ui/schedule/load-failed
@@ -443,7 +451,7 @@ class TestLoadOfTheMenu:
         text = shown(open_menu(other_user(new_client), planning.slug, thursday, "10:00", "13:00"))
 
         assert self.title(thursday) in text
-        assert GENERIC in without_hidden(text)
+        assert GENERIC in text_of(text)
         assert "Sign up" not in text
 
 
@@ -1062,7 +1070,7 @@ class TestSignUp:
         text = shown(sign_up_for(planning.bruno_client, planning.slug, thursday, "10:00", "13:00"))
 
         assert TAKEN in text
-        assert GENERIC not in without_hidden(text)
+        assert GENERIC not in text_of(text)
         assert day_shown(client, planning.slug, thursday) == "[Chloé]"
         assert day_in(schedule_entries(text), thursday) == "[Chloé]"
         assert "hidePopover" not in text
@@ -1121,7 +1129,7 @@ class TestSignUp:
         text = shown(sign_up_for(planning.bruno_client, planning.slug, past, "10:00", "13:00"))
 
         assert PAST in text
-        assert GENERIC not in without_hidden(text)
+        assert GENERIC not in text_of(text)
         assert day_shown(client, planning.slug, past) == "[]"
         assert_stays_open_with_weeks(text, past)
         assert not opens_menu(text, past)
@@ -1362,7 +1370,7 @@ class TestPropose:
         text = shown(propose_bruno(client, planning, thursday))
 
         assert TAKEN in text
-        assert GENERIC not in without_hidden(text)
+        assert GENERIC not in text_of(text)
         assert day_shown(client, planning.slug, thursday) == "[Chloé]"
         assert day_in(schedule_entries(text), thursday) == "[Chloé]"
         assert "hidePopover" not in text
@@ -1393,7 +1401,7 @@ class TestPropose:
         text = shown(propose_bruno(client, planning, past))
 
         assert PAST in text
-        assert GENERIC not in without_hidden(text)
+        assert GENERIC not in text_of(text)
         assert day_shown(client, planning.slug, past) == "[]"
         assert_stays_open_with_weeks(text, past)
         assert not opens_menu(text, past)
@@ -1626,7 +1634,7 @@ class TestChangeAPastRegistration:
             )
 
             assert PAST in text
-            assert GENERIC not in without_hidden(text)
+            assert GENERIC not in text_of(text)
             assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"
             assert_stays_open_with_weeks(text, thursday)
 
@@ -1646,7 +1654,7 @@ class TestChangeAPastRegistration:
             text = shown(cancel_registration(as_client, planning.slug, registration["id"]))
 
             assert PAST in text
-            assert GENERIC not in without_hidden(text)
+            assert GENERIC not in text_of(text)
             assert day_shown(client, planning.slug, thursday) == "[Bruno]"
             assert_in_element(text, "cancel-registration-error", PAST)
             assert_stays_open_with_weeks(text, thursday)
@@ -1848,9 +1856,10 @@ class TestTakeOver:
         text = menu_text(planning.bruno_client, planning.slug, thursday)
 
         assert TAKE_OVER in text
-        assert "Take this slot from Chloé?" in text
-        assert "Yes, take it" in text
-        assert "Keep it" in text
+        patch = menu_patch(planning.bruno_client, planning.slug, thursday)
+        asking = dialog_named(patch, "Take this slot from Chloé?").text
+        assert "Yes, take it" in asking
+        assert "Keep it" in asking
         assert "Sign up" not in text
         assert "Cancel registration…" not in text
 
@@ -1921,7 +1930,7 @@ class TestTakeOver:
 
         text = take_over(planning.bruno_client, planning, registration, planning.bruno, thursday)
 
-        assert GENERIC not in without_hidden(text)
+        assert GENERIC not in text_of(text)
         assert TAKEN not in text
         assert day_in(schedule_entries(text), thursday) == "[Bruno]"
         assert day_shown(planning.chloe_client, planning.slug, thursday) == "[Bruno]"
@@ -1972,7 +1981,7 @@ class TestTakeOver:
 
         text = give(planning.bruno_client, planning, registration, planning.alice, thursday)
 
-        assert GENERIC in without_hidden(text)
+        assert GENERIC in text_of(text)
         assert day_shown(client, planning.slug, thursday) == "[Chloé]"
 
     # /planning/operations/register/taken
@@ -2004,7 +2013,7 @@ class TestTakeOver:
 
         text = take_over(planning.bruno_client, planning, registration, planning.bruno, thursday)
 
-        assert GENERIC not in without_hidden(text)
+        assert GENERIC not in text_of(text)
         assert_in_element(text, TAKE_OVER_ERROR, TAKEN)
         assert_stays_open_with_weeks(text, thursday)
         assert day_in(schedule_entries(text), thursday) == "[Alice]"
@@ -2046,7 +2055,7 @@ class TestTakeOver:
                 planning.bruno_client, planning, registration, planning.bruno, thursday
             )
 
-            assert GENERIC not in without_hidden(text)
+            assert GENERIC not in text_of(text)
             assert_in_element(text, TAKE_OVER_ERROR, PAST)
             assert_stays_open_with_weeks(text, thursday)
             assert day_shown(client, planning.slug, thursday) == "[Chloé]"
@@ -2133,7 +2142,7 @@ class TestMove:
             text = give(client, planning, registration, planning.bruno, thursday)
 
             assert PAST in text
-            assert GENERIC not in without_hidden(text)
+            assert GENERIC not in text_of(text)
             assert_in_element(text, f"move-error-{planning.bruno['id']}", PAST)
             assert_stays_open_with_weeks(text, thursday)
             assert day_shown(client, planning.slug, thursday) == "[Chloé]"
@@ -2150,7 +2159,7 @@ class TestMove:
         text = give(client, planning, registration, planning.alice, thursday)
 
         assert TAKEN in text
-        assert GENERIC not in without_hidden(text)
+        assert GENERIC not in text_of(text)
         assert day_shown(client, planning.slug, thursday) == "[Chloé]"
         assert day_in(schedule_entries(text), thursday) == "[Chloé]"
         assert "hidePopover" not in text

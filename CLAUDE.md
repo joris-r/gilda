@@ -24,8 +24,16 @@ containers on the same ports.
 A test of a newly served page asserts its status, as the Not found page
 shares its header.
 
-On a signed-in screen, a test looks for the generic error within `main`
-or its dialog, as the header's closed dialogs hold hidden copies of it.
+A test looks for a text within the section or dialog it means, or for
+its visible copy: in pytest through the readers of `tests/page.py`,
+which keep only what is shown; in Playwright with
+`.filter({ visible: true })`. The header's closed dialogs hold hidden
+copies of the generic error.
+
+A test asserting only an absence also asserts something present.
+
+Tests read from the database only what no screen shows (ids, rows
+already erased).
 
 When a change alters what a screen shows, search the tests also by the
 visible text (in English and in French) and by the helpers that build

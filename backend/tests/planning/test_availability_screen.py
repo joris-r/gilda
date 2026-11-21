@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from tests.core.conftest import delete_association, run_sql_rows, unique_slug
+from tests.page import buttons_named, dialog_named, dialog_opened_by, parse
 from tests.planning.conftest import (
     GENERIC,
     MONTHS,
@@ -29,12 +30,12 @@ from tests.planning.conftest import (
     preferences_stored,
     save_note,
     section_of,
+    selected_option,
     set_my_preference,
     shown,
     sign_up,
     text_of,
     unique_email,
-    without_dialogs,
     write_note,
 )
 
@@ -51,35 +52,24 @@ def collapsed(fragment: str) -> str:
     return " ".join(text_of(fragment).split())
 
 
-def selected(select: str) -> str:
-    """The label of the option a selector shows chosen, or of its first one when none is."""
-    options = re.findall(r"<option([^>]*)>(.*?)</option>", select, re.DOTALL)
-    assert options, select
-    chosen = [label for attributes, label in options if re.search(r"\bselected\b", attributes)]
-    assert len(chosen) <= 1, select
-    return collapsed(chosen[0] if chosen else options[0][1])
-
-
 def preferences_shown(
     client: Any, slug: str, heading: str = "My preferences"
 ) -> list[tuple[str, str]]:
     """Each line of My preferences: its slot, and the value its selector shows."""
     section = section_of(availability_page(client, slug), heading)
     lines = []
-    for item in re.findall(r"<li.*?</li>", section, re.DOTALL):
-        selects = re.findall(r"<select.*?</select>", item, re.DOTALL)
+    for item in parse(section).outermost("li"):
+        selects = list(item.elements("select"))
         assert len(selects) == 1, item
-        slot = collapsed(re.sub(r"<select.*?</select>", "", item, flags=re.DOTALL))
-        lines.append((slot, selected(selects[0])))
+        slot = item.text_with(lambda e: "" if e.tag == "select" else None)
+        lines.append((slot, selected_option(selects[0].html)[1]))
     return lines
 
 
 def selector_labels(client: Any, slug: str, heading: str = "My preferences") -> list[str]:
     """The labels of the options of the first selector of My preferences, in order."""
-    section = section_of(availability_page(client, slug), heading)
-    select = re.search(r"<select.*?</select>", section, re.DOTALL)
-    assert select, section
-    return [collapsed(label) for label in re.findall(r"<option[^>]*>(.*?)</option>", select[0])]
+    select = parse(section_of(availability_page(client, slug), heading)).first("select")
+    return [option.text for option in select.elements("option")]
 
 
 def chosen(planning: Planning, as_client: Any, slot: dict[str, Any], value: str) -> None:
@@ -267,8 +257,9 @@ class TestMyAvailabilityHeader:
     ) -> None:
         planning = Planning(client, new_client)
 
-        main = text_of(without_dialogs(part(availability_page(client, planning.slug), "main")))
+        main = text_of(part(availability_page(client, planning.slug), "main"))
 
+        assert "My preferences" in main
         assert "My availability" not in main
         assert NAME not in main
 
@@ -544,10 +535,8 @@ def paris_today() -> date:
 
 
 def dialog_titled(page: str, title: str) -> str:
-    dialogs = re.findall(r"<dialog.*?</dialog>", part(page, "main"), re.DOTALL)
-    found = [d for d in dialogs if re.search(rf"<h2[^>]*>\s*{title}\s*</h2>", d)]
-    assert len(found) == 1, page
-    return found[0]
+    """The HTML of the dialog of the page named `title`, with only what it shows."""
+    return dialog_named(page, title).html
 
 
 def section_html(as_client: Any, slug: str, heading: str) -> str:
@@ -750,10 +739,12 @@ class TestAbsencesDialogs:
         planning = Planning(client, new_client)
         add_absence(planning.bruno_client, planning, first, last)
 
-        main = html.unescape(part(availability_page(planning.bruno_client, planning.slug), "main"))
+        page = availability_page(planning.bruno_client, planning.slug)
 
-        assert question in main
-        assert re.search(r"<button[^>]*>\s*Delete\s*</button>", main)
+        [icon] = buttons_named(part(page, "main"), "Delete the absence")
+        assert icon.get("data-question") == question
+        dialog = dialog_opened_by(page, icon)
+        assert re.search(r"<button[^>]*>\s*Delete\s*</button>", dialog.html)
 
     # /core/ui/header/language
     # /planning/ui/my-availability/add-absence
@@ -764,11 +755,13 @@ class TestAbsencesDialogs:
         add_absence(client, planning, "2037-11-09", "2037-11-15")
         client.cookies.set("language", "fr")
 
-        main = html.unescape(part(availability_page(client, planning.slug), "main"))
+        page = availability_page(client, planning.slug)
 
-        assert "Ajouter l'absence" in main
-        assert 'aria-label="Modifier l\'absence"' in main
-        assert "Supprimer l'absence du lun. 9 nov. 2037 – dim. 15 nov. 2037 ?" in main
+        assert buttons_named(dialog_named(page, "Ajouter une absence").html, "Ajouter l'absence")
+        assert buttons_named(part(page, "main"), "Modifier l'absence")
+        [icon] = buttons_named(part(page, "main"), "Supprimer l'absence")
+        question = "Supprimer l'absence du lun. 9 nov. 2037 – dim. 15 nov. 2037 ?"
+        assert icon.get("data-question") == question
 
 
 class TestAddingAnAbsence:

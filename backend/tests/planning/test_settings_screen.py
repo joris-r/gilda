@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from tests.core.conftest import delete_association, run_sql_rows, unique_slug
+from tests.page import buttons_named, dialog_named, dialog_opened_by
 from tests.planning.conftest import (
     GENERIC,
     Planning,
@@ -44,7 +45,6 @@ from tests.planning.conftest import (
     sign_up,
     text_of,
     unique_email,
-    without_dialogs,
 )
 
 NAME = "Jardin partagé des Lilas"
@@ -115,7 +115,7 @@ class TestInitialState:
         for heading in ("Absences", "Note for the managers"):
             assert availability_section(client, slug, heading).endswith(" None"), heading
         assert "No openings in these weeks." in text_of(
-            without_dialogs(part(client.get(f"/association/{slug}").text, "main"))
+            part(client.get(f"/association/{slug}").text, "main")
         )
 
 
@@ -240,8 +240,9 @@ class TestScheduleSettingsHeader:
     ) -> None:
         planning = Planning(client, new_client)
 
-        main = text_of(without_dialogs(part(settings_page(client, planning.slug), "main")))
+        main = text_of(part(settings_page(client, planning.slug), "main"))
 
+        assert "Planning period" in main
         assert "Schedule settings" not in main
         assert NAME not in main
 
@@ -274,12 +275,8 @@ class TestAsAManager:
     ) -> None:
         planning = Planning(client, new_client)
 
-        main = part(settings_page(client, planning.slug), "main")
+        form = dialog_titled(settings_page(client, planning.slug), "Add a slot")
 
-        dialogs = re.findall(r"<dialog.*?</dialog>", main, re.DOTALL)
-        found = [d for d in dialogs if re.search(r"<h2[^>]*>\s*Add a slot\s*</h2>", d)]
-        assert len(found) == 1, main
-        form = found[0]
         assert re.search(r'<button[^>]*aria-label="Close"', form)
         assert re.search(r"<label[^>]*>\s*Day\b", form)
         assert re.search(r"<label[^>]*>\s*From\b", form)
@@ -299,7 +296,7 @@ class TestAsAManager:
         planning.add_slot("thursday", "10:00", "13:00")
         planning.add_slot("saturday", "10:00", "13:00")
 
-        main = without_dialogs(part(settings_page(client, planning.slug), "main"))
+        main = part(settings_page(client, planning.slug), "main")
 
         assert len(re.findall(r'<button[^>]*aria-label="Edit the slot"', main)) == 2
         assert len(re.findall(r'<button[^>]*aria-label="Delete the slot"', main)) == 2
@@ -322,12 +319,9 @@ class TestAsAManager:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
 
-        main = part(settings_page(client, planning.slug), "main")
+        form = dialog_titled(settings_page(client, planning.slug), "Edit the slot")
 
-        dialogs = re.findall(r"<dialog.*?</dialog>", main, re.DOTALL)
-        found = [d for d in dialogs if re.search(r"<h2[^>]*>\s*Edit the slot\s*</h2>", d)]
-        assert found, main
-        assert re.search(r"<button[^>]*>\s*Save\s*</button>", found[0])
+        assert re.search(r"<button[^>]*>\s*Save\s*</button>", form)
 
     # /planning/ui/schedule-settings/delete-slot
     # /ui/forms/confirmation
@@ -337,10 +331,12 @@ class TestAsAManager:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
 
-        main = html.unescape(part(settings_page(client, planning.slug), "main"))
+        page = settings_page(client, planning.slug)
 
-        assert "Delete the slot Thursday 10:00–13:00?" in main
-        assert re.search(r"<button[^>]*>\s*Delete\s*</button>", main)
+        [icon] = buttons_named(part(page, "main"), "Delete the slot")
+        assert (icon.get("data-question") or "").startswith("Delete the slot Thursday 10:00–13:00?")
+        dialog = dialog_opened_by(page, icon)
+        assert re.search(r"<button[^>]*>\s*Delete\s*</button>", dialog.html)
 
     # /planning/ui/schedule-settings/delete-slot-warning
     def test_the_delete_question_goes_on_with_the_registrations_and_preferences_lost(
@@ -886,10 +882,8 @@ def section_html(client: Any, slug: str, heading: str) -> str:
 
 
 def dialog_titled(page: str, title: str) -> str:
-    dialogs = re.findall(r"<dialog.*?</dialog>", part(page, "main"), re.DOTALL)
-    found = [d for d in dialogs if re.search(rf"<h2[^>]*>\s*{title}\s*</h2>", d)]
-    assert len(found) == 1, page
-    return found[0]
+    """The HTML of the dialog of the page named `title`, with only what it shows."""
+    return dialog_named(page, title).html
 
 
 class TestPlanningPeriod:
@@ -928,7 +922,7 @@ class TestPlanningPeriod:
         with_period(planning)
         client.cookies.set("language", "fr")
 
-        main = text_of(without_dialogs(part(settings_page(client, planning.slug), "main")))
+        main = text_of(part(settings_page(client, planning.slug), "main"))
 
         assert "lun. 2 nov. 2026 – mer. 25 nov. 2026" in " ".join(main.split())
 
@@ -983,10 +977,12 @@ class TestPlanningPeriodAsAManager:
         planning = Planning(client, new_client)
         with_period(planning)
 
-        main = html.unescape(part(settings_page(client, planning.slug), "main"))
+        page = settings_page(client, planning.slug)
 
-        assert "Clear the planning period?" in main
-        assert re.search(r"<button[^>]*>\s*Clear\s*</button>", main)
+        [icon] = buttons_named(part(page, "main"), "Clear the period")
+        dialog = dialog_opened_by(page, icon)
+        assert dialog_named(page, "Clear the planning period?").get("id") == dialog.get("id")
+        assert re.search(r"<button[^>]*>\s*Clear\s*</button>", dialog.html)
 
 
 class TestPlanningPeriodAsAVolunteer:
@@ -1295,7 +1291,7 @@ class TestClosures:
         planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
         client.cookies.set("language", "fr")
 
-        main = text_of(without_dialogs(part(settings_page(client, planning.slug), "main")))
+        main = text_of(part(settings_page(client, planning.slug), "main"))
 
         assert "sam. 14 nov. 2037 Fête du quartier" in " ".join(main.split())
 
@@ -1420,10 +1416,12 @@ class TestClosuresAsAManager:
         planning = Planning(client, new_client)
         planning.add_closure(first, last, label)
 
-        main = html.unescape(part(settings_page(client, planning.slug), "main"))
+        page = settings_page(client, planning.slug)
 
-        assert question in main
-        assert re.search(r"<button[^>]*>\s*Delete\s*</button>", main)
+        [icon] = buttons_named(part(page, "main"), "Delete the closure")
+        assert (icon.get("data-question") or "").startswith(question)
+        dialog = dialog_opened_by(page, icon)
+        assert re.search(r"<button[^>]*>\s*Delete\s*</button>", dialog.html)
 
 
 class TestClosuresAsAVolunteer:
@@ -2028,10 +2026,7 @@ def chosen_for(
 
 def own_preference(as_client: Any, slug: str) -> str:
     """The label that the first selector of the user's own My preferences shows."""
-    section = section_of(availability_page(as_client, slug), "My preferences")
-    select = re.search(r"<select.*?</select>", section, re.DOTALL)
-    assert select, section
-    return selected_option(select[0])[1]
+    return selected_option(section_of(availability_page(as_client, slug), "My preferences"))[1]
 
 
 def stored(planning: Planning) -> set[tuple[str, str, str]]:
@@ -2178,10 +2173,11 @@ class TestMembersPreferences:
         thursday = planning.add_slot("thursday", "10:00", "13:00")
         chosen_mine(planning, planning.chloe_client, thursday, "unavailable")
 
-        page = html.unescape(settings_page(planning.bruno_client, planning.slug))
+        page = settings_page(planning.bruno_client, planning.slug)
 
-        assert "Members' preferences" not in page
-        assert "<select" not in without_dialogs(part(page, "main"))
+        assert "Slots" in text_of(part(page, "main"))
+        assert "Members' preferences" not in html.unescape(page)
+        assert "<select" not in part(page, "main")
 
 
 def chosen_mine(planning: Planning, as_client: Any, slot: dict[str, Any], value: str) -> None:
