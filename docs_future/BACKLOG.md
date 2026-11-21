@@ -62,5 +62,4 @@
 - Performance: More weeks, Sign up, Propose, Confirm and Cancel registration resend every shown week, so each response grows with the weeks already shown.
 - Performance: My associations builds each association's summary with its own queries, so the page slows as a user joins more associations.
 - Frontend: a long-lived SSE stream per screen (Datastar) with a broadcaster (in-process or Postgres LISTEN/NOTIFY), replacing the refresh on return of Members' preferences and the Schedule, so screens update live.
-- Dev43: name the shape of increments 2 to 5 of the test-quality outline, so the [outline] check passes.
 - Backend: replace Advanced Alchemy's deprecated repository `list()` by `get_many`, then narrow the warning filter of `pyproject.toml` to the library's own import-time warnings.
