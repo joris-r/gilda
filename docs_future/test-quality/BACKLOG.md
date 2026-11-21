@@ -6,10 +6,7 @@ to the test policy of `technical.md` the rule it finds worth keeping.
 
 ## Outline
 
-1. Speed:
-   - Profile and cut the fixed cost per backend test: 1202 tests take 5 min 05 s on 8 cores, about 2 s of CPU each, the ten slowest about 5 s; then decide a time budget for the suite.
-   - Remove the 172,221 warnings of a backend run, all Litestar's deprecation of path parameters declared by inference.
-   - Backend tests: report to Advanced Alchemy that its Litestar lifespan disposes only the first config's engine per process, then drop the workaround in the new_client fixture.
+1. Speed done
 2. Sturdy page reading:
    - Tests: the regex page helpers (`lines_of`, `line_of`, `section_of`…) would use an HTML parser, as `listed` does, read only the visible elements and unescape the text, so that nested lists, hidden copies and headings with an apostrophe read right.
    - Tests: `shown()` would rebuild the HTML of each `datastar-patch-elements` event from its `data: elements` lines, so pytest reads a patch as the browser does and templates need not be sent on one line.

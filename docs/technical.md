@@ -74,6 +74,10 @@
     - Tests run in parallel with pytest-xdist, one worker per CPU; each
       test sees only the data it creates.
     - Tests hash passwords with Argon2 at its minimal cost parameters.
+    - Each worker builds the application once; every test client of the
+      worker, one per browser, runs on it.
+    - The whole suite runs in at most 2 min 30 s on 8 cores, and a run
+      reports no warning.
   - Test levels:
     - Backend: pytest, through Litestar's test client, against a real
       PostgreSQL. It observes what the server decides: the status, the
