@@ -14,6 +14,7 @@ from tests.core.conftest import (
     latest_verification_token,
     member_line,
     members_roles,
+    names_listed,
     open_link,
     reset_password,
     shown,
@@ -23,6 +24,9 @@ from tests.core.conftest import (
     unique_email,
     user_id_of,
 )
+from tests.page import part, text_of
+
+UNKNOWN = "This association does not exist or you are not a member."
 
 
 def delete_account(client: Any) -> Any:
@@ -212,8 +216,23 @@ def test_roles_are_kept_when_another_manager_remains(
     assert members_roles(zoe, association["slug"]) == {"Zoé": "manager", "Chloé": "volunteer"}
 
 
-def test_the_only_member_of_an_association_can_delete_their_account(client: Any) -> None:
-    sign_up(client, "Alice")
-    create_association(client)
+# /core/operations/delete-account/deleted
+# /core/ui/header/delete
+def test_the_only_member_of_an_association_can_delete_their_account(
+    client: Any, new_client: Callable[[], Any]
+) -> None:
+    email = unique_email("Alice")
+    sign_up(client, "Alice", email)
+    association = create_association(client)
 
-    assert delete_account(client).status_code == 200
+    response = delete_account(client)
+
+    assert "window.location = '/'" in shown(response)
+    assert signed_in_as(client) is None
+    assert "Wrong email or password." in shown(sign_in(new_client(), email))
+    again = new_client()
+    sign_up(again, "Alice", email)
+    assert names_listed(again) == []
+    members = again.get(f"/association/{association['slug']}/members")
+    assert members.status_code == 200
+    assert UNKNOWN in text_of(part(members.text, "main"))

@@ -95,6 +95,17 @@ test.describe('Create an account', () => {
   })
 })
 
+/** Creates Alice's account with Create an account on `page`, and returns the token of her
+ * confirmation link. */
+async function signedUpToken(page: Page) {
+  const email = uniqueEmail('Alice')
+  await page.goto('/signup')
+  await datastarReady(page)
+  await submitSignUp(page, 'Alice', email)
+  await expect(page.getByText(`Check ${email} for a confirmation link.`)).toBeVisible()
+  return latestToken(email)
+}
+
 test.describe('Confirm email', () => {
   // /core/ui/confirm-email/confirmed
   // /core/operations/confirm-email/confirmed
@@ -108,8 +119,8 @@ test.describe('Confirm email', () => {
     await page.goto(`/verify-email?token=${await latestToken(email)}`)
     await datastarReady(page)
 
-    await expect(page.getByText('My associations')).toBeVisible()
-    await expect(page.getByText('Alice')).toBeVisible()
+    await expect(page.locator('header').getByText('My associations')).toBeVisible()
+    await expect(page.locator('header').getByRole('button', { name: 'Alice' })).toBeVisible()
     await expect(page).toHaveURL(/\/$/)
   })
 
@@ -171,9 +182,76 @@ test.describe('Confirm email', () => {
     failing = false
     await page.getByRole('button', { name: 'Try again' }).click()
 
-    await expect(page.getByText('My associations')).toBeVisible()
+    await expect(page.locator('header').getByText('My associations')).toBeVisible()
     await expect(page).toHaveURL(/\/$/)
     expect(sends).toBe(2)
+  })
+
+  // /core/ui/confirm-email/running
+  // /core/ui/confirm-email/failed
+  test('while Try again runs: "Confirming your email…" alone again, without the error or Try again', async ({
+    page,
+  }) => {
+    const token = await signedUpToken(page)
+    let sends = 0
+    let release: () => void = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    await page.route('**/verify-email*', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      sends += 1
+      if (sends === 1) return route.fulfill({ status: 500, body: 'failure' })
+      await held
+      return route.continue()
+    })
+    await page.goto(`/verify-email?token=${token}`)
+    await datastarReady(page)
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Try again' }).click()
+
+    await expect(page.getByText('Confirming your email…')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeHidden()
+    await expect(page.locator('main').getByText(GENERIC)).toBeHidden()
+    expect(sends).toBe(2)
+    release()
+    await expect(page.locator('header').getByText('My associations')).toBeVisible()
+  })
+
+  // /core/ui/confirm-email/failed
+  // /ui/errors/generic
+  test('when it fails on the way to the server: the generic error and Try again', async ({ page }) => {
+    const token = await signedUpToken(page)
+    let failing = true
+    await page.route('**/verify-email*', (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      return failing ? route.abort() : route.continue()
+    })
+
+    await page.goto(`/verify-email?token=${token}`)
+    await datastarReady(page)
+
+    await expect(page.locator('main').getByText(GENERIC)).toBeVisible()
+    await expect(page.getByText('Confirming your email…')).toBeHidden()
+    failing = false
+    await page.getByRole('button', { name: 'Try again' }).click()
+    await expect(page.locator('header').getByText('My associations')).toBeVisible()
+  })
+
+  // /core/ui/confirm-email/failed
+  test('Try again, failing again: the error shows again, with Try again', async ({ page }) => {
+    await page.route('**/verify-email*', (route) =>
+      route.request().method() === 'POST'
+        ? route.fulfill({ status: 500, body: 'failure' })
+        : route.continue(),
+    )
+    await page.goto('/verify-email?token=unknown-token')
+    await datastarReady(page)
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Try again' }).click()
+
+    await expect(page.locator('main').getByText(GENERIC)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
   })
 })
 

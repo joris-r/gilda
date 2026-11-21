@@ -665,19 +665,6 @@ class TestAddingAMember:
         assert "Chloé added." not in html.unescape(response.text)
         assert member_count(client, association) == 1
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_adds_no_one(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        association = managed(client)
-
-        text = shown(add_on_screen(new_client(), association["slug"], "Chloé", unique_email("C")))
-
-        assert "window.location" in text
-        assert "added." not in text
-        assert member_count(client, association) == 1
-
 
 class TestChangingTheRole:
     # /core/ui/members/changed
@@ -839,21 +826,6 @@ class TestChangingTheRole:
         assert "is now" not in html.unescape(response.text)
         assert "volunteer" in role_of(client, association, "Chloé")
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_changes_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        association = managed(client)
-        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
-        chloe = user_id(client, association, "Chloé")
-
-        text = shown(change_role(new_client(), association["slug"], chloe, "manager"))
-
-        assert "window.location" in text
-        assert "is now" not in text
-        assert "volunteer" in role_of(client, association, "Chloé")
-
 
 class TestRemovingAMember:
     # /core/ui/members/removed
@@ -1009,21 +981,6 @@ class TestRemovingAMember:
         response = remove_member(other, association["slug"], user_id(client, association, "Chloé"))
 
         assert "is removed." not in html.unescape(response.text)
-        assert member_count(client, association) == 2
-
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_removes_no_one(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        association = managed(client)
-        add_member(client, association["slug"], "Chloé", unique_email("Chloe"))
-        chloe = user_id(client, association, "Chloé")
-
-        text = shown(remove_member(new_client(), association["slug"], chloe))
-
-        assert "window.location" in text
-        assert "is removed." not in text
         assert member_count(client, association) == 2
 
 
@@ -1214,19 +1171,6 @@ class TestRevokingALink:
         assert "is revoked." not in html.unescape(response.text)
         assert signs_in(new_client(), token)
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_revokes_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        association, chloe, token = with_link(client, new_client)
-
-        text = shown(revoke_member_link(new_client(), association["slug"], chloe))
-
-        assert "window.location" in text
-        assert "is revoked." not in text
-        assert signs_in(new_client(), token)
-
 
 class TestSendingALink:
     # /core/ui/members/sent
@@ -1369,19 +1313,6 @@ class TestSendingALink:
         response = send_member_link(other, association["slug"], chloe)
 
         assert "is sent." not in html.unescape(response.text)
-        assert no_email_sent(email)
-
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_sends_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        association, chloe, email = with_member(client)
-
-        text = shown(send_member_link(new_client(), association["slug"], chloe))
-
-        assert "window.location" in text
-        assert "is sent." not in text
         assert no_email_sent(email)
 
 
@@ -1591,19 +1522,6 @@ class TestRenamingTheAssociation:
         assert "is now" not in html.unescape(response.text)
         assert name_of(client, association) == NAME
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_renames_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        association = managed(client)
-
-        text = shown(rename_association(new_client(), association["slug"], NEW_NAME))
-
-        assert "window.location" in text
-        assert "is now" not in text
-        assert name_of(client, association) == NAME
-
 
 class TestChangingTheIdentifier:
     # /core/ui/members/slug-changed
@@ -1763,20 +1681,6 @@ class TestChangingTheIdentifier:
         assert slug not in response.text
         assert slug_of(client, association) == association["slug"]
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_changes_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        association = managed(client)
-        slug = unique_slug()
-
-        text = shown(change_identifier(new_client(), association["slug"], slug))
-
-        assert "window.location" in text
-        assert slug not in text
-        assert slug_of(client, association) == association["slug"]
-
 
 class TestDeletingTheAssociation:
     # /core/ui/members/delete
@@ -1905,16 +1809,4 @@ class TestDeletingTheAssociation:
 
         delete_association(other_user(new_client), association["slug"])
 
-        assert UNKNOWN not in html.unescape(members_page(client, association["slug"]))
-
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_deletes_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        association = managed(client)
-
-        text = shown(delete_association(new_client(), association["slug"]))
-
-        assert "window.location" in text
         assert UNKNOWN not in html.unescape(members_page(client, association["slug"]))

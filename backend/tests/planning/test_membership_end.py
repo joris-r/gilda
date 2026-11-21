@@ -1,14 +1,18 @@
 import asyncio
 import os
 from collections.abc import Callable
+from datetime import datetime, time
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
+import time_machine
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from tests.core.conftest import remove_member, shown
 from tests.planning.conftest import (
+    WEEKDAYS,
     Planning,
     add_absence,
     add_member,
@@ -118,6 +122,25 @@ def test_upcoming_registrations_become_cancelled(
 
     for day in (confirmed_day, proposed_day):
         assert registration_on(planning, day) == "[~~Bruno~~]"
+
+
+# /planning/operations/remove-member/planning
+# /planning/operations/delete-account/planning
+@ENDINGS
+def test_a_registration_today_becomes_cancelled(
+    client: Any, new_client: Callable[[], Any], end: Callable[[Planning], None]
+) -> None:
+    paris = ZoneInfo("Europe/Paris")
+    today = datetime.now(paris).date()
+    with time_machine.travel(datetime.combine(today, time(14), paris), tick=False):
+        planning = Planning(client, new_client)
+        planning.add_slot(WEEKDAYS[today.weekday()], *THURSDAY)
+        planning.registered(planning.bruno_client, planning.bruno, today.isoformat(), *THURSDAY)
+        assert registration_on(planning, today.isoformat()) == "[Bruno]"
+
+        end(planning)
+
+        assert registration_on(planning, today.isoformat()) == "[~~Bruno~~]"
 
 
 # /planning/operations/remove-member/planning

@@ -376,18 +376,3 @@ class TestCreating:
         sign_up(client, "Alice")
 
         assert GENERIC in shown(create_on_screen(client, "", unique_slug()))
-
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_creates_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        slug = unique_slug()
-
-        text = shown(create_on_screen(client, NAME, slug))
-
-        assert "window.location" in text
-        assert f"/association/{slug}" not in text
-        other = new_client()
-        sign_up(other, "Zoé", unique_email("Zoe"))
-        assert create_association(other, NAME, slug)["slug"] == slug

@@ -162,6 +162,57 @@ test.describe('Access link', () => {
     expect(sends).toBe(2)
   })
 
+  // /core/ui/access-link/running
+  // /core/ui/access-link/failed
+  test('while Try again runs: "Signing you in…" alone again, without the error or Try again', async ({
+    page,
+    request,
+  }) => {
+    const token = await askForLink(request, uniqueEmail('Alice'))
+    let sends = 0
+    let release: () => void = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    await page.route('**/access*', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      sends += 1
+      if (sends === 1) return route.fulfill({ status: 500, body: 'failure' })
+      await held
+      return route.continue()
+    })
+    await page.goto(`/access?token=${token}`)
+    await datastarReady(page)
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Try again' }).click()
+
+    await expect(page.getByText('Signing you in…')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeHidden()
+    await expect(page.locator('main').getByText(GENERIC)).toBeHidden()
+    expect(sends).toBe(2)
+    release()
+    await expect(page.locator('header').getByText('My associations')).toBeVisible()
+  })
+
+  // /core/ui/access-link/failed
+  // /ui/errors/generic
+  test('when it fails on the way to the server: the generic error and Try again', async ({ page, request }) => {
+    const token = await askForLink(request, uniqueEmail('Alice'))
+    let failing = true
+    await page.route('**/access*', (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      return failing ? route.abort() : route.continue()
+    })
+
+    await page.goto(`/access?token=${token}`)
+    await datastarReady(page)
+
+    await expect(page.locator('main').getByText(GENERIC)).toBeVisible()
+    await expect(page.getByText('Signing you in…')).toBeHidden()
+    failing = false
+    await page.getByRole('button', { name: 'Try again' }).click()
+    await expect(page.locator('header').getByText('My associations')).toBeVisible()
+  })
+
   // /core/ui/access-link/failed
   test('Try again, failing again: the error shows again, with Try again', async ({ page }) => {
     await page.route('**/access*', (route) =>

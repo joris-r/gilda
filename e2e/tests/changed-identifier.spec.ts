@@ -12,6 +12,9 @@ import {
   uniqueSlug,
   userIdOf,
   datastarReady,
+  addAbsence,
+  nameInMenu,
+  setPeriod,
 } from './helpers'
 
 const NAME = 'Jardin partagé'
@@ -317,5 +320,365 @@ test.describe('Changed identifier: My associations', () => {
 
     await expect(jardin(page)).not.toContainText('this slot no longer takes place.')
     await expect(jardin(page).getByRole('button', { name: 'OK', exact: true })).toHaveCount(0)
+  })
+})
+
+test.describe('Changed identifier: Members, the edit dialog', () => {
+  /** Alice opens Members, where Chloé volunteers, then another tab changes the identifier. */
+  async function openMembers(page: Page, request: APIRequestContext, withLink = false) {
+    const { slug, open } = await openScreen(page, request, '/members', 'Members')
+    await addMember(page.request, slug, 'Chloé', uniqueEmail('Chloe'))
+    if (withLink) {
+      const chloe = await userIdOf(page.request, slug, 'Chloé')
+      expect((await page.request.post(`/association/${slug}/members/${chloe}/send-link`, { data: {} })).status()).toBe(200)
+    }
+    await open()
+    await changeIdentifierElsewhere(page, slug)
+  }
+
+  async function openEdit(page: Page) {
+    await page.getByRole('button', { name: 'Edit Chloé', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Chloé', exact: true })
+    await expect(dialog).toBeVisible()
+    return dialog
+  }
+
+  async function confirm(page: Page, action: string, question: string, button: string) {
+    const dialog = await openEdit(page)
+    await dialog.getByRole('button', { name: action, exact: true }).click()
+    const confirmation = page.getByRole('dialog', { name: question, exact: true })
+    await confirmation.getByRole('button', { name: button, exact: true }).click()
+  }
+
+  // /ui/changed-identifier/actions
+  test('Save with another role from a screen opened before the change changes the role', async ({ page, request }) => {
+    await openMembers(page, request)
+
+    const dialog = await openEdit(page)
+    await dialog.getByRole('combobox', { name: /^Role/ }).selectOption({ label: 'Manager' })
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByText('Chloé is now manager.')).toBeVisible()
+    await expect(main(page).getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+  })
+
+  // /ui/changed-identifier/actions
+  test('Remove from a screen opened before the change removes the member', async ({ page, request }) => {
+    await openMembers(page, request)
+
+    await confirm(
+      page,
+      'Remove from the association',
+      'Remove Chloé from the association? Their upcoming registrations are cancelled.',
+      'Remove',
+    )
+
+    await expect(page.getByText('Chloé is removed.')).toBeVisible()
+    await expect(main(page).getByRole('listitem').filter({ hasText: 'Chloé' })).toHaveCount(0)
+  })
+
+  // /ui/changed-identifier/actions
+  test('Send link from a screen opened before the change sends the link', async ({ page, request }) => {
+    await openMembers(page, request)
+
+    await confirm(page, 'Send link', "Send Chloé's sign-in link by email?", 'Send')
+
+    await expect(page.getByText("Chloé's sign-in link is sent.")).toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+  })
+
+  // /ui/changed-identifier/actions
+  test('Revoke link from a screen opened before the change revokes the link', async ({ page, request }) => {
+    await openMembers(page, request, true)
+
+    await confirm(page, 'Revoke link', "Revoke Chloé's sign-in link?", 'Revoke')
+
+    await expect(page.getByText("Chloé's sign-in link is revoked.")).toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+  })
+})
+
+test.describe('Changed identifier: Schedule settings, its dialogs', () => {
+  const CLOSURE = 'Sat 14 Nov 2037'
+
+  function section(page: Page, heading: string) {
+    return main(page).locator('section').filter({ has: page.getByRole('heading', { name: heading, exact: true }) })
+  }
+
+  /** Alice opens Schedule settings, with the period and closure given, then another tab
+   * changes the identifier. */
+  async function openSettings(page: Page, request: APIRequestContext, setup: { period?: boolean; closure?: boolean; link?: boolean } = {}) {
+    const { slug, open } = await openScreen(page, request, '/settings', 'Schedule settings')
+    if (setup.period) await setPeriod(page.request, slug, '2037-01-05', '2037-01-25')
+    if (setup.closure) await addClosure(page.request, slug, '2037-11-14', '2037-11-14', 'Fête')
+    if (setup.link) {
+      expect((await page.request.post(`/association/${slug}/settings/share-link`, { data: {} })).status()).toBe(200)
+    }
+    await open()
+    await changeIdentifierElsewhere(page, slug)
+  }
+
+  // /ui/changed-identifier/actions
+  test('Save in "Planning period" from a screen opened before the change sets the period', async ({ page, request }) => {
+    await openSettings(page, request)
+
+    await page.getByRole('button', { name: 'Edit the period' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Planning period' })
+    await dialog.getByLabel('From', { exact: true }).fill('2037-01-05')
+    await dialog.getByLabel('To', { exact: true }).fill('2037-01-25')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(section(page, 'Planning period')).toContainText('Mon 5 Jan 2037 – Sun 25 Jan 2037')
+  })
+
+  // /ui/changed-identifier/actions
+  test('Clear from a screen opened before the change clears the period', async ({ page, request }) => {
+    await openSettings(page, request, { period: true })
+
+    await page.getByRole('button', { name: 'Clear the period' }).click()
+    const confirmation = page.getByRole('dialog', { name: 'Clear the planning period?', exact: true })
+    await confirmation.getByRole('button', { name: 'Clear', exact: true }).click()
+
+    await expect(confirmation).toBeHidden()
+    await expect(section(page, 'Planning period').getByText('None', { exact: true })).toBeVisible()
+  })
+
+  // /ui/changed-identifier/actions
+  test('Add a closure from a screen opened before the change adds it', async ({ page, request }) => {
+    await openSettings(page, request)
+
+    await page.getByRole('button', { name: 'Add a closure' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Add a closure' })
+    await dialog.getByLabel('From', { exact: true }).fill('2037-11-14')
+    await dialog.getByLabel('To', { exact: true }).fill('2037-11-14')
+    await dialog.getByLabel('Label', { exact: true }).fill('Fête')
+    await dialog.getByRole('button', { name: 'Add closure' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(section(page, 'Closures').getByRole('listitem').filter({ hasText: CLOSURE })).toContainText('Fête')
+  })
+
+  // /ui/changed-identifier/actions
+  test('Save in "Edit the closure" from a screen opened before the change changes it', async ({ page, request }) => {
+    await openSettings(page, request, { closure: true })
+
+    await section(page, 'Closures').getByRole('listitem').filter({ hasText: CLOSURE }).getByRole('button', { name: 'Edit the closure' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Edit the closure' })
+    await dialog.getByLabel('Label', { exact: true }).fill('Kermesse')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(section(page, 'Closures').getByRole('listitem').filter({ hasText: CLOSURE })).toContainText('Kermesse')
+  })
+
+  // /ui/changed-identifier/actions
+  test('Delete the closure from a screen opened before the change deletes it', async ({ page, request }) => {
+    await openSettings(page, request, { closure: true })
+
+    await section(page, 'Closures').getByRole('listitem').filter({ hasText: CLOSURE }).getByRole('button', { name: 'Delete the closure' }).click()
+    const confirmation = page.getByRole('dialog', { name: /^Delete the closure "Fête"\?/ })
+    await confirmation.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    await expect(confirmation).toBeHidden()
+    await expect(section(page, 'Closures').getByText('None', { exact: true })).toBeVisible()
+  })
+
+  // /ui/changed-identifier/actions
+  test('Create a share link from a screen opened before the change creates it', async ({ page, request }) => {
+    await openSettings(page, request)
+
+    await page.getByRole('button', { name: 'Create a share link' }).click()
+
+    await expect(section(page, 'Share link').getByText(/\/shared\/[\w-]+/)).toBeVisible()
+    await expect(main(page).getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+  })
+
+  // /ui/changed-identifier/actions
+  test('Revoke the share link from a screen opened before the change revokes it', async ({ page, request }) => {
+    await openSettings(page, request, { link: true })
+
+    await page.getByRole('button', { name: 'Revoke the share link' }).click()
+    const confirmation = page.getByRole('dialog', { name: 'Revoke the share link? It no longer shows the Schedule.', exact: true })
+    await confirmation.getByRole('button', { name: 'Revoke', exact: true }).click()
+
+    await expect(confirmation).toBeHidden()
+    await expect(section(page, 'Share link').getByText('None', { exact: true })).toBeVisible()
+  })
+})
+
+test.describe('Changed identifier: My availability, an absence', () => {
+  const ABSENCE = 'Mon 9 Nov 2037 – Sun 15 Nov 2037'
+
+  async function openAbsence(page: Page, request: APIRequestContext) {
+    const { slug, open } = await openScreen(page, request, '/availability', 'My availability')
+    await addAbsence(page.request, slug, '2037-11-09', '2037-11-15')
+    await open()
+    await changeIdentifierElsewhere(page, slug)
+    return main(page).getByRole('listitem').filter({ hasText: ABSENCE })
+  }
+
+  // /ui/changed-identifier/actions
+  test('Save in "Edit the absence" from a screen opened before the change changes it', async ({ page, request }) => {
+    const line = await openAbsence(page, request)
+
+    await line.getByRole('button', { name: 'Edit the absence' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Edit the absence' })
+    await dialog.getByLabel('To', { exact: true }).fill('2037-11-20')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(main(page).getByRole('listitem').filter({ hasText: 'Mon 9 Nov 2037 – Fri 20 Nov 2037' })).toHaveCount(1)
+  })
+
+  // /ui/changed-identifier/actions
+  test('Delete the absence from a screen opened before the change deletes it', async ({ page, request }) => {
+    const line = await openAbsence(page, request)
+
+    await line.getByRole('button', { name: 'Delete the absence' }).click()
+    const confirmation = page.getByRole('dialog', { name: `Delete the absence of ${ABSENCE}?`, exact: true })
+    await confirmation.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    await expect(confirmation).toBeHidden()
+    await expect(line).toHaveCount(0)
+  })
+})
+
+test.describe('Changed identifier: Schedule, the menu', () => {
+  // /ui/changed-identifier/actions
+  test("a member's name from a screen opened before the change proposes the slot", async ({ page, request }) => {
+    const { slug } = await openScreen(page, request, '')
+    await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
+    await addMember(page.request, slug, 'Bruno', uniqueEmail('Bruno'))
+    await page.goto(`/association/${slug}`)
+    await datastarReady(page)
+    await changeIdentifierElsewhere(page, slug)
+    const day = page.getByRole('group', { name: thursday(2).label, exact: true })
+
+    await day.getByRole('listitem').click()
+    await nameInMenu(page, 'Bruno').click()
+
+    await expect(day.getByRole('listitem')).toHaveText('Bruno ?')
+  })
+
+  // /ui/changed-identifier/actions
+  test('"Yes, cancel" from a screen opened before the change cancels the registration', async ({ page, request }) => {
+    const { slug } = await openScreen(page, request, '')
+    await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
+    await signUpFor(page.request, slug, thursday(2).iso, '10:00', '13:00')
+    await page.goto(`/association/${slug}`)
+    await datastarReady(page)
+    await changeIdentifierElsewhere(page, slug)
+    const day = page.getByRole('group', { name: thursday(2).label, exact: true })
+
+    await day.getByRole('listitem').click()
+    await page.getByRole('button', { name: 'Cancel registration…' }).click()
+    const dialog = page.getByRole('dialog').filter({ hasText: 'Cancel this registration?' })
+    await dialog.getByRole('button', { name: 'Yes, cancel' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(day.getByRole('listitem').locator('s')).toHaveText('Alice')
+  })
+})
+
+test.describe('Changed identifier: Schedule settings, a slot and a preference', () => {
+  /** Alice opens Schedule settings with a Thursday slot and Bruno as volunteer, then another tab
+   * changes the identifier. */
+  async function openSettings(page: Page, request: APIRequestContext) {
+    const { slug, open } = await openScreen(page, request, '/settings', 'Schedule settings')
+    await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
+    await addMember(page.request, slug, 'Bruno', uniqueEmail('Bruno'))
+    await open()
+    return changeIdentifierElsewhere(page, slug)
+  }
+
+  function slots(page: Page) {
+    return main(page).locator('section').filter({ has: page.getByRole('heading', { name: 'Slots', exact: true }) })
+  }
+
+  // /ui/changed-identifier/actions
+  test('Save in "Edit the slot" from a screen opened before the change changes it', async ({ page, request }) => {
+    await openSettings(page, request)
+
+    await slots(page).getByRole('listitem').filter({ hasText: 'Thursday' }).getByRole('button', { name: 'Edit the slot' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Edit the slot' })
+    await dialog.getByLabel('Day').selectOption({ label: 'Friday' })
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(slots(page).getByRole('listitem').filter({ hasText: 'Friday' })).toHaveCount(1)
+    await expect(slots(page).getByRole('listitem').filter({ hasText: 'Thursday' })).toHaveCount(0)
+  })
+
+  // /ui/changed-identifier/actions
+  test('Delete the slot from a screen opened before the change deletes it', async ({ page, request }) => {
+    await openSettings(page, request)
+
+    await slots(page).getByRole('listitem').filter({ hasText: 'Thursday' }).getByRole('button', { name: 'Delete the slot' }).click()
+    const confirmation = page.getByRole('dialog', { name: /^Delete the slot Thursday 10:00–13:00\?/ })
+    await confirmation.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    await expect(confirmation).toBeHidden()
+    await expect(slots(page).getByText('None', { exact: true })).toBeVisible()
+  })
+
+  // /ui/changed-identifier/actions
+  test("a member's preference from a screen opened before the change saves it", async ({ page, request }) => {
+    const current = await openSettings(page, request)
+    const cell = (on: Page) =>
+      on
+        .locator('main section')
+        .filter({ has: on.getByRole('heading', { name: "Members' preferences" }) })
+        .getByRole('row')
+        .filter({ hasText: 'Bruno' })
+        .getByRole('combobox')
+
+    await cell(page).selectOption({ label: 'Unavailable' })
+
+    await expect(main(page).getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+    const other = await page.context().newPage()
+    await expect(async () => {
+      await other.goto(`/association/${current}/settings`)
+      await datastarReady(other)
+      await expect(cell(other)).toHaveValue('unavailable', { timeout: 1000 })
+    }).toPass()
+  })
+})
+
+test.describe('Changed identifier: My availability, the note', () => {
+  // /ui/changed-identifier/actions
+  test('Save in "Note for the managers" from a screen opened before the change saves it', async ({ page, request }) => {
+    const { slug, open } = await openScreen(page, request, '/availability', 'My availability')
+    await open()
+    await changeIdentifierElsewhere(page, slug)
+
+    await page.getByRole('button', { name: 'Edit the note' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Note for the managers' })
+    await dialog.getByLabel('Text', { exact: true }).fill('Mornings only.')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(main(page).getByText('Mornings only.', { exact: true }).filter({ visible: true })).toBeVisible()
+  })
+})
+
+test.describe('Changed identifier: Schedule, Confirm', () => {
+  // /ui/changed-identifier/actions
+  test('Confirm in the menu from a screen opened before the change confirms the registration', async ({ page, request }) => {
+    const { slug } = await openScreen(page, request, '')
+    await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
+    await addMember(page.request, slug, 'Bruno', uniqueEmail('Bruno'))
+    const bruno = await userIdOf(page.request, slug, 'Bruno')
+    await propose(page.request, slug, bruno, thursday(2).iso, '10:00', '13:00')
+    await page.goto(`/association/${slug}`)
+    await datastarReady(page)
+    await changeIdentifierElsewhere(page, slug)
+    const day = page.getByRole('group', { name: thursday(2).label, exact: true })
+    await expect(day.getByRole('listitem')).toHaveText('Bruno ?')
+
+    await day.getByRole('listitem').click()
+    await page.locator('#occurrence-menu').getByRole('button', { name: 'Confirm', exact: true }).click()
+
+    await expect(day.getByRole('listitem')).toHaveText('Bruno')
   })
 })

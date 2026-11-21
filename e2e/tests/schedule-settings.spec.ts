@@ -1145,6 +1145,9 @@ test.describe('Schedule settings: Share link', () => {
 
     await expect(confirmation).toBeHidden()
     await expect(shareLink(page)).toHaveCount(0)
+    await expect(
+      page.locator('main section').filter({ has: page.getByRole('heading', { name: 'Share link' }) }).getByText('None', { exact: true }),
+    ).toBeVisible()
     await expect(page.getByRole('button', { name: 'Copy', exact: true })).toBeHidden()
     await expect(page.getByRole('button', { name: 'Revoke the share link' })).toBeHidden()
     const visitor = await browser.newPage()

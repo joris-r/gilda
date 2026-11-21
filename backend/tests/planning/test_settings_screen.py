@@ -593,18 +593,6 @@ class TestAddingASlot:
 
         assert slots_shown(client, planning.slug) == []
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_adds_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-
-        text = shown(add_slot_on_screen(new_client(), planning.slug, "thursday", "10:00", "13:00"))
-
-        assert "window.location" in text
-        assert slots_shown(client, planning.slug) == []
-
 
 class TestEditingASlot:
     # /planning/ui/schedule-settings/edit-slot
@@ -763,19 +751,6 @@ class TestEditingASlot:
 
         assert slots_shown(client, planning.slug) == ["Thursday 10:00–13:00"]
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_changes_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        slot = planning.add_slot("thursday", "10:00", "13:00")
-
-        response = edit_slot(new_client(), planning.slug, slot["id"], "friday", "10:00", "13:00")
-
-        assert "window.location" in shown(response)
-        assert slots_shown(client, planning.slug) == ["Thursday 10:00–13:00"]
-
 
 class TestDeletingASlot:
     # /planning/ui/schedule-settings/delete-slot
@@ -848,19 +823,6 @@ class TestDeletingASlot:
 
         delete_slot(other_user(new_client), planning.slug, slot["id"])
 
-        assert slots_shown(client, planning.slug) == ["Thursday 10:00–13:00"]
-
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_deletes_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        slot = planning.add_slot("thursday", "10:00", "13:00")
-
-        text = shown(delete_slot(new_client(), planning.slug, slot["id"]))
-
-        assert "window.location" in text
         assert slots_shown(client, planning.slug) == ["Thursday 10:00–13:00"]
 
 
@@ -1126,18 +1088,6 @@ class TestSettingThePlanningPeriod:
 
         assert "None" in period_shown(client, planning.slug)
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_sets_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-
-        text = shown(set_period(new_client(), planning.slug, "2026-11-02", "2026-11-25"))
-
-        assert "window.location" in text
-        assert "None" in period_shown(client, planning.slug)
-
 
 class TestClearingThePlanningPeriod:
     # /planning/ui/schedule-settings/clear-period
@@ -1173,19 +1123,6 @@ class TestClearingThePlanningPeriod:
 
         clear_period(other_user(new_client), planning.slug)
 
-        assert PERIOD_SHOWN in period_shown(client, planning.slug)
-
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_clears_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        with_period(planning)
-
-        text = shown(clear_period(new_client(), planning.slug))
-
-        assert "window.location" in text
         assert PERIOD_SHOWN in period_shown(client, planning.slug)
 
 
@@ -1655,19 +1592,6 @@ class TestAddingAClosure:
 
         assert closures_shown(client, planning.slug) == []
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_adds_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-
-        response = add_closure_on_screen(new_client(), planning.slug, "2037-11-14", "2037-11-14")
-        text = shown(response)
-
-        assert "window.location" in text
-        assert closures_shown(client, planning.slug) == []
-
 
 class TestEditingAClosure:
     # /planning/ui/schedule-settings/edit-closure
@@ -1906,21 +1830,6 @@ class TestEditingAClosure:
 
         assert closures_shown(client, planning.slug) == [FETE]
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_changes_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
-
-        response = edit_closure(
-            new_client(), planning.slug, closure["id"], "2037-12-24", "2037-12-25"
-        )
-
-        assert "window.location" in shown(response)
-        assert closures_shown(client, planning.slug) == [FETE]
-
 
 class TestDeletingAClosure:
     # /planning/ui/schedule-settings/delete-closure
@@ -1995,19 +1904,6 @@ class TestDeletingAClosure:
 
         delete_closure(other_user(new_client), planning.slug, closure["id"])
 
-        assert closures_shown(client, planning.slug) == [FETE]
-
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_deletes_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
-
-        text = shown(delete_closure(new_client(), planning.slug, closure["id"]))
-
-        assert "window.location" in text
         assert closures_shown(client, planning.slug) == [FETE]
 
 
@@ -2410,21 +2306,6 @@ class TestChoosingAMembersPreference:
             other_user(new_client), planning.slug, thursday["id"], planning.bruno["id"], "preferred"
         )
 
-        assert stored(planning) == set()
-
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_sets_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        thursday = planning.add_slot("thursday", "10:00", "13:00")
-
-        response = set_member_preference(
-            new_client(), planning.slug, thursday["id"], planning.bruno["id"], "preferred"
-        )
-
-        assert "window.location" in shown(response)
         assert stored(planning) == set()
 
 

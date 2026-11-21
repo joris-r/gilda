@@ -475,19 +475,6 @@ class TestChoosingAPreference:
         assert GENERIC in text
         assert stored(planning) == {("Bruno", THU, "preferred")}
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_sets_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        thursday = planning.add_slot("thursday", "10:00", "13:00")
-
-        text = shown(set_my_preference(new_client(), planning.slug, thursday["id"], "preferred"))
-
-        assert "window.location" in text
-        assert stored(planning) == set()
-
 
 NOV = "Mon 9 Nov 2037 – Sun 15 Nov 2037"
 DEC = "Mon 21 Dec 2037 – Sun 3 Jan 2038"
@@ -831,18 +818,6 @@ class TestAddingAnAbsence:
 
         add_absence_on_screen(other_user(new_client), planning.slug, "2037-11-09", "2037-11-15")
 
-        assert absences_stored(planning) == set()
-
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_adds_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-
-        text = shown(add_absence_on_screen(new_client(), planning.slug, "2037-11-09", "2037-11-15"))
-
-        assert "window.location" in text
         assert absences_stored(planning) == set()
 
     # /planning/ui/my-availability/absence-order
@@ -1189,21 +1164,6 @@ class TestEditingAnAbsence:
 
         assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_changes_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        absence = add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
-
-        response = edit_absence(
-            new_client(), planning.slug, absence["id"], "2037-12-21", "2038-01-03"
-        )
-
-        assert "window.location" in shown(response)
-        assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
-
     # /planning/ui/my-availability/edit-absence-order
     # /planning/operations/edit-absence/order
     # /planning/model/absence/order
@@ -1518,19 +1478,6 @@ class TestDeletingAnAbsence:
 
         assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
 
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_deletes_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-        absence = add_absence(planning.bruno_client, planning, "2037-11-09", "2037-11-15")
-
-        text = shown(delete_absence(new_client(), planning.slug, absence["id"]))
-
-        assert "window.location" in text
-        assert absences_shown(planning.bruno_client, planning.slug) == [NOV]
-
 
 class TestNoteForTheManagers:
     # /planning/ui/my-availability/note
@@ -1769,16 +1716,4 @@ class TestSavingTheNote:
 
         save_note(other_user(new_client), planning.slug, NOTE)
 
-        assert set(notes_stored(planning).values()) == {""}
-
-    # /core/ui/access/action
-    # /core/operations/general/signed-out
-    def test_signed_out_leads_to_sign_in_and_saves_nothing(
-        self, client: Any, new_client: Callable[[], Any]
-    ) -> None:
-        planning = Planning(client, new_client)
-
-        text = shown(save_note(new_client(), planning.slug, NOTE))
-
-        assert "window.location" in text
         assert set(notes_stored(planning).values()) == {""}

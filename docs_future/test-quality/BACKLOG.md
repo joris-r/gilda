@@ -22,26 +22,19 @@ to the test policy of `technical.md` the rule it finds worth keeping.
 
 ### Flakiness and time (flaky-tests-and-waits)
 
-- Serves 4: an end-to-end check that nothing follows a Datastar action waits with `watchActions` and `actionsEnded` (`e2e/tests/helpers.ts`), not a timer.
-- Serves 4: a test that follows a link, or runs an action leading to another URL, and then acts uses `follow` or `leadsElsewhere`, or waits for what only the new page shows before `datastarReady`; otherwise the old page's `data-ready` satisfies the wait.
 - Serves 6 and 7: the backend's checks that no email was sent rely on email being sent within the request, with no sleep; if sending becomes asynchronous, those checks become vacuous.
 
-### Sturdy page reading (sturdy-page-reading)
+### Weak and missing tests (weak-and-missing-tests)
 
-- Serves 3 and 4: pytest reads pages through `backend/tests/page.py`; a new reader goes there, never as a regular expression on tags, and parses `patched(response)`, not `shown()`, which is already unescaped.
-- Serves 4: Members shows its first five members until "Show all", and the page readers see only those.
-- Serves 4: the delete questions held in `data-question` reach their dialog only in the browser, so the end-to-end tests are where they are seen shown.
+- Serves 6 and 7: the World of `test_general_rules.py` and the test of a registration today take their dates from `date.today()` (host UTC) or time_machine; once a clock is injected, they follow it.
+- Serves 7: the backend suite has no time to spare (149.7 s of its 150 s; the general-rules table costs about 20 s); a test reaching a past state through the clock must not build more than it replaces.
+- Serves 5: without arguments to `make test-e2e`, checking one spec costs a full end-to-end run (2.5 min).
 
 ### Mutation testing of `planning/services.py` (mutation-probe)
 
 What was done: a one-off run on 60 of the 230 possible mutants of `planning/services.py` (random sample; comparison flips, `and`/`or`, `not` removal, `+`/`-`, boolean and integer constants, return values replaced by `None`, negated `if` conditions). Each mutant was applied to a scratch copy, and the 722 planning tests were run with `-x`. 55 mutants were killed (92%), 5 survived, none timed out.
 
 - Serves any later mutation run: mutmut has no pytest-xdist support, so with `-n auto` its stats phase sees no covered code. Without xdist, the `RecursionError` in Advanced Alchemy's `_ensure_unique` is gone since backend-test-speed (one app per worker), so retry mutmut without xdist. Otherwise use a throwaway harness: one mutant at a time, xdist, `-x`. A killed mutant costs 10 s to 3 min, a surviving one a full planning run (about 4 min, less since backend-test-speed).
-- Serves 4, two missing tests found by the survivors:
-  - `end_membership`: `Registration.date >= today` became `> today` and no test failed: no test leaves an association with a registration today.
-  - `_default_range`: the end of the default Schedule range (`days=-1`) became `-2` and no test failed: the last day of the range is not checked.
-- Serves 4, a weak spot: the values returned by `edit_slot` and `edit_closure` are replaced by `None` without a failure, as the tests observe only the screens. Low risk.
-- The fifth survivor, `_is_occurrence` returning `None` instead of `False`, is an equivalent mutant: nothing to fix.
 - Serves any later standing mutation check: not worth it for now. The planning tests are strong and a run is slow; revisit after the `new_client` fixture is fixed.
 
 ### Coverage of the backend tests (coverage-probe)
@@ -49,12 +42,6 @@ What was done: a one-off run on 60 of the 230 possible mutants of `planning/serv
 What was done: a one-off measure of line and branch coverage of `backend/src/gilda` by the whole backend suite (1,214 tests, xdist), in a scratch copy; nothing was added to the project. Result: 97% (52 of 2,505 statements and 30 of 418 branches missed). Templates, JavaScript and the end-to-end suite are not measured.
 
 - Serves any later coverage check, a standing one included: with coverage.py's defaults the result is 67%, a wrong figure, as SQLAlchemy's async code runs in greenlets and the lines after an `await` are lost (the line after `await self._manager_of(...)` read as missed). The `.coveragerc` needs `concurrency = greenlet,thread` and `branch = true`; `pytest-cov` runs with xdist.
-- Serves 4, no backend test reaches these, though the end-to-end tests may:
-  - the `POST /language` and `GET /notice` routes (`web/pages.py`) and the notice claim of `web/rendering.py`;
-  - the preferences route of the Members screen shown again after being hidden (`planning/pages.py`, 401, 404 and 403 answers);
-  - the sendmail fallback and the quality parse of the language header (`mailer.py`).
-- Serves 4, defensive guards no test reaches, where each would be either tested or removed as dead code: the "Not a member of this association." and "Association not found." re-checks of `core/services.py`, `planning/services.py` and `home/services.py`; "Give a name or a slug."; "Give both from and to, or neither."; the preference's missing slot, member and manager-only refusals; a registration going back to proposed.
-- Serves 4, the Schedule layout's reuse of a free lane (`planning/pages.py`) and the choice of the take-over error in the dialog are never reached.
 - Coverage does not replace the mutation run: the mutants that survived (`end_membership`, `_default_range`) sit on covered lines, as the tests run the code without asserting the boundary.
 
 ## For the human
@@ -62,3 +49,5 @@ What was done: a one-off measure of line and branch coverage of `backend/src/gil
 - Remove `_one_line()` from `planning/pages.py`, now that `shown()` rebuilds patches (`code-only`).
 - Tests read action responses through `patched()` and the page readers, not raw `in shown()` / `unescape(page)` text (`tests-only`).
 - Forms submit natively (GET) if submitted before Datastar starts; a slow network lets a user hit it.
+- Speed: the backend suite sits at its 150 s budget (149.7 s); the general-rules table costs ~20 s, mostly 85 worlds of their own; reuse them or raise the budget.
+- Defensive guards no specified path reaches (core/planning/home re-checks, 'Give a name or a slug.', 'Give both from and to, or neither.', preference refusals, registration back to proposed, take-over error without the flag): keep or remove as dead code.

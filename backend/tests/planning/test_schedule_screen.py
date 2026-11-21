@@ -258,6 +258,32 @@ class TestDefaultWeeks:
         assert [len(days) for _, days in weeks] == [7] * 6
 
     # /planning/operations/get-schedule/default
+    def test_the_last_day_is_the_sunday_of_the_sixth_week(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        for weekday in WEEKDAYS:
+            planning.add_slot(weekday, "10:00", "13:00")
+
+        with time_machine.travel(NOW, tick=False):
+            entries = schedule_shown(planning.bruno_client, planning.slug)
+
+        weeks = [entry for entry in entries if isinstance(entry, tuple)]
+        assert weeks[0][1][0] == "Mon 2 Nov []"
+        assert weeks[-1] == (
+            "Week 50",
+            [
+                "Mon 7 Dec []",
+                "Tue 8 Dec []",
+                "Wed 9 Dec []",
+                "Thu 10 Dec []",
+                "Fri 11 Dec []",
+                "Sat 12 Dec []",
+                "Sun 13 Dec []",
+            ],
+        )
+
+    # /planning/operations/get-schedule/default
     # /planning/ui/schedule/weeks
     @pytest.mark.parametrize(
         ("last", "weeks"),
@@ -678,6 +704,8 @@ class TestOccurrences:
         assert items(day_shown(client, planning.slug, thursday)) == ["[Bruno]", "[]"]
 
     # /planning/operations/get-schedule/order
+    # /planning/operations/get-schedule/default
+    # /planning/ui/schedule/obsolete
     def test_occurrences_and_obsolete_registrations_come_by_date_then_start(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
@@ -690,16 +718,24 @@ class TestOccurrences:
         planning.registered(planning.bruno_client, planning.bruno, thursday, "11:00", "12:00")
         planning.delete_slot(obsolete)
 
-        main = part(schedule_page(client, planning.slug), "main")
-        groups = re.split(r'(?=<[a-z]+[^>]*\srole="group")', main)[1:]
-        shown_in_order = [
-            html.unescape(label)
-            for group in groups
-            if re.search(rf'aria-label="({day_label(thursday)}|{day_label(saturday)})"', group)
-            for label in re.findall(r'<li[^>]*class="occ[^"]*"[^>]*aria-label="([^"]*)"', group)
+        main = parse(part(schedule_page(client, planning.slug), "main"))
+        days = [
+            (group.get("aria-label"), [item.get("aria-label") for item in group.elements("li")])
+            for group in main.elements()
+            if group.get("role") == "group"
         ]
 
-        assert shown_in_order == ["10–13", "11–12 Bruno obsolete", "14–17", "9–10"]
+        shown_weeks = range(-1, 5)
+        dates = [
+            day_of_week(weekday, week)
+            for week in shown_weeks
+            for weekday in ("thursday", "saturday")
+        ]
+        assert [label for label, _ in days] == [day_label(day) for day in dates]
+        by_day = dict(days)
+        assert by_day[day_label(thursday)] == ["10–13", "11–12 Bruno obsolete", "14–17"]
+        assert by_day[day_label(saturday)] == ["9–10"]
+        assert by_day[day_label(day_of_week("thursday", 2))] == ["10–13", "14–17"]
 
     # /planning/ui/schedule/occurrence
     def test_one_occurrence_per_week(self, client: Any, new_client: Callable[[], Any]) -> None:

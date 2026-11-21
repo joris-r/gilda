@@ -24,6 +24,7 @@
 - Association: redirect a former slug to the association, which needs a history of slugs and conflicts with freeing the former slug for another association.
 - Schedule: after "Someone took this slot in the meantime.", the open Occurrence menu would show the occurrence as it now is, not keep "Sign up" (and a manager's names) until it closes.
 - Planning: warn about, or refuse, a closure that overlaps another; the Schedule's Closed line lists every covering closure today.
+- Fix: Add/Edit closure refuse a missing label; Propose refuses a user_id that is not a string instead of answering 500 (/core/operations/general/malformed); remove the xfail marks.
 
 
 ## Quality
