@@ -6,6 +6,7 @@ from datastar_py.litestar import DatastarResponse, ServerSentEventGenerator
 from litestar import Request, get, post
 from litestar.di import NamedDependency
 from litestar.exceptions import ClientException, NotFoundException, PermissionDeniedException
+from litestar.params import FromPath
 from litestar.response import Template
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -69,8 +70,8 @@ async def _status_changed(
 async def confirm_on_summary(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    registration_id: str,
+    slug: FromPath[str],
+    registration_id: FromPath[str],
 ) -> DatastarResponse:
     return await _status_changed(request, db_session, slug, registration_id, "confirmed")
 
@@ -79,7 +80,7 @@ async def confirm_on_summary(
 async def ok_on_summary(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    registration_id: str,
+    slug: FromPath[str],
+    registration_id: FromPath[str],
 ) -> DatastarResponse:
     return await _status_changed(request, db_session, slug, registration_id, "cancelled")

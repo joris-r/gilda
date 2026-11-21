@@ -12,7 +12,7 @@ from litestar.exceptions import (
     PermissionDeniedException,
     ServiceUnavailableException,
 )
-from litestar.params import FromQuery
+from litestar.params import FromPath, FromQuery
 from litestar.response import Template
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -107,7 +107,7 @@ async def _members_list(
 
 @get("/association/{slug:str}/members")
 async def members_page(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> Template:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -130,7 +130,7 @@ async def members_page(
 
 @post("/association/{slug:str}/members", status_code=200)
 async def add_member(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -231,8 +231,8 @@ async def _members_patched(
 async def change_role(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    user_id: UUID,
+    slug: FromPath[str],
+    user_id: FromPath[UUID],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -272,8 +272,8 @@ async def remove_member(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
     membership_end_hooks: NamedDependency[list[MembershipEndHook]],
-    slug: str,
-    user_id: UUID,
+    slug: FromPath[str],
+    user_id: FromPath[UUID],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -298,8 +298,8 @@ async def remove_member(
 async def send_member_link(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    user_id: UUID,
+    slug: FromPath[str],
+    user_id: FromPath[UUID],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -322,8 +322,8 @@ async def send_member_link(
 async def revoke_member_link(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    user_id: UUID,
+    slug: FromPath[str],
+    user_id: FromPath[UUID],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -364,7 +364,7 @@ def _closed(dialog: str) -> DatastarResponse:
 
 @post("/association/{slug:str}/rename", status_code=200)
 async def rename_association(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -400,7 +400,7 @@ async def rename_association(
 
 @post("/association/{slug:str}/identifier", status_code=200)
 async def change_identifier(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -429,7 +429,7 @@ async def change_identifier(
 
 @post("/association/{slug:str}/delete", status_code=200)
 async def delete_association(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:

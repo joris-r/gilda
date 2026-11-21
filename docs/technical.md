@@ -78,6 +78,8 @@
       worker, one per browser, runs on it.
     - The whole suite runs in at most 2 min 30 s on 8 cores, and a run
       reports no warning.
+    - Mailpit keeps every email it catches; each backend run empties it
+      before its tests start.
   - Test levels:
     - Backend: pytest, through Litestar's test client, against a real
       PostgreSQL. It observes what the server decides: the status, the

@@ -35,6 +35,8 @@ services:
     ports:
       - "11025:1025"
       - "18025:8025"
+    environment:
+      MP_MAX_MESSAGES: "0"
 
 volumes:
   postgres-data:

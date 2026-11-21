@@ -12,6 +12,7 @@ from datastar_py.sse import DatastarEvent
 from litestar import Request, get, post
 from litestar.di import NamedDependency
 from litestar.exceptions import ClientException, NotFoundException, PermissionDeniedException
+from litestar.params import FromPath
 from litestar.response import Response, Template
 from markupsafe import Markup, escape
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -73,7 +74,7 @@ _DATE_REFUSALS = tuple(_DATE_MESSAGES)
 
 @get("/association/{slug:str}/settings")
 async def settings_page(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> Template:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -166,7 +167,7 @@ def _asked(signals: dict[str, Any]) -> SlotCreate:
 
 @post("/association/{slug:str}/settings/slots", status_code=200)
 async def add_slot(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -206,8 +207,8 @@ def _slot_id(value: str) -> UUID:
 async def edit_slot(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    slot_id: str,
+    slug: FromPath[str],
+    slot_id: FromPath[str],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -237,8 +238,8 @@ async def edit_slot(
 async def delete_slot(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    slot_id: str,
+    slug: FromPath[str],
+    slot_id: FromPath[str],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -258,7 +259,7 @@ async def delete_slot(
 
 @get("/association/{slug:str}/settings/preferences")
 async def members_preferences(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> Response[str]:
     """Members' preferences as they now are, for the screen shown again after being hidden: 401
     when signed out, 404 or 403 when the user no longer manages the association."""
@@ -289,9 +290,9 @@ async def members_preferences(
 async def choose_member_preference(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    slot_id: str,
-    user_id: str,
+    slug: FromPath[str],
+    slot_id: FromPath[str],
+    user_id: FromPath[str],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -351,7 +352,7 @@ async def _period_patched(
 
 @post("/association/{slug:str}/settings/period", status_code=200)
 async def set_period(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -378,7 +379,7 @@ async def set_period(
 
 @post("/association/{slug:str}/settings/period/clear", status_code=200)
 async def clear_period(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -428,7 +429,7 @@ def _closure_id(value: str) -> UUID:
 
 @post("/association/{slug:str}/settings/closures", status_code=200)
 async def add_closure(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -456,8 +457,8 @@ async def add_closure(
 async def edit_closure(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    closure_id: str,
+    slug: FromPath[str],
+    closure_id: FromPath[str],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -485,8 +486,8 @@ async def edit_closure(
 async def delete_closure(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    closure_id: str,
+    slug: FromPath[str],
+    closure_id: FromPath[str],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -547,7 +548,7 @@ def _patched_by(script: str, shown: str) -> DatastarResponse:
 
 @post("/association/{slug:str}/settings/share-link", status_code=200)
 async def create_share_link(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -565,7 +566,7 @@ async def create_share_link(
 
 @post("/association/{slug:str}/settings/share-link/revoke", status_code=200)
 async def revoke_share_link(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -591,7 +592,7 @@ async def _own_preferences(
 
 @get("/association/{slug:str}/availability")
 async def availability_page(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> Template:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -619,8 +620,8 @@ async def availability_page(
 async def choose_preference(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    slot_id: str,
+    slug: FromPath[str],
+    slot_id: FromPath[str],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -696,7 +697,7 @@ def _absence_id(value: str) -> UUID:
 
 @post("/association/{slug:str}/availability/absences", status_code=200)
 async def add_absence(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -722,8 +723,8 @@ async def add_absence(
 async def edit_absence(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    absence_id: str,
+    slug: FromPath[str],
+    absence_id: FromPath[str],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -751,8 +752,8 @@ async def edit_absence(
 async def delete_absence(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    absence_id: str,
+    slug: FromPath[str],
+    absence_id: FromPath[str],
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -774,7 +775,7 @@ async def delete_absence(
 
 @post("/association/{slug:str}/availability/note", status_code=200)
 async def save_note(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -1003,7 +1004,7 @@ def _today(association: AssociationDetail | Association) -> date:
 
 @get("/association/{slug:str}")
 async def schedule_page(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> Template:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -1042,7 +1043,7 @@ def _shown_range(signals: dict[str, Any]) -> tuple[date, date]:
 
 @post("/association/{slug:str}/weeks", status_code=200)
 async def more_weeks(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -1075,7 +1076,7 @@ def _query_range(request: Request[Any, Any, Any]) -> dict[str, Any]:
 
 @get("/association/{slug:str}/weeks-again")
 async def weeks_again(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> Response[str]:
     """The weeks from `from` to `to` as they now are, for a Schedule shown again once today
     changes: 401 when signed out, any other failure a plain status."""
@@ -1110,7 +1111,7 @@ async def weeks_again(
 
 @get("/shared/{token:str}")
 async def shared_schedule_page(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: FromPath[str]
 ) -> Template:
     try:
         association, schedule, period = await PlanningService(db_session).shared(token, None, None)
@@ -1138,7 +1139,7 @@ def _gone(request: Request[Any, Any, Any]) -> DatastarResponse:
 
 @get("/shared/{token:str}/weeks-again")
 async def shared_weeks_again(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: FromPath[str]
 ) -> Response[str]:
     """The weeks from `from` to `to` as they now are, for a Shared schedule shown again once
     today changes: 404 when the link is no longer valid, any other failure a plain status."""
@@ -1161,7 +1162,7 @@ async def shared_weeks_again(
 
 @post("/shared/{token:str}/weeks", status_code=200)
 async def shared_more_weeks(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: FromPath[str]
 ) -> DatastarResponse:
     try:
         first, last = _shown_range(await read_signals_dict(request))
@@ -1412,7 +1413,7 @@ _CLOSE_CANCEL = "document.getElementById('cancel-registration').close()"
 
 @post("/association/{slug:str}/menu", status_code=200)
 async def occurrence_menu(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -1470,7 +1471,7 @@ async def occurrence_menu(
 
 @post("/association/{slug:str}/sign-up", status_code=200)
 async def schedule_sign_up(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -1498,7 +1499,7 @@ async def schedule_sign_up(
 
 @post("/association/{slug:str}/propose", status_code=200)
 async def schedule_propose(
-    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: str
+    request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], slug: FromPath[str]
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is None:
@@ -1583,8 +1584,8 @@ async def _status_changed(
 async def confirm_registration(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    registration_id: str,
+    slug: FromPath[str],
+    registration_id: FromPath[str],
 ) -> DatastarResponse:
     return await _status_changed(request, db_session, slug, registration_id, "confirmed")
 
@@ -1593,7 +1594,7 @@ async def confirm_registration(
 async def cancel_registration(
     request: Request[Any, Any, Any],
     db_session: NamedDependency[AsyncSession],
-    slug: str,
-    registration_id: str,
+    slug: FromPath[str],
+    registration_id: FromPath[str],
 ) -> DatastarResponse:
     return await _status_changed(request, db_session, slug, registration_id, "cancelled")

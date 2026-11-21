@@ -14,6 +14,13 @@ Save the full output of every test or quality run to a file, then filter
 that file; never pipe a run through a filter. Use `grep -a` on that
 file: its non-text bytes can make a plain `grep` find nothing.
 
+To pass options to pytest, set `PYTEST_ADDOPTS` on the Makefile
+target: `PYTEST_ADDOPTS="-n0 tests/core" make test-backend`.
+
+In a worktree other than the main one, run `make` with
+`COMPOSE_PROJECT_NAME=gilda`, or Compose starts a second set of
+containers on the same ports.
+
 A test of a newly served page asserts its status, as the Not found page
 shares its header.
 

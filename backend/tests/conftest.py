@@ -4,9 +4,14 @@ import sys
 import time
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
+import httpx
 import pytest
 from argon2 import PasswordHasher
+from litestar.testing import TestClient
+
+from gilda.app import create_app
 
 DEFAULT_DATABASE_URL = "postgresql+asyncpg://gilda:gilda@localhost:15432/gilda_test"
 
@@ -38,6 +43,9 @@ def pytest_configure(config: pytest.Config) -> None:
         check=True,
         capture_output=True,
     )
+    # Mailpit keeps every email (no cap to prune), so each run starts it empty.
+    mailpit_url = os.environ.get("MAILPIT_URL", "http://localhost:18025")
+    httpx.delete(f"{mailpit_url}/api/v1/messages").raise_for_status()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -48,3 +56,10 @@ def cheap_password_hashing() -> Iterator[None]:
             PasswordHasher(time_cost=1, memory_cost=8, parallelism=1),
         )
         yield
+
+
+@pytest.fixture(scope="session")
+def server() -> Iterator[Any]:
+    """The application of this worker, started once, with its event loop."""
+    with TestClient(app=create_app()) as started:
+        yield started

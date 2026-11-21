@@ -4,7 +4,7 @@ import os
 import re
 import time
 import uuid
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from datetime import datetime
 from html.parser import HTMLParser
 from typing import Any, NamedTuple
@@ -13,9 +13,7 @@ import httpx
 import pytest
 from litestar.testing import TestClient
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
-
-from gilda.app import create_app
+from sqlalchemy.ext.asyncio import create_async_engine
 
 PASSWORD = "correct horse"
 MAILPIT_URL = os.environ.get("MAILPIT_URL", "http://localhost:18025")
@@ -73,23 +71,16 @@ def email_count(email: str) -> int:
 
 
 @pytest.fixture
-def new_client() -> Iterator[Callable[[], Any]]:
+def new_client(server: Any) -> Callable[[], Any]:
     """Opens extra clients, each with its own cookies (its own browser)."""
-    opened: list[Any] = []
 
     def open_client() -> Any:
-        client = TestClient(app=create_app())
-        opened.append(client.__enter__())
-        return opened[-1]
+        client = TestClient(app=server.app)
+        # Requests run on the worker's event loop, where the database connections live.
+        client.blocking_portal = server.blocking_portal
+        return client
 
-    yield open_client
-    for client in opened:
-        # Advanced Alchemy disposes only the first app's engine of a process: the
-        # following ones get renamed state keys that its shutdown does not look up.
-        for value in client.app.state.dict().values():
-            if isinstance(value, AsyncEngine):
-                client.blocking_portal.call(value.dispose)
-        client.__exit__(None, None, None)
+    return open_client
 
 
 @pytest.fixture
