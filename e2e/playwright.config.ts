@@ -9,6 +9,7 @@ export default defineConfig({
   reporter: [['list'], ['./slowest-reporter.ts']],
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,
+    actionTimeout: 5_000,
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {

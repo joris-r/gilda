@@ -81,6 +81,7 @@ test.describe('My associations', () => {
     await expect(page).toHaveURL(/\/association\/new$/)
     await expect(page.locator('header').getByText('New association')).toBeVisible()
     await expect(page.locator('main').getByRole('heading')).toHaveCount(0)
+    await datastarReady(page)
 
     await page.getByRole('link', { name: 'Cancel' }).click()
     await expect(page).toHaveURL(/\/$/)

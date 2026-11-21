@@ -5,11 +5,13 @@ import {
   addSlot,
   createAccount,
   createAssociation,
+  actionsEnded,
   nameInMenu,
   saveNote,
   signUpFor,
   propose,
   signedIn,
+  watchActions,
   signIn,
   uniqueEmail,
   userIdOf,
@@ -534,6 +536,7 @@ test.describe('Schedule menu: its load', () => {
   // /planning/ui/schedule/latest
   test('the load of an earlier click changes nothing once a later click opened the menu', async ({ page, request }) => {
     await openSchedule(page, request)
+    await watchActions(page)
     const loads = await holdMenuLoads(page)
     await dayGroup(page, 2).getByRole('listitem').click()
     await expect.poll(() => loads.pending()).toBe(1)
@@ -545,7 +548,7 @@ test.describe('Schedule menu: its load', () => {
     loads.release(1)
     await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
     loads.release(0)
-    await page.waitForTimeout(500)
+    await actionsEnded(page)
 
     await expect(menuTitle(page, 3)).toBeVisible()
     await expect(menuTitle(page, 2)).toBeHidden()
@@ -555,6 +558,7 @@ test.describe('Schedule menu: its load', () => {
   // /planning/ui/schedule/latest
   test('the load of a click ending after the menu closed shows nothing', async ({ page, request }) => {
     await openSchedule(page, request)
+    await watchActions(page)
     const loads = await holdMenuLoads(page)
     await dayGroup(page, 2).getByRole('listitem').click()
     await expect.poll(() => loads.pending()).toBe(1)
@@ -562,7 +566,7 @@ test.describe('Schedule menu: its load', () => {
     await expect(menuTitle(page, 2)).toBeHidden()
 
     loads.release(0)
-    await page.waitForTimeout(500)
+    await actionsEnded(page)
 
     await expect(menuTitle(page, 2)).toBeHidden()
     await expect(page.getByRole('button', { name: 'Sign up' })).toBeHidden()
@@ -713,8 +717,11 @@ test.describe('Schedule: once today changes', () => {
       return route.fulfill({ status: 500, body: 'failure' })
     })
     await signUpFor(page.request, slug, dayOfWeek(4, 3).iso, '10:00', '13:00')
+    const answered = page.waitForResponse(/\/weeks-again\?/)
 
     await nextDay(page)
+    await answered
+    // Nothing shows that the page is done with the failed answer, so this waits a while.
     await page.waitForTimeout(500)
 
     expect(refreshes).toBeGreaterThan(0)

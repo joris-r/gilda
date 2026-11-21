@@ -170,8 +170,11 @@ test.describe('Shared schedule: once today changes', () => {
       return route.fulfill({ status: 500, body: 'failure' })
     })
     await signUpFor(page.request, slug, dayOfWeek(4, 3).iso, '10:00', '13:00')
+    const answered = visitor.waitForResponse(/\/weeks-again\?/)
 
     await nextDay(visitor)
+    await answered
+    // Nothing shows that the page is done with the failed answer, so this waits a while.
     await visitor.waitForTimeout(500)
 
     expect(refreshes).toBeGreaterThan(0)

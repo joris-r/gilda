@@ -28,6 +28,7 @@ test.describe('Forgot password', () => {
 
     await page.getByRole('link', { name: 'Forgot your password?' }).click()
     await expect(page.getByRole('heading', { name: 'Forgot your password?' })).toBeVisible()
+    await datastarReady(page)
 
     await page.getByRole('link', { name: 'Back to Sign in' }).click()
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
@@ -86,9 +87,12 @@ test.describe('Reset password', () => {
 
     await expect(page.getByText('My associations')).toBeVisible()
     await expect(page).toHaveURL(/\/$/)
+    await datastarReady(page)
 
     await page.locator('header').getByRole('button', { name: 'Alice' }).click()
     await page.getByRole('button', { name: 'Sign out' }).click()
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
+    await datastarReady(page)
     await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
     await page.getByRole('button', { name: 'Sign in' }).click()

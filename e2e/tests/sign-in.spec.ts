@@ -33,6 +33,7 @@ test.describe('Sign in', () => {
 
     await expect(page.getByText('My associations')).toBeVisible()
     await expect(page.getByText('Alice')).toBeVisible()
+    await datastarReady(page)
 
     await page.locator('header').getByRole('button', { name: 'Alice' }).click()
     await page.getByRole('button', { name: 'Sign out' }).click()

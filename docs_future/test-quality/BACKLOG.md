@@ -24,6 +24,12 @@ to the test policy of `technical.md` the rule it finds worth keeping.
 
 ## Lessons
 
+### Flakiness and time (flaky-tests-and-waits)
+
+- Serves 4: an end-to-end check that nothing follows a Datastar action waits with `watchActions` and `actionsEnded` (`e2e/tests/helpers.ts`), not a timer.
+- Serves 4: a test that follows a link, or runs an action leading to another URL, and then acts uses `follow` or `leadsElsewhere`, or waits for what only the new page shows before `datastarReady`; otherwise the old page's `data-ready` satisfies the wait.
+- Serves 6 and 7: the backend's checks that no email was sent rely on email being sent within the request, with no sleep; if sending becomes asynchronous, those checks become vacuous.
+
 ### Sturdy page reading (sturdy-page-reading)
 
 - Serves 3 and 4: pytest reads pages through `backend/tests/page.py`; a new reader goes there, never as a regular expression on tags, and parses `patched(response)`, not `shown()`, which is already unescaped.
@@ -59,3 +65,4 @@ What was done: a one-off measure of line and branch coverage of `backend/src/gil
 
 - Remove `_one_line()` from `planning/pages.py`, now that `shown()` rebuilds patches (`code-only`).
 - Tests read action responses through `patched()` and the page readers, not raw `in shown()` / `unescape(page)` text (`tests-only`).
+- Forms submit natively (GET) if submitted before Datastar starts; a slow network lets a user hit it.

@@ -1,4 +1,3 @@
-import time
 from collections.abc import Callable
 from typing import Any
 
@@ -122,7 +121,6 @@ def test_no_email_is_sent_to_the_erased_email_anymore(
     assert ask_for_link(other, email).status_code == 200
     assert ask_for_reset(other, email).status_code == 200
 
-    time.sleep(0.5)
     assert email_count(email) == before
 
 

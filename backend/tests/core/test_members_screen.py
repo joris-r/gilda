@@ -119,8 +119,7 @@ def signs_in(client: Any, token: str) -> bool:
 
 
 def no_email_sent(email: str, already: int = 0) -> bool:
-    """Waits for a stray email to arrive, then tells whether `email` got only `already`."""
-    time.sleep(0.5)
+    """Whether `email` got only `already`; an email is sent within its request."""
     return email_count(email) == already
 
 

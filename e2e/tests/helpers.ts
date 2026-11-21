@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Page } from '@playwright/test'
+import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test'
 
 export const PASSWORD = 'correct horse'
 const MAILPIT_URL = process.env.MAILPIT_URL ?? 'http://localhost:18025'
@@ -39,6 +39,50 @@ export function nameInMenu(page: Page, name: string) {
 /** Waits for Datastar to have started on `page`, so that what the test does next is not lost. */
 export async function datastarReady(page: Page) {
   await page.locator('body[data-ready]').waitFor({ state: 'attached' })
+}
+
+/** Runs `action`, which leads `page` to another page, and waits for Datastar to have started on
+ * that page. */
+export async function leadsElsewhere(page: Page, action: () => Promise<unknown>) {
+  const navigated = page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame())
+  await action()
+  await navigated
+  await datastarReady(page)
+}
+
+/** Follows `link`, and waits for Datastar to have started on the page it opens. */
+export async function follow(link: Locator) {
+  await leadsElsewhere(link.page(), () => link.click())
+}
+
+/** Counts, on every page `page` loads from now on, the actions Datastar starts, ends and retries. */
+export async function watchActions(page: Page) {
+  const install = () => {
+    const w = window as unknown as { gildaActions?: Record<string, number> }
+    if (w.gildaActions) return
+    const actions = { started: 0, finished: 0, retrying: 0 }
+    w.gildaActions = actions
+    document.addEventListener('datastar-fetch', (event) => {
+      const { type } = (event as CustomEvent<{ type: string }>).detail
+      if (type in actions) actions[type as keyof typeof actions] += 1
+    })
+  }
+  await page.addInitScript(install)
+  await page.evaluate(install)
+}
+
+/** Waits until no action Datastar started on `page` can be sent again: each one has ended and,
+ * unless `retries` allows them, none was waiting for a retry. Needs `watchActions(page)` first. */
+export async function actionsEnded(page: Page, { retries = false } = {}) {
+  const actions = () =>
+    page.evaluate(() => (window as unknown as { gildaActions: Record<string, number> }).gildaActions)
+  await expect
+    .poll(async () => {
+      const { started, finished, retrying } = await actions()
+      return (!retries && retrying > 0) || started === finished
+    })
+    .toBe(true)
+  if (!retries) expect((await actions()).retrying).toBe(0)
 }
 
 const GENERIC = 'Something went wrong. Try again.'

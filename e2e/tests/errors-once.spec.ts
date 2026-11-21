@@ -1,8 +1,16 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { PASSWORD, addSlot, createAccount, createAssociation, latestToken, signedIn, uniqueEmail, datastarReady } from './helpers'
-
-// Datastar's first retry comes about one second after a failure; this leaves room for it.
-const RETRY_WINDOW = 3000
+import {
+  PASSWORD,
+  actionsEnded,
+  addSlot,
+  createAccount,
+  createAssociation,
+  datastarReady,
+  latestToken,
+  signedIn,
+  uniqueEmail,
+  watchActions,
+} from './helpers'
 
 type Failure = 'network' | 'server'
 const FAILURES: Failure[] = ['network', 'server']
@@ -10,6 +18,7 @@ const FAILURES: Failure[] = ['network', 'server']
 /** Makes every send of an action to a path matching `path` fail, on the network or on the
  * server, and counts them. Loading the page itself (GET) goes through. */
 async function failEverySend(page: Page, path: RegExp, failure: Failure) {
+  await watchActions(page)
   const sends = { count: 0 }
   await page.route(
     (url) => path.test(url.pathname),
@@ -22,10 +31,10 @@ async function failEverySend(page: Page, path: RegExp, failure: Failure) {
   return sends
 }
 
-/** Waits for `expected` sends, then checks that no other follows. */
+/** Waits for `expected` sends and for the actions to end, then checks that no other followed. */
 async function expectSends(page: Page, sends: { count: number }, expected = 1) {
   await expect.poll(() => sends.count).toBeGreaterThanOrEqual(expected)
-  await page.waitForTimeout(RETRY_WINDOW)
+  await actionsEnded(page)
   expect(sends.count).toBe(expected)
 }
 
@@ -216,12 +225,13 @@ test.describe('Errors: a trigger sends its operation once', () => {
     })
     await page.goto('/')
     await datastarReady(page)
+    await watchActions(page)
     await fillSignIn(page, uniqueEmail('Nobody'), 'not the password')
 
     await page.getByRole('button', { name: 'Sign in' }).click()
 
     await expect(page.getByText('Wrong email or password.')).toBeVisible()
-    await page.waitForTimeout(RETRY_WINDOW)
+    await actionsEnded(page)
     expect(sends).toBe(1)
   })
 

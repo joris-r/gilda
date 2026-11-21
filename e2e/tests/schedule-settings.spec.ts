@@ -1624,6 +1624,7 @@ test.describe("Schedule settings: Members' preferences shown again", () => {
     await addMember(page.request, slug, 'Chloé')
 
     await hideThenShow(page)
+    // Nothing shows that a refresh will not come while the save runs, so this waits a while.
     await page.waitForTimeout(500)
 
     await expect(preferences(page).getByRole('row').filter({ hasText: 'Chloé' })).toHaveCount(0)
@@ -1665,8 +1666,13 @@ test.describe("Schedule settings: Members' preferences shown again", () => {
     })
     expect(response.status()).toBe(200)
     await addMember(brunoContext.request, slug, 'Zoé')
+    const answered = page.waitForResponse(
+      (response) => response.request().method() === 'GET' && new URL(response.url()).pathname.endsWith('/settings/preferences'),
+    )
 
     await hideThenShow(page)
+    await answered
+    // Nothing shows that the page is done with the failed answer, so this waits a while.
     await page.waitForTimeout(500)
 
     await expect(preferences(page).getByRole('row').filter({ hasText: 'Chloé' })).toHaveCount(1)

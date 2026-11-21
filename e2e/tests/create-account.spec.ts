@@ -23,6 +23,7 @@ test.describe('Create an account', () => {
 
     await page.getByRole('link', { name: 'Create an account' }).click()
     await expect(page.getByRole('heading', { name: 'Create an account' })).toBeVisible()
+    await datastarReady(page)
 
     await page.getByRole('link', { name: 'Sign in' }).click()
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()

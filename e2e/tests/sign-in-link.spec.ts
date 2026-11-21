@@ -22,6 +22,7 @@ test.describe('Sign-in link', () => {
 
     await page.getByRole('link', { name: 'Sign in with an email link' }).click()
     await expect(page.getByRole('heading', { name: 'Sign in with an email link' })).toBeVisible()
+    await datastarReady(page)
 
     await page.getByRole('link', { name: 'Back to Sign in' }).click()
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
@@ -91,6 +92,7 @@ test.describe('Access link', () => {
 
     await expect(page.locator('header').getByText('My associations')).toBeVisible()
     await expect(page).toHaveURL(/\/$/)
+    await datastarReady(page)
 
     await page.locator('header').getByRole('button', { name: 'Alice' }).click()
     await page.getByRole('button', { name: 'Sign out' }).click()

@@ -72,7 +72,7 @@ def expire(token: str) -> None:
 
 
 def assert_no_email_sent(email: str) -> None:
-    time.sleep(0.5)
+    """An email is sent within its request, so once the request answered, none came."""
     assert email_count(email) == 0
 
 

@@ -1,10 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
-import { PASSWORD, latestToken, nameInMenu, signIn, uniqueEmail, datastarReady } from './helpers'
+import { PASSWORD, datastarReady, follow, latestToken, nameInMenu, signIn, uniqueEmail } from './helpers'
 
 async function signUp(page: Page, displayName: string, email: string) {
   await page.goto('/')
   await datastarReady(page)
-  await page.getByText('Create an account', { exact: true }).click()
+  await follow(page.getByText('Create an account', { exact: true }))
   await page.getByLabel('Display name', { exact: true }).fill(displayName)
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
@@ -13,8 +13,8 @@ async function signUp(page: Page, displayName: string, email: string) {
 
   const token = await latestToken(email)
   await page.goto(`/verify-email?token=${token}`)
+  await expect(page.locator('header').getByText('My associations')).toBeVisible()
   await datastarReady(page)
-  await expect(page.getByText('My associations')).toBeVisible()
 }
 
 /** Opens the menu of the signed-in user, in the header, then signs out. */
@@ -22,6 +22,7 @@ async function signOut(page: Page) {
   await page.locator('header').getByRole('button').first().click()
   await page.getByText('Sign out', { exact: true }).click()
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
+  await datastarReady(page)
 }
 
 async function addMember(page: Page, displayName: string, email: string, role: string) {
@@ -57,20 +58,21 @@ function dayOfWeek(weekday: number, weeksAhead: number) {
 }
 
 async function openSchedule(page: Page, association: string) {
-  await page.getByText(association, { exact: true }).click()
+  await follow(page.getByText(association, { exact: true }))
 }
 
 /** Opens Members from the Schedule, by its link. */
 async function openMembers(page: Page) {
-  await page.getByRole('link', { name: 'Members', exact: true }).click()
+  await follow(page.getByRole('link', { name: 'Members', exact: true }))
   await expect(page).toHaveURL(/\/members$/)
 }
 
 async function createAssociation(page: Page, association: string) {
-  await page.getByRole('link', { name: 'New association' }).click()
+  await follow(page.getByRole('link', { name: 'New association' }))
   await page.getByLabel('Name', { exact: true }).fill(association)
   await page.getByRole('button', { name: 'Create association' }).click()
   await expect(page.locator('header').getByText(association)).toBeVisible()
+  await datastarReady(page)
 }
 
 /** The occurrence of a day, by its times ("10–13"), which its aria-label or its body's holds. */
@@ -91,10 +93,11 @@ test.describe('Scenarios', () => {
 
     await test.step('1. Alice creates her account and the association', async () => {
       await signUp(page, 'Alice', uniqueEmail('Alice'))
-      await page.getByRole('link', { name: 'New association' }).click()
+      await follow(page.getByRole('link', { name: 'New association' }))
       await page.getByLabel('Name', { exact: true }).fill(association)
       await page.getByRole('button', { name: 'Create association' }).click()
       await expect(page).toHaveURL(/\/association\/(?!new$)[\w-]+$/)
+      await datastarReady(page)
     })
 
     await test.step('2. Alice adds Bruno as manager, Chloé and David as volunteers', async () => {
@@ -143,11 +146,11 @@ test.describe('Scenarios', () => {
     await test.step('1. Alice adds the slots and a closure', async () => {
       await signUp(page, 'Alice', alice)
       await createAssociation(page, association)
-      await page.getByRole('link', { name: 'Members', exact: true }).click()
+      await follow(page.getByRole('link', { name: 'Members', exact: true }))
       await addMember(page, 'Chloé', chloe, 'Volunteer')
       await addMember(page, 'David', david, 'Volunteer')
-      await page.locator('header').getByRole('link', { name: association }).click()
-      await page.getByRole('link', { name: 'Schedule settings', exact: true }).click()
+      await follow(page.locator('header').getByRole('link', { name: association }))
+      await follow(page.getByRole('link', { name: 'Schedule settings', exact: true }))
 
       const slotForm = page.getByRole('dialog', { name: 'Add a slot' })
       for (const weekday of ['Thursday', 'Saturday']) {
@@ -228,22 +231,24 @@ test.describe('Scenarios', () => {
     const newPassword = 'battery staple'
     await signUp(page, 'Alice', alice)
     await signOut(page)
+    const confirmation = await latestToken(alice)
 
     await test.step('1. Alice asks for a reset link from Sign in', async () => {
-      await page.getByText('Forgot your password?', { exact: true }).click()
+      await follow(page.getByText('Forgot your password?', { exact: true }))
       await page.getByLabel('Email', { exact: true }).fill(alice)
       await page.getByRole('button', { name: 'Send a reset link' }).click()
       await expect(page.getByText(`If ${alice} has an account`)).toBeVisible()
     })
 
     await test.step('2. Alice opens the link and chooses a new password', async () => {
-      await page.waitForTimeout(10) // Mailpit orders by Created, at millisecond precision.
+      await expect.poll(() => latestToken(alice)).not.toBe(confirmation)
       const token = await latestToken(alice)
       await page.goto(`/reset-password?token=${token}`)
       await datastarReady(page)
       await page.getByLabel('New password', { exact: true }).fill(newPassword)
       await page.getByRole('button', { name: 'Set password' }).click()
-      await expect(page.getByText('My associations')).toBeVisible()
+      await expect(page.locator('header').getByText('My associations')).toBeVisible()
+      await datastarReady(page)
       await signOut(page)
     })
 
@@ -266,10 +271,11 @@ test.describe('Scenarios', () => {
 
     await test.step('1. Alice adds Chloé, who shows "not joined yet"', async () => {
       await signUp(page, 'Alice', alice)
-      await page.getByRole('link', { name: 'New association' }).click()
+      await follow(page.getByRole('link', { name: 'New association' }))
       await page.getByLabel('Name', { exact: true }).fill(association)
       await page.getByRole('button', { name: 'Create association' }).click()
       await expect(page).toHaveURL(/\/association\/(?!new$)[\w-]+$/)
+      await datastarReady(page)
       await openMembers(page)
       await addMember(page, 'Chloé', chloe, 'Volunteer')
       await expect(chloeLine).toContainText('not joined yet')
@@ -277,14 +283,14 @@ test.describe('Scenarios', () => {
     })
 
     await test.step('2. Chloé asks for a link and signs in with it', async () => {
-      await page.getByText('Sign in with an email link', { exact: true }).click()
+      await follow(page.getByText('Sign in with an email link', { exact: true }))
       await page.getByLabel('Email', { exact: true }).fill(chloe)
       await page.getByRole('button', { name: 'Send me a link' }).click()
       await expect(page.getByText(`If ${chloe} is known here`)).toBeVisible()
       link = `/access?token=${await latestToken(chloe)}`
       await page.goto(link)
+      await expect(page.locator('header').getByText('My associations')).toBeVisible()
       await datastarReady(page)
-      await expect(page.getByText('My associations')).toBeVisible()
       await expect(page.getByRole('listitem').filter({ hasText: association })).toContainText(
         /volunteer/i,
       )
@@ -293,8 +299,8 @@ test.describe('Scenarios', () => {
 
     await test.step('3. Chloé opens the link again and is signed in', async () => {
       await page.goto(link)
+      await expect(page.locator('header').getByText('My associations')).toBeVisible()
       await datastarReady(page)
-      await expect(page.getByText('My associations')).toBeVisible()
       await signOut(page)
     })
 
@@ -328,7 +334,7 @@ test.describe('Scenarios', () => {
     await test.step('1. Alice adds the slot Thursday 10–13 and signs up for it', async () => {
       await signUp(page, 'Alice', alice)
       await createAssociation(page, association)
-      await page.getByRole('link', { name: 'Schedule settings', exact: true }).click()
+      await follow(page.getByRole('link', { name: 'Schedule settings', exact: true }))
       await page.getByRole('button', { name: 'Add a slot' }).click()
       const slotForm = page.getByRole('dialog', { name: 'Add a slot' })
       await slotForm.getByRole('combobox', { name: /^Day/ }).selectOption({ label: 'Thursday' })
@@ -338,7 +344,7 @@ test.describe('Scenarios', () => {
       await expect(page.getByRole('listitem').filter({ hasText: 'Thursday' })).toContainText(
         '10:00–13:00',
       )
-      await page.locator('header').getByRole('link', { name: association }).click()
+      await follow(page.locator('header').getByRole('link', { name: association }))
       await occurrence(page, thursday.label, '10–13').click()
       await page.getByRole('button', { name: 'Sign up', exact: true }).click()
       await expect(occurrence(page, thursday.label, '10–13')).toContainText('Alice')
@@ -346,7 +352,7 @@ test.describe('Scenarios', () => {
 
     await test.step('2. Alice creates a share link and copies it', async () => {
       await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-      await page.getByRole('link', { name: 'Schedule settings', exact: true }).click()
+      await follow(page.getByRole('link', { name: 'Schedule settings', exact: true }))
       await page.getByRole('button', { name: 'Create a share link' }).click()
       await page.getByRole('button', { name: 'Copy', exact: true }).click()
       await expect(page.getByText('Link copied.')).toBeVisible()
@@ -364,8 +370,8 @@ test.describe('Scenarios', () => {
 
     await test.step('4. Alice revokes the share link', async () => {
       await signIn(page, alice)
-      await page.getByText(association, { exact: true }).click()
-      await page.getByRole('link', { name: 'Schedule settings', exact: true }).click()
+      await openSchedule(page, association)
+      await follow(page.getByRole('link', { name: 'Schedule settings', exact: true }))
       await page.getByRole('button', { name: 'Revoke the share link' }).click()
       await page.getByRole('button', { name: 'Revoke', exact: true }).click()
       await expect(page.getByRole('button', { name: 'Copy', exact: true })).toBeHidden()

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { PASSWORD, signedIn, datastarReady } from './helpers'
+import { PASSWORD, actionsEnded, datastarReady, signedIn, watchActions } from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const QUESTION =
@@ -62,6 +62,7 @@ test.describe('Delete my account', () => {
     await dialog.getByRole('button', { name: 'Delete my account' }).click()
 
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
+    await datastarReady(page)
     await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
     await page.getByRole('button', { name: 'Sign in' }).click()
@@ -108,6 +109,7 @@ test.describe('Forms: a confirmation', () => {
   // /ui/forms/cancel
   test('Cancel after a failed try changes nothing, later either', async ({ page, request }) => {
     await signedIn(page, request)
+    await watchActions(page)
     let failed = false
     await page.route('**/delete-account', (route) => {
       if (failed) return route.continue()
@@ -120,7 +122,7 @@ test.describe('Forms: a confirmation', () => {
     await expect(dialog.getByText(GENERIC)).toBeVisible()
     await dialog.getByRole('button', { name: 'Cancel' }).click()
 
-    await page.waitForTimeout(2000) // A retry of Datastar would come after one second.
+    await actionsEnded(page, { retries: true })
     await expectStillSignedIn(page)
   })
 
