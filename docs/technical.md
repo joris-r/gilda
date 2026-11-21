@@ -78,6 +78,10 @@
       worker, one per browser, runs on it.
     - The whole suite runs in at most 2 min 30 s on 8 cores, and a run
       reports no warning.
+    - Tests read a page as the browser shows it: through an HTML
+      parser, only its visible elements, their text unescaped; an SSE
+      patch as the HTML its `data: elements` lines rebuild. They find a
+      dialog by its name, never by its position on the page.
     - Mailpit keeps every email it catches; each backend run empties it
       before its tests start.
   - Test levels:

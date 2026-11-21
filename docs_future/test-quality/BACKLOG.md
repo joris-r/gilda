@@ -7,13 +7,7 @@ to the test policy of `technical.md` the rule it finds worth keeping.
 ## Outline
 
 1. Speed done
-2. Sturdy page reading, `tests-only`:
-   - Tests: the regex page helpers (`lines_of`, `line_of`, `section_of`…) would use an HTML parser, as `listed` does, read only the visible elements and unescape the text, so that nested lists, hidden copies and headings with an apostrophe read right.
-   - Tests: `shown()` would rebuild the HTML of each `datastar-patch-elements` event from its `data: elements` lines, so pytest reads a patch as the browser does and templates need not be sent on one line.
-   - Tests: the pytest tests that find a dialog by its position on the page would find it by its name.
-   - End-to-end: a helper would look up a display name on the Schedule within the menu (`#occurrence-menu`), since occurrences are buttons named after their registrations.
-   - Process: CLAUDE.md would gain three test rules: a test looks for text within the section or dialog it means, or for its visible copy (replacing the rule on the generic error's hidden copies); a test asserting only an absence also asserts something present; tests read from the database only what no screen shows (ids, rows already erased).
-   - Process: CLAUDE.md's rule on the generic error in `main` would say to filter visible elements in Playwright (`.filter({ visible: true })`), as the header's dialogs hold hidden copies (a return to Tests in polish-changed-identifier).
+2. Sturdy page reading done
 3. Flakiness and time, `tests-only`:
    - End-to-end: investigate the intermittent failure of one test per run (scenarios, notices); for notices, see the one-shot POST entry.
    - End-to-end: a shorter `actionTimeout`, so a suite failing on a missing screen ends fast.
