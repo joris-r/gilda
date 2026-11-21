@@ -96,3 +96,9 @@ class AccessLink(UUIDv7Base):
 
 class UserSession(SessionModelMixin):
     __tablename__ = "user_session"
+
+
+SESSION_USER_KEY = "user_id"
+"""The key of a session's data that holds the id of its user."""
+SESSION_LINK_KEY = "access_link_id"
+"""The key of a session's data that holds the id of the access link that opened it, if any."""

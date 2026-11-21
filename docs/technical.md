@@ -55,6 +55,8 @@
   only a session identifier, in an `HttpOnly` cookie.
   - A response stores its session, and sets the cookie, only when its
     request changed the session.
+  - The `session` cookie lasts a year; a stored session expires once
+    unused for 14 days.
 - Email is sent:
   - Production: handed to the server's local `sendmail` binary.
   - Development and tests: Mailpit, run alongside PostgreSQL in

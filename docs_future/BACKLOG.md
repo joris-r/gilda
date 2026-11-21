@@ -15,7 +15,7 @@
 
 - Notes: one definition of whitespace for an empty note: the Occurrence menu says "more than spaces", Set note trims spaces, tabs and line breaks, My availability calls it the empty note.
 - Frontend: a failed signal per dialog, so a dialog's generic error does not also show in the screen or menu behind it (the move and cancel dialogs of the Occurrence menu).
-- Session: a request running in parallel in the same session saves back an old copy (sign-out undone, notice claimed twice); keep static files out of the session middleware, or save only a session that changed. Drop the tab-less notice path if the backend tests are reworked.
+- Notices: drop the tab-less notice path if the backend tests are reworked.
 - Tooling: `make format` runs `ruff format` before `ruff check --fix`, so long lines get wrapped before the check stops.
 - Config: rename `FRONTEND_URL`, a name left from the former frontend, to the site's address (e.g. `SITE_URL`), in the code, the README and the hosting provider's settings, alongside another deploy change.
 - Access pages: when Confirm email succeeds on the server but its answer never reaches the browser, [Try again] shows "This link is no longer valid." though the email is confirmed; a pointer to Sign in there would help.
@@ -39,7 +39,8 @@
 - Accessibility: audit the screens with a screen reader and axe (e.g. in the e2e tests); the Schedule's occurrence labels, for one, cannot say that a registration is cancelled.
 - Cleanup: one helper for "today in the association's timezone", computed in five places of planning/services.py.
 - Create an account and Forgot password: a failed send keeps the previous link working.
-- Sessions: ask Litestar for a way to renew the session ID (e.g. on `set_session`), then drop the `SessionBackend` subclass.
+- Sessions: once Litestar saves only changed sessions and can renew the session ID, drop the `SessionBackend` subclass (see deps_feedback/).
+- Delete account: delete the user's other sessions, as /core/operations/delete-account/deleted says (they are only refused at load today).
 
 ## Security
 

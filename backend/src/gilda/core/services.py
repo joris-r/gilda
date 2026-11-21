@@ -292,11 +292,12 @@ async def send_access_link(links: AccessLinkRepository, user: User, language: La
 
 
 async def revoke_access_link(links: AccessLinkRepository, user_id: UUID) -> bool:
-    """Deletes the user's link; tells whether they had one."""
-    # R23: sessions opened by the link check it still exists (see find_current_user).
+    """Deletes the user's link, with the sessions it opened; tells whether they had one. The
+    sessions are deleted at once, so a request that fails afterwards keeps them deleted."""
     link = await links.get_one_or_none(user_id=user_id)
     if link is None:
         return False
+    await links.delete_sessions_opened_by(link.id)
     await links.delete(link.id)
     return True
 

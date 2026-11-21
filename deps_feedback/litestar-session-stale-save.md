@@ -1,7 +1,13 @@
 # Server-side sessions: a concurrent request saves back a stale copy
 
-Material for an issue or discussion with the maintainers of Litestar
-and Advanced Alchemy.
+Material for the maintainers of Litestar and Advanced Alchemy.
+
+> **Disclosure.** This defect has a security impact (see Security
+> impact). Report it privately, through a GitHub private security
+> advisory, rather than in a public issue: to Litestar, for the
+> middleware and `ServerSideSessionBackend`, and to Advanced Alchemy,
+> for the upsert in `SQLAlchemyAsyncSessionBackend.set` that recreates
+> a deleted row.
 
 ## Versions
 
@@ -59,6 +65,27 @@ last overwrites what the other did:
 - **No change needed to trigger it.** The overlapping request needs
   only to pass through the middleware: a static file such as a
   favicon, or any read-only page.
+
+## Security impact
+
+This applies to any application that uses Litestar's server-side
+sessions. Exploiting it needs no special access: only ordinary
+parallel requests from the same browser, which every page with
+assets makes.
+
+- **Sign-out does not hold.** A sign-out while other requests of the
+  session are in flight can be undone. On a shared device, the user
+  who signed out stays signed in.
+- **Rotation at sign-in can be undone.** An application that issues a
+  new session id at sign-in, against session fixation, can have the
+  old session recreated and the cookie pointed back at it, by a
+  request still in flight with the old id.
+- **Revocation can be defeated.** A session deleted on the server
+  (signed out elsewhere, revoked by an administrator, deleted with its
+  account or with a password change) is recreated by any of its
+  requests still in flight, static files included. A client that
+  keeps a request in flight at all times keeps the session alive. So
+  someone holding a stolen session id can outlive its revocation.
 
 ## Minimal reproduction
 
@@ -175,23 +202,47 @@ a message showing twice, or a sign-out that did not hold.
 
 We subclass `SQLAlchemyAsyncSessionBackend`. The subclass already
 replaced the session id on sign-in, because Litestar keeps the
-incoming cookie's id. To the subclass we add:
+incoming cookie's id. It now overrides two methods:
 
-1. A response stores the session, and sets the cookie, only when its
-   request changed the session. We compare the session with the copy
-   loaded at the start of the request.
-2. An existing session is stored by an `UPDATE` that never recreates
-   it. An `INSERT` happens only under a new id: one issued at sign-in,
-   or the first id of a browser without a cookie.
-3. No response sends a `Set-Cookie` that points back to a session id
-   that has been deleted.
+- `load_from_connection` calls the parent, then keeps the serialized
+  copy it loaded in `connection.state`. When the cookie names no stored
+  session, it keeps `None`.
+- `store_in_message` no longer calls the parent:
+  1. After `clear_session()`, it deletes the session the cookie names
+     and expires the cookie, as before.
+  2. When the session equals the copy loaded at the start of the
+     request, it writes nothing and sends no `Set-Cookie`. This covers
+     every static file and read-only page, and an empty session for a
+     request without a cookie.
+  3. When the request loaded a stored session and changed it, it writes
+     the data with an `UPDATE ... WHERE session_id = ... RETURNING
+     session_id`. It sets the cookie only if a row was updated. A
+     session deleted in the meantime stays deleted, and its id is not
+     sent back.
+  4. Otherwise (a sign-in, or a change in a request whose cookie named
+     no stored session), it inserts the session under a newly
+     generated id. On sign-in, it deletes the session the cookie named.
+- It builds the `Set-Cookie` header itself, from the config's cookie
+  parameters. The cookie's `Max-Age` is set apart from the session's
+  `max_age`. Responses that change nothing no longer refresh the
+  cookie, so a cookie tied to the session's `max_age` would expire
+  that long after the last change, even for a session in daily use.
+  `SQLAlchemyAsyncSessionBackend.get` already pushes `expires_at` back
+  on every read, so the stored session still expires only once it has
+  gone unused for `max_age`.
+
+One pitfall came up. The session backend writes through its own
+database connection, and `store_in_message` runs on
+`http.response.start`, before the plugin's `autocommit`
+`before_send_handler` commits the request's transaction. A request
+that deletes its own session row in its transaction (for example, a
+bulk delete of the sessions opened by a revoked credential) and then
+clears or changes its session waits forever on that row's lock. We
+run such deletes on a connection of their own, committed at once.
 
 When two requests that both change the session overlap, the one that
 finishes last still writes its whole copy. We accept that for our use.
 A key-by-key merge under a row lock would close that gap too.
-
-Expiry is unaffected: `SQLAlchemyAsyncSessionBackend.get` already
-pushes `expires_at` back on every read.
 
 ## What upstream could do
 
@@ -199,7 +250,9 @@ pushes `expires_at` back on every read.
   the loaded data, or a hash or dirty flag on the session dict, and
   skips `store_in_message` and its `Set-Cookie` when nothing changed.
   An option such as `save_on_change_only` would keep the current
-  behavior available.
+  behavior available. The cookie's lifetime would then need its own
+  setting, apart from the stored session's `max_age`, or sliding
+  expiry would be lost.
 - **Never resurrect a deleted session.** When the request came with an
   existing id, the store should update the session, not upsert it.
   Creating a key should be reserved for an id generated during the
