@@ -87,6 +87,10 @@
       unescaped; an SSE patch as the HTML its `data: elements` lines
       rebuild. They find a dialog by its name, never by its position on
       the page.
+    - Each statement of a `## General` section of the operations is
+      checked by one test over a table of the actions of the screens; a
+      route of the application that is neither in the table nor a page
+      fails it.
     - Mailpit keeps every email it catches; each backend run empties it
       before its tests start.
   - End-to-end: an action waits at most 5 s for its element. After each
