@@ -53,6 +53,8 @@
 - Passwords are stored hashed with Argon2, never in clear.
 - Sessions are server-side, stored in PostgreSQL; the browser keeps
   only a session identifier, in an `HttpOnly` cookie.
+  - A response stores its session, and sets the cookie, only when its
+    request changed the session.
 - Email is sent:
   - Production: handed to the server's local `sendmail` binary.
   - Development and tests: Mailpit, run alongside PostgreSQL in

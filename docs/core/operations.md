@@ -14,6 +14,8 @@ association of the screen.
   refused.
 - [unknown-association] An input `association` that does not exist:
   refused.
+- [stays-deleted] A deleted session is never stored again, not even
+  by a request made with it before its deletion.
 
 ## Initial state
 
