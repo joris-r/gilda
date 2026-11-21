@@ -8,10 +8,7 @@ to the test policy of `technical.md` the rule it finds worth keeping.
 
 1. Speed done
 2. Sturdy page reading done
-3. Flakiness and time, `tests-only`:
-   - End-to-end: investigate the intermittent failure of one test per run (scenarios, notices); for notices, see the one-shot POST entry.
-   - End-to-end: a shorter `actionTimeout`, so a suite failing on a missing screen ends fast.
-   - Tests: replace the fixed waits (10 `waitForTimeout` in the end-to-end tests, the 0.5 s sleeps of the backend tests) by waits on a condition, where one exists.
+3. Flakiness and time done
 4. Weak and missing tests, `tests-only`:
    - Tests: strengthen weak existing tests found by the migration: the e2e share-link revoke test never asserts "None", the only-member account deletion asserts only status 200, and the Schedule's date order is checked only through the column layout.
    - Quality: harden the e2e tests of Access link and Confirm email: Try again hidden while the action runs and the running text back after it; Try again failing again on Confirm email; a failure by network abort, not only a 500; and `getByText('My associations')` scoped in the Confirm email test.

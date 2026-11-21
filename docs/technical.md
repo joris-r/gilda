@@ -85,6 +85,12 @@
       the page.
     - Mailpit keeps every email it catches; each backend run empties it
       before its tests start.
+  - End-to-end: an action waits at most 5 s for its element. After each
+    load of a page (goto, reload, a link followed, an action leading to
+    another URL), a test waits for the page's `data-ready` before acting
+    on it.
+  - Tests wait on a condition, never for a fixed time, except to check
+    that nothing happens where nothing shows that it will not.
   - Test levels:
     - Backend: pytest, through Litestar's test client, against a real
       PostgreSQL. It observes what the server decides: the status, the
