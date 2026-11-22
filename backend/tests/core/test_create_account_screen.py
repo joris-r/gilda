@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+from tests.conftest import clock
 from tests.core.conftest import (
     PASSWORD,
     add_member,
@@ -163,9 +164,10 @@ class TestConfirmationEmail:
         create_account(client, "Alice", email)
         token = latest_verification_token(email)
 
-        expires_in = run_sql(
-            "SELECT expires_at - now() FROM email_verification_token WHERE token = :token", token
+        expires_at = run_sql(
+            "SELECT expires_at FROM email_verification_token WHERE token = :token", token
         )
+        expires_in = expires_at - clock.now()
 
         assert timedelta(hours=23, minutes=59) < expires_in <= timedelta(hours=24)
 
@@ -723,11 +725,8 @@ class TestConfirmEmailInvalidLink:
         email = unique_email("Alice")
         create_account(client, "Alice", email)
         token = latest_verification_token(email)
-        run_sql(
-            "UPDATE email_verification_token SET expires_at = now() - interval '1 second'"
-            " WHERE token = :token",
-            token,
-        )
+        # The link's 24 hours elapse.
+        clock.shift(timedelta(hours=24, seconds=1))
 
         self.assert_shows_the_message(confirm_email(client, token))
         assert signed_in_as(client) is None

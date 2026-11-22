@@ -2,13 +2,13 @@
 import html
 import re
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any
-from zoneinfo import ZoneInfo
 
 import pytest
 
-from tests.core.conftest import delete_association, run_sql_rows, unique_slug
+from tests.conftest import clock
+from tests.core.conftest import delete_association, unique_slug
 from tests.page import buttons_named, dialog_named, dialog_opened_by, parse
 from tests.planning.conftest import (
     GENERIC,
@@ -518,7 +518,7 @@ def notes_stored(planning: Planning) -> dict[str, str]:
 
 
 def paris_today() -> date:
-    return datetime.now(ZoneInfo("Europe/Paris")).date()
+    return clock.today("Europe/Paris")
 
 
 def dialog_titled(page: str, title: str) -> str:
@@ -600,24 +600,18 @@ class TestAbsences:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
+        first = paris_today()
+        add_absence(client, planning, first.isoformat(), (first + timedelta(days=4)).isoformat())
+        # 29 days pass: that absence ended long ago; the next one ends today.
+        clock.shift(timedelta(days=29))
+        last = paris_today()
+        add_absence(client, planning, (last - timedelta(days=6)).isoformat(), last.isoformat())
+        # A day passes: that absence now ended yesterday.
+        clock.shift(timedelta(days=1))
         today = paris_today()
-        yesterday = today - timedelta(days=1)
         week_ago = today - timedelta(days=7)
-        ended_long_ago = add_absence(client, planning, "2037-03-02", "2037-03-06")
-        ended_yesterday = add_absence(client, planning, "2037-04-06", "2037-04-10")
         add_absence(client, planning, week_ago.isoformat(), today.isoformat())
         add_absence(client, planning, "2037-11-09", "2037-11-15")
-        # Time passes: these two absences now end before today.
-        for absence, first, last in (
-            (ended_long_ago, date(2020, 1, 6), date(2020, 1, 10)),
-            (ended_yesterday, week_ago, yesterday),
-        ):
-            run_sql_rows(
-                "UPDATE absence SET first = :first, last = :last WHERE id = :id",
-                id=absence["id"],
-                first=first,
-                last=last,
-            )
 
         shown_lines = absences_shown(client, planning.slug)
 
@@ -1036,20 +1030,12 @@ class TestAddingAnAbsence:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
+        last = paris_today()
+        week_ago = last - timedelta(days=6)
+        add_absence(planning.bruno_client, planning, week_ago.isoformat(), last.isoformat())
+        # A day passes: the absence now ends before today.
+        clock.shift(timedelta(days=1))
         today = paris_today()
-        week_ago = today - timedelta(days=7)
-        ended = add_absence(
-            planning.bruno_client,
-            planning,
-            week_ago.isoformat(),
-            (today + timedelta(days=3)).isoformat(),
-        )
-        # Time passes: the absence now ends before today.
-        run_sql_rows(
-            "UPDATE absence SET last = :last WHERE id = :id",
-            id=ended["id"],
-            last=today - timedelta(days=1),
-        )
 
         text = shown(
             add_absence_on_screen(
@@ -1364,21 +1350,13 @@ class TestEditingAnAbsence:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
+        last = paris_today()
+        week_ago = last - timedelta(days=6)
+        add_absence(planning.bruno_client, planning, week_ago.isoformat(), last.isoformat())
+        # A day passes: the first absence now ends before today.
+        clock.shift(timedelta(days=1))
         today = paris_today()
-        week_ago = today - timedelta(days=7)
-        ended = add_absence(
-            planning.bruno_client,
-            planning,
-            week_ago.isoformat(),
-            (today + timedelta(days=3)).isoformat(),
-        )
         later = add_absence(planning.bruno_client, planning, "2037-12-21", "2038-01-03")
-        # Time passes: the first absence now ends before today.
-        run_sql_rows(
-            "UPDATE absence SET last = :last WHERE id = :id",
-            id=ended["id"],
-            last=today - timedelta(days=1),
-        )
 
         text = shown(
             edit_absence(

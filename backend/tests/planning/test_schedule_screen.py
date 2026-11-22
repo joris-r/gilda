@@ -2,14 +2,13 @@
 import html
 import re
 from collections.abc import Callable, Iterator
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
-from zoneinfo import ZoneInfo
 
 import pytest
-import time_machine
 
-from tests.core.conftest import delete_association, run_sql_rows, unique_slug
+from tests.conftest import clock
+from tests.core.conftest import delete_association, unique_slug
 from tests.page import parse
 from tests.planning.conftest import (
     GENERIC,
@@ -64,7 +63,7 @@ def items(day: str) -> list[str]:
 
 
 def today_in_paris() -> date:
-    return datetime.now(ZoneInfo("Europe/Paris")).date()
+    return clock.today("Europe/Paris")
 
 
 def thursdays(first: int, last: int) -> list[str]:
@@ -87,8 +86,8 @@ def thursdays_on_now(client: Any, new_client: Callable[[], Any]) -> Iterator[Pla
     Paris."""
     planning = Planning(client, new_client)
     planning.add_slot("thursday", "10:00", "13:00")
-    with time_machine.travel(NOW, tick=False):
-        yield planning
+    clock.move_to(NOW)
+    yield planning
 
 
 class TestScheduleHeader:
@@ -239,8 +238,8 @@ class TestDefaultWeeks:
         for weekday in WEEKDAYS:
             planning.add_slot(weekday, "10:00", "13:00")
 
-        with time_machine.travel(NOW, tick=False):
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         weeks = [entry for entry in entries if isinstance(entry, tuple)]
         assert weeks[1] == (
@@ -265,8 +264,8 @@ class TestDefaultWeeks:
         for weekday in WEEKDAYS:
             planning.add_slot(weekday, "10:00", "13:00")
 
-        with time_machine.travel(NOW, tick=False):
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         weeks = [entry for entry in entries if isinstance(entry, tuple)]
         assert weeks[0][1][0] == "Mon 2 Nov []"
@@ -306,8 +305,8 @@ class TestDefaultWeeks:
         planning.add_slot("thursday", "10:00", "13:00")
         period_set(planning, "2026-11-10", last)
 
-        with time_machine.travel(NOW, tick=False):
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         assert headings_of(entries) == weeks
 
@@ -319,8 +318,8 @@ class TestDefaultWeeks:
         planning.add_slot("thursday", "10:00", "13:00")
         period_set(planning, "2026-10-01", "2026-10-20")
 
-        with time_machine.travel(NOW, tick=False):
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         assert headings_of(entries) == WEEKS_OPENED
 
@@ -365,8 +364,8 @@ class TestToday:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
 
-        with time_machine.travel(now, tick=False):
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(now)
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         assert line in entries
         assert headings_of(entries)[0] == first_week
@@ -424,8 +423,8 @@ class TestTodayAndPeriodLines:
         planning.add_slot("thursday", "10:00", "13:00")
         period_set(planning, "2026-11-17", "2026-11-25")
 
-        with time_machine.travel(NOW, tick=False):
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         assert [e if isinstance(e, str) else e[0] for e in entries] == [
             "Week 45",
@@ -447,8 +446,8 @@ class TestTodayAndPeriodLines:
         planning.add_slot("thursday", "10:00", "13:00")
         period_set(planning, "2026-11-10", "2026-11-10")
 
-        with time_machine.travel(NOW, tick=False):
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         assert [e if isinstance(e, str) else e[0] for e in entries] == [
             "Week 45",
@@ -467,8 +466,8 @@ class TestTodayAndPeriodLines:
         planning.add_slot("thursday", "10:00", "13:00")
         period_set(planning, "2026-11-03", "2026-11-05")
 
-        with time_machine.travel(NOW, tick=False):
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         assert [e if isinstance(e, str) else e[0] for e in entries] == [
             "Planning start · Tuesday 3 November 2026",
@@ -486,8 +485,8 @@ class TestTodayAndPeriodLines:
         planning.add_slot("thursday", "10:00", "13:00")
         period_set(planning, "2026-10-01", "2026-11-25")
 
-        with time_machine.travel(NOW, tick=False):
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         lines = [entry for entry in entries if isinstance(entry, str)]
         assert lines == [
@@ -501,12 +500,12 @@ class TestTodayAndPeriodLines:
     ) -> None:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
-        with time_machine.travel(NOW, tick=False):
-            without = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        without = schedule_shown(planning.bruno_client, planning.slug)
         period_set(planning, "2026-10-01", "2026-10-20")
 
-        with time_machine.travel(NOW, tick=False):
-            past = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        past = schedule_shown(planning.bruno_client, planning.slug)
 
         for entries in (without, past):
             assert [e for e in entries if isinstance(e, str)] == ["Today · Monday 9 November 2026"]
@@ -520,8 +519,8 @@ class TestTodayAndPeriodLines:
         period_set(planning, "2026-11-17", "2026-11-25")
         planning.bruno_client.cookies.set("language", "fr")
 
-        with time_machine.travel(NOW, tick=False):
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         assert [e if isinstance(e, str) else e[0] for e in entries][:5] == [
             "Semaine 45",
@@ -542,8 +541,8 @@ class TestColumns:
         planning.add_slot("thursday", "14:00", "17:00")
         planning.add_slot("thursday", "10:00", "13:00")
 
-        with time_machine.travel(NOW, tick=False):
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         weeks = [entry for entry in entries if isinstance(entry, tuple)]
         assert weeks[1] == ("Week 46", ["Thu 12 Nov [] []", "Sat 14 Nov []"])
@@ -556,9 +555,9 @@ class TestColumns:
         planning.add_slot("thursday", "10:00", "13:00")
         planning.add_slot("saturday", "10:00", "13:00")
 
-        with time_machine.travel(NOW, tick=False):
-            shown(add_closure_on_screen(client, planning.slug, "2026-11-14", "2026-11-14", "Fête"))
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        shown(add_closure_on_screen(client, planning.slug, "2026-11-14", "2026-11-14", "Fête"))
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         weeks = [entry for entry in entries if isinstance(entry, tuple)]
         assert weeks[1] == ("Week 46", ["Thu 12 Nov []", "Sat 14 Nov Closed Fête"])
@@ -835,8 +834,8 @@ class TestNoOpenings:
     ) -> None:
         planning = Planning(client, new_client)
 
-        with time_machine.travel(NOW, tick=False):
-            entries = schedule_shown(client, planning.slug)
+        clock.move_to(NOW)
+        entries = schedule_shown(client, planning.slug)
 
         assert entries == []
 
@@ -848,10 +847,10 @@ class TestNoOpenings:
         planning = Planning(client, new_client)
         planning.add_slot("saturday", "10:00", "13:00")
 
-        with time_machine.travel(NOW, tick=False):
-            planning.add_closure("2026-11-02", "2026-12-13", "Vacances")
-            main = collapsed(part(schedule_page(client, planning.slug), "main"))
-            entries = schedule_shown(client, planning.slug)
+        clock.move_to(NOW)
+        planning.add_closure("2026-11-02", "2026-12-13", "Vacances")
+        main = collapsed(part(schedule_page(client, planning.slug), "main"))
+        entries = schedule_shown(client, planning.slug)
 
         assert EMPTY in main
         assert main.index(EMPTY) < main.index("Week 45")
@@ -874,9 +873,9 @@ class TestNoOpenings:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
 
-        with time_machine.travel(NOW, tick=False):
-            planning.add_closure("2026-11-12", "2026-11-12", "Travaux")
-            page = schedule_page(client, planning.slug)
+        clock.move_to(NOW)
+        planning.add_closure("2026-11-12", "2026-11-12", "Travaux")
+        page = schedule_page(client, planning.slug)
 
         assert EMPTY not in page
 
@@ -889,9 +888,9 @@ class TestNoOpenings:
         planning.add_slot("saturday", "10:00", "13:00")
         client.cookies.set("language", "fr")
 
-        with time_machine.travel(NOW, tick=False):
-            planning.add_closure("2026-11-02", "2026-12-13", "Vacances")
-            main = collapsed(part(schedule_page(client, planning.slug), "main"))
+        clock.move_to(NOW)
+        planning.add_closure("2026-11-02", "2026-12-13", "Vacances")
+        main = collapsed(part(schedule_page(client, planning.slug), "main"))
 
         assert main.index("Aucune ouverture sur ces semaines.") < main.index("Semaine 45")
 
@@ -972,14 +971,9 @@ class TestClosures:
     ) -> None:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
-        travaux = planning.add_closure(day_of_week("monday"), day_of_week("sunday"), "Travaux")
-        # Time passes: the closure now ended before the current week.
-        run_sql_rows(
-            "UPDATE closure SET first = :first, last = :last WHERE id = :id",
-            id=travaux["id"],
-            first=date.fromisoformat(day_of_week("monday", -4)),
-            last=date.fromisoformat(day_of_week("sunday", -1)),
-        )
+        planning.add_closure(day_of_week("monday", 1), day_of_week("sunday", 4), "Travaux")
+        # Five weeks pass: the closure now ended before the current week.
+        clock.shift(timedelta(weeks=5))
 
         entries = schedule_shown(client, planning.slug)
 
@@ -1027,9 +1021,9 @@ class TestClosedDays:
         planning.add_slot("thursday", "10:00", "13:00")
         planning.add_slot("saturday", "10:00", "13:00")
 
-        with time_machine.travel(NOW, tick=False):
-            planning.add_closure("2026-11-06", "2026-12-13", "Vacances")
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        planning.add_closure("2026-11-06", "2026-12-13", "Vacances")
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         saturdays = ["2026-11-07", "2026-11-14", "2026-11-21", "2026-11-28", "2026-12-05"]
         assert [day_in(entries, day) for day in saturdays] == ["Closed Vacances"] * 5
@@ -1045,9 +1039,9 @@ class TestClosedDays:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
 
-        with time_machine.travel(NOW, tick=False):
-            planning.add_closure("2026-11-14", "2026-11-18", "Travaux")
-            entries = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(NOW)
+        planning.add_closure("2026-11-14", "2026-11-18", "Travaux")
+        entries = schedule_shown(planning.bruno_client, planning.slug)
 
         assert day_in(entries, "2026-11-19") == "[]"
         days = [text for entry in entries if isinstance(entry, tuple) for text in entry[1]]
@@ -1062,12 +1056,12 @@ class TestClosedDays:
         planning.add_slot("thursday", "10:00", "13:00")
         planning.add_slot("saturday", "10:00", "13:00")
 
-        with time_machine.travel(NOW, tick=False):
-            planning.add_closure("2026-12-14", "2026-12-20", "Fêtes")
-            before = schedule_shown(planning.bruno_client, planning.slug)
-            more = schedule_entries(
-                shown(more_weeks(planning.bruno_client, planning.slug, "2026-11-02", "2026-12-13"))
-            )
+        clock.move_to(NOW)
+        planning.add_closure("2026-12-14", "2026-12-20", "Fêtes")
+        before = schedule_shown(planning.bruno_client, planning.slug)
+        more = schedule_entries(
+            shown(more_weeks(planning.bruno_client, planning.slug, "2026-11-02", "2026-12-13"))
+        )
 
         assert "Closed" not in str(before)
         assert day_in(more, "2026-12-19") == "Closed Fêtes"
@@ -1080,11 +1074,9 @@ class TestClosedDays:
         planning = Planning(client, new_client)
         planning.add_slot("saturday", "10:00", "13:00")
 
-        with time_machine.travel(NOW, tick=False):
-            planning.add_closure("2026-11-02", "2026-12-13", "Vacances")
-            text = shown(
-                more_weeks(planning.bruno_client, planning.slug, "2026-11-02", "2026-12-13")
-            )
+        clock.move_to(NOW)
+        planning.add_closure("2026-11-02", "2026-12-13", "Vacances")
+        text = shown(more_weeks(planning.bruno_client, planning.slug, "2026-11-02", "2026-12-13"))
 
         entries = schedule_entries(text)
         assert len(headings_of(entries)) == 10
@@ -1099,9 +1091,9 @@ class TestClosedDays:
         planning.add_slot("saturday", "10:00", "13:00")
         client.cookies.set("language", "fr")
 
-        with time_machine.travel(NOW, tick=False):
-            planning.add_closure("2026-11-06", "2026-12-13", "Vacances")
-            entries = schedule_shown(client, planning.slug)
+        clock.move_to(NOW)
+        planning.add_closure("2026-11-06", "2026-12-13", "Vacances")
+        entries = schedule_shown(client, planning.slug)
 
         days = [text for entry in entries if isinstance(entry, tuple) for text in entry[1]]
         assert any(
@@ -1145,8 +1137,8 @@ class TestWeeksAgain:
         assert opens_menu(before, "2026-11-12")
 
         # 00:30 in Paris on Friday 13 November, still Thursday in UTC.
-        with time_machine.travel(datetime(2026, 11, 12, 23, 30, tzinfo=UTC), tick=False):
-            after = weeks_again(planning.bruno_client, planning.slug, self.FIRST, self.LAST).text
+        clock.move_to(datetime(2026, 11, 12, 23, 30, tzinfo=UTC))
+        after = weeks_again(planning.bruno_client, planning.slug, self.FIRST, self.LAST).text
 
         assert "Today · Monday 9 November 2026" in schedule_entries(before)
         assert "Today · Friday 13 November 2026" in schedule_entries(after)

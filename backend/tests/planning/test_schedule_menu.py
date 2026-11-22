@@ -6,8 +6,8 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
-import time_machine
 
+from tests.conftest import clock
 from tests.page import dialog_named, dialogs_named
 from tests.planning.conftest import (
     GENERIC,
@@ -107,7 +107,7 @@ def menu_text(as_client: Any, slug: str, day: str) -> str:
 
 
 def today_in_paris() -> date:
-    return datetime.now(ZoneInfo("Europe/Paris")).date()
+    return clock.today("Europe/Paris")
 
 
 class TestMenu:
@@ -131,8 +131,8 @@ class TestMenu:
         planning.add_slot("thursday", "10:00", "13:00")
         planning.bruno_client.cookies.set("language", "fr")
 
-        with time_machine.travel(datetime(2026, 11, 9, 9, 0, tzinfo=UTC), tick=False):
-            text = menu_text(planning.bruno_client, planning.slug, "2026-11-12")
+        clock.move_to(datetime(2026, 11, 9, 9, 0, tzinfo=UTC))
+        text = menu_text(planning.bruno_client, planning.slug, "2026-11-12")
 
         assert "jeu. 12 nov. · 10–13" in text
         assert "S'inscrire" in text
@@ -353,8 +353,8 @@ class TestLoadOfTheMenu:
         weeks = opened_weeks()
 
         # 00:30 in Paris on the day after, still the Thursday in UTC.
-        with time_machine.travel(after(thursday, 0, 30), tick=False):
-            text = shown(open_menu(as_client, planning.slug, thursday, "10:00", "13:00", weeks))
+        clock.move_to(after(thursday, 0, 30))
+        text = shown(open_menu(as_client, planning.slug, thursday, "10:00", "13:00", weeks))
 
         assert self.title(thursday) in text
         assert PAST in text
@@ -370,10 +370,10 @@ class TestLoadOfTheMenu:
         planning, thursday = thursday_planning(client, new_client)
         weeks = opened_weeks()
 
-        with time_machine.travel(after(thursday, 0, 30), tick=False):
-            text = shown(
-                open_menu(planning.bruno_client, planning.slug, thursday, "10:00", "13:00", weeks)
-            )
+        clock.move_to(after(thursday, 0, 30))
+        text = shown(
+            open_menu(planning.bruno_client, planning.slug, thursday, "10:00", "13:00", weeks)
+        )
 
         entries = schedule_entries(text)
         assert day_in(entries, thursday) == "[]"
@@ -388,12 +388,12 @@ class TestLoadOfTheMenu:
         planning, thursday = thursday_planning(client, new_client)
         planning.bruno_client.cookies.set("language", "fr")
 
-        with time_machine.travel(after(thursday, 0, 30), tick=False):
-            text = shown(
-                open_menu(
-                    planning.bruno_client, planning.slug, thursday, "10:00", "13:00", opened_weeks()
-                )
+        clock.move_to(after(thursday, 0, 30))
+        text = shown(
+            open_menu(
+                planning.bruno_client, planning.slug, thursday, "10:00", "13:00", opened_weeks()
             )
+        )
 
         assert "Ce jour est passé." in text
 
@@ -405,11 +405,11 @@ class TestLoadOfTheMenu:
         planning, thursday = thursday_planning(client, new_client)
         weeks = opened_weeks()
 
-        with time_machine.travel(after(thursday, 0, 30), tick=False):
-            response = open_menu(
-                planning.bruno_client, planning.slug, thursday, "14:00", "15:00", weeks
-            )
-            text = shown(response)
+        clock.move_to(after(thursday, 0, 30))
+        response = open_menu(
+            planning.bruno_client, planning.slug, thursday, "14:00", "15:00", weeks
+        )
+        text = shown(response)
 
         assert PAST in text
         assert GENERIC not in text_of(text)
@@ -1185,25 +1185,23 @@ class TestSignUp:
     def test_today_is_in_the_associations_timezone(
         self, client: Any, new_client: Callable[[], Any], now: datetime, day: date, taken: bool
     ) -> None:
-        with time_machine.travel(now, tick=False):
-            planning = Planning(client, new_client)
-            planning.add_slot(WEEKDAYS[day.weekday()], "10:00", "13:00")
-            monday = day.toordinal() - day.weekday()
-            weeks = {
-                "from": date.fromordinal(monday - 7).isoformat(),
-                "to": date.fromordinal(monday + 13).isoformat(),
-            }
+        clock.move_to(now)
+        planning = Planning(client, new_client)
+        planning.add_slot(WEEKDAYS[day.weekday()], "10:00", "13:00")
+        monday = day.toordinal() - day.weekday()
+        weeks = {
+            "from": date.fromordinal(monday - 7).isoformat(),
+            "to": date.fromordinal(monday + 13).isoformat(),
+        }
 
-            text = shown(
-                sign_up_for(
-                    planning.bruno_client, planning.slug, day.isoformat(), "10:00", "13:00", weeks
-                )
+        text = shown(
+            sign_up_for(
+                planning.bruno_client, planning.slug, day.isoformat(), "10:00", "13:00", weeks
             )
+        )
 
-            assert (GENERIC not in text) == taken, text
-            assert day_shown(client, planning.slug, day.isoformat()) == (
-                "[Bruno]" if taken else "[]"
-            )
+        assert (GENERIC not in text) == taken, text
+        assert day_shown(client, planning.slug, day.isoformat()) == ("[Bruno]" if taken else "[]")
 
     # /planning/operations/register/no-occurrence
     # /ui/errors/generic
@@ -1628,15 +1626,13 @@ class TestChangeAPastRegistration:
         planning, thursday, registration = proposed_to_bruno(client, new_client)
 
         # 00:30 in Paris, still the Thursday in UTC.
-        with time_machine.travel(self.on(self.the_day_after(thursday), 0, 30), tick=False):
-            text = shown(
-                confirm_registration(planning.bruno_client, planning.slug, registration["id"])
-            )
+        clock.move_to(self.on(self.the_day_after(thursday), 0, 30))
+        text = shown(confirm_registration(planning.bruno_client, planning.slug, registration["id"]))
 
-            assert PAST in text
-            assert GENERIC not in text_of(text)
-            assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"
-            assert_stays_open_with_weeks(text, thursday)
+        assert PAST in text
+        assert GENERIC not in text_of(text)
+        assert day_shown(client, planning.slug, thursday) == "[Bruno ?]"
+        assert_stays_open_with_weeks(text, thursday)
 
     # /planning/operations/change-registration/past
     # /planning/ui/schedule/past
@@ -1650,14 +1646,14 @@ class TestChangeAPastRegistration:
         )
         as_client = client if by_manager else planning.bruno_client
 
-        with time_machine.travel(self.on(self.the_day_after(thursday), 10), tick=False):
-            text = shown(cancel_registration(as_client, planning.slug, registration["id"]))
+        clock.move_to(self.on(self.the_day_after(thursday), 10))
+        text = shown(cancel_registration(as_client, planning.slug, registration["id"]))
 
-            assert PAST in text
-            assert GENERIC not in text_of(text)
-            assert day_shown(client, planning.slug, thursday) == "[Bruno]"
-            assert_in_element(text, "cancel-registration-error", PAST)
-            assert_stays_open_with_weeks(text, thursday)
+        assert PAST in text
+        assert GENERIC not in text_of(text)
+        assert day_shown(client, planning.slug, thursday) == "[Bruno]"
+        assert_in_element(text, "cancel-registration-error", PAST)
+        assert_stays_open_with_weeks(text, thursday)
 
     # /planning/operations/change-registration/past
     # /planning/operations/change-registration/confirm
@@ -1667,17 +1663,17 @@ class TestChangeAPastRegistration:
     ) -> None:
         planning, thursday, registration = proposed_to_bruno(client, new_client)
 
-        with time_machine.travel(self.on(thursday, 22), tick=False):
-            confirmed = shown(
-                confirm_registration(planning.bruno_client, planning.slug, registration["id"])
-            )
-            cancelled = shown(
-                cancel_registration(planning.bruno_client, planning.slug, registration["id"])
-            )
+        clock.move_to(self.on(thursday, 22))
+        confirmed = shown(
+            confirm_registration(planning.bruno_client, planning.slug, registration["id"])
+        )
+        cancelled = shown(
+            cancel_registration(planning.bruno_client, planning.slug, registration["id"])
+        )
 
-            assert GENERIC not in confirmed
-            assert GENERIC not in cancelled
-            assert day_shown(client, planning.slug, thursday) == "[~~Bruno~~]"
+        assert GENERIC not in confirmed
+        assert GENERIC not in cancelled
+        assert day_shown(client, planning.slug, thursday) == "[~~Bruno~~]"
 
 
 class TestCancelRegistration:
@@ -2047,18 +2043,14 @@ class TestTakeOver:
             planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
         )
 
-        with time_machine.travel(
-            TestChangeAPastRegistration.on(TestChangeAPastRegistration.the_day_after(thursday), 10),
-            tick=False,
-        ):
-            text = take_over(
-                planning.bruno_client, planning, registration, planning.bruno, thursday
-            )
+        day_after = TestChangeAPastRegistration.the_day_after(thursday)
+        clock.move_to(TestChangeAPastRegistration.on(day_after, 10))
+        text = take_over(planning.bruno_client, planning, registration, planning.bruno, thursday)
 
-            assert GENERIC not in text_of(text)
-            assert_in_element(text, TAKE_OVER_ERROR, PAST)
-            assert_stays_open_with_weeks(text, thursday)
-            assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+        assert GENERIC not in text_of(text)
+        assert_in_element(text, TAKE_OVER_ERROR, PAST)
+        assert_stays_open_with_weeks(text, thursday)
+        assert day_shown(client, planning.slug, thursday) == "[Chloé]"
 
 
 class TestMove:
@@ -2135,17 +2127,15 @@ class TestMove:
             planning.chloe_client, planning.chloe, thursday, "10:00", "13:00"
         )
 
-        with time_machine.travel(
-            TestChangeAPastRegistration.on(TestChangeAPastRegistration.the_day_after(thursday), 10),
-            tick=False,
-        ):
-            text = give(client, planning, registration, planning.bruno, thursday)
+        day_after = TestChangeAPastRegistration.the_day_after(thursday)
+        clock.move_to(TestChangeAPastRegistration.on(day_after, 10))
+        text = give(client, planning, registration, planning.bruno, thursday)
 
-            assert PAST in text
-            assert GENERIC not in text_of(text)
-            assert_in_element(text, f"move-error-{planning.bruno['id']}", PAST)
-            assert_stays_open_with_weeks(text, thursday)
-            assert day_shown(client, planning.slug, thursday) == "[Chloé]"
+        assert PAST in text
+        assert GENERIC not in text_of(text)
+        assert_in_element(text, f"move-error-{planning.bruno['id']}", PAST)
+        assert_stays_open_with_weeks(text, thursday)
+        assert day_shown(client, planning.slug, thursday) == "[Chloé]"
 
     # /planning/operations/register/taken
     # /planning/ui/schedule/taken

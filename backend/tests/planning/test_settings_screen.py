@@ -2,13 +2,14 @@
 import html
 import re
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
 
-from tests.core.conftest import delete_association, run_sql_rows, unique_slug
+from tests.conftest import clock
+from tests.core.conftest import delete_association, unique_slug
 from tests.page import buttons_named, dialog_named, dialog_opened_by
 from tests.planning.conftest import (
     GENERIC,
@@ -73,21 +74,11 @@ DELETE_SLOT_WARNING = (
 
 
 def paris_today() -> date:
-    return datetime.now(ZoneInfo("Europe/Paris")).date()
+    return clock.today("Europe/Paris")
 
 
 def days_from_today(days: int) -> str:
     return (paris_today() + timedelta(days=days)).isoformat()
-
-
-def move_closure(closure: dict[str, Any], first: str, last: str) -> None:
-    """Time passes: the closure now covers `first` to `last`, as no operation can set it so."""
-    run_sql_rows(
-        "UPDATE closure SET first = :first, last = :last WHERE id = :id",
-        id=closure["id"],
-        first=date.fromisoformat(first),
-        last=date.fromisoformat(last),
-    )
 
 
 def slots_shown(client: Any, slug: str) -> list[str]:
@@ -1157,16 +1148,15 @@ class TestClosures:
     def test_lists_the_closures_ending_today_or_later_and_not_the_earlier_ones(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
+        # Noon in Paris, so that 30 days of the clock are 30 days in Paris.
+        clock.move_to(datetime.combine(paris_today(), time(12), ZoneInfo("Europe/Paris")))
         planning = Planning(client, new_client)
-        ended_long_ago = planning.add_closure("2037-03-02", "2037-03-06", "Ended long ago")
-        ended_yesterday = planning.add_closure("2037-04-06", "2037-04-10", "Ended yesterday")
-        ends_today = planning.add_closure("2037-05-04", "2037-05-08", "Ends today")
-        ends_tomorrow = planning.add_closure("2037-06-01", "2037-06-05", "Ends tomorrow")
-        # Time passes: the first two now ended before today, the third ends today.
-        move_closure(ended_long_ago, "2020-01-06", "2020-01-10")
-        move_closure(ended_yesterday, days_from_today(-7), days_from_today(-1))
-        move_closure(ends_today, days_from_today(-7), days_from_today(0))
-        move_closure(ends_tomorrow, days_from_today(0), days_from_today(1))
+        planning.add_closure(days_from_today(0), days_from_today(4), "Ended long ago")
+        planning.add_closure(days_from_today(23), days_from_today(29), "Ended yesterday")
+        planning.add_closure(days_from_today(23), days_from_today(30), "Ends today")
+        planning.add_closure(days_from_today(30), days_from_today(31), "Ends tomorrow")
+        # 30 days pass: the first two now ended before today, the third ends today.
+        clock.shift(timedelta(days=30))
 
         lines = closures_shown(client, planning.slug)
 
@@ -1179,10 +1169,8 @@ class TestClosures:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        later = planning.add_closure("2037-09-07", "2037-09-11", "Later")
-        current = planning.add_closure("2037-06-01", "2037-06-05", "Current")
-        move_closure(current, days_from_today(-3), days_from_today(3))
-        move_closure(later, days_from_today(10), days_from_today(12))
+        planning.add_closure(days_from_today(10), days_from_today(12), "Later")
+        planning.add_closure(days_from_today(-3), days_from_today(3), "Current")
 
         lines = closures_shown(client, planning.slug)
 
@@ -1193,8 +1181,9 @@ class TestClosures:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        closure = planning.add_closure("2037-04-06", "2037-04-10", "Ended yesterday")
-        move_closure(closure, days_from_today(-7), days_from_today(-1))
+        planning.add_closure(days_from_today(-6), days_from_today(0), "Ended yesterday")
+        # A day passes: the closure now ended before today.
+        clock.shift(timedelta(days=1))
 
         assert closures_shown(client, planning.slug) == []
         assert "None" in settings_section(client, planning.slug, "Closures")
@@ -1744,9 +1733,9 @@ class TestEditingAClosure:
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
-        closure = planning.add_closure("2037-11-14", "2037-11-14", "Fête du quartier")
-        # Time passes: the closure now ended before today.
-        move_closure(closure, days_from_today(-7), days_from_today(-1))
+        closure = planning.add_closure(days_from_today(-6), days_from_today(0), "Fête du quartier")
+        # A day passes: the closure now ended before today.
+        clock.shift(timedelta(days=1))
 
         shown(edit_closure(client, planning.slug, closure["id"], "2037-11-14", "2037-11-16", "Now"))
 

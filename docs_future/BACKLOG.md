@@ -22,6 +22,7 @@ What the software gets wrong today, against the specification or the user.
 - Access pages: when Confirm email succeeds but its answer never reaches the browser, [Try again] says "This link is no longer valid." though the email is confirmed; point to Sign in there.
 - Notes: one definition of an empty note (the Occurrence menu says "more than spaces", Set note trims spaces, tabs and line breaks, My availability calls it the empty note).
 - Association: refuse a name made only of spaces, at creation and on rename.
+- Forms submit natively (GET) if submitted before Datastar starts; a slow network lets a user hit it.
 
 ## Security
 
@@ -43,6 +44,7 @@ What the software gets wrong today, against the specification or the user.
 - Backend: replace Advanced Alchemy's deprecated repository `list()` (removed in 2.0.0) by `get_many`, then narrow the warning filter of `pyproject.toml` to the library's import-time warnings.
 - Tooling: pin the Mailpit image in `compose.yaml` (`latest` today), so a Mailpit change stops breaking the email helpers unannounced (see deps_feedback/mailpit-01-test-quirks/).
 - Sessions: drop the `SessionBackend` subclass once Litestar saves only changed sessions and can renew the session ID (see deps_feedback/litestar-01-session-stale-save/).
+- End-to-end: return to TypeScript 7 once typescript-eslint supports it (see deps_feedback/typescript-eslint-01-ts7/).
 
 ## Code and tooling
 
@@ -50,3 +52,7 @@ What the software gets wrong today, against the specification or the user.
 - Frontend: reset `$_failed` once when a dialog opens (a shared macro or a `toggle` listener) instead of in each opener (six had forgotten it); give the actions run on opening (Access link, Confirm email) a shared failure-with-retry component instead of the layout's `after_error` block per page.
 - Cleanup: purge expired sessions (Advanced Alchemy's `delete_expired`) and expired email confirmation and password reset tokens regularly.
 - End-to-end: run the suite on Firefox and WebKit too; the menu and dialog rely on `popover`, `commandfor` and CSS anchor positioning.
+- End-to-end: type-aware ESLint (`no-floating-promises`) to catch a missing await on a Playwright action.
+- Remove `_one_line()` from `planning/pages.py`, now that `shown()` rebuilds patches (`code-only`).
+- Tests read action responses through `patched()` and the page readers, not raw `in shown()` / `unescape(page)` text (`tests-only`).
+- Defensive guards no specified path reaches (core/planning/home re-checks, 'Give a name or a slug.', 'Give both from and to, or neither.', preference refusals, registration back to proposed, take-over error without the flag): keep or remove as dead code.

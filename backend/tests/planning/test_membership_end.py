@@ -1,15 +1,15 @@
 import asyncio
 import os
 from collections.abc import Callable
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
-import time_machine
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from tests.conftest import clock
 from tests.core.conftest import remove_member, shown
 from tests.planning.conftest import (
     WEEKDAYS,
@@ -26,26 +26,6 @@ from tests.planning.conftest import (
 )
 
 THURSDAY = ("10:00", "13:00")
-
-
-def move_two_weeks_back(registration: dict[str, Any]) -> str:
-    """Moves a registration two weeks back, to the same weekday of the week before the current
-    one, which no screen can do."""
-
-    async def run() -> str:
-        engine = create_async_engine(os.environ["DATABASE_URL"])
-        async with engine.begin() as connection:
-            result = await connection.execute(
-                text(
-                    "UPDATE registration SET date = date - 14 WHERE id = :id RETURNING date::text"
-                ),
-                {"id": registration["id"]},
-            )
-            day: str = result.scalar_one()
-        await engine.dispose()
-        return day
-
-    return asyncio.run(run())
 
 
 def preferences_held(user: dict[str, Any]) -> int:
@@ -131,16 +111,16 @@ def test_a_registration_today_becomes_cancelled(
     client: Any, new_client: Callable[[], Any], end: Callable[[Planning], None]
 ) -> None:
     paris = ZoneInfo("Europe/Paris")
-    today = datetime.now(paris).date()
-    with time_machine.travel(datetime.combine(today, time(14), paris), tick=False):
-        planning = Planning(client, new_client)
-        planning.add_slot(WEEKDAYS[today.weekday()], *THURSDAY)
-        planning.registered(planning.bruno_client, planning.bruno, today.isoformat(), *THURSDAY)
-        assert registration_on(planning, today.isoformat()) == "[Bruno]"
+    today = clock.today("Europe/Paris")
+    clock.move_to(datetime.combine(today, time(14), paris))
+    planning = Planning(client, new_client)
+    planning.add_slot(WEEKDAYS[today.weekday()], *THURSDAY)
+    planning.registered(planning.bruno_client, planning.bruno, today.isoformat(), *THURSDAY)
+    assert registration_on(planning, today.isoformat()) == "[Bruno]"
 
-        end(planning)
+    end(planning)
 
-        assert registration_on(planning, today.isoformat()) == "[~~Bruno~~]"
+    assert registration_on(planning, today.isoformat()) == "[~~Bruno~~]"
 
 
 # /planning/operations/remove-member/planning
@@ -166,10 +146,10 @@ def test_past_registrations_stay_with_the_display_name(
 ) -> None:
     planning = Planning(client, new_client)
     planning.add_slot("thursday", *THURSDAY)
-    registration = planning.registered(
-        planning.bruno_client, planning.bruno, day_of_week("thursday"), *THURSDAY
-    )
-    past_day = move_two_weeks_back(registration)
+    past_day = day_of_week("thursday")
+    planning.registered(planning.bruno_client, planning.bruno, past_day, *THURSDAY)
+    # Two weeks pass: the registration is now in the week before the current one.
+    clock.shift(timedelta(weeks=2))
 
     end(planning)
 

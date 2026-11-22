@@ -3,6 +3,7 @@ from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
 
+from tests.conftest import clock
 from tests.core.conftest import (  # noqa: F401  (fixtures used by the planning tests)
     add_member,
     client,
@@ -31,7 +32,7 @@ WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", 
 
 def day_of_week(weekday: str, weeks_ahead: int = 1) -> str:
     """The date of `weekday` in the week `weeks_ahead` weeks after the current one."""
-    today = date.today()
+    today = clock.today("UTC")
     monday = today - timedelta(days=today.weekday()) + timedelta(weeks=weeks_ahead)
     return (monday + timedelta(days=WEEKDAYS.index(weekday))).isoformat()
 

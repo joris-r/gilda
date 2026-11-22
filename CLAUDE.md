@@ -34,6 +34,9 @@ copies of the generic error.
 
 A test asserting only an absence also asserts something present.
 
+A test shifting the clock by days across Paris dates starts from noon in
+Paris.
+
 Tests read from the database only what no screen shows (ids, rows
 already erased).
 

@@ -3,6 +3,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ from argon2 import PasswordHasher
 from litestar.testing import TestClient
 
 from gilda.app import create_app
+from gilda.clock import Clock
 
 DEFAULT_DATABASE_URL = "postgresql+asyncpg://gilda:gilda@localhost:15432/gilda_test"
 
@@ -58,8 +60,33 @@ def cheap_password_hashing() -> Iterator[None]:
         yield
 
 
+class StoppedClock(Clock):
+    """A clock that stands still, at the time a test moves it to."""
+
+    def __init__(self) -> None:
+        self.instant = datetime.now(UTC)
+
+    def now(self) -> datetime:
+        return self.instant
+
+    def move_to(self, instant: datetime) -> None:
+        self.instant = instant.astimezone(UTC)
+
+    def shift(self, delta: timedelta) -> None:
+        self.instant += delta
+
+
+# The clock of this worker's application; each test starts it at the system's time.
+clock = StoppedClock()
+
+
+@pytest.fixture(autouse=True)
+def clock_at_the_system_time() -> None:
+    clock.move_to(datetime.now(UTC))
+
+
 @pytest.fixture(scope="session")
 def server() -> Iterator[Any]:
     """The application of this worker, started once, with its event loop."""
-    with TestClient(app=create_app()) as started:
+    with TestClient(app=create_app(clock=clock)) as started:
         yield started

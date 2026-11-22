@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pytest
-import time_machine
 
+from tests.conftest import clock
 from tests.page import buttons_named, dialog_named, dialog_opened_by
 from tests.planning.conftest import (
     GENERIC,
@@ -681,12 +681,10 @@ class TestSharedWeeksAgain:
         planning = Planning(client, new_client)
         planning.add_slot("thursday", "10:00", "13:00")
         token = shared_token(planning)
-        with time_machine.travel(self.NOW, tick=False):
-            planning.registered(
-                planning.chloe_client, planning.chloe, "2026-11-12", "10:00", "13:00"
-            )
+        clock.move_to(self.NOW)
+        planning.registered(planning.chloe_client, planning.chloe, "2026-11-12", "10:00", "13:00")
 
-            response = shared_weeks_again(new_client(), token, self.FIRST, self.LAST)
+        response = shared_weeks_again(new_client(), token, self.FIRST, self.LAST)
 
         assert response.status_code == 200
         entries = schedule_entries(response.text)
@@ -704,8 +702,8 @@ class TestSharedWeeksAgain:
         planning.add_slot("thursday", "10:00", "13:00")
         token = shared_token(planning)
 
-        with time_machine.travel(datetime(2026, 11, 12, 23, 30, tzinfo=UTC), tick=False):
-            response = shared_weeks_again(new_client(), token, self.FIRST, "2027-01-10")
+        clock.move_to(datetime(2026, 11, 12, 23, 30, tzinfo=UTC))
+        response = shared_weeks_again(new_client(), token, self.FIRST, "2027-01-10")
 
         entries = schedule_entries(response.text)
         assert len(headings_of(entries)) == 10
@@ -758,10 +756,10 @@ class TestSharedClosedDays:
         planning.add_slot("saturday", "10:00", "13:00")
         token = shared_token(planning)
 
-        with time_machine.travel(datetime(2026, 11, 8, 23, 30, tzinfo=UTC), tick=False):
-            planning.add_closure("2026-11-06", "2026-12-13", "Vacances")
-            entries = shared_entries(new_client(), token)
-            members = schedule_shown(planning.bruno_client, planning.slug)
+        clock.move_to(datetime(2026, 11, 8, 23, 30, tzinfo=UTC))
+        planning.add_closure("2026-11-06", "2026-12-13", "Vacances")
+        entries = shared_entries(new_client(), token)
+        members = schedule_shown(planning.bruno_client, planning.slug)
 
         assert entries == members
         assert day_in(entries, "2026-11-07") == "Closed Vacances"

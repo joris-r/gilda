@@ -1,12 +1,12 @@
 # ruff: noqa: RUF001  (times and ranges are written with an en dash)
 import re
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import pytest
-import time_machine
 
+from tests.conftest import clock
 from tests.core.conftest import Listed, listed, my_associations_listed
 from tests.planning.conftest import (
     GENERIC,
@@ -59,14 +59,10 @@ def obsolete_line(offset: int, start: str = "10:00", end: str = "13:00") -> str:
 
 
 @pytest.fixture
-def clock() -> Iterator[time_machine.Traveller]:
-    with time_machine.travel(NOW, tick=False) as traveller:
-        yield traveller
-
-
-@pytest.fixture
-def planning(clock: time_machine.Traveller, client: Any, new_client: Callable[[], Any]) -> Planning:
-    """Alice's association, open every day from 10:00 to 13:00; Bruno volunteers in it."""
+def planning(client: Any, new_client: Callable[[], Any]) -> Planning:
+    """Alice's association, open every day from 10:00 to 13:00; Bruno volunteers in it, on
+    Wednesday 4 November 2026."""
+    clock.move_to(NOW)
     planning = Planning(client, new_client)
     for weekday in WEEKDAYS:
         planning.add_slot(weekday, "10:00", "13:00")
@@ -213,11 +209,11 @@ class TestMyAssociations:
         assert bruno_lines(planning) == [confirmed_line(1)]
 
     def test_escapes_the_display_name(self, client: Any, new_client: Callable[[], Any]) -> None:
+        clock.move_to(NOW)
         sign_up(client, "<b>Alice</b>", unique_email("Alice"))
         association = create_association(client)
-        weekday = WEEKDAYS[date.today().weekday()]
-        add_slot(client, association, weekday, "10:00", "13:00")
-        in_a_week = (date.today() + timedelta(days=7)).isoformat()
+        add_slot(client, association, WEEKDAYS[TODAY.weekday()], "10:00", "13:00")
+        in_a_week = day(7)
         weeks = {"from": in_a_week, "to": in_a_week}
         text = shown(sign_up_for(client, association["slug"], in_a_week, "10:00", "13:00", weeks))
         assert GENERIC not in text, text
@@ -298,9 +294,7 @@ class TestObsolete:
         ]
 
     # /home/operations/list-my-associations/obsolete
-    def test_today_is_included_and_earlier_dates_are_not(
-        self, planning: Planning, clock: time_machine.Traveller
-    ) -> None:
+    def test_today_is_included_and_earlier_dates_are_not(self, planning: Planning) -> None:
         confirmed(planning, 1)
         confirmed(planning, 2)
         planning.add_closure(day(1), day(2))
@@ -376,9 +370,7 @@ class TestUpcoming:
         assert upcoming(planning) == [confirmed_line(0), proposed_line(1)]
 
     # /home/operations/list-my-associations/upcoming
-    def test_registrations_before_today_are_not_shown(
-        self, planning: Planning, clock: time_machine.Traveller
-    ) -> None:
+    def test_registrations_before_today_are_not_shown(self, planning: Planning) -> None:
         confirmed(planning, 1)
         proposed(planning, 2)
         confirmed(planning, 3)
@@ -530,9 +522,7 @@ class TestNoRegistrationYet:
     # /home/operations/list-my-associations/period
     # /planning/model/registration
     # /home/ui/my-associations/no-upcoming
-    def test_registrations_of_the_period_before_today_count(
-        self, planning: Planning, clock: time_machine.Traveller
-    ) -> None:
+    def test_registrations_of_the_period_before_today_count(self, planning: Planning) -> None:
         set_period(planning, 1, 10)
         confirmed(planning, 1)
 
@@ -542,18 +532,14 @@ class TestNoRegistrationYet:
         assert "No upcoming registration." in entry(planning.bruno_client).text
 
     # /home/ui/my-associations/no-registration
-    def test_a_period_ending_today_reminds(
-        self, planning: Planning, clock: time_machine.Traveller
-    ) -> None:
+    def test_a_period_ending_today_reminds(self, planning: Planning) -> None:
         set_period(planning, -5, 0)
 
         assert reminds(planning)
 
     # /home/ui/my-associations/no-registration
     # /home/ui/my-associations/no-upcoming
-    def test_a_period_ended_no_longer_reminds(
-        self, planning: Planning, clock: time_machine.Traveller
-    ) -> None:
+    def test_a_period_ended_no_longer_reminds(self, planning: Planning) -> None:
         set_period(planning, -5, -1)
 
         assert not reminds(planning)
@@ -563,7 +549,7 @@ class TestNoRegistrationYet:
     # /planning/model/time-zone
     # /home/ui/my-associations/no-upcoming
     def test_after_midnight_in_paris_a_period_that_ended_yesterday_no_longer_reminds(
-        self, planning: Planning, clock: time_machine.Traveller
+        self, planning: Planning
     ) -> None:
         set_period(planning, -5, 0)
 

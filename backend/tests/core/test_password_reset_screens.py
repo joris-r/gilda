@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 
+from tests.conftest import clock
 from tests.core.conftest import (
     PASSWORD,
     add_member,
@@ -57,18 +58,13 @@ def can_sign_in(new_client: Callable[[], Any], email: str, password: str) -> boo
 
 
 def expires_in(token: str) -> timedelta:
-    return run_sql(  # type: ignore[no-any-return]
-        "SELECT expires_at - now() FROM password_reset_token WHERE token = :token", token
-    )
+    expires_at = run_sql("SELECT expires_at FROM password_reset_token WHERE token = :token", token)
+    return expires_at - clock.now()  # type: ignore[no-any-return]
 
 
-def expire(token: str) -> None:
-    """Moves the reset token's expiry into the past, as if its hour had elapsed."""
-    run_sql(
-        "UPDATE password_reset_token SET expires_at = now() - interval '1 second'"
-        " WHERE token = :token",
-        token,
-    )
+def expire() -> None:
+    """Lets the hour of the reset tokens asked for so far elapse."""
+    clock.shift(timedelta(hours=1, seconds=1))
 
 
 def assert_no_email_sent(email: str) -> None:
@@ -418,7 +414,7 @@ class TestResetPasswordInvalidLinkWhenOpening:
         browser = new_client()
         ask_for_reset(browser, email)
         token = latest_reset_token(email)
-        expire(token)
+        expire()
 
         self.assert_shows_the_message_instead_of_the_form(
             browser.get(f"/reset-password?token={token}")
@@ -474,7 +470,7 @@ class TestResetPasswordInvalidLinkOnSubmit:
         ask_for_reset(browser, email)
         token = latest_reset_token(email)
         assert timedelta(minutes=59) < expires_in(token) <= timedelta(hours=1)
-        expire(token)
+        expire()
 
         assert_invalid_link(shown(reset(browser, token)))
         assert signed_in_as(browser) is None
