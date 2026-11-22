@@ -121,6 +121,8 @@
 - An action waits at most 5 s for its element. After each load of a
   page (goto, reload, a link followed, an action leading to another
   URL), a test waits for the page's `data-ready` before acting on it.
+- Each run starts its own server; it fails if its port is already
+  taken.
 
 ### Test levels
 
@@ -141,3 +143,4 @@
 - ruff (lint and format) and mypy in strict mode for the backend; a
   check that every Datastar action in the templates sets
   `retryMaxCount: 0`.
+- Prettier, ESLint and tsc for the end-to-end tests.

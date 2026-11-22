@@ -17,7 +17,9 @@ export async function latestToken(email: string, timeout = 5000): Promise<string
     const { messages } = (await search.json()) as { messages: { ID: string; Created: string }[] }
     if (messages.length > 0) {
       // Mailpit IDs are not ordered by time; Created has millisecond precision.
-      const latest = messages.reduce((a, b) => (Date.parse(a.Created) > Date.parse(b.Created) ? a : b))
+      const latest = messages.reduce((a, b) =>
+        Date.parse(a.Created) > Date.parse(b.Created) ? a : b,
+      )
       const message = await fetch(`${MAILPIT_URL}/api/v1/message/${latest.ID}`)
       const { Text: text } = (await message.json()) as { Text: string }
       const match = /token=([\w-]+)/.exec(text)
@@ -75,7 +77,9 @@ export async function watchActions(page: Page) {
  * unless `retries` allows them, none was waiting for a retry. Needs `watchActions(page)` first. */
 export async function actionsEnded(page: Page, { retries = false } = {}) {
   const actions = () =>
-    page.evaluate(() => (window as unknown as { gildaActions: Record<string, number> }).gildaActions)
+    page.evaluate(
+      () => (window as unknown as { gildaActions: Record<string, number> }).gildaActions,
+    )
   await expect
     .poll(async () => {
       const { started, finished, retrying } = await actions()
@@ -98,7 +102,9 @@ export async function createAccount(
   displayName = 'Alice',
   email = uniqueEmail(displayName),
 ) {
-  expect((await request.post('/signup', { data: { displayName, email, password: PASSWORD } })).status()).toBe(200)
+  expect(
+    (await request.post('/signup', { data: { displayName, email, password: PASSWORD } })).status(),
+  ).toBe(200)
   const token = await latestToken(email)
   expect((await request.post('/verify-email', { data: { token } })).status()).toBe(200)
   return email
@@ -137,7 +143,11 @@ async function act(api: APIRequestContext, path: string, signals: object) {
 }
 
 /** Creates an association on New association; returns its slug. */
-export async function createAssociation(api: APIRequestContext, name = 'Jardin partagé', slug = uniqueSlug()) {
+export async function createAssociation(
+  api: APIRequestContext,
+  name = 'Jardin partagé',
+  slug = uniqueSlug(),
+) {
   expect(await act(api, '/association/new', { name, slug })).toContain(`/association/${slug}`)
   return slug
 }
@@ -151,24 +161,40 @@ export async function addMember(
   role = 'volunteer',
 ) {
   // Members sends back its list, whose dialogs hold hidden copies of the generic error.
-  expect(await run(api, `/association/${slug}/members`, { displayName, email, role })).toContain(' added.')
+  expect(await run(api, `/association/${slug}/members`, { displayName, email, role })).toContain(
+    ' added.',
+  )
 }
 
 /** The user id of the member `displayName`, as the edit icon of their line on Members holds it. */
 export async function userIdOf(api: APIRequestContext, slug: string, displayName: string) {
   const page = await (await api.get(`/association/${slug}/members`)).text()
-  const match = new RegExp(`aria-label="Edit ${displayName}"[^>]*commandfor="edit-([\\w-]+)"`).exec(page)
+  const match = new RegExp(`aria-label="Edit ${displayName}"[^>]*commandfor="edit-([\\w-]+)"`).exec(
+    page,
+  )
   if (!match) throw new Error(`no member ${displayName} on Members`)
   return match[1]
 }
 
 /** Adds a slot with "Add a slot" on Schedule settings. */
-export async function addSlot(api: APIRequestContext, slug: string, weekday: string, start: string, end: string) {
+export async function addSlot(
+  api: APIRequestContext,
+  slug: string,
+  weekday: string,
+  start: string,
+  end: string,
+) {
   await act(api, `/association/${slug}/settings/slots`, { weekday, start, end })
 }
 
 /** Adds a closure with "Add a closure" on Schedule settings. */
-export async function addClosure(api: APIRequestContext, slug: string, first: string, last: string, label = '') {
+export async function addClosure(
+  api: APIRequestContext,
+  slug: string,
+  first: string,
+  last: string,
+  label = '',
+) {
   await act(api, `/association/${slug}/settings/closures`, { first, last, label })
 }
 
@@ -178,7 +204,12 @@ export async function setPeriod(api: APIRequestContext, slug: string, first: str
 }
 
 /** Adds an absence of the user's own with "Add an absence" on My availability. */
-export async function addAbsence(api: APIRequestContext, slug: string, first: string, last: string) {
+export async function addAbsence(
+  api: APIRequestContext,
+  slug: string,
+  first: string,
+  last: string,
+) {
   await act(api, `/association/${slug}/availability/absences`, { first, last })
 }
 
@@ -188,7 +219,13 @@ export async function saveNote(api: APIRequestContext, slug: string, text: strin
 }
 
 /** Clicks "Sign up" in the menu of the occurrence of `date` on the Schedule. */
-export async function signUpFor(api: APIRequestContext, slug: string, date: string, start: string, end: string) {
+export async function signUpFor(
+  api: APIRequestContext,
+  slug: string,
+  date: string,
+  start: string,
+  end: string,
+) {
   await act(api, `/association/${slug}/sign-up`, { date, start, end, from: date, to: date })
 }
 
@@ -202,5 +239,12 @@ export async function propose(
   start: string,
   end: string,
 ) {
-  await act(api, `/association/${slug}/propose`, { user_id: userId, date, start, end, from: date, to: date })
+  await act(api, `/association/${slug}/propose`, {
+    user_id: userId,
+    date,
+    start,
+    end,
+    from: date,
+    to: date,
+  })
 }

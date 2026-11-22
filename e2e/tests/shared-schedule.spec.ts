@@ -53,7 +53,6 @@ function dayGroup(page: Page, weeksAhead: number) {
 }
 
 test.describe('Shared schedule', () => {
-
   // /planning/ui/shared-schedule/shown
   test('clicking an occurrence opens no menu', async ({ page, request, browser }) => {
     const link = await shareSchedule(page, request)
@@ -65,7 +64,9 @@ test.describe('Shared schedule', () => {
     await dayGroup(visitor, 1).getByRole('listitem').click()
 
     await expect(visitor.getByRole('button', { name: 'Sign up' })).toHaveCount(0)
-    await expect(visitor.getByText(`${dayOfWeek(4, 2).label} · 10–13`, { exact: true })).toBeHidden()
+    await expect(
+      visitor.getByText(`${dayOfWeek(4, 2).label} · 10–13`, { exact: true }),
+    ).toBeHidden()
     expect(requests.filter((url) => url.includes('/menu'))).toEqual([])
   })
 
@@ -84,7 +85,11 @@ test.describe('Shared schedule', () => {
   })
 
   // /ui/errors/generic
-  test('"More weeks" when the server fails: the generic error', async ({ page, request, browser }) => {
+  test('"More weeks" when the server fails: the generic error', async ({
+    page,
+    request,
+    browser,
+  }) => {
     const link = await shareSchedule(page, request)
     const visitor = await openSignedOut(link, browser)
     await visitor.route('**/weeks', (route) => route.fulfill({ status: 500, body: 'failure' }))
@@ -103,7 +108,12 @@ test.describe('Shared schedule', () => {
 
     await visitor.locator('header').getByRole('combobox').selectOption({ label: 'Français' })
 
-    await expect(visitor.locator('main').getByRole('heading', { name: /^Semaine \d+$/ }).first()).toBeVisible()
+    await expect(
+      visitor
+        .locator('main')
+        .getByRole('heading', { name: /^Semaine \d+$/ })
+        .first(),
+    ).toBeVisible()
     await expect(visitor.getByRole('button', { name: 'Plus de semaines' })).toBeVisible()
   })
 })
@@ -130,7 +140,9 @@ async function nextDay(page: Page) {
 /** Alice revokes the share link, from the Schedule settings she has open on `page`. */
 async function revokeLink(page: Page) {
   const slug = /\/association\/([^/]+)\/settings/.exec(page.url())![1]
-  const response = await page.request.post(`/association/${slug}/settings/share-link/revoke`, { data: {} })
+  const response = await page.request.post(`/association/${slug}/settings/share-link/revoke`, {
+    data: {},
+  })
   expect(response.status()).toBe(200)
   return slug
 }
@@ -140,13 +152,19 @@ const INVALID = 'This link is no longer valid.'
 test.describe('Shared schedule: once today changes', () => {
   // /planning/ui/shared-schedule/new-day
   // /planning/ui/schedule/new-day
-  test('it shows what changed elsewhere without a reload, with the weeks shown', async ({ page, request, browser }) => {
+  test('it shows what changed elsewhere without a reload, with the weeks shown', async ({
+    page,
+    request,
+    browser,
+  }) => {
     const link = await shareSchedule(page, request)
     const slug = /\/association\/([^/]+)\/settings/.exec(page.url())![1]
     const visitor = await openSignedOutWithClock(link, browser)
     await visitor.getByRole('button', { name: 'More weeks' }).click()
     await expect(weekHeadings(visitor)).toHaveCount(10)
-    await visitor.evaluate(() => ((window as unknown as { sameDocument: boolean }).sameDocument = true))
+    await visitor.evaluate(
+      () => ((window as unknown as { sameDocument: boolean }).sameDocument = true),
+    )
     await signUpFor(page.request, slug, dayOfWeek(4, 3).iso, '10:00', '13:00')
     await expect(dayGroup(visitor, 3).getByRole('listitem')).toHaveText('')
 
@@ -155,7 +173,9 @@ test.describe('Shared schedule: once today changes', () => {
     await expect(dayGroup(visitor, 3).getByRole('listitem')).toHaveText('Alice')
     await expect(weekHeadings(visitor)).toHaveCount(10)
     await expect(visitor.getByRole('button', { name: 'Sign up' })).toHaveCount(0)
-    expect(await visitor.evaluate(() => (window as unknown as { sameDocument?: boolean }).sameDocument)).toBe(true)
+    expect(
+      await visitor.evaluate(() => (window as unknown as { sameDocument?: boolean }).sameDocument),
+    ).toBe(true)
   })
 
   // /planning/ui/shared-schedule/new-day
@@ -180,7 +200,9 @@ test.describe('Shared schedule: once today changes', () => {
     expect(refreshes).toBeGreaterThan(0)
     await expect(dayGroup(visitor, 3).getByRole('listitem')).toHaveText('')
     await expect(weekHeadings(visitor)).toHaveCount(6)
-    await expect(visitor.locator('main').getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+    await expect(visitor.locator('main').getByText(GENERIC).filter({ visible: true })).toHaveCount(
+      0,
+    )
     await expect(visitor.locator('main').getByText(INVALID)).toHaveCount(0)
   })
 
@@ -195,13 +217,19 @@ test.describe('Shared schedule: once today changes', () => {
 
     await expect(visitor.locator('main').getByText(INVALID)).toBeVisible()
     await expect(weekHeadings(visitor)).toHaveCount(0)
-    await expect(visitor.locator('main').getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+    await expect(visitor.locator('main').getByText(GENERIC).filter({ visible: true })).toHaveCount(
+      0,
+    )
   })
 })
 
 test.describe('Shared schedule: a link that is gone', () => {
   // /planning/ui/shared-schedule/gone
-  test('"More weeks" shows "This link is no longer valid." and no generic error', async ({ page, request, browser }) => {
+  test('"More weeks" shows "This link is no longer valid." and no generic error', async ({
+    page,
+    request,
+    browser,
+  }) => {
     const link = await shareSchedule(page, request)
     const visitor = await openSignedOut(link, browser)
     await revokeLink(page)
@@ -209,7 +237,9 @@ test.describe('Shared schedule: a link that is gone', () => {
     await visitor.getByRole('button', { name: 'More weeks' }).click()
 
     await expect(visitor.locator('main').getByText(INVALID)).toBeVisible()
-    await expect(visitor.locator('main').getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
+    await expect(visitor.locator('main').getByText(GENERIC).filter({ visible: true })).toHaveCount(
+      0,
+    )
     await expect(weekHeadings(visitor)).toHaveCount(0)
   })
 })

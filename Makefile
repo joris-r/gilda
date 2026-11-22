@@ -35,13 +35,15 @@ test-backend: services-up ## Run the backend tests
 	cd backend && uv run pytest
 
 test-e2e: export DATABASE_URL = $(TEST_DATABASE_URL)
-test-e2e: services-up ## Run the end-to-end tests
-	cd e2e && npm test
+test-e2e: services-up ## Run the end-to-end tests; E2E_ARGS passes options to Playwright
+	cd e2e && npm test -- $(E2E_ARGS)
 
 lint: ## Run every quality check, changing nothing
 	cd backend && uv run ruff check && uv run ruff format --check && uv run mypy && uv run python scripts/check_datastar_once.py
+	cd e2e && npm run lint
 
 format: ## Fix lint and formatting where possible
 	cd backend && uv run ruff check --fix && uv run ruff format
+	cd e2e && npm run format
 
 check: lint test ## Run every quality check and test suite

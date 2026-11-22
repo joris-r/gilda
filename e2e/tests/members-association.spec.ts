@@ -48,7 +48,10 @@ function openDelete(page: Page) {
 test.describe('Members: Rename the association', () => {
   // /core/ui/members/rename
   // /ui/forms/dialog
-  test('its dialog shows the name, with Save enabled only when Name is not empty', async ({ page, request }) => {
+  test('its dialog shows the name, with Save enabled only when Name is not empty', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
 
     const dialog = await openRename(page)
@@ -64,7 +67,10 @@ test.describe('Members: Rename the association', () => {
   // /core/ui/members/renamed
   // /core/operations/update-association/renamed
   // /ui/forms/success
-  test('Save with another name closes the dialog, says so and updates the header', async ({ page, request }) => {
+  test('Save with another name closes the dialog, says so and updates the header', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
 
     const dialog = await openRename(page)
@@ -73,10 +79,14 @@ test.describe('Members: Rename the association', () => {
 
     await expect(dialog).toBeHidden()
     await expect(page.getByText('The association is now Jardin des Lilas.')).toBeVisible()
-    await expect(page.locator('header').getByRole('link', { name: 'Jardin des Lilas' })).toBeVisible()
+    await expect(
+      page.locator('header').getByRole('link', { name: 'Jardin des Lilas' }),
+    ).toBeVisible()
     await page.reload()
     await datastarReady(page)
-    await expect(page.locator('header').getByRole('link', { name: 'Jardin des Lilas' })).toBeVisible()
+    await expect(
+      page.locator('header').getByRole('link', { name: 'Jardin des Lilas' }),
+    ).toBeVisible()
     await expect((await openRename(page)).getByLabel('Name', { exact: true })).toHaveValue(
       'Jardin des Lilas',
     )
@@ -142,7 +152,10 @@ test.describe('Members: a form opened again', () => {
   })
 
   // /ui/forms/fresh
-  test('a confirmation opened again shows no message of a failed try', async ({ page, request }) => {
+  test('a confirmation opened again shows no message of a failed try', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
     await page.route('**/delete', (route) => route.fulfill({ status: 500, body: 'failure' }))
 
@@ -177,7 +190,10 @@ test.describe('Members: a form opened again', () => {
   })
 
   // /ui/forms/fresh
-  test('Escape closes a failed form, which opens again with no message', async ({ page, request }) => {
+  test('Escape closes a failed form, which opens again with no message', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
     await page.route('**/rename', (route) => route.fulfill({ status: 500, body: 'failure' }))
 
@@ -196,7 +212,10 @@ test.describe('Members: a form opened again', () => {
 
 test.describe('Members: Change the association identifier', () => {
   // /core/ui/members/change-slug
-  test('its dialog shows the slug, with Save enabled only when it is not empty', async ({ page, request }) => {
+  test('its dialog shows the slug, with Save enabled only when it is not empty', async ({
+    page,
+    request,
+  }) => {
     const slug = await openMembers(page, request)
 
     const dialog = await openIdentifier(page)
@@ -211,7 +230,10 @@ test.describe('Members: Change the association identifier', () => {
 
   // /core/ui/members/slug-changed
   // /core/operations/update-association/new-slug
-  test('Save with another slug moves the screen to its new URL and says so', async ({ page, request }) => {
+  test('Save with another slug moves the screen to its new URL and says so', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
     const slug = uniqueSlug()
 
@@ -240,7 +262,10 @@ test.describe('Members: Change the association identifier', () => {
   // /core/ui/members/refused
   // /core/ui/new-association/malformed
   // /ui/errors/kept
-  test('a malformed slug shows its message in the dialog, keeping what was typed', async ({ page, request }) => {
+  test('a malformed slug shows its message in the dialog, keeping what was typed', async ({
+    page,
+    request,
+  }) => {
     const slug = await openMembers(page, request)
 
     const dialog = await openIdentifier(page)
@@ -310,13 +335,18 @@ test.describe('Members: Change the association identifier', () => {
     await dialog.getByRole('textbox').fill(slug)
     await dialog.getByRole('button', { name: 'Enregistrer' }).click()
 
-    await expect(page.getByText(`L'identifiant de l'association est désormais ${slug}.`)).toBeVisible()
+    await expect(
+      page.getByText(`L'identifiant de l'association est désormais ${slug}.`),
+    ).toBeVisible()
   })
 })
 
 test.describe('Members: Delete the association', () => {
   // /core/ui/members/delete
-  test('Delete is enabled only when the field holds exactly the name', async ({ page, request }) => {
+  test('Delete is enabled only when the field holds exactly the name', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
 
     const confirmation = await openDelete(page)
@@ -345,7 +375,9 @@ test.describe('Members: Delete the association', () => {
     const other = await page.context().newPage()
     await other.goto(`/association/${slug}/members`)
     await datastarReady(other)
-    await (await open(other, 'Rename the association', 'Rename the association'))
+    await (
+      await open(other, 'Rename the association', 'Rename the association')
+    )
       .getByLabel('Name', { exact: true })
       .fill('Les Lilas')
     await other.getByRole('dialog').getByRole('button', { name: 'Save' }).click()
@@ -399,7 +431,10 @@ test.describe('Members: Delete the association', () => {
 
   // /ui/forms/failure
   // /ui/errors/generic
-  test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
+  test('when the server fails: the generic error in the confirmation', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
     await page.route('**/delete', (route) => route.fulfill({ status: 500, body: 'failure' }))
 

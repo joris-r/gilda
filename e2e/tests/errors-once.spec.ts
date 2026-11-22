@@ -55,7 +55,7 @@ async function associationWithSlot(page: Page, request: APIRequestContext) {
 type Trigger = {
   name: string
   open: (page: Page, request: APIRequestContext) => Promise<RegExp>
-  fire: (page: Page) => Promise<void>
+  fire: (page: Page) => Promise<unknown>
 }
 
 const TRIGGERS: Trigger[] = [
@@ -154,7 +154,12 @@ const TRIGGERS: Trigger[] = [
       return new RegExp(`^/association/${slug}/availability/preferences/`)
     },
     fire: (page) =>
-      page.locator('main').getByRole('listitem').filter({ hasText: 'Thursday' }).getByRole('combobox').selectOption({ label: 'Preferred' }),
+      page
+        .locator('main')
+        .getByRole('listitem')
+        .filter({ hasText: 'Thursday' })
+        .getByRole('combobox')
+        .selectOption({ label: 'Preferred' }),
   },
   // The triggers below already send their operation once; one of each kind stands for the others.
   {
@@ -188,7 +193,11 @@ const TRIGGERS: Trigger[] = [
       await dialog.getByLabel('To', { exact: true }).fill('2099-03-06')
       return new RegExp(`^/association/${slug}/availability/absences$`)
     },
-    fire: (page) => page.getByRole('dialog', { name: 'Add an absence' }).getByRole('button', { name: 'Add absence' }).click(),
+    fire: (page) =>
+      page
+        .getByRole('dialog', { name: 'Add an absence' })
+        .getByRole('button', { name: 'Add absence' })
+        .click(),
   },
   {
     name: 'Delete my account, in its confirmation',
@@ -198,7 +207,8 @@ const TRIGGERS: Trigger[] = [
       await page.getByRole('button', { name: 'Delete my account' }).click()
       return /^\/delete-account$/
     },
-    fire: (page) => page.getByRole('dialog').getByRole('button', { name: 'Delete my account' }).click(),
+    fire: (page) =>
+      page.getByRole('dialog').getByRole('button', { name: 'Delete my account' }).click(),
   },
 ]
 

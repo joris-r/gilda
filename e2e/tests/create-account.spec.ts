@@ -219,7 +219,9 @@ test.describe('Confirm email', () => {
 
   // /core/ui/confirm-email/failed
   // /ui/errors/generic
-  test('when it fails on the way to the server: the generic error and Try again', async ({ page }) => {
+  test('when it fails on the way to the server: the generic error and Try again', async ({
+    page,
+  }) => {
     const token = await signedUpToken(page)
     let failing = true
     await page.route('**/verify-email*', (route) => {

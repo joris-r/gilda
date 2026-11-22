@@ -1,5 +1,12 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
-import { addMember, createAssociation, latestToken, signedIn, uniqueEmail, datastarReady } from './helpers'
+import {
+  addMember,
+  createAssociation,
+  latestToken,
+  signedIn,
+  uniqueEmail,
+  datastarReady,
+} from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 const LAST_MANAGER = 'An association keeps at least one manager.'
@@ -68,7 +75,10 @@ test.describe('Members: the edit dialog', () => {
   // /core/ui/members/edit
   // /core/ui/members/revoke-link
   // /ui/forms/dialog
-  test('the edit icon opens it, with the email, the role and its actions', async ({ page, request }) => {
+  test('the edit icon opens it, with the email, the role and its actions', async ({
+    page,
+    request,
+  }) => {
     const chloe = await openMembers(page, request)
 
     const dialog = await openEdit(page, 'Chloé')
@@ -123,7 +133,10 @@ test.describe('Members: the edit dialog', () => {
 test.describe('Members: changing the role', () => {
   // /core/ui/members/changed
   // /core/operations/change-role/changed
-  test('Save with another role closes the dialog, says so and shows the role', async ({ page, request }) => {
+  test('Save with another role closes the dialog, says so and shows the role', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
 
     const dialog = await openEdit(page, 'Chloé')
@@ -151,7 +164,10 @@ test.describe('Members: changing the role', () => {
   // /core/ui/members/last-manager
   // /ui/forms/failure
   // /core/operations/change-role/last-manager
-  test('demoting the last manager: the dialog stays open, with its message', async ({ page, request }) => {
+  test('demoting the last manager: the dialog stays open, with its message', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
 
     const dialog = await openEdit(page, 'Alice')
@@ -249,7 +265,10 @@ test.describe('Members: Remove from the association', () => {
 
   // /ui/forms/failure
   // /ui/errors/generic
-  test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
+  test('when the server fails: the generic error in the confirmation', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
     await page.route('**/remove', (route) => route.abort())
 
@@ -295,7 +314,10 @@ test.describe('Members: Send link', () => {
 
   // /ui/forms/failure
   // /ui/errors/generic
-  test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
+  test('when the server fails: the generic error in the confirmation', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
     await page.route('**/send-link', (route) => route.abort())
 
@@ -387,7 +409,10 @@ test.describe('Members: Revoke link', () => {
 
   // /ui/forms/failure
   // /ui/errors/generic
-  test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
+  test('when the server fails: the generic error in the confirmation', async ({
+    page,
+    request,
+  }) => {
     await withLink(page, request)
     await page.route('**/revoke-link', (route) => route.fulfill({ status: 500, body: 'failure' }))
 

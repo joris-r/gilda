@@ -195,7 +195,10 @@ test.describe('Access link', () => {
 
   // /core/ui/access-link/failed
   // /ui/errors/generic
-  test('when it fails on the way to the server: the generic error and Try again', async ({ page, request }) => {
+  test('when it fails on the way to the server: the generic error and Try again', async ({
+    page,
+    request,
+  }) => {
     const token = await askForLink(request, uniqueEmail('Alice'))
     let failing = true
     await page.route('**/access*', (route) => {

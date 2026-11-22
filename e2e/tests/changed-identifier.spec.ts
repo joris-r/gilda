@@ -38,8 +38,13 @@ async function changeIdentifierElsewhere(page: Page, slug: string) {
   const other = await page.context().newPage()
   await other.goto(`/association/${slug}/members`)
   await datastarReady(other)
-  await other.getByRole('button', { name: 'Change the association identifier', exact: true }).click()
-  const dialog = other.getByRole('dialog', { name: 'Change the association identifier', exact: true })
+  await other
+    .getByRole('button', { name: 'Change the association identifier', exact: true })
+    .click()
+  const dialog = other.getByRole('dialog', {
+    name: 'Change the association identifier',
+    exact: true,
+  })
   await dialog.getByLabel('Association identifier').fill(changed)
   await dialog.getByRole('button', { name: 'Save' }).click()
   await expect(other).toHaveURL(new RegExp(`/association/${changed}/members$`))
@@ -51,11 +56,14 @@ async function changeIdentifierElsewhere(page: Page, slug: string) {
 async function openScreen(page: Page, request: APIRequestContext, screen: string, header?: string) {
   await signedIn(page, request)
   const slug = await createAssociation(page.request, NAME)
-  return { slug, open: async () => {
-    await page.goto(`/association/${slug}${screen}`)
-    await datastarReady(page)
-    if (header) await expect(page.locator('header').getByText(header)).toBeVisible()
-  } }
+  return {
+    slug,
+    open: async () => {
+      await page.goto(`/association/${slug}${screen}`)
+      await datastarReady(page)
+      if (header) await expect(page.locator('header').getByText(header)).toBeVisible()
+    },
+  }
 }
 
 function main(page: Page) {
@@ -64,7 +72,10 @@ function main(page: Page) {
 
 test.describe('Changed identifier: Members', () => {
   // /ui/changed-identifier/actions
-  test('Add a member from a screen opened before the change adds the member', async ({ page, request }) => {
+  test('Add a member from a screen opened before the change adds the member', async ({
+    page,
+    request,
+  }) => {
     const { slug, open } = await openScreen(page, request, '/members', 'Members')
     await open()
     await changeIdentifierElsewhere(page, slug)
@@ -80,7 +91,10 @@ test.describe('Changed identifier: Members', () => {
   })
 
   // /ui/changed-identifier/actions
-  test('Rename from a screen opened before the change renames the association', async ({ page, request }) => {
+  test('Rename from a screen opened before the change renames the association', async ({
+    page,
+    request,
+  }) => {
     const { slug, open } = await openScreen(page, request, '/members', 'Members')
     await open()
     await changeIdentifierElsewhere(page, slug)
@@ -104,8 +118,13 @@ test.describe('Changed identifier: Members', () => {
     await changeIdentifierElsewhere(page, slug)
     const next = uniqueSlug()
 
-    await page.getByRole('button', { name: 'Change the association identifier', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'Change the association identifier', exact: true })
+    await page
+      .getByRole('button', { name: 'Change the association identifier', exact: true })
+      .click()
+    const dialog = page.getByRole('dialog', {
+      name: 'Change the association identifier',
+      exact: true,
+    })
     await dialog.getByLabel('Association identifier').fill(next)
     await dialog.getByRole('button', { name: 'Save' }).click()
 
@@ -123,8 +142,13 @@ test.describe('Changed identifier: Members', () => {
     await open()
     const current = await changeIdentifierElsewhere(page, slug)
 
-    await page.getByRole('button', { name: 'Change the association identifier', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'Change the association identifier', exact: true })
+    await page
+      .getByRole('button', { name: 'Change the association identifier', exact: true })
+      .click()
+    const dialog = page.getByRole('dialog', {
+      name: 'Change the association identifier',
+      exact: true,
+    })
     await dialog.getByLabel('Association identifier').fill(current)
     await dialog.getByRole('button', { name: 'Save' }).click()
 
@@ -166,9 +190,13 @@ test.describe('Changed identifier: Members', () => {
     await createAccount(brunoContext.request, 'Bruno', bruno)
     await brunoPage.goto(`/association/${slug}/members`)
     await datastarReady(brunoPage)
-    await expect(brunoPage.getByRole('button', { name: 'Delete the association', exact: true })).toBeVisible()
+    await expect(
+      brunoPage.getByRole('button', { name: 'Delete the association', exact: true }),
+    ).toBeVisible()
     const brunoId = await userIdOf(page.request, slug, 'Bruno')
-    await page.request.post(`/association/${slug}/members/${brunoId}/role`, { data: { role: 'volunteer' } })
+    await page.request.post(`/association/${slug}/members/${brunoId}/role`, {
+      data: { role: 'volunteer' },
+    })
     await open()
     const current = await changeIdentifierElsewhere(page, slug)
 
@@ -178,15 +206,22 @@ test.describe('Changed identifier: Members', () => {
     await confirmation.getByRole('button', { name: 'Delete', exact: true }).click()
 
     await expect(brunoPage).toHaveURL(new RegExp(`/association/${current}/members$`))
-    await expect(brunoPage.getByRole('button', { name: 'Delete the association', exact: true })).toHaveCount(0)
-    await expect(brunoPage.getByText('This association does not exist or you are not a member.')).toHaveCount(0)
+    await expect(
+      brunoPage.getByRole('button', { name: 'Delete the association', exact: true }),
+    ).toHaveCount(0)
+    await expect(
+      brunoPage.getByText('This association does not exist or you are not a member.'),
+    ).toHaveCount(0)
     await brunoContext.close()
   })
 })
 
 test.describe('Changed identifier: Schedule settings', () => {
   // /ui/changed-identifier/actions
-  test('Add a slot from a screen opened before the change adds the slot', async ({ page, request }) => {
+  test('Add a slot from a screen opened before the change adds the slot', async ({
+    page,
+    request,
+  }) => {
     const { slug, open } = await openScreen(page, request, '/settings', 'Schedule settings')
     await open()
     await changeIdentifierElsewhere(page, slug)
@@ -206,7 +241,10 @@ test.describe('Changed identifier: Schedule settings', () => {
 
 test.describe('Changed identifier: My availability', () => {
   // /ui/changed-identifier/actions
-  test('choosing a preference from a screen opened before the change saves it', async ({ page, request }) => {
+  test('choosing a preference from a screen opened before the change saves it', async ({
+    page,
+    request,
+  }) => {
     const { slug, open } = await openScreen(page, request, '/availability', 'My availability')
     await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
     await open()
@@ -219,14 +257,19 @@ test.describe('Changed identifier: My availability', () => {
     await expect(async () => {
       await other.goto(`/association/${current}/availability`)
       await datastarReady(other)
-      await expect(other.locator('main').getByRole('combobox').locator('option:checked')).toHaveText('Preferred', {
+      await expect(
+        other.locator('main').getByRole('combobox').locator('option:checked'),
+      ).toHaveText('Preferred', {
         timeout: 1000,
       })
     }).toPass()
   })
 
   // /ui/changed-identifier/actions
-  test('Add an absence from a screen opened before the change adds it', async ({ page, request }) => {
+  test('Add an absence from a screen opened before the change adds it', async ({
+    page,
+    request,
+  }) => {
     const { slug, open } = await openScreen(page, request, '/availability', 'My availability')
     await open()
     await changeIdentifierElsewhere(page, slug)
@@ -249,12 +292,19 @@ test.describe('Changed identifier: Schedule', () => {
     await signUpFor(page.request, slug, thursday(1).iso, '10:00', '13:00')
     await page.goto(`/association/${slug}`)
     await datastarReady(page)
-    await expect(main(page).getByRole('heading', { name: /^Week \d+$/ }).first()).toBeVisible()
+    await expect(
+      main(page)
+        .getByRole('heading', { name: /^Week \d+$/ })
+        .first(),
+    ).toBeVisible()
     return slug
   }
 
   // /ui/changed-identifier/actions
-  test('More weeks from a screen opened before the change adds four weeks', async ({ page, request }) => {
+  test('More weeks from a screen opened before the change adds four weeks', async ({
+    page,
+    request,
+  }) => {
     const slug = await openSchedule(page, request)
     await changeIdentifierElsewhere(page, slug)
 
@@ -265,7 +315,10 @@ test.describe('Changed identifier: Schedule', () => {
   })
 
   // /ui/changed-identifier/actions
-  test('Sign up from a screen opened before the change registers the user', async ({ page, request }) => {
+  test('Sign up from a screen opened before the change registers the user', async ({
+    page,
+    request,
+  }) => {
     const slug = await openSchedule(page, request)
     await changeIdentifierElsewhere(page, slug)
     const day = page.getByRole('group', { name: thursday(2).label, exact: true })
@@ -283,7 +336,10 @@ test.describe('Changed identifier: My associations', () => {
   }
 
   // /ui/changed-identifier/actions
-  test('Confirm from a screen opened before the change confirms the registration', async ({ page, request }) => {
+  test('Confirm from a screen opened before the change confirms the registration', async ({
+    page,
+    request,
+  }) => {
     await signedIn(page, request)
     const slug = await createAssociation(page.request, NAME)
     await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
@@ -305,7 +361,10 @@ test.describe('Changed identifier: My associations', () => {
   })
 
   // /ui/changed-identifier/actions
-  test('OK from a screen opened before the change cancels the obsolete registration', async ({ page, request }) => {
+  test('OK from a screen opened before the change cancels the obsolete registration', async ({
+    page,
+    request,
+  }) => {
     await signedIn(page, request)
     const slug = await createAssociation(page.request, NAME)
     await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
@@ -330,7 +389,11 @@ test.describe('Changed identifier: Members, the edit dialog', () => {
     await addMember(page.request, slug, 'Chloé', uniqueEmail('Chloe'))
     if (withLink) {
       const chloe = await userIdOf(page.request, slug, 'Chloé')
-      expect((await page.request.post(`/association/${slug}/members/${chloe}/send-link`, { data: {} })).status()).toBe(200)
+      expect(
+        (
+          await page.request.post(`/association/${slug}/members/${chloe}/send-link`, { data: {} })
+        ).status(),
+      ).toBe(200)
     }
     await open()
     await changeIdentifierElsewhere(page, slug)
@@ -351,7 +414,10 @@ test.describe('Changed identifier: Members, the edit dialog', () => {
   }
 
   // /ui/changed-identifier/actions
-  test('Save with another role from a screen opened before the change changes the role', async ({ page, request }) => {
+  test('Save with another role from a screen opened before the change changes the role', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
 
     const dialog = await openEdit(page)
@@ -363,7 +429,10 @@ test.describe('Changed identifier: Members, the edit dialog', () => {
   })
 
   // /ui/changed-identifier/actions
-  test('Remove from a screen opened before the change removes the member', async ({ page, request }) => {
+  test('Remove from a screen opened before the change removes the member', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
 
     await confirm(
@@ -378,7 +447,10 @@ test.describe('Changed identifier: Members, the edit dialog', () => {
   })
 
   // /ui/changed-identifier/actions
-  test('Send link from a screen opened before the change sends the link', async ({ page, request }) => {
+  test('Send link from a screen opened before the change sends the link', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request)
 
     await confirm(page, 'Send link', "Send Chloé's sign-in link by email?", 'Send')
@@ -388,7 +460,10 @@ test.describe('Changed identifier: Members, the edit dialog', () => {
   })
 
   // /ui/changed-identifier/actions
-  test('Revoke link from a screen opened before the change revokes the link', async ({ page, request }) => {
+  test('Revoke link from a screen opened before the change revokes the link', async ({
+    page,
+    request,
+  }) => {
     await openMembers(page, request, true)
 
     await confirm(page, 'Revoke link', "Revoke Chloé's sign-in link?", 'Revoke')
@@ -402,24 +477,37 @@ test.describe('Changed identifier: Schedule settings, its dialogs', () => {
   const CLOSURE = 'Sat 14 Nov 2037'
 
   function section(page: Page, heading: string) {
-    return main(page).locator('section').filter({ has: page.getByRole('heading', { name: heading, exact: true }) })
+    return main(page)
+      .locator('section')
+      .filter({ has: page.getByRole('heading', { name: heading, exact: true }) })
   }
 
   /** Alice opens Schedule settings, with the period and closure given, then another tab
    * changes the identifier. */
-  async function openSettings(page: Page, request: APIRequestContext, setup: { period?: boolean; closure?: boolean; link?: boolean } = {}) {
+  async function openSettings(
+    page: Page,
+    request: APIRequestContext,
+    setup: { period?: boolean; closure?: boolean; link?: boolean } = {},
+  ) {
     const { slug, open } = await openScreen(page, request, '/settings', 'Schedule settings')
     if (setup.period) await setPeriod(page.request, slug, '2037-01-05', '2037-01-25')
     if (setup.closure) await addClosure(page.request, slug, '2037-11-14', '2037-11-14', 'Fête')
     if (setup.link) {
-      expect((await page.request.post(`/association/${slug}/settings/share-link`, { data: {} })).status()).toBe(200)
+      expect(
+        (
+          await page.request.post(`/association/${slug}/settings/share-link`, { data: {} })
+        ).status(),
+      ).toBe(200)
     }
     await open()
     await changeIdentifierElsewhere(page, slug)
   }
 
   // /ui/changed-identifier/actions
-  test('Save in "Planning period" from a screen opened before the change sets the period', async ({ page, request }) => {
+  test('Save in "Planning period" from a screen opened before the change sets the period', async ({
+    page,
+    request,
+  }) => {
     await openSettings(page, request)
 
     await page.getByRole('button', { name: 'Edit the period' }).click()
@@ -433,11 +521,17 @@ test.describe('Changed identifier: Schedule settings, its dialogs', () => {
   })
 
   // /ui/changed-identifier/actions
-  test('Clear from a screen opened before the change clears the period', async ({ page, request }) => {
+  test('Clear from a screen opened before the change clears the period', async ({
+    page,
+    request,
+  }) => {
     await openSettings(page, request, { period: true })
 
     await page.getByRole('button', { name: 'Clear the period' }).click()
-    const confirmation = page.getByRole('dialog', { name: 'Clear the planning period?', exact: true })
+    const confirmation = page.getByRole('dialog', {
+      name: 'Clear the planning period?',
+      exact: true,
+    })
     await confirmation.getByRole('button', { name: 'Clear', exact: true }).click()
 
     await expect(confirmation).toBeHidden()
@@ -445,7 +539,10 @@ test.describe('Changed identifier: Schedule settings, its dialogs', () => {
   })
 
   // /ui/changed-identifier/actions
-  test('Add a closure from a screen opened before the change adds it', async ({ page, request }) => {
+  test('Add a closure from a screen opened before the change adds it', async ({
+    page,
+    request,
+  }) => {
     await openSettings(page, request)
 
     await page.getByRole('button', { name: 'Add a closure' }).click()
@@ -456,27 +553,45 @@ test.describe('Changed identifier: Schedule settings, its dialogs', () => {
     await dialog.getByRole('button', { name: 'Add closure' }).click()
 
     await expect(dialog).toBeHidden()
-    await expect(section(page, 'Closures').getByRole('listitem').filter({ hasText: CLOSURE })).toContainText('Fête')
+    await expect(
+      section(page, 'Closures').getByRole('listitem').filter({ hasText: CLOSURE }),
+    ).toContainText('Fête')
   })
 
   // /ui/changed-identifier/actions
-  test('Save in "Edit the closure" from a screen opened before the change changes it', async ({ page, request }) => {
+  test('Save in "Edit the closure" from a screen opened before the change changes it', async ({
+    page,
+    request,
+  }) => {
     await openSettings(page, request, { closure: true })
 
-    await section(page, 'Closures').getByRole('listitem').filter({ hasText: CLOSURE }).getByRole('button', { name: 'Edit the closure' }).click()
+    await section(page, 'Closures')
+      .getByRole('listitem')
+      .filter({ hasText: CLOSURE })
+      .getByRole('button', { name: 'Edit the closure' })
+      .click()
     const dialog = page.getByRole('dialog', { name: 'Edit the closure' })
     await dialog.getByLabel('Label', { exact: true }).fill('Kermesse')
     await dialog.getByRole('button', { name: 'Save' }).click()
 
     await expect(dialog).toBeHidden()
-    await expect(section(page, 'Closures').getByRole('listitem').filter({ hasText: CLOSURE })).toContainText('Kermesse')
+    await expect(
+      section(page, 'Closures').getByRole('listitem').filter({ hasText: CLOSURE }),
+    ).toContainText('Kermesse')
   })
 
   // /ui/changed-identifier/actions
-  test('Delete the closure from a screen opened before the change deletes it', async ({ page, request }) => {
+  test('Delete the closure from a screen opened before the change deletes it', async ({
+    page,
+    request,
+  }) => {
     await openSettings(page, request, { closure: true })
 
-    await section(page, 'Closures').getByRole('listitem').filter({ hasText: CLOSURE }).getByRole('button', { name: 'Delete the closure' }).click()
+    await section(page, 'Closures')
+      .getByRole('listitem')
+      .filter({ hasText: CLOSURE })
+      .getByRole('button', { name: 'Delete the closure' })
+      .click()
     const confirmation = page.getByRole('dialog', { name: /^Delete the closure "Fête"\?/ })
     await confirmation.getByRole('button', { name: 'Delete', exact: true }).click()
 
@@ -485,7 +600,10 @@ test.describe('Changed identifier: Schedule settings, its dialogs', () => {
   })
 
   // /ui/changed-identifier/actions
-  test('Create a share link from a screen opened before the change creates it', async ({ page, request }) => {
+  test('Create a share link from a screen opened before the change creates it', async ({
+    page,
+    request,
+  }) => {
     await openSettings(page, request)
 
     await page.getByRole('button', { name: 'Create a share link' }).click()
@@ -495,11 +613,17 @@ test.describe('Changed identifier: Schedule settings, its dialogs', () => {
   })
 
   // /ui/changed-identifier/actions
-  test('Revoke the share link from a screen opened before the change revokes it', async ({ page, request }) => {
+  test('Revoke the share link from a screen opened before the change revokes it', async ({
+    page,
+    request,
+  }) => {
     await openSettings(page, request, { link: true })
 
     await page.getByRole('button', { name: 'Revoke the share link' }).click()
-    const confirmation = page.getByRole('dialog', { name: 'Revoke the share link? It no longer shows the Schedule.', exact: true })
+    const confirmation = page.getByRole('dialog', {
+      name: 'Revoke the share link? It no longer shows the Schedule.',
+      exact: true,
+    })
     await confirmation.getByRole('button', { name: 'Revoke', exact: true }).click()
 
     await expect(confirmation).toBeHidden()
@@ -519,7 +643,10 @@ test.describe('Changed identifier: My availability, an absence', () => {
   }
 
   // /ui/changed-identifier/actions
-  test('Save in "Edit the absence" from a screen opened before the change changes it', async ({ page, request }) => {
+  test('Save in "Edit the absence" from a screen opened before the change changes it', async ({
+    page,
+    request,
+  }) => {
     const line = await openAbsence(page, request)
 
     await line.getByRole('button', { name: 'Edit the absence' }).click()
@@ -528,15 +655,23 @@ test.describe('Changed identifier: My availability, an absence', () => {
     await dialog.getByRole('button', { name: 'Save' }).click()
 
     await expect(dialog).toBeHidden()
-    await expect(main(page).getByRole('listitem').filter({ hasText: 'Mon 9 Nov 2037 – Fri 20 Nov 2037' })).toHaveCount(1)
+    await expect(
+      main(page).getByRole('listitem').filter({ hasText: 'Mon 9 Nov 2037 – Fri 20 Nov 2037' }),
+    ).toHaveCount(1)
   })
 
   // /ui/changed-identifier/actions
-  test('Delete the absence from a screen opened before the change deletes it', async ({ page, request }) => {
+  test('Delete the absence from a screen opened before the change deletes it', async ({
+    page,
+    request,
+  }) => {
     const line = await openAbsence(page, request)
 
     await line.getByRole('button', { name: 'Delete the absence' }).click()
-    const confirmation = page.getByRole('dialog', { name: `Delete the absence of ${ABSENCE}?`, exact: true })
+    const confirmation = page.getByRole('dialog', {
+      name: `Delete the absence of ${ABSENCE}?`,
+      exact: true,
+    })
     await confirmation.getByRole('button', { name: 'Delete', exact: true }).click()
 
     await expect(confirmation).toBeHidden()
@@ -546,7 +681,10 @@ test.describe('Changed identifier: My availability, an absence', () => {
 
 test.describe('Changed identifier: Schedule, the menu', () => {
   // /ui/changed-identifier/actions
-  test("a member's name from a screen opened before the change proposes the slot", async ({ page, request }) => {
+  test("a member's name from a screen opened before the change proposes the slot", async ({
+    page,
+    request,
+  }) => {
     const { slug } = await openScreen(page, request, '')
     await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
     await addMember(page.request, slug, 'Bruno', uniqueEmail('Bruno'))
@@ -562,7 +700,10 @@ test.describe('Changed identifier: Schedule, the menu', () => {
   })
 
   // /ui/changed-identifier/actions
-  test('"Yes, cancel" from a screen opened before the change cancels the registration', async ({ page, request }) => {
+  test('"Yes, cancel" from a screen opened before the change cancels the registration', async ({
+    page,
+    request,
+  }) => {
     const { slug } = await openScreen(page, request, '')
     await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
     await signUpFor(page.request, slug, thursday(2).iso, '10:00', '13:00')
@@ -593,14 +734,23 @@ test.describe('Changed identifier: Schedule settings, a slot and a preference', 
   }
 
   function slots(page: Page) {
-    return main(page).locator('section').filter({ has: page.getByRole('heading', { name: 'Slots', exact: true }) })
+    return main(page)
+      .locator('section')
+      .filter({ has: page.getByRole('heading', { name: 'Slots', exact: true }) })
   }
 
   // /ui/changed-identifier/actions
-  test('Save in "Edit the slot" from a screen opened before the change changes it', async ({ page, request }) => {
+  test('Save in "Edit the slot" from a screen opened before the change changes it', async ({
+    page,
+    request,
+  }) => {
     await openSettings(page, request)
 
-    await slots(page).getByRole('listitem').filter({ hasText: 'Thursday' }).getByRole('button', { name: 'Edit the slot' }).click()
+    await slots(page)
+      .getByRole('listitem')
+      .filter({ hasText: 'Thursday' })
+      .getByRole('button', { name: 'Edit the slot' })
+      .click()
     const dialog = page.getByRole('dialog', { name: 'Edit the slot' })
     await dialog.getByLabel('Day').selectOption({ label: 'Friday' })
     await dialog.getByRole('button', { name: 'Save' }).click()
@@ -611,11 +761,20 @@ test.describe('Changed identifier: Schedule settings, a slot and a preference', 
   })
 
   // /ui/changed-identifier/actions
-  test('Delete the slot from a screen opened before the change deletes it', async ({ page, request }) => {
+  test('Delete the slot from a screen opened before the change deletes it', async ({
+    page,
+    request,
+  }) => {
     await openSettings(page, request)
 
-    await slots(page).getByRole('listitem').filter({ hasText: 'Thursday' }).getByRole('button', { name: 'Delete the slot' }).click()
-    const confirmation = page.getByRole('dialog', { name: /^Delete the slot Thursday 10:00–13:00\?/ })
+    await slots(page)
+      .getByRole('listitem')
+      .filter({ hasText: 'Thursday' })
+      .getByRole('button', { name: 'Delete the slot' })
+      .click()
+    const confirmation = page.getByRole('dialog', {
+      name: /^Delete the slot Thursday 10:00–13:00\?/,
+    })
     await confirmation.getByRole('button', { name: 'Delete', exact: true }).click()
 
     await expect(confirmation).toBeHidden()
@@ -623,7 +782,10 @@ test.describe('Changed identifier: Schedule settings, a slot and a preference', 
   })
 
   // /ui/changed-identifier/actions
-  test("a member's preference from a screen opened before the change saves it", async ({ page, request }) => {
+  test("a member's preference from a screen opened before the change saves it", async ({
+    page,
+    request,
+  }) => {
     const current = await openSettings(page, request)
     const cell = (on: Page) =>
       on
@@ -647,7 +809,10 @@ test.describe('Changed identifier: Schedule settings, a slot and a preference', 
 
 test.describe('Changed identifier: My availability, the note', () => {
   // /ui/changed-identifier/actions
-  test('Save in "Note for the managers" from a screen opened before the change saves it', async ({ page, request }) => {
+  test('Save in "Note for the managers" from a screen opened before the change saves it', async ({
+    page,
+    request,
+  }) => {
     const { slug, open } = await openScreen(page, request, '/availability', 'My availability')
     await open()
     await changeIdentifierElsewhere(page, slug)
@@ -658,13 +823,18 @@ test.describe('Changed identifier: My availability, the note', () => {
     await dialog.getByRole('button', { name: 'Save' }).click()
 
     await expect(dialog).toBeHidden()
-    await expect(main(page).getByText('Mornings only.', { exact: true }).filter({ visible: true })).toBeVisible()
+    await expect(
+      main(page).getByText('Mornings only.', { exact: true }).filter({ visible: true }),
+    ).toBeVisible()
   })
 })
 
 test.describe('Changed identifier: Schedule, Confirm', () => {
   // /ui/changed-identifier/actions
-  test('Confirm in the menu from a screen opened before the change confirms the registration', async ({ page, request }) => {
+  test('Confirm in the menu from a screen opened before the change confirms the registration', async ({
+    page,
+    request,
+  }) => {
     const { slug } = await openScreen(page, request, '')
     await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
     await addMember(page.request, slug, 'Bruno', uniqueEmail('Bruno'))
@@ -677,7 +847,10 @@ test.describe('Changed identifier: Schedule, Confirm', () => {
     await expect(day.getByRole('listitem')).toHaveText('Bruno ?')
 
     await day.getByRole('listitem').click()
-    await page.locator('#occurrence-menu').getByRole('button', { name: 'Confirm', exact: true }).click()
+    await page
+      .locator('#occurrence-menu')
+      .getByRole('button', { name: 'Confirm', exact: true })
+      .click()
 
     await expect(day.getByRole('listitem')).toHaveText('Bruno')
   })

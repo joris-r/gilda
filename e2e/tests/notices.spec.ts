@@ -67,8 +67,13 @@ test.describe('Notices', () => {
     const changed = uniqueSlug()
     await page.goto(`/association/${slug}/members`)
     await datastarReady(page)
-    await page.getByRole('button', { name: 'Change the association identifier', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'Change the association identifier', exact: true })
+    await page
+      .getByRole('button', { name: 'Change the association identifier', exact: true })
+      .click()
+    const dialog = page.getByRole('dialog', {
+      name: 'Change the association identifier',
+      exact: true,
+    })
     await dialog.getByLabel('Association identifier').fill(changed)
     const notice = `The association identifier is now ${changed}.`
 

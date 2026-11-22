@@ -1,173 +1,146 @@
-import {
-  expect,
-  test,
-  type APIRequestContext,
-  type Page,
-} from "@playwright/test";
-import { createAssociation, datastarReady, signedIn, uniqueEmail } from "./helpers";
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { createAssociation, datastarReady, signedIn, uniqueEmail } from './helpers'
 
-const GENERIC = "Something went wrong. Try again.";
+const GENERIC = 'Something went wrong. Try again.'
 
 /** Alice signs in on `page`, creates an association and opens its Members; returns its slug. */
 async function openMembers(page: Page, request: APIRequestContext) {
-  await signedIn(page, request);
-  const slug = await createAssociation(page.request);
-  await page.goto(`/association/${slug}/members`);
-  await datastarReady(page);
-  await expect(page.locator("header").getByText("Members")).toBeVisible();
-  return slug;
+  await signedIn(page, request)
+  const slug = await createAssociation(page.request)
+  await page.goto(`/association/${slug}/members`)
+  await datastarReady(page)
+  await expect(page.locator('header').getByText('Members')).toBeVisible()
+  return slug
 }
 
 async function openAdd(page: Page) {
-  await page.getByRole("button", { name: "Add a member" }).click();
-  const dialog = page.getByRole("dialog", { name: "Add a member" });
-  await expect(dialog).toBeVisible();
-  return dialog;
+  await page.getByRole('button', { name: 'Add a member' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Add a member' })
+  await expect(dialog).toBeVisible()
+  return dialog
 }
 
 async function fillAdd(page: Page, displayName: string, email: string) {
-  const dialog = await openAdd(page);
-  await dialog.getByLabel("Display name", { exact: true }).fill(displayName);
-  await dialog.getByLabel("Email", { exact: true }).fill(email);
-  return dialog;
+  const dialog = await openAdd(page)
+  await dialog.getByLabel('Display name', { exact: true }).fill(displayName)
+  await dialog.getByLabel('Email', { exact: true }).fill(email)
+  return dialog
 }
 
 function line(page: Page, text: string) {
-  return page.locator("main").getByRole("listitem").filter({ hasText: text });
+  return page.locator('main').getByRole('listitem').filter({ hasText: text })
 }
 
-test.describe("Members", () => {
+test.describe('Members', () => {
   // /core/ui/header/association-link
-  test("the header's association name leads to its Schedule", async ({
-    page,
-    request,
-  }) => {
-    const slug = await openMembers(page, request);
+  test("the header's association name leads to its Schedule", async ({ page, request }) => {
+    const slug = await openMembers(page, request)
 
-    await page
-      .locator("header")
-      .getByRole("link", { name: "Jardin partagé" })
-      .click();
+    await page.locator('header').getByRole('link', { name: 'Jardin partagé' }).click()
 
-    await expect(page).toHaveURL(new RegExp(`/association/${slug}$`));
-  });
+    await expect(page).toHaveURL(new RegExp(`/association/${slug}$`))
+  })
 
   // /core/ui/members/first-five
   // /core/ui/members/list
   test('"Show all 7 members" shows the others', async ({ page, request }) => {
-    await openMembers(page, request);
-    for (const name of ["Bruno", "Chloé", "David", "Emma", "Fanny", "Gaël"]) {
-      const dialog = await fillAdd(page, name, uniqueEmail(name));
-      await dialog.getByRole("button", { name: "Add member" }).click();
-      await expect(dialog).toBeHidden();
+    await openMembers(page, request)
+    for (const name of ['Bruno', 'Chloé', 'David', 'Emma', 'Fanny', 'Gaël']) {
+      const dialog = await fillAdd(page, name, uniqueEmail(name))
+      await dialog.getByRole('button', { name: 'Add member' }).click()
+      await expect(dialog).toBeHidden()
     }
-    await page.reload();
-    await datastarReady(page);
+    await page.reload()
+    await datastarReady(page)
 
-    for (const name of ["Alice", "Bruno", "Chloé", "David", "Emma"]) {
-      await expect(line(page, name)).toBeVisible();
+    for (const name of ['Alice', 'Bruno', 'Chloé', 'David', 'Emma']) {
+      await expect(line(page, name)).toBeVisible()
     }
-    await expect(line(page, "Fanny")).toBeHidden();
-    await expect(line(page, "Gaël")).toBeHidden();
+    await expect(line(page, 'Fanny')).toBeHidden()
+    await expect(line(page, 'Gaël')).toBeHidden()
 
-    await page.getByRole("button", { name: "Show all 7 members" }).click();
+    await page.getByRole('button', { name: 'Show all 7 members' }).click()
 
-    await expect(line(page, "Fanny")).toBeVisible();
-    await expect(line(page, "Gaël")).toBeVisible();
-    await expect(page.getByText("Show all 7 members")).toBeHidden();
-  });
-});
+    await expect(line(page, 'Fanny')).toBeVisible()
+    await expect(line(page, 'Gaël')).toBeVisible()
+    await expect(page.getByText('Show all 7 members')).toBeHidden()
+  })
+})
 
-test.describe("Add a member", () => {
-
+test.describe('Add a member', () => {
   // /core/ui/members/added
   // /core/ui/members/not-joined
   // /core/operations/add-member/new-user
   // /ui/forms/success
-  test("adding closes the dialog, says so and shows the member", async ({
-    page,
-    request,
-  }) => {
-    await openMembers(page, request);
-    const email = uniqueEmail("Chloe");
+  test('adding closes the dialog, says so and shows the member', async ({ page, request }) => {
+    await openMembers(page, request)
+    const email = uniqueEmail('Chloe')
 
-    const dialog = await fillAdd(page, "Chloé", email);
-    await dialog
-      .getByRole("combobox", { name: /^Role/ })
-      .selectOption({ label: "Manager" });
-    await dialog.getByRole("button", { name: "Add member" }).click();
+    const dialog = await fillAdd(page, 'Chloé', email)
+    await dialog.getByRole('combobox', { name: /^Role/ }).selectOption({ label: 'Manager' })
+    await dialog.getByRole('button', { name: 'Add member' }).click()
 
-    await expect(dialog).toBeHidden();
-    await expect(page.getByText("Chloé added.")).toBeVisible();
-    await expect(line(page, email)).toContainText("not joined yet");
-    await expect(line(page, email)).toContainText(/manager/i);
-  });
+    await expect(dialog).toBeHidden()
+    await expect(page.getByText('Chloé added.')).toBeVisible()
+    await expect(line(page, email)).toContainText('not joined yet')
+    await expect(line(page, email)).toContainText(/manager/i)
+  })
 
   // /core/ui/members/already
   // /ui/forms/failure
   // /ui/errors/kept
-  test("an existing member: the dialog stays open, with its message", async ({
-    page,
-    request,
-  }) => {
-    await openMembers(page, request);
-    const email = uniqueEmail("Chloe");
-    let dialog = await fillAdd(page, "Chloé", email);
-    await dialog.getByRole("button", { name: "Add member" }).click();
-    await expect(dialog).toBeHidden();
+  test('an existing member: the dialog stays open, with its message', async ({ page, request }) => {
+    await openMembers(page, request)
+    const email = uniqueEmail('Chloe')
+    let dialog = await fillAdd(page, 'Chloé', email)
+    await dialog.getByRole('button', { name: 'Add member' }).click()
+    await expect(dialog).toBeHidden()
 
-    dialog = await fillAdd(page, "Chloé", email);
-    await dialog.getByRole("button", { name: "Add member" }).click();
+    dialog = await fillAdd(page, 'Chloé', email)
+    await dialog.getByRole('button', { name: 'Add member' }).click()
 
-    await expect(dialog.getByText("Chloé is already a member.")).toBeVisible();
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByLabel("Email", { exact: true })).toHaveValue(
-      email,
-    );
-  });
+    await expect(dialog.getByText('Chloé is already a member.')).toBeVisible()
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByLabel('Email', { exact: true })).toHaveValue(email)
+  })
 
-  for (const way of ["Cancel", "the close button", "Escape"]) {
+  for (const way of ['Cancel', 'the close button', 'Escape']) {
     // /ui/forms/close
     test(`${way} closes it, changing nothing`, async ({ page, request }) => {
-      await openMembers(page, request);
-      const email = uniqueEmail("Chloe");
-      const dialog = await fillAdd(page, "Chloé", email);
+      await openMembers(page, request)
+      const email = uniqueEmail('Chloe')
+      const dialog = await fillAdd(page, 'Chloé', email)
 
-      if (way === "Cancel")
-        await dialog.getByRole("button", { name: "Cancel" }).click();
-      else if (way === "Escape") await page.keyboard.press("Escape");
-      else await dialog.getByRole("button", { name: "Close" }).click();
+      if (way === 'Cancel') await dialog.getByRole('button', { name: 'Cancel' }).click()
+      else if (way === 'Escape') await page.keyboard.press('Escape')
+      else await dialog.getByRole('button', { name: 'Close' }).click()
 
-      await expect(dialog).toBeHidden();
-      await page.reload();
-      await datastarReady(page);
-      await expect(page.locator("main")).not.toContainText(email);
-    });
+      await expect(dialog).toBeHidden()
+      await page.reload()
+      await datastarReady(page)
+      await expect(page.locator('main')).not.toContainText(email)
+    })
   }
 
   // /ui/forms/failure
   // /ui/errors/generic
   // /ui/errors/kept
-  test("when the server fails: the generic error in the dialog, and what was typed stays", async ({
+  test('when the server fails: the generic error in the dialog, and what was typed stays', async ({
     page,
     request,
   }) => {
-    const slug = await openMembers(page, request);
+    const slug = await openMembers(page, request)
     await page.route(`**/association/${slug}/members`, (route) =>
-      route.request().method() === "POST"
-        ? route.fulfill({ status: 500, body: "failure" })
+      route.request().method() === 'POST'
+        ? route.fulfill({ status: 500, body: 'failure' })
         : route.continue(),
-    );
+    )
 
-    const dialog = await fillAdd(page, "Chloé", "chloe@example.org");
-    await dialog.getByRole("button", { name: "Add member" }).click();
+    const dialog = await fillAdd(page, 'Chloé', 'chloe@example.org')
+    await dialog.getByRole('button', { name: 'Add member' }).click()
 
-    await expect(dialog.getByText(GENERIC)).toBeVisible();
-    await expect(
-      dialog.getByLabel("Display name", { exact: true }),
-    ).toHaveValue("Chloé");
-    await expect(dialog.getByLabel("Email", { exact: true })).toHaveValue(
-      "chloe@example.org",
-    );
-  });
-});
+    await expect(dialog.getByText(GENERIC)).toBeVisible()
+    await expect(dialog.getByLabel('Display name', { exact: true })).toHaveValue('Chloé')
+    await expect(dialog.getByLabel('Email', { exact: true })).toHaveValue('chloe@example.org')
+  })
+})

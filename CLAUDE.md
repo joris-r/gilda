@@ -16,6 +16,8 @@ file: its non-text bytes can make a plain `grep` find nothing.
 
 To pass options to pytest, set `PYTEST_ADDOPTS` on the Makefile
 target: `PYTEST_ADDOPTS="-n0 tests/core" make test-backend`.
+To pass options to Playwright, set `E2E_ARGS`:
+`make test-e2e E2E_ARGS="tests/members.spec.ts"`.
 
 In a worktree other than the main one, run `make` with
 `COMPOSE_PROJECT_NAME=gilda`, or Compose starts a second set of

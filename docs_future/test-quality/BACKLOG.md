@@ -10,11 +10,7 @@ to the test policy of `technical.md` the rule it finds worth keeping.
 2. Sturdy page reading done
 3. Flakiness and time done
 4. Weak and missing tests done
-5. Tooling, `direct`:
-   - End-to-end: `make test-e2e` would take arguments (e.g. a spec file or a grep) to run one spec.
-   - Tooling: e2e should not reuse a server already running on its port, or `make test-e2e` should check the port first.
-   - End-to-end: `tsc --noEmit` reports three type errors in errors-once.spec.ts (Promise<string[]> not assignable to Promise<void>).
-   - Quality: run Prettier and ESLint on `e2e/` in `make lint`, with a Prettier config matching the project's style (single quotes, no semicolons); `scenarios.spec.ts` is not formatted today, and `members.spec.ts` was formatted with Prettier's defaults.
+5. Tooling done
 6. Clock, `code-only`: a clock injected into the services.
 7. Past states, `tests-only`: the tests reach past states through the clock instead of SQL.
 
@@ -28,7 +24,10 @@ to the test policy of `technical.md` the rule it finds worth keeping.
 
 - Serves 6 and 7: the World of `test_general_rules.py` and the test of a registration today take their dates from `date.today()` (host UTC) or time_machine; once a clock is injected, they follow it.
 - Serves 7: the backend suite ran 150–158 s against its 3 min budget (the general-rules table costs about 20 s); a test reaching a past state through the clock must not build more than it replaces.
-- Serves 5: without arguments to `make test-e2e`, checking one spec costs a full end-to-end run (2.5 min).
+
+### Tooling (test-tooling)
+
+- Serves 7: run `make test-e2e E2E_ARGS=<spec>` on the specs a change touches first, then the full run.
 
 ### Mutation testing of `planning/services.py` (mutation-probe)
 
@@ -46,6 +45,8 @@ What was done: a one-off measure of line and branch coverage of `backend/src/gil
 
 ## For the human
 
+- Return e2e to TypeScript 7 once typescript-eslint supports it.
+- End-to-end: type-aware ESLint (`no-floating-promises`) to catch a missing await on a Playwright action.
 - Remove `_one_line()` from `planning/pages.py`, now that `shown()` rebuilds patches (`code-only`).
 - Tests read action responses through `patched()` and the page readers, not raw `in shown()` / `unescape(page)` text (`tests-only`).
 - Forms submit natively (GET) if submitted before Datastar starts; a slow network lets a user hit it.

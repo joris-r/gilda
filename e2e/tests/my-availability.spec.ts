@@ -1,5 +1,12 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
-import { addAbsence, addSlot, createAssociation, saveNote, signedIn, datastarReady } from './helpers'
+import {
+  addAbsence,
+  addSlot,
+  createAssociation,
+  saveNote,
+  signedIn,
+  datastarReady,
+} from './helpers'
 
 const GENERIC = 'Something went wrong. Try again.'
 
@@ -15,7 +22,8 @@ async function openAvailability(
   await signedIn(page, request)
   const slug = await createAssociation(page.request)
   for (const [weekday, start, end] of slots) await addSlot(page.request, slug, weekday, start, end)
-  for (const [first, last] of setup.absences ?? []) await addAbsence(page.request, slug, first, last)
+  for (const [first, last] of setup.absences ?? [])
+    await addAbsence(page.request, slug, first, last)
   if (setup.note !== undefined) await saveNote(page.request, slug, setup.note)
   await page.goto(`/association/${slug}/availability`)
   await datastarReady(page)
@@ -33,13 +41,14 @@ async function expectSaved(page: Page, slug: string, value: string | null) {
   await expect(async () => {
     await other.goto(`/association/${slug}/availability`)
     await datastarReady(other)
-    await expect(other.locator('main').getByRole('combobox')).toHaveValue(value ?? '', { timeout: 1000 })
+    await expect(other.locator('main').getByRole('combobox')).toHaveValue(value ?? '', {
+      timeout: 1000,
+    })
   }).toPass()
   await other.close()
 }
 
 test.describe('My availability: My preferences', () => {
-
   // /planning/ui/my-availability/set
   // /planning/operations/set-preference/set
   test('choosing a value saves it at once', async ({ page, request }) => {
@@ -102,7 +111,9 @@ test.describe('My availability: My preferences', () => {
   // /ui/errors/generic
   test('when the server fails: the generic error', async ({ page, request }) => {
     await openAvailability(page, request, [['thursday', '10:00', '13:00']])
-    await page.route('**/availability/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+    await page.route('**/availability/preferences/**', (route) =>
+      route.fulfill({ status: 500, body: 'failure' }),
+    )
 
     await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
 
@@ -171,7 +182,6 @@ async function openNote(page: Page) {
 }
 
 test.describe('My availability: Add an absence', () => {
-
   // /planning/ui/my-availability/add-absence
   // /planning/operations/add-absence/added
   // /planning/ui/my-availability/absences
@@ -247,7 +257,9 @@ test.describe('My availability: Add an absence', () => {
     request,
   }) => {
     await openAvailability(page, request, [])
-    await page.route('**/availability/absences', (route) => route.fulfill({ status: 500, body: 'failure' }))
+    await page.route('**/availability/absences', (route) =>
+      route.fulfill({ status: 500, body: 'failure' }),
+    )
 
     const dialog = await openAddAbsence(page)
     await from(dialog).fill('2037-11-09')
@@ -262,7 +274,10 @@ test.describe('My availability: Add an absence', () => {
 
 test.describe('My availability: Edit the absence', () => {
   // /planning/ui/my-availability/edit-absence
-  test('opens the dialog "Edit the absence", filled with the absence', async ({ page, request }) => {
+  test('opens the dialog "Edit the absence", filled with the absence', async ({
+    page,
+    request,
+  }) => {
     await openAvailability(page, request, [], { absences: [NOV, DEC] })
 
     const dialog = await openEditAbsence(page, DEC_SHOWN)
@@ -292,7 +307,10 @@ test.describe('My availability: Edit the absence', () => {
   })
 
   // /planning/ui/my-availability/edit-absence
-  test('opened again after a Save, it is filled with the absence edited', async ({ page, request }) => {
+  test('opened again after a Save, it is filled with the absence edited', async ({
+    page,
+    request,
+  }) => {
     await openAvailability(page, request, [], { absences: [NOV] })
     let dialog = await openEditAbsence(page, NOV_SHOWN)
     await to(dialog).fill('2037-11-20')
@@ -388,7 +406,10 @@ test.describe('My availability: Delete the absence', () => {
 
   // /ui/forms/failure
   // /ui/errors/generic
-  test('when the server fails: the generic error in the confirmation', async ({ page, request }) => {
+  test('when the server fails: the generic error in the confirmation', async ({
+    page,
+    request,
+  }) => {
     await openAvailability(page, request, [], { absences: [NOV] })
     await page.route('**/delete', (route) => route.abort())
 
@@ -524,7 +545,9 @@ test.describe('My availability: Note for the managers', () => {
     request,
   }) => {
     await openAvailability(page, request, [])
-    await page.route('**/availability/note', (route) => route.fulfill({ status: 500, body: 'failure' }))
+    await page.route('**/availability/note', (route) =>
+      route.fulfill({ status: 500, body: 'failure' }),
+    )
 
     const dialog = await openNote(page)
     await noteText(dialog).fill(NOTE)
@@ -549,9 +572,14 @@ const OVERLAP = 'This absence overlaps another one.'
 
 test.describe('My availability: the selector shows the value saved', () => {
   // /planning/ui/my-availability/saved-value
-  test('a failed save puts the selector back on the value it opened with', async ({ page, request }) => {
+  test('a failed save puts the selector back on the value it opened with', async ({
+    page,
+    request,
+  }) => {
     await openAvailability(page, request, [['thursday', '10:00', '13:00']])
-    await page.route('**/availability/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+    await page.route('**/availability/preferences/**', (route) =>
+      route.fulfill({ status: 500, body: 'failure' }),
+    )
 
     await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
 
@@ -560,11 +588,16 @@ test.describe('My availability: the selector shows the value saved', () => {
   })
 
   // /planning/ui/my-availability/saved-value
-  test('a failed save puts the selector back on the value saved last', async ({ page, request }) => {
+  test('a failed save puts the selector back on the value saved last', async ({
+    page,
+    request,
+  }) => {
     const slug = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
     await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
     await expectSaved(page, slug, 'preferred')
-    await page.route('**/availability/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+    await page.route('**/availability/preferences/**', (route) =>
+      route.fulfill({ status: 500, body: 'failure' }),
+    )
 
     await selector(page, 'Thursday').selectOption({ label: 'Possible' })
 
@@ -623,7 +656,9 @@ test.describe('My availability: the selector shows the value saved', () => {
     const slug = await openAvailability(page, request, [['thursday', '10:00', '13:00']])
     await selector(page, 'Thursday').selectOption({ label: 'Preferred' })
     await expectSaved(page, slug, 'preferred')
-    await page.route('**/availability/preferences/**', (route) => route.fulfill({ status: 500, body: 'failure' }))
+    await page.route('**/availability/preferences/**', (route) =>
+      route.fulfill({ status: 500, body: 'failure' }),
+    )
 
     await selector(page, 'Thursday').selectOption({ label: '—' })
 
@@ -636,13 +671,21 @@ test.describe('My availability: the absences dialogs refuse', () => {
   const cases = [
     { name: 'last before first', first: '2037-11-16', last: '2037-11-15', message: ORDER },
     { name: 'last before today', first: inDays(-7), last: inDays(-1), message: PAST },
-    { name: 'dates another absence covers', first: '2037-11-12', last: '2037-11-20', message: OVERLAP },
+    {
+      name: 'dates another absence covers',
+      first: '2037-11-12',
+      last: '2037-11-20',
+      message: OVERLAP,
+    },
   ]
   for (const { name, first, last, message } of cases) {
     // /planning/ui/my-availability/absence-order
     // /planning/ui/my-availability/absence-past
     // /planning/ui/my-availability/absence-overlap
-    test(`Add an absence with ${name} says so in the dialog, which stays open`, async ({ page, request }) => {
+    test(`Add an absence with ${name} says so in the dialog, which stays open`, async ({
+      page,
+      request,
+    }) => {
       await openAvailability(page, request, [], { absences: [NOV] })
 
       const dialog = await openAddAbsence(page)
@@ -654,13 +697,18 @@ test.describe('My availability: the absences dialogs refuse', () => {
       await expect(dialog.getByText(GENERIC).filter({ visible: true })).toHaveCount(0)
       await expect(from(dialog)).toHaveValue(first)
       await expect(line(page, NOV_SHOWN)).toHaveCount(1)
-      await expect(page.locator('main').getByRole('listitem').filter({ hasText: '–' })).toHaveCount(1)
+      await expect(page.locator('main').getByRole('listitem').filter({ hasText: '–' })).toHaveCount(
+        1,
+      )
     })
 
     // /planning/ui/my-availability/edit-absence-order
     // /planning/ui/my-availability/edit-absence-past
     // /planning/ui/my-availability/edit-absence-overlap
-    test(`Edit the absence with ${name} says so in the dialog, which stays open`, async ({ page, request }) => {
+    test(`Edit the absence with ${name} says so in the dialog, which stays open`, async ({
+      page,
+      request,
+    }) => {
       await openAvailability(page, request, [], { absences: [NOV, DEC] })
 
       const dialog = await openEditAbsence(page, DEC_SHOWN)
@@ -677,7 +725,10 @@ test.describe('My availability: the absences dialogs refuse', () => {
 
   // /ui/forms/fresh
   // /planning/ui/my-availability/absence-order
-  test('Add an absence opened again shows no message of the earlier try', async ({ page, request }) => {
+  test('Add an absence opened again shows no message of the earlier try', async ({
+    page,
+    request,
+  }) => {
     await openAvailability(page, request, [])
     let dialog = await openAddAbsence(page)
     await from(dialog).fill('2037-11-16')
@@ -693,7 +744,10 @@ test.describe('My availability: the absences dialogs refuse', () => {
 
   // /ui/forms/fresh
   // /ui/errors/generic
-  test('Edit the absence opened again after a failure shows no error', async ({ page, request }) => {
+  test('Edit the absence opened again after a failure shows no error', async ({
+    page,
+    request,
+  }) => {
     await openAvailability(page, request, [], { absences: [NOV, DEC] })
     await page.route('**/edit', (route) => route.fulfill({ status: 500, body: 'failure' }))
     let dialog = await openEditAbsence(page, DEC_SHOWN)

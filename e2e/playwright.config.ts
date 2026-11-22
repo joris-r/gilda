@@ -21,7 +21,7 @@ export default defineConfig({
       DATABASE_URL,
       FRONTEND_URL: `http://127.0.0.1:${PORT}`,
     },
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 })

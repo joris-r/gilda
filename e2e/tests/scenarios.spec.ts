@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test'
-import { PASSWORD, datastarReady, follow, latestToken, nameInMenu, signIn, uniqueEmail } from './helpers'
+import {
+  PASSWORD,
+  datastarReady,
+  follow,
+  latestToken,
+  nameInMenu,
+  signIn,
+  uniqueEmail,
+} from './helpers'
 
 async function signUp(page: Page, displayName: string, email: string) {
   await page.goto('/')
@@ -304,7 +312,7 @@ test.describe('Scenarios', () => {
       await signOut(page)
     })
 
-    await test.step("4. Alice sees Chloé joined and revokes her link", async () => {
+    await test.step('4. Alice sees Chloé joined and revokes her link', async () => {
       await signIn(page, alice)
       await openSchedule(page, association)
       await openMembers(page)
