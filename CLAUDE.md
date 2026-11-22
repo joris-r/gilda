@@ -39,3 +39,6 @@ When a change alters what a screen shows, search the tests also by the
 visible text (in English and in French) and by the helpers that build
 it, not only by the paths they cite: a test may check the text without
 citing the path.
+
+`deps_feedback/` holds the issues found in the project's dependencies,
+one folder per issue. Take them into account.
