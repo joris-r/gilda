@@ -41,6 +41,7 @@
 - Cleanup: one helper for "today in the association's timezone", computed in five places of planning/services.py.
 - Create an account and Forgot password: a failed send keeps the previous link working.
 - Dependencies: upgrade the bundled Datastar from 1.0.4 to 1.0.5, for its retry and tab visibility fixes (see deps_feedback/datastar-01/).
+- Backend: replace Advanced Alchemy's deprecated repository `list()` (removed in 2.0.0) by `get_many`, then narrow the warning filter of `pyproject.toml` to the library's own import-time warnings.
 - Sessions: once Litestar saves only changed sessions and can renew the session ID, drop the `SessionBackend` subclass (see deps_feedback/).
 - Delete account: delete the user's other sessions, as /core/operations/delete-account/deleted says (they are only refused at load today).
 
@@ -65,4 +66,3 @@
 - Performance: More weeks, Sign up, Propose, Confirm and Cancel registration resend every shown week, so each response grows with the weeks already shown.
 - Performance: My associations builds each association's summary with its own queries, so the page slows as a user joins more associations.
 - Frontend: a long-lived SSE stream per screen (Datastar) with a broadcaster (in-process or Postgres LISTEN/NOTIFY), replacing the refresh on return of Members' preferences and the Schedule, so screens update live.
-- Backend: replace Advanced Alchemy's deprecated repository `list()` by `get_many`, then narrow the warning filter of `pyproject.toml` to the library's own import-time warnings.
