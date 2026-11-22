@@ -42,6 +42,8 @@
 - Create an account and Forgot password: a failed send keeps the previous link working.
 - Dependencies: upgrade the bundled Datastar from 1.0.4 to 1.0.5, for its retry and tab visibility fixes (see deps_feedback/datastar-01-retry-defaults/).
 - Backend: replace Advanced Alchemy's deprecated repository `list()` (removed in 2.0.0) by `get_many`, then narrow the warning filter of `pyproject.toml` to the library's own import-time warnings.
+- Backend: a refused Datastar action answers 200, which Advanced Alchemy's autocommit commits, so each handler rolls back by hand (Create an account, Send link); roll back in one place, or check it.
+- Tooling: pin the Mailpit image in `compose.yaml` (`latest` today), so a Mailpit change no longer breaks the email helpers unannounced (see deps_feedback/mailpit-01-test-quirks/).
 - Sessions: once Litestar saves only changed sessions and can renew the session ID, drop the `SessionBackend` subclass (see deps_feedback/litestar-01-session-stale-save/).
 - Delete account: delete the user's other sessions, as /core/operations/delete-account/deleted says (they are only refused at load today).
 
