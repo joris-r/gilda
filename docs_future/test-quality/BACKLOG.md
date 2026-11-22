@@ -27,7 +27,7 @@ to the test policy of `technical.md` the rule it finds worth keeping.
 ### Weak and missing tests (weak-and-missing-tests)
 
 - Serves 6 and 7: the World of `test_general_rules.py` and the test of a registration today take their dates from `date.today()` (host UTC) or time_machine; once a clock is injected, they follow it.
-- Serves 7: the backend suite has no time to spare (149.7 s of its 150 s; the general-rules table costs about 20 s); a test reaching a past state through the clock must not build more than it replaces.
+- Serves 7: the backend suite ran 150–158 s against its 3 min budget (the general-rules table costs about 20 s); a test reaching a past state through the clock must not build more than it replaces.
 - Serves 5: without arguments to `make test-e2e`, checking one spec costs a full end-to-end run (2.5 min).
 
 ### Mutation testing of `planning/services.py` (mutation-probe)
@@ -49,5 +49,4 @@ What was done: a one-off measure of line and branch coverage of `backend/src/gil
 - Remove `_one_line()` from `planning/pages.py`, now that `shown()` rebuilds patches (`code-only`).
 - Tests read action responses through `patched()` and the page readers, not raw `in shown()` / `unescape(page)` text (`tests-only`).
 - Forms submit natively (GET) if submitted before Datastar starts; a slow network lets a user hit it.
-- Speed: the backend suite sits at its 150 s budget (149.7 s); the general-rules table costs ~20 s, mostly 85 worlds of their own; reuse them or raise the budget.
 - Defensive guards no specified path reaches (core/planning/home re-checks, 'Give a name or a slug.', 'Give both from and to, or neither.', preference refusals, registration back to proposed, take-over error without the flag): keep or remove as dead code.

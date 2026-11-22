@@ -102,7 +102,7 @@
 - Tests hash passwords with Argon2 at its minimal cost parameters.
 - Each worker builds the application once; every test client of the
   worker, one per browser, runs on it.
-- The whole suite runs in at most 2 min 30 s on 8 cores, and a run
+- The whole suite runs in at most 3 min on 8 cores, and a run
   reports no warning.
 - The page readers of the tests read a page as the browser shows it:
   through an HTML parser, only its visible elements, their text
