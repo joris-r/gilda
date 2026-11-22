@@ -41,4 +41,8 @@ it, not only by the paths they cite: a test may check the text without
 citing the path.
 
 `deps_feedback/` holds the issues found in the project's dependencies,
-one folder per issue. Take them into account.
+one folder per issue, named `<dependency>-<nn>-<subject>`. Take them
+into account. Each folder's `STATUS.md` says whether the issue is
+reported, what in the project works around it, the backlog entry
+waiting on it, and when it is done: read it first, and update it when
+any of these changes.
