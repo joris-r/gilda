@@ -4,21 +4,32 @@ Material for the maintainers of Datastar.
 
 ## Versions
 
-- Datastar 1.0.4 (the browser bundle), with datastar-py 1.0.3
+- Datastar 1.0.4, the bundle the application ships, with datastar-py
+  1.0.3
+- Datastar 1.0.5, checked with the same reproduction
 - Reproduced in Chromium, driven by Playwright
 
-## What happens
+## Fixed in 1.0.5
+
+In 1.0.4, the network-error path did not read `retry`, so
+`retry: "never"` still resent after a network error, up to
+`retryMaxCount` times; only `retryMaxCount: 0` stopped it. 1.0.5
+(#1234) makes `retry: "never"` stop after network and stream failures,
+and the reproduction below confirms it.
+
+1.0.5 also fixes a restart after a tab visibility change aborting its
+replacement (#1213) and a retry timer opening a duplicate connection
+(#1230).
+
+## What still happens in 1.0.5
 
 The backend actions (`@get`, `@post`, `@put`, `@patch`, `@delete`)
 share these defaults: `retry: "auto"`, `retryMaxCount: 10`,
 `retryInterval: 1000`, `retryScaler: 2`, `retryMaxWait: 30000`.
 
-- **A network error is resent, whatever `retry` says.** When `fetch`
-  throws (connection refused, reset, closed without a response,
-  offline), the catch block schedules a retry unless the request was
-  aborted. It does not read `retry`. So `retry: "never"` still resends
-  after a network error, up to `retryMaxCount` times. Only
-  `retryMaxCount: 0` stops it.
+- **A network error is resent by default.** When `fetch` throws
+  (connection refused, reset, closed without a response, offline),
+  `"auto"` schedules a retry, up to `retryMaxCount` times.
 - **An HTTP error is not resent under `"auto"`.** A 4xx or 5xx is
   resent only with `retry: "error"` or `"always"`.
 - **The method makes no difference.** A `@post`, `@put`, `@patch` or
@@ -28,7 +39,7 @@ share these defaults: `retry: "auto"`, `retryMaxCount: 10`,
 - **A `@get` is resent when the tab comes back.** With
   `openWhenHidden: false`, the default for `@get` only, a `@get` still
   in flight is aborted when the tab is hidden and sent again when it
-  becomes visible. `retryMaxCount: 0` does not change this.
+  becomes visible, whatever `retry` and `retryMaxCount` say.
 - **The resends come late.** With the defaults, they come at about 1,
   3, 7, 15 and 31 s, then every 30 s, ten in all: the last one about
   three minutes after the user acted.
@@ -101,19 +112,17 @@ ThreadingHTTPServer(("127.0.0.1", 8000), Handler).serve_forever()
 
 Requests received in the 9 s after one click on each button:
 
-```
-      4 POST /act?case=default
-      4 POST /act?case=never
-      1 POST /act?case=zero
-```
-
-`retry: "never"` behaves like the default.
+| Case               | 1.0.4 | 1.0.5 |
+|--------------------|-------|-------|
+| default            | 4     | 4     |
+| `retry: 'never'`   | 4     | 1     |
+| `retryMaxCount: 0` | 1     | 1     |
 
 ## What it cost us
 
 Our application needs every operation to be sent once per user
 action: after a failure, nothing resends it until the user acts again.
-Doing that took:
+On 1.0.4, doing that took:
 
 - `retryMaxCount: 0` written by hand on each of the 47 actions of our
   templates, each with a comment saying why;
@@ -125,17 +134,21 @@ Doing that took:
   rather than for a fixed time, as that event comes only once an
   action can no longer retry.
 
+1.0.5 lets `retry: "never"` do the job, but it still has to be written
+on every action and checked by the lint script.
+
 ## What upstream could do
 
-- **Make `retry: "never"` mean never.** Have the network-error path
-  read `retry` too, and document which failures each value covers.
 - **Do not resend non-idempotent methods by default.** Retry `@post`,
   `@patch` and `@delete` by default only for a stream that already
   started, or not at all; keep reconnection for `@get` streams.
 - **Allow global defaults.** One place, such as an attribute on the
   script or the root element, or a call before start, to set the fetch
   options of every action, so that an application sets
-  `retryMaxCount: 0` once.
+  `retry: "never"` once.
+- **Let `retry: "never"` cover the tab's return.** A `@get` with
+  `retry: "never"` is still sent again when the tab becomes visible;
+  only `openWhenHidden: true` stops that.
 - **Document the defaults.** The docs could say that a one-shot action
   is resent up to ten times over several minutes after a network
   error, and that a `@get` is sent again when the tab becomes visible.
