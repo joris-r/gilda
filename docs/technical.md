@@ -116,6 +116,8 @@
   checked by one test over a table of the actions of the screens; a
   route of the application that is neither in the table nor a page
   fails it.
+- A test moves time only through the application's clock, never
+  through the system's time or by rewriting a stored time or date.
 - Mailpit keeps every email it catches; each backend run empties it
   before its tests start.
 
