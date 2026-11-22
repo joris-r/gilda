@@ -2,7 +2,7 @@ import logging
 import os
 import secrets
 from collections.abc import Awaitable, Callable, Sequence
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import cast
 from uuid import UUID
 
@@ -18,6 +18,7 @@ from litestar.exceptions import (
 from litestar.status_codes import HTTP_409_CONFLICT
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from gilda.clock import Clock
 from gilda.core.models import (
     AccessLink,
     Association,
@@ -87,8 +88,9 @@ def member_read(membership: Membership) -> MemberRead:
 
 
 class AccountService:
-    def __init__(self, db_session: AsyncSession) -> None:
+    def __init__(self, db_session: AsyncSession, clock: Clock) -> None:
         self.db_session = db_session
+        self.clock = clock
         self.users = UserRepository(session=db_session)
         self.tokens = EmailVerificationTokenRepository(session=db_session)
         self.reset_tokens = PasswordResetTokenRepository(session=db_session)
@@ -155,16 +157,16 @@ class AccountService:
         await self.access_links.delete_where(user_id=user.id)
         user.email = None
         user.password_hash = None
-        user.deleted_at = datetime.now(UTC)
+        user.deleted_at = self.clock.now()
         await self.users.update(user)
 
     async def confirm(self, token: str) -> User:
         record = await self.tokens.get_one_or_none(token=token)
-        if record is None or record.expires_at < datetime.now(UTC):
+        if record is None or record.expires_at < self.clock.now():
             raise NotFoundException("This confirmation link is unknown or expired.")
         user = await self.get(record.user_id)
         assert user is not None  # the foreign key guarantees it
-        user.email_verified_at = datetime.now(UTC)
+        user.email_verified_at = self.clock.now()
         await self.users.update(user)
         await self.tokens.delete(record.id)
         return user
@@ -189,7 +191,7 @@ class AccountService:
             PasswordResetToken(
                 user_id=user.id,
                 token=secrets.token_urlsafe(32),
-                expires_at=datetime.now(UTC) + RESET_TOKEN_LIFETIME,
+                expires_at=self.clock.now() + RESET_TOKEN_LIFETIME,
             )
         )
         try:
@@ -200,7 +202,7 @@ class AccountService:
 
     async def _usable_reset_token(self, token: str) -> PasswordResetToken | None:
         record = await self.reset_tokens.get_one_or_none(token=token)
-        return None if record is None or record.expires_at < datetime.now(UTC) else record
+        return None if record is None or record.expires_at < self.clock.now() else record
 
     async def reset_token_is_usable(self, token: str) -> bool:
         return await self._usable_reset_token(token) is not None
@@ -214,7 +216,7 @@ class AccountService:
         user.password_hash = _hasher.hash(password)
         if user.email_verified_at is None:
             # The link reached the user's mailbox, which proves the email.
-            user.email_verified_at = datetime.now(UTC)
+            user.email_verified_at = self.clock.now()
         await self.users.update(user)
         await self.reset_tokens.delete(record.id)
         return user
@@ -237,7 +239,7 @@ class AccountService:
         assert user is not None  # the foreign key guarantees it
         if user.email_verified_at is None:
             # The link reached the user's mailbox, which proves the email.
-            user.email_verified_at = datetime.now(UTC)
+            user.email_verified_at = self.clock.now()
             await self.users.update(user)
         return user, link
 
@@ -256,7 +258,7 @@ class AccountService:
             EmailVerificationToken(
                 user_id=user.id,
                 token=secrets.token_urlsafe(32),
-                expires_at=datetime.now(UTC) + TOKEN_LIFETIME,
+                expires_at=self.clock.now() + TOKEN_LIFETIME,
             )
         )
         send_verification_email(user.address, token.token, language)

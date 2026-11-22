@@ -10,6 +10,7 @@ from litestar.params import FromPath
 from litestar.response import Template
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from gilda.clock import clock_of
 from gilda.core.services import AssociationService
 from gilda.core.sessions import find_current_user
 from gilda.home.services import HomeService
@@ -28,7 +29,7 @@ async def home(
     user = await find_current_user(request, db_session)
     if user is None:
         return page(request, "sign_in.html", message="")
-    listed = await HomeService(db_session).list_for(user)
+    listed = await HomeService(db_session, clock_of(request)).list_for(user)
     associations = sorted(listed, key=lambda a: name_key(a.name))
     return page(request, "my_associations.html", user=user, associations=associations)
 
@@ -53,14 +54,16 @@ async def _status_changed(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).change_status(user, association.id, registration, status)
+        await PlanningService(db_session, clock_of(request)).change_status(
+            user, association.id, registration, status
+        )
     except _REFUSALS:
         message = translate(interface_language(request), "error")
         error = fragment(
             request, "form_error.html", message=message, error_id=f"summary-error-{slug}"
         )
         return DatastarResponse(ServerSentEventGenerator.patch_elements(error))
-    shown = await HomeService(db_session).one_for(user, association.id)
+    shown = await HomeService(db_session, clock_of(request)).one_for(user, association.id)
     item = fragment(request, "my_associations_item.html", association=shown)
     # On one line, so that each line of the summary stays whole in the event.
     return DatastarResponse(ServerSentEventGenerator.patch_elements(re.sub(r"\s*\n\s*", " ", item)))

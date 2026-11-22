@@ -32,7 +32,8 @@
   `DATABASE_URL`, the superuser from `SUPERUSER_EMAIL`; sign-up is
   open unless `INVITATION_ONLY` is `true`.
 - The backend's code reads the current time only from one clock, given
-  to the application when it is built; its dependencies keep their own.
+  to the application when it is built; its dependencies keep their own,
+  and so does the expiry of the stored sessions.
 - Setting a preference is a single PostgreSQL
   `INSERT … ON CONFLICT (user_id, slot_id) DO UPDATE`; the last write
   wins.

@@ -16,6 +16,7 @@ from litestar.params import FromPath, FromQuery
 from litestar.response import Template
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from gilda.clock import clock_of
 from gilda.core.models import SESSION_LINK_KEY, User
 from gilda.core.schemas import (
     AccessLinkRequest,
@@ -454,7 +455,7 @@ async def sign_in(
 ) -> DatastarResponse:
     signals = await read_signals_dict(request)
     try:
-        user = await AccountService(db_session).authenticate(
+        user = await AccountService(db_session, clock_of(request)).authenticate(
             str(signals.get("email", "")), str(signals.get("password", ""))
         )
     except NotAuthorizedException:
@@ -482,7 +483,9 @@ async def delete_account(
 ) -> DatastarResponse:
     user = await find_current_user(request, db_session)
     if user is not None:
-        await AccountService(db_session).delete_account(user, membership_end_hooks)
+        await AccountService(db_session, clock_of(request)).delete_account(
+            user, membership_end_hooks
+        )
     request.clear_session()
     return DatastarResponse(ServerSentEventGenerator.redirect("/"))
 
@@ -494,7 +497,7 @@ async def revoke_access_link(
     user = await find_current_user(request, db_session)
     had_link = False
     if user is not None:
-        had_link = await AccountService(db_session).revoke_link(user.id)
+        had_link = await AccountService(db_session, clock_of(request)).revoke_link(user.id)
     if user is None or SESSION_LINK_KEY in request.session:
         request.clear_session()
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
@@ -537,7 +540,7 @@ async def sign_up(
     except msgspec.ValidationError:
         return _form_error(request, "error")
     try:
-        await AccountService(db_session).create_account(
+        await AccountService(db_session, clock_of(request)).create_account(
             account.display_name, account.email, account.password, interface_language(request)
         )
     except HTTPException as error:
@@ -556,7 +559,7 @@ async def resend_confirmation(
     request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession]
 ) -> DatastarResponse:
     signals = await read_signals_dict(request)
-    await AccountService(db_session).resend_confirmation(
+    await AccountService(db_session, clock_of(request)).resend_confirmation(
         str(signals.get("email", "")), interface_language(request)
     )
     return DatastarResponse(
@@ -577,7 +580,9 @@ async def verify_email(
 ) -> DatastarResponse:
     signals = await read_signals_dict(request)
     try:
-        user = await AccountService(db_session).confirm(str(signals.get("token", "")))
+        user = await AccountService(db_session, clock_of(request)).confirm(
+            str(signals.get("token", ""))
+        )
     except NotFoundException:
         return DatastarResponse(
             ServerSentEventGenerator.patch_elements(fragment(request, "verify_email_invalid.html"))
@@ -599,7 +604,7 @@ async def forgot_password(
         asked = msgspec.convert(await read_signals_dict(request), PasswordResetRequest)
     except msgspec.ValidationError:
         return _form_error(request, "error")
-    await AccountService(db_session).request_password_reset(
+    await AccountService(db_session, clock_of(request)).request_password_reset(
         asked.email, interface_language(request)
     )
     return DatastarResponse(
@@ -622,7 +627,9 @@ async def sign_in_link(
         asked = msgspec.convert(await read_signals_dict(request), AccessLinkRequest)
     except msgspec.ValidationError:
         return _form_error(request, "error")
-    await AccountService(db_session).send_access_link(asked.email, interface_language(request))
+    await AccountService(db_session, clock_of(request)).send_access_link(
+        asked.email, interface_language(request)
+    )
     return DatastarResponse(
         ServerSentEventGenerator.patch_elements(
             fragment(request, "sign_in_link_sent.html", email=asked.email)
@@ -641,7 +648,7 @@ async def access(
 ) -> DatastarResponse:
     signals = await read_signals_dict(request)
     try:
-        user, link = await AccountService(db_session).sign_in_with_link(
+        user, link = await AccountService(db_session, clock_of(request)).sign_in_with_link(
             str(signals.get("token", ""))
         )
     except NotFoundException:
@@ -658,7 +665,7 @@ async def reset_password_page(
     db_session: NamedDependency[AsyncSession],
     token: FromQuery[str] = "",
 ) -> Template:
-    usable = await AccountService(db_session).reset_token_is_usable(token)
+    usable = await AccountService(db_session, clock_of(request)).reset_token_is_usable(token)
     return page(request, "reset_password.html", token=token, usable=usable, message="")
 
 
@@ -672,7 +679,7 @@ async def reset_password(
     except msgspec.ValidationError:
         return _form_error(request, "error")
     try:
-        user = await AccountService(db_session).reset_password(
+        user = await AccountService(db_session, clock_of(request)).reset_password(
             str(signals.get("token", "")), new.password
         )
     except NotFoundException:

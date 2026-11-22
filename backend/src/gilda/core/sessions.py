@@ -14,6 +14,7 @@ from litestar.utils.dataclass import extract_dataclass_items
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from gilda.clock import clock_of
 from gilda.core.models import SESSION_LINK_KEY, SESSION_USER_KEY, AccessLink, User
 from gilda.core.services import AccountService
 
@@ -72,7 +73,10 @@ class SessionBackend(SQLAlchemyAsyncSessionBackend):
         headers.add("Set-Cookie", self._cookie(session_id))
 
     async def _update(self, session_id: str, data: bytes) -> bool:
-        """Replaces the data of a stored session; whether it was still stored."""
+        """Replaces the data of a stored session; whether it was still stored.
+
+        Its expiry is on the system time, as Advanced Alchemy's checks of it are.
+        """
         expires_at = datetime.now(UTC) + timedelta(seconds=self.config.max_age)
         statement = (
             update(self.model)
@@ -108,7 +112,7 @@ async def find_current_user(
 ) -> User | None:
     """The user signed in, or None; a session opened with a revoked link is signed out (R23)."""
     session = request.session or {}
-    accounts = AccountService(db_session)
+    accounts = AccountService(db_session, clock_of(request))
     user_id = session.get(SESSION_USER_KEY)
     user = await accounts.get_active(UUID(user_id)) if user_id else None
     link_id = session.get(SESSION_LINK_KEY)

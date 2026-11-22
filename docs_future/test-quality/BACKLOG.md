@@ -29,6 +29,13 @@ to the test policy of `technical.md` the rule it finds worth keeping.
 
 - Serves 7: run `make test-e2e E2E_ARGS=<spec>` on the specs a change touches first, then the full run.
 
+### Clock (injected-clock)
+
+- Serves 7: give the app a test clock once per worker (`create_app(clock=...)` in `server`), set or reset per test by an autouse fixture; unset, it falls back to the system time, so time_machine tests pass until moved.
+- Serves 7: session expiry is not on the clock (Advanced Alchemy reads the system time): moving the clock neither expires a session nor signs anyone out.
+- Serves 7: a tab's kept notice lives 60 s on the clock; advancing the clock between an action and its next page drops the notice.
+- Serves 7: PostgreSQL `now()` in today's SQL-based tests is not the clock; a test moved to the clock compares against the clock's time.
+
 ### Mutation testing of `planning/services.py` (mutation-probe)
 
 What was done: a one-off run on 60 of the 230 possible mutants of `planning/services.py` (random sample; comparison flips, `and`/`or`, `not` removal, `+`/`-`, boolean and integer constants, return values replaced by `None`, negated `if` conditions). Each mutant was applied to a scratch copy, and the 722 planning tests were run with `-x`. 55 mutants were killed (92%), 5 survived, none timed out.

@@ -4,6 +4,7 @@ from uuid import UUID
 from litestar.exceptions import NotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from gilda.clock import Clock
 from gilda.core.models import Role, User
 from gilda.core.repositories import MembershipRepository
 from gilda.home.schemas import HomeAssociation
@@ -13,9 +14,9 @@ from gilda.planning.services import PlanningService
 class HomeService:
     """Gathers what each domain shows of an association on My associations."""
 
-    def __init__(self, db_session: AsyncSession) -> None:
+    def __init__(self, db_session: AsyncSession, clock: Clock) -> None:
         self.memberships = MembershipRepository(session=db_session)
-        self.planning = PlanningService(db_session)
+        self.planning = PlanningService(db_session, clock)
 
     async def list_for(self, user: User) -> list[HomeAssociation]:
         associations = []

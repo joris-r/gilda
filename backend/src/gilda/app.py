@@ -1,7 +1,10 @@
+from functools import partial
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
-from litestar import Litestar
+from litestar import Litestar, Request
+from litestar.datastructures import State
 from litestar.di import Provide
 from litestar.exceptions import MethodNotAllowedException, NotFoundException
 from litestar.middleware import DefineMiddleware
@@ -12,6 +15,7 @@ from litestar.static_files import create_static_files_router
 from litestar.template import TemplateConfig
 
 from gilda import core, home, planning, web
+from gilda.clock import Clock, clock_of
 from gilda.core.models import UserSession
 from gilda.core.pages import (
     access,
@@ -84,16 +88,17 @@ from gilda.planning.services import end_membership as end_planning_membership
 from gilda.web.pages import choose_language, kept_notice, not_found
 
 
-def membership_end_hooks() -> list[MembershipEndHook]:
+def membership_end_hooks(request: Request[Any, Any, Any]) -> list[MembershipEndHook]:
     """What each domain does when a membership ends."""
-    return [end_planning_membership]
+    return [partial(end_planning_membership, clock_of(request))]
 
 
 def _directory_of(package: ModuleType) -> Path:
     return Path(package.__file__ or "").parent
 
 
-def create_app() -> Litestar:
+def create_app(clock: Clock | None = None) -> Litestar:
+    """The application, reading the current time from `clock`, the system's by default."""
     database = create_database_config()
     sessions = SessionBackend(
         config=ServerSideSessionConfig(),
@@ -171,6 +176,7 @@ def create_app() -> Litestar:
         dependencies={
             "membership_end_hooks": Provide(membership_end_hooks, sync_to_thread=False),
         },
+        state=State({"clock": clock or Clock()}),
         exception_handlers={NotFoundException: not_found, MethodNotAllowedException: not_found},
         plugins=[create_database_plugin(database)],
         middleware=[DefineMiddleware(SessionMiddleware, backend=sessions)],

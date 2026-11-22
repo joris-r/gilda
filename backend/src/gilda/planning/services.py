@@ -1,14 +1,14 @@
 import secrets
-from datetime import date, datetime, time, timedelta
+from datetime import date, time, timedelta
 from typing import cast, get_args
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from advanced_alchemy.exceptions import IntegrityError
 from litestar.exceptions import ClientException, NotFoundException, PermissionDeniedException
 from sqlalchemy import ColumnElement
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from gilda.clock import Clock
 from gilda.core.models import Association, Membership, User
 from gilda.core.repositories import MembershipRepository
 from gilda.core.services import ConflictException
@@ -149,8 +149,9 @@ def occurrence_registration(registration: Registration) -> OccurrenceRegistratio
 
 
 class PlanningService:
-    def __init__(self, db_session: AsyncSession) -> None:
+    def __init__(self, db_session: AsyncSession, clock: Clock) -> None:
         self.db_session = db_session
+        self.clock = clock
         self.memberships = MembershipRepository(session=db_session)
         self.share_links = ShareLinkRepository(session=db_session)
         self.slots = SlotRepository(session=db_session)
@@ -323,7 +324,7 @@ class PlanningService:
     async def list_closures(self, user: User, association_id: UUID) -> list[ClosureRead]:
         """The closures ending today or later, by first date."""
         membership = await self._membership_of(user, association_id)
-        today = datetime.now(ZoneInfo(membership.association.timezone)).date()
+        today = self.clock.today(membership.association.timezone)
         closures = await self.closures.list(Closure.last >= today, association_id=association_id)
         return [closure_read(c) for c in sorted(closures, key=lambda c: (c.first, c.last))]
 
@@ -356,11 +357,10 @@ class PlanningService:
         closure = await self._closure(association_id, closure_id)
         await self.closures.delete(closure.id)
 
-    @staticmethod
-    def _check_closure_dates(membership: Membership, first: date, last: date) -> None:
+    def _check_closure_dates(self, membership: Membership, first: date, last: date) -> None:
         if last < first:
             raise DateOrderException("The last date must not be before the first.")
-        today = datetime.now(ZoneInfo(membership.association.timezone)).date()
+        today = self.clock.today(membership.association.timezone)
         if last < today:
             raise DatePastException("The last date must not be before today.")
 
@@ -400,7 +400,7 @@ class PlanningService:
     ) -> None:
         if last < first:
             raise AbsenceOrderException("The last date must not be before the first.")
-        today = datetime.now(ZoneInfo(membership.association.timezone)).date()
+        today = self.clock.today(membership.association.timezone)
         if last < today:
             raise AbsencePastException("The last date must not be before today.")
         others = await self.absences.list(
@@ -542,7 +542,7 @@ class PlanningService:
 
     async def _default_range(self, association: Association) -> tuple[date, date]:
         """The range the Schedule opens on (R32)."""
-        today = datetime.now(ZoneInfo(association.timezone)).date()
+        today = self.clock.today(association.timezone)
         first = today - timedelta(days=today.weekday() + 7)
         last = first + timedelta(weeks=SCHEDULE_WEEKS, days=-1)
         period = await self.planning_periods.get_one_or_none(association_id=association.id)
@@ -596,7 +596,7 @@ class PlanningService:
 
     async def summary(self, user: User, association: Association) -> PlanningSummary:
         """What concerns `user` in `association`, for My associations."""
-        today = datetime.now(ZoneInfo(association.timezone)).date()
+        today = self.clock.today(association.timezone)
         period = await self.planning_periods.get_one_or_none(association_id=association.id)
         since = today if period is None else min(today, period.first)
         registrations = await self.registrations.list(
@@ -651,7 +651,7 @@ class PlanningService:
             raise PermissionDeniedException("Only managers can register another member.")
         if not await self.memberships.exists(user_id=user_id, association_id=association_id):
             raise ClientException("This user is not a member of the association.")
-        if day < datetime.now(ZoneInfo(own.association.timezone)).date():
+        if day < self.clock.today(own.association.timezone):
             raise PastException("This date is past.")
         start_time, end_time = parse_clock(start), parse_clock(end)
         if not await self._is_occurrence(association_id, day, start_time, end_time):
@@ -701,7 +701,7 @@ class PlanningService:
         mine = registration.user_id == user.id
         if not mine and own.role != "manager":
             raise PermissionDeniedException("Only the member or a manager can change it.")
-        if registration.date < datetime.now(ZoneInfo(own.association.timezone)).date():
+        if registration.date < self.clock.today(own.association.timezone):
             raise PastException("This registration is past.")
         if status == "confirmed":
             if registration.status != "proposed" or not await self._is_occurrence(
@@ -775,9 +775,11 @@ def _dates(first: date, last: date) -> list[date]:
     return [first + timedelta(days=n) for n in range((last - first).days + 1)]
 
 
-async def end_membership(db_session: AsyncSession, association: Association, user_id: UUID) -> None:
+async def end_membership(
+    clock: Clock, db_session: AsyncSession, association: Association, user_id: UUID
+) -> None:
     """R28: the user leaves the association's planning."""
-    today = datetime.now(ZoneInfo(association.timezone)).date()
+    today = clock.today(association.timezone)
     registrations = RegistrationRepository(session=db_session)
     upcoming = await registrations.list(
         Registration.date >= today,

@@ -1,5 +1,4 @@
 import json
-import time
 from datetime import date
 from pathlib import Path
 from typing import Any, cast
@@ -8,6 +7,7 @@ from litestar import Request
 from litestar.response import Template
 from litestar.template import TemplateProtocol
 
+from gilda.clock import clock_of
 from gilda.mailer import Language, preferred_language
 
 LANGUAGE_COOKIE = "language"
@@ -152,14 +152,15 @@ def flash(request: Request[Any, Any, Any], message: str) -> None:
             **(request.session or {}),
             _NOTICE_KEY: message,
             _NOTICE_TAB_KEY: tab,
-            _NOTICE_TIME_KEY: time.time(),
+            _NOTICE_TIME_KEY: clock_of(request).now().timestamp(),
         }
     )
 
 
-def _stale(session: Any) -> bool:
+def _stale(request: Request[Any, Any, Any], session: Any) -> bool:
     """Whether a notice kept for a tab has waited too long for its screen."""
-    return bool(time.time() - session.get(_NOTICE_TIME_KEY, 0) > _NOTICE_LIFETIME)
+    elapsed = clock_of(request).now().timestamp() - session.get(_NOTICE_TIME_KEY, 0)
+    return bool(elapsed > _NOTICE_LIFETIME)
 
 
 def claim_notice(request: Request[Any, Any, Any]) -> str:
@@ -167,7 +168,9 @@ def claim_notice(request: Request[Any, Any, Any]) -> str:
     session = request.session or {}
     tab = request.headers.get(_TAB_HEADER, "")
     notice = session.get(_NOTICE_KEY, "")
-    if not (notice and tab and session.get(_NOTICE_TAB_KEY) == tab and not _stale(session)):
+    if not (
+        notice and tab and session.get(_NOTICE_TAB_KEY) == tab and not _stale(request, session)
+    ):
         return ""
     request.set_session({k: v for k, v in session.items() if k not in _NOTICE_KEYS})
     return str(notice)
@@ -178,7 +181,7 @@ def page(request: Request[Any, Any, Any], template: str, **context: Any) -> Temp
     session = request.session or {}
     notice = session.get(_NOTICE_KEY, "")
     for_tab = bool(session.get(_NOTICE_TAB_KEY))
-    pending = bool(notice and for_tab and not _stale(session))
+    pending = bool(notice and for_tab and not _stale(request, session))
     if notice and not pending:
         request.set_session({k: v for k, v in session.items() if k not in _NOTICE_KEYS})
     shown = "" if for_tab else notice

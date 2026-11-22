@@ -1,10 +1,9 @@
 import math
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any, cast
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 import msgspec
 from datastar_py.litestar import DatastarResponse, ServerSentEventGenerator
@@ -17,6 +16,7 @@ from litestar.response import Response, Template
 from markupsafe import Markup, escape
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from gilda.clock import clock_of
 from gilda.core.models import Association, User
 from gilda.core.pages import members_in_order
 from gilda.core.schemas import AssociationDetail
@@ -85,7 +85,7 @@ async def settings_page(
         )
     except NotFoundException:
         return page(request, "association_unknown.html", user=user)
-    service = PlanningService(db_session)
+    service = PlanningService(db_session, clock_of(request))
     return page(
         request,
         "settings.html",
@@ -136,7 +136,7 @@ async def _slots_patched(
 ) -> DatastarResponse:
     """Closes the dialog, then shows the slots, and the columns of Members' preferences, as they
     now are."""
-    service = PlanningService(db_session)
+    service = PlanningService(db_session, clock_of(request))
     slots = await service.list_slots(user, association.id)
     shown = fragment(request, "settings_slots.html", association=association, slots=slots)
     grid = fragment(
@@ -180,7 +180,7 @@ async def add_slot(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        added = await PlanningService(db_session).add_slot(
+        added = await PlanningService(db_session, clock_of(request)).add_slot(
             user, association.id, asked.weekday, asked.start, asked.end
         )
     except TimeOrderException:
@@ -222,7 +222,7 @@ async def edit_slot(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).edit_slot(
+        await PlanningService(db_session, clock_of(request)).edit_slot(
             user, association.id, _slot_id(slot_id), asked.weekday, asked.start, asked.end
         )
     except TimeOrderException:
@@ -248,7 +248,9 @@ async def delete_slot(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).delete_slot(user, association.id, _slot_id(slot_id))
+        await PlanningService(db_session, clock_of(request)).delete_slot(
+            user, association.id, _slot_id(slot_id)
+        )
     except _REFUSALS:
         return _error(request, "delete-slot-error", "error")
     return await _slots_patched(request, db_session, user, association, "delete-slot")
@@ -274,7 +276,7 @@ async def members_preferences(
         return Response("", status_code=404)
     if association.role != "manager":
         return Response("", status_code=403)
-    service = PlanningService(db_session)
+    service = PlanningService(db_session, clock_of(request))
     shown = fragment(
         request,
         "settings_preferences.html",
@@ -307,7 +309,7 @@ async def choose_member_preference(
         )
         if association.role != "manager":
             raise PermissionDeniedException("Only managers set the members' preferences.")
-        service = PlanningService(db_session)
+        service = PlanningService(db_session, clock_of(request))
         wanted = _slot_id(slot_id)
         slots = await service.list_slots(user, association.id)
         slot = next((s for s in slots if s.id == wanted), None)
@@ -345,7 +347,9 @@ async def _period_patched(
     dialog: str,
 ) -> DatastarResponse:
     """Closes the dialog, then shows the period as it now is."""
-    period = await PlanningService(db_session).get_planning_period(user, association.id)
+    period = await PlanningService(db_session, clock_of(request)).get_planning_period(
+        user, association.id
+    )
     shown = fragment(request, "settings_period.html", association=association, period=period)
     return _patched(dialog, shown)
 
@@ -367,7 +371,7 @@ async def set_period(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).set_planning_period(
+        await PlanningService(db_session, clock_of(request)).set_planning_period(
             user, association.id, asked.first, asked.last
         )
     except DateOrderException:
@@ -388,7 +392,9 @@ async def clear_period(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).clear_planning_period(user, association.id)
+        await PlanningService(db_session, clock_of(request)).clear_planning_period(
+            user, association.id
+        )
     except _REFUSALS:
         return _error(request, "clear-period-error", "error")
     return await _period_patched(request, db_session, user, association, "clear-period")
@@ -405,7 +411,9 @@ async def _closures_patched(
     dialog: str,
 ) -> DatastarResponse:
     """Closes the dialog, then shows the closures as they now are."""
-    closures = await PlanningService(db_session).list_closures(user, association.id)
+    closures = await PlanningService(db_session, clock_of(request)).list_closures(
+        user, association.id
+    )
     shown = fragment(request, "settings_closures.html", association=association, closures=closures)
     return _patched(dialog, shown)
 
@@ -443,7 +451,7 @@ async def add_closure(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).add_closure(
+        await PlanningService(db_session, clock_of(request)).add_closure(
             user, association.id, asked.first, asked.last, asked.label
         )
     except _DATE_REFUSALS as refusal:
@@ -472,7 +480,7 @@ async def edit_closure(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).edit_closure(
+        await PlanningService(db_session, clock_of(request)).edit_closure(
             user, association.id, _closure_id(closure_id), asked.first, asked.last, asked.label
         )
     except _DATE_REFUSALS as refusal:
@@ -496,7 +504,7 @@ async def delete_closure(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).delete_closure(
+        await PlanningService(db_session, clock_of(request)).delete_closure(
             user, association.id, _closure_id(closure_id)
         )
     except _REFUSALS:
@@ -553,7 +561,7 @@ async def create_share_link(
     user = await find_current_user(request, db_session)
     if user is None:
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
-    service = PlanningService(db_session)
+    service = PlanningService(db_session, clock_of(request))
     try:
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
@@ -571,7 +579,7 @@ async def revoke_share_link(
     user = await find_current_user(request, db_session)
     if user is None:
         return DatastarResponse(ServerSentEventGenerator.redirect("/"))
-    service = PlanningService(db_session)
+    service = PlanningService(db_session, clock_of(request))
     try:
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
@@ -603,7 +611,7 @@ async def availability_page(
         )
     except NotFoundException:
         return page(request, "association_unknown.html", user=user)
-    service = PlanningService(db_session)
+    service = PlanningService(db_session, clock_of(request))
     return page(
         request,
         "availability.html",
@@ -634,7 +642,7 @@ async def choose_preference(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        service = PlanningService(db_session)
+        service = PlanningService(db_session, clock_of(request))
         wanted = _slot_id(slot_id)
         slots = await service.list_slots(user, association.id)
         slot = next((s for s in slots if s.id == wanted), None)
@@ -667,7 +675,7 @@ async def _upcoming_absences(
     service: PlanningService, user: User, association: AssociationDetail
 ) -> list[AbsenceRead]:
     """The user's own absences, from those ending today on, by first date."""
-    today = datetime.now(ZoneInfo(association.timezone)).date()
+    today = service.clock.today(association.timezone)
     absences = await service.list_absences(user, association.id)
     return [a for a in absences if a.last >= today]
 
@@ -680,7 +688,9 @@ async def _absences_patched(
     dialog: str,
 ) -> DatastarResponse:
     """Closes the dialog, then shows the absences as they now are."""
-    absences = await _upcoming_absences(PlanningService(db_session), user, association)
+    absences = await _upcoming_absences(
+        PlanningService(db_session, clock_of(request)), user, association
+    )
     return _patched(dialog, fragment(request, "availability_absences.html", absences=absences))
 
 
@@ -711,7 +721,9 @@ async def add_absence(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).add_absence(user, association.id, asked.first, asked.last)
+        await PlanningService(db_session, clock_of(request)).add_absence(
+            user, association.id, asked.first, asked.last
+        )
     except _ABSENCE_REFUSALS as refusal:
         return _error(request, error_id, _ABSENCE_MESSAGES[type(refusal)])
     except _REFUSALS:
@@ -738,7 +750,7 @@ async def edit_absence(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).edit_absence(
+        await PlanningService(db_session, clock_of(request)).edit_absence(
             user, association.id, _absence_id(absence_id), asked.first, asked.last
         )
     except _ABSENCE_REFUSALS as refusal:
@@ -762,7 +774,7 @@ async def delete_absence(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        await PlanningService(db_session).delete_absence(
+        await PlanningService(db_session, clock_of(request)).delete_absence(
             user, association.id, _absence_id(absence_id)
         )
     except _REFUSALS:
@@ -788,7 +800,9 @@ async def save_note(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        saved = await PlanningService(db_session).set_note(user, association.id, text)
+        saved = await PlanningService(db_session, clock_of(request)).set_note(
+            user, association.id, text
+        )
     except _REFUSALS:
         return _error(request, error_id, "error")
     text = saved.text
@@ -998,8 +1012,8 @@ def _weeks_view(schedule: ScheduleRead, period: PlanningPeriodData | None, today
     return view
 
 
-def _today(association: AssociationDetail | Association) -> date:
-    return datetime.now(ZoneInfo(association.timezone)).date()
+def _today(request: Request[Any, Any, Any], association: AssociationDetail | Association) -> date:
+    return clock_of(request).today(association.timezone)
 
 
 @get("/association/{slug:str}")
@@ -1015,7 +1029,7 @@ async def schedule_page(
         )
     except NotFoundException:
         return page(request, "association_unknown.html", user=user)
-    service = PlanningService(db_session)
+    service = PlanningService(db_session, clock_of(request))
     schedule = await service.schedule(user, association.id, None, None)
     period = await service.get_planning_period(user, association.id)
     return page(
@@ -1023,7 +1037,7 @@ async def schedule_page(
         "schedule.html",
         user=user,
         association=association,
-        view=_weeks_view(schedule, period, _today(association)),
+        view=_weeks_view(schedule, period, _today(request, association)),
     )
 
 
@@ -1054,7 +1068,7 @@ async def more_weeks(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        service = PlanningService(db_session)
+        service = PlanningService(db_session, clock_of(request))
         first -= timedelta(days=first.weekday())
         last += timedelta(days=6 - last.weekday(), weeks=_MORE_WEEKS)
         schedule = await service.schedule(user, association.id, first, last)
@@ -1065,7 +1079,7 @@ async def more_weeks(
         request,
         "schedule_weeks.html",
         association=association,
-        view=_weeks_view(schedule, period, _today(association)),
+        view=_weeks_view(schedule, period, _today(request, association)),
     )
     return DatastarResponse(ServerSentEventGenerator.patch_elements(_one_line(shown)))
 
@@ -1088,7 +1102,7 @@ async def weeks_again(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        service = PlanningService(db_session)
+        service = PlanningService(db_session, clock_of(request))
         schedule = await service.schedule(user, association.id, first, last)
         period = await service.get_planning_period(user, association.id)
     except NotFoundException:
@@ -1101,7 +1115,7 @@ async def weeks_again(
         request,
         "schedule_weeks.html",
         association=association,
-        view=_weeks_view(schedule, period, _today(association)),
+        view=_weeks_view(schedule, period, _today(request, association)),
     )
     return Response(shown, media_type="text/html")
 
@@ -1114,7 +1128,9 @@ async def shared_schedule_page(
     request: Request[Any, Any, Any], db_session: NamedDependency[AsyncSession], token: FromPath[str]
 ) -> Template:
     try:
-        association, schedule, period = await PlanningService(db_session).shared(token, None, None)
+        association, schedule, period = await PlanningService(db_session, clock_of(request)).shared(
+            token, None, None
+        )
     except NotFoundException:
         return page(request, "shared_invalid.html")
     return page(
@@ -1122,7 +1138,7 @@ async def shared_schedule_page(
         "shared_schedule.html",
         association=association,
         token=token,
-        view=_weeks_view(schedule, period, _today(association)),
+        view=_weeks_view(schedule, period, _today(request, association)),
     )
 
 
@@ -1145,7 +1161,9 @@ async def shared_weeks_again(
     today changes: 404 when the link is no longer valid, any other failure a plain status."""
     try:
         first, last = _shown_range(_query_range(request))
-        association, schedule, period = await PlanningService(db_session).shared(token, first, last)
+        association, schedule, period = await PlanningService(db_session, clock_of(request)).shared(
+            token, first, last
+        )
     except NotFoundException:
         return Response("", status_code=404)
     except ClientException:
@@ -1155,7 +1173,7 @@ async def shared_weeks_again(
         "schedule_weeks.html",
         association=association,
         shared=token,
-        view=_weeks_view(schedule, period, _today(association)),
+        view=_weeks_view(schedule, period, _today(request, association)),
     )
     return Response(shown, media_type="text/html")
 
@@ -1168,7 +1186,9 @@ async def shared_more_weeks(
         first, last = _shown_range(await read_signals_dict(request))
         first -= timedelta(days=first.weekday())
         last += timedelta(days=6 - last.weekday(), weeks=_MORE_WEEKS)
-        association, schedule, period = await PlanningService(db_session).shared(token, first, last)
+        association, schedule, period = await PlanningService(db_session, clock_of(request)).shared(
+            token, first, last
+        )
     except NotFoundException:
         return _gone(request)
     except _REFUSALS:
@@ -1178,7 +1198,7 @@ async def shared_more_weeks(
         "schedule_weeks.html",
         association=association,
         shared=token,
-        view=_weeks_view(schedule, period, _today(association)),
+        view=_weeks_view(schedule, period, _today(request, association)),
     )
     return DatastarResponse(ServerSentEventGenerator.patch_elements(_one_line(shown)))
 
@@ -1337,7 +1357,7 @@ async def _weeks_event(
         request,
         "schedule_weeks.html",
         association=association,
-        view=_weeks_view(schedule, period, _today(association)),
+        view=_weeks_view(schedule, period, _today(request, association)),
     )
     return ServerSentEventGenerator.patch_elements(_one_line(shown))
 
@@ -1426,13 +1446,13 @@ async def occurrence_menu(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        service = PlanningService(db_session)
+        service = PlanningService(db_session, clock_of(request))
         if "from" in signals or "to" in signals:
             first, last = _shown_range(signals)
         else:
             opened = await service.schedule(user, association.id, None, None)
             first, last = opened.from_, opened.to
-        if day < _today(association):
+        if day < _today(request, association):
             return await _past_in_menu(request, service, user, association, first, last, asked)
         schedule = await service.schedule(user, association.id, day, day)
         manages = association.role == "manager"
@@ -1483,7 +1503,7 @@ async def schedule_sign_up(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        service = PlanningService(db_session)
+        service = PlanningService(db_session, clock_of(request))
         await service.register(user, association.id, user.id, day, start, end)
     except TakenException:
         return await _refused_weeks(
@@ -1529,7 +1549,7 @@ async def schedule_propose(
         # Without the flag, a volunteer replacing for themself can only be taking over.
         if replaced is not None and user_id == user.id and association.role != "manager":
             error_id, close = "take-over-error", take_over_close
-        service = PlanningService(db_session)
+        service = PlanningService(db_session, clock_of(request))
         await service.register(user, association.id, user_id, day, start, end, replaced)
     except TakenException:
         return await _refused_weeks(
@@ -1568,7 +1588,7 @@ async def _status_changed(
         association = await AssociationService(db_session).detail_by_ref(
             user, association_ref(request, slug)
         )
-        service = PlanningService(db_session)
+        service = PlanningService(db_session, clock_of(request))
         await service.change_status(user, association.id, registration, status)
     except PastException:
         return await _refused_weeks(
