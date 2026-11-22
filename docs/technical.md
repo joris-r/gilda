@@ -31,6 +31,8 @@
 - Configuration from environment variables; the database from
   `DATABASE_URL`, the superuser from `SUPERUSER_EMAIL`; sign-up is
   open unless `INVITATION_ONLY` is `true`.
+- The backend's code reads the current time only from one clock, given
+  to the application when it is built; its dependencies keep their own.
 - Setting a preference is a single PostgreSQL
   `INSERT … ON CONFLICT (user_id, slot_id) DO UPDATE`; the last write
   wins.

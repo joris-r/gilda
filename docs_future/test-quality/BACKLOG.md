@@ -11,7 +11,7 @@ to the test policy of `technical.md` the rule it finds worth keeping.
 3. Flakiness and time done
 4. Weak and missing tests done
 5. Tooling done
-6. Clock, `code-only`: a clock injected into the services.
+6. Clock done
 7. Past states, `tests-only`: the tests reach past states through the clock instead of SQL.
 
 ## Lessons
