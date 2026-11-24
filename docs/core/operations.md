@@ -16,6 +16,12 @@ association of the screen.
   refused.
 - [stays-deleted] A deleted session is never stored again, not even
   by a request made with it before its deletion.
+- [manager] In an operation that applies it, a user who is not a
+  manager of the association: refused.
+- [member] In an operation that applies it, a user who is not a
+  member of the association: refused.
+- [not-member] In an operation that applies it, a `member` who is not
+  a member of the association: refused.
 
 ## Initial state
 
@@ -228,7 +234,7 @@ Inputs:
 - `slug: optional string`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [malformed-slug] Slug given, without the format of
    /core/model/association/slug-format: refused.
 3. [taken] Slug given, of another association or `new`: refused.
@@ -248,7 +254,7 @@ Inputs:
 - `association: /core/model/association`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [deleted] Otherwise: the association and its memberships are
    erased.
    - [silent] Its members stay users, in their other associations if
@@ -264,7 +270,7 @@ Inputs:
 - `role: one of manager, volunteer`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [already] A member of the association has this email: refused.
 3. [existing-user] A user has this email: that user becomes a member
    with the role, their display name unchanged.
@@ -281,9 +287,8 @@ Inputs:
 - `role: one of manager, volunteer`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
-2. [not-member] The member is not a member of the association:
-   refused.
+1. [manager] /core/operations/general/manager applies.
+2. [not-member] /core/operations/general/not-member applies.
 3. [last-manager] The member is the only manager and the role is
    `volunteer`: refused.
 
@@ -298,9 +303,8 @@ Inputs:
 - `member: /core/model/user`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
-2. [not-member] The member is not a member of the association:
-   refused.
+1. [manager] /core/operations/general/manager applies.
+2. [not-member] /core/operations/general/not-member applies.
 3. [last-manager] The member is the only manager: refused.
 
 Then:
@@ -315,9 +319,8 @@ Inputs:
 - `member: /core/model/user`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
-2. [not-member] The member is not a member of the association:
-   refused.
+1. [manager] /core/operations/general/manager applies.
+2. [not-member] /core/operations/general/not-member applies.
 3. [not-sent] The email cannot be sent: refused.
 
 Then:
@@ -334,9 +337,8 @@ Inputs:
 - `member: /core/model/user`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
-2. [not-member] The member is not a member of the association:
-   refused.
+1. [manager] /core/operations/general/manager applies.
+2. [not-member] /core/operations/general/not-member applies.
 
 Then:
 - [revoked] After no refusal, the member having an AccessLink: it is

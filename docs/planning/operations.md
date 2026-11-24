@@ -20,7 +20,7 @@ Inputs:
 - `end: time`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [order] Start not before end: refused.
 3. [exists] The association already has that slot: refused.
 
@@ -40,7 +40,7 @@ Inputs:
 - `end: time`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [unknown] The slot is not of this association: refused.
 3. [order] Start not before end: refused.
 4. [exists] Another slot of the association has them: refused.
@@ -57,7 +57,7 @@ Inputs:
 - `slot: /planning/model/slot`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [unknown] The slot is not of this association: refused.
 
 Then:
@@ -74,7 +74,7 @@ Inputs:
 - `label: string`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [order] Last before first: refused.
 3. [past] Last before today: refused.
 
@@ -93,7 +93,7 @@ Inputs:
 - `label: string`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [unknown] The closure is not of this association: refused.
 3. [order] Last before first: refused.
 4. [past] Last before today: refused.
@@ -109,7 +109,7 @@ Inputs:
 - `closure: /planning/model/closure`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [unknown] The closure is not of this association: refused.
 
 Then:
@@ -124,7 +124,7 @@ Inputs:
 - `last: date`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [order] Last before first: refused.
 
 Then:
@@ -138,7 +138,7 @@ Inputs:
 - `association: /core/model/association`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [cleared] Otherwise: the association has no period anymore.
 
 ## Set preference
@@ -151,7 +151,7 @@ Inputs:
 - `value: one of preferred, possible, unavailable`
 
 Cases:
-1. [member] The user is not a member of the association: refused.
+1. [member] /core/operations/general/member applies.
 2. [other] The user is a volunteer and the member is not the user:
    refused.
 3. [unknown] The slot is not of this association, or the member not a
@@ -171,7 +171,7 @@ Inputs:
 - `slot: /planning/model/slot`
 
 Cases:
-1. [member] The user is not a member of the association: refused.
+1. [member] /core/operations/general/member applies.
 2. [other] The user is a volunteer and the member is not the user:
    refused.
 3. [unknown] The slot is not of this association, or the member not a
@@ -190,7 +190,7 @@ Inputs:
 - `last: date`
 
 Cases:
-1. [member] The user is not a member of the association: refused.
+1. [member] /core/operations/general/member applies.
 2. [order] Last before first: refused.
 3. [past] Last before today: refused.
 4. [overlap] One of the user's absences in this association covers a
@@ -210,7 +210,7 @@ Inputs:
 - `last: date`
 
 Cases:
-1. [member] The user is not a member of the association: refused.
+1. [member] /core/operations/general/member applies.
 2. [unknown] The absence is not the user's in this association:
    refused.
 3. [order] Last before first: refused.
@@ -229,7 +229,7 @@ Inputs:
 - `absence: /planning/model/absence`
 
 Cases:
-1. [member] The user is not a member of the association: refused.
+1. [member] /core/operations/general/member applies.
 2. [unknown] The absence is not the user's in this association:
    refused.
 
@@ -244,7 +244,7 @@ Inputs:
 - `text: string`
 
 Cases:
-1. [member] The user is not a member of the association: refused.
+1. [member] /core/operations/general/member applies.
 2. [set] Otherwise: the user's note in the association is the text
    without its leading and trailing spaces, tabs and line breaks,
    replacing the previous one.
@@ -261,7 +261,7 @@ Inputs:
 - `last: optional date`
 
 Cases:
-1. [member] The user is not a member of the association: refused.
+1. [member] /core/operations/general/member applies.
 2. [reversed] Both dates, last before first: refused.
 3. [range] Both dates: that range.
 4. [default] Otherwise: the range starts on the Monday of the week
@@ -294,11 +294,10 @@ Inputs:
   it replaces.
 
 Cases:
-1. [member] The user is not a member of the association: refused.
+1. [member] /core/operations/general/member applies.
 2. [other] The user is a volunteer, and the member is not the user:
    refused.
-3. [non-member] The member is not a member of the association:
-   refused.
+3. [not-member] /core/operations/general/not-member applies.
 4. [past] The date is before today: refused.
 5. [no-occurrence] No occurrence has this date, start and end: refused.
 6. [taken] The occurrence already holds a registration that is not
@@ -326,7 +325,7 @@ Inputs:
 - `status: one of confirmed, cancelled`
 
 Cases:
-1. [member] The user is not a member of the association: refused.
+1. [member] /core/operations/general/member applies.
 2. [unknown] The registration is not of this association: refused.
 3. [forbidden] The user is neither the registered user nor a manager:
    refused.
@@ -344,7 +343,7 @@ Inputs:
 - `association: /core/model/association`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [created] Otherwise: a ShareLink is stored for the association,
    replacing the previous one.
 
@@ -355,7 +354,7 @@ Inputs:
 - `association: /core/model/association`
 
 Cases:
-1. [manager] The user is not a manager of the association: refused.
+1. [manager] /core/operations/general/manager applies.
 2. [revoked] Otherwise: the association's ShareLink, if any, is
    deleted.
 
