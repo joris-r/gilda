@@ -27,7 +27,6 @@ What the software gets wrong today, against the specification or the user.
 
 ## Security
 
-- Write the threat model.
 - Access links never expire, so each is a permanent credential in an inbox; decide an expiration (with a `created_at` from their UUIDv7 id) or a stronger scheme.
 - CSRF: the actions have no token and rely on the session cookie's SameSite, left to Litestar's default and unchecked; set it explicitly and test it.
 - Rate limit: one mechanism for Sign in's password attempts, the actions that send an email (Sign-in link, Forgot password, Send link) and those that build up to 520 weeks per request (More weeks, Sign up, Confirm and Cancel registration, public `POST /shared/{token}/weeks`); a lower maximum of weeks would also help.
