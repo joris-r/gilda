@@ -10,7 +10,7 @@
 
 ## Header
 
-On every page; mockup in `design/header.md`.
+On every page; mockup in `_design/header.md`.
 
 Shows:
 - [logo] the logo, leading to `/` (not testable);
@@ -55,7 +55,7 @@ Actions:
 
 ## Sign in
 
-At `/`, signed out; mockup in `design/sign-in.md`.
+At `/`, signed out; mockup in `_design/sign-in.md`.
 
 Shows:
 - [form] Email, Password and [Sign in]; then "Forgot your password?"
@@ -73,7 +73,7 @@ Actions:
 
 ## Sign-in link
 
-At `/sign-in-link`; mockup in `design/sign-in-link.md`.
+At `/sign-in-link`; mockup in `_design/sign-in-link.md`.
 
 Shows:
 - [form] Email and [Send me a link]; then "Back to Sign in", leading to
@@ -87,7 +87,7 @@ Actions:
 ## Access link
 
 At `/access?token=<token>`, opened from the access link; mockup in
-`design/access-link.md`.
+`_design/access-link.md`.
 
 - [signed-in] It runs /core/operations/sign-in-by-access-link with
   the token; on success, My associations shows, signed in.
@@ -106,7 +106,7 @@ At `/access?token=<token>`, opened from the access link; mockup in
 
 ## Forgot password
 
-At `/forgot-password`; mockup in `design/forgot-password.md`.
+At `/forgot-password`; mockup in `_design/forgot-password.md`.
 
 Shows:
 - [form] Email and [Send a reset link]; then "Back to Sign in".
@@ -119,7 +119,7 @@ Actions:
 ## Reset password
 
 At `/reset-password?token=<token>`, opened from the reset link;
-mockup in `design/reset-password.md`.
+mockup in `_design/reset-password.md`.
 
 Shows:
 - [form] New password and [Set password].
@@ -140,7 +140,7 @@ Actions:
 
 ## Create an account
 
-At `/signup`; mockup in `design/create-an-account.md`.
+At `/signup`; mockup in `_design/create-an-account.md`.
 
 Shows:
 - [form] Display name, Email, Password and [Create account]; then
@@ -166,7 +166,7 @@ Actions:
 ## Confirm email
 
 At `/verify-email?token=<token>`, opened from the confirmation link;
-mockup in `design/confirm-email.md`.
+mockup in `_design/confirm-email.md`.
 
 - [confirmed] It runs /core/operations/confirm-email with the token;
   on success, My associations shows, signed in.
@@ -184,7 +184,7 @@ mockup in `design/confirm-email.md`.
 
 ## New association
 
-At `/association/new`; mockup in `design/new-association.md`.
+At `/association/new`; mockup in `_design/new-association.md`.
 
 Shows:
 - [form] Name, Association identifier (the slug, after
@@ -207,7 +207,7 @@ Actions:
 
 ## Members
 
-At `/association/<slug>/members`; mockups in `design/members.md`.
+At `/association/<slug>/members`; mockups in `_design/members.md`.
 
 Shows:
 - [list] the members, managers first, then by display name; each with
@@ -301,7 +301,7 @@ Actions:
 
 ## Unknown association
 
-Mockup in `design/unknown-association.md`.
+Mockup in `_design/unknown-association.md`.
 
 - [shown] A screen of an association whose slug is unknown, or of
   which the user is not a member, shows "This association does not

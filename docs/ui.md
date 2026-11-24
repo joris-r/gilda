@@ -3,7 +3,7 @@
 ## Not found
 
 At any path that leads nowhere, signed in or not; mockup in
-`design/not-found.md`.
+`_design/not-found.md`.
 
 - [status] It answers 404. An association screen whose slug is unknown
   is not Not found: core's Unknown association.
@@ -20,7 +20,7 @@ At any path that leads nowhere, signed in or not; mockup in
 
 ## Forms
 
-Mockup in `design/forms.md`.
+Mockup in `_design/forms.md`.
 
 - [create] "+" then its name opens a form to create: a button for a
   dialog, a link for a form on its own page; with nothing to enter, a

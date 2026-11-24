@@ -3,8 +3,9 @@
 - [overview.md](overview.md): what the software is for.
 - [technical.md](technical.md): stack, conventions, test and quality
   policy.
+- [security.md](security.md): the threat model.
 - [design.md](design.md): the look rules the mockups cannot show.
-- [design/](design/): mockups of the pages and components, as text,
+- [_design/](_design/): mockups of the pages and components, as text,
   checked by eye.
 - [ui.md](ui.md): what every screen shares: Not found, language,
   forms, errors, name order, changed identifier, notices.

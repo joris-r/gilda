@@ -2,7 +2,7 @@
 
 ## My associations
 
-At `/`, signed in; mockups in `design/my-associations.md`. It shows
+At `/`, signed in; mockups in `_design/my-associations.md`. It shows
 /home/operations/list-my-associations.
 
 Shows:

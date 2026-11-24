@@ -3,7 +3,7 @@
 ## Schedule settings
 
 At `/association/<slug>/settings`; mockup in
-`design/schedule-settings.md`.
+`_design/schedule-settings.md`.
 
 - [french] In French, the screen is "Réglages du planning".
 
@@ -123,7 +123,7 @@ Actions:
 ## My availability
 
 At `/association/<slug>/availability`; mockup in
-`design/my-availability.md`.
+`_design/my-availability.md`.
 
 - [own] Every member, manager or volunteer, sees and changes only
   their own preferences, absences and note here.
@@ -179,7 +179,7 @@ Actions:
 
 ## Schedule
 
-At `/association/<slug>`; mockups in `design/schedule.md`.
+At `/association/<slug>`; mockups in `_design/schedule.md`.
 
 Shows:
 - [links] "My availability", "Members" and "Schedule settings",
@@ -260,7 +260,7 @@ Actions:
 ## Occurrence menu
 
 Opened on an occurrence or an obsolete registration of Schedule;
-mockup in `design/occurrence-menu.md`.
+mockup in `_design/occurrence-menu.md`.
 
 Shows:
 - [title] Its day and times, e.g. "Thu 29 Oct · 10–13".
@@ -336,7 +336,7 @@ Actions:
 ## Shared schedule
 
 At `/shared/<token>`, signed in or not; mockup in
-`design/shared-schedule.md`.
+`_design/shared-schedule.md`.
 
 - [shown] It shows the association's Schedule as a member sees it,
   from /planning/operations/get-shared-schedule with the token,
