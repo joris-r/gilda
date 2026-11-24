@@ -61,7 +61,11 @@
 ## Identifiers and security
 
 - Every entity is identified by a UUIDv7.
+- Every token and session id is at least 128 bits drawn from a
+  cryptographically secure generator.
 - Passwords are stored hashed with Argon2, never in clear.
+- Templates escape every value they show; only authored translations
+  may be marked safe.
 - Sessions are server-side, stored in PostgreSQL; the browser keeps
   only a session identifier, in an `HttpOnly` cookie.
   - A response stores its session, and sets the cookie, only when its

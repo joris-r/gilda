@@ -14,6 +14,7 @@
 
 What the software gets wrong today, against the specification or the user.
 
+- Create account: claiming a member added by a manager resets `email_verified_at`, so the password works only once the email is confirmed (today anyone knowing a verified member's email can take over their account).
 - Fix: Add/Edit closure refuse a missing label; Propose refuses a non-string user_id instead of answering 500 (/core/operations/general/malformed); remove the xfail marks.
 - Delete account: delete the user's other sessions, as /core/operations/delete-account/deleted says (today they are only refused at load).
 - Create an account and Forgot password: a failed send keeps the previous link working.
@@ -29,7 +30,7 @@ What the software gets wrong today, against the specification or the user.
 - Write the threat model.
 - Access links never expire, so each is a permanent credential in an inbox; decide an expiration (with a `created_at` from their UUIDv7 id) or a stronger scheme.
 - CSRF: the actions have no token and rely on the session cookie's SameSite, left to Litestar's default and unchecked; set it explicitly and test it.
-- Rate limit: one mechanism for the actions that send an email (Sign-in link, Forgot password, Send link) and those that build up to 520 weeks per request (More weeks, Sign up, Confirm and Cancel registration, public `POST /shared/{token}/weeks`); a lower maximum of weeks would also help.
+- Rate limit: one mechanism for Sign in's password attempts, the actions that send an email (Sign-in link, Forgot password, Send link) and those that build up to 520 weeks per request (More weeks, Sign up, Confirm and Cancel registration, public `POST /shared/{token}/weeks`); a lower maximum of weeks would also help.
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account; confirm first when signed in as another user.
 - /core/operations/reset-password/reset keeps the user's other sessions signed in, so a stolen session survives a password reset; revisit it.
 - Sign-in link and Forgot password send their email during the request, so the response time can reveal an account; send it in the background.
