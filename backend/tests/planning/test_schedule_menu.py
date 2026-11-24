@@ -1417,7 +1417,7 @@ class TestPropose:
         assert GENERIC in text
         assert "Bruno" not in str(schedule_shown(client, planning.slug))
 
-    # /planning/operations/register/non-member
+    # /planning/operations/register/not-member
     # /ui/errors/generic
     # /planning/model/registration
     @pytest.mark.parametrize("who", ["non-member", "unknown", "invalid"])

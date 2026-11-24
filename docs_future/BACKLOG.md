@@ -57,3 +57,4 @@ What the software gets wrong today, against the specification or the user.
 - Remove `_one_line()` from `planning/pages.py`, now that `shown()` rebuilds patches (`code-only`).
 - Tests read action responses through `patched()` and the page readers, not raw `in shown()` / `unescape(page)` text (`tests-only`).
 - Defensive guards no specified path reaches (core/planning/home re-checks, 'Give a name or a slug.', 'Give both from and to, or neither.', preference refusals, registration back to proposed, take-over error without the flag): keep or remove as dead code.
+- Settle whether an unknown user id is malformed or not a member, and fix the variants of the Register not-member test.
