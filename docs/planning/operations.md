@@ -4,6 +4,11 @@
 
 /core/operations/general applies.
 
+- [unknown] In an operation that applies it, a slot, closure or
+  registration given that is not of the association: refused.
+- [other] In an operation that applies it, a user who is a volunteer
+  and a `member` who is not the user: refused.
+
 ## Initial state
 
 - [empty] No slot, closure, planning period, preference, absence,
@@ -41,7 +46,7 @@ Inputs:
 
 Cases:
 1. [manager] /core/operations/general/manager applies.
-2. [unknown] The slot is not of this association: refused.
+2. [unknown] /planning/operations/general/unknown applies.
 3. [order] Start not before end: refused.
 4. [exists] Another slot of the association has them: refused.
 
@@ -58,7 +63,7 @@ Inputs:
 
 Cases:
 1. [manager] /core/operations/general/manager applies.
-2. [unknown] The slot is not of this association: refused.
+2. [unknown] /planning/operations/general/unknown applies.
 
 Then:
 - [deleted] After no refusal: the slot and its preferences are
@@ -94,7 +99,7 @@ Inputs:
 
 Cases:
 1. [manager] /core/operations/general/manager applies.
-2. [unknown] The closure is not of this association: refused.
+2. [unknown] /planning/operations/general/unknown applies.
 3. [order] Last before first: refused.
 4. [past] Last before today: refused.
 
@@ -110,7 +115,7 @@ Inputs:
 
 Cases:
 1. [manager] /core/operations/general/manager applies.
-2. [unknown] The closure is not of this association: refused.
+2. [unknown] /planning/operations/general/unknown applies.
 
 Then:
 - [deleted] After no refusal: the closure is deleted.
@@ -152,10 +157,9 @@ Inputs:
 
 Cases:
 1. [member] /core/operations/general/member applies.
-2. [other] The user is a volunteer and the member is not the user:
-   refused.
-3. [unknown] The slot is not of this association, or the member not a
-   member of the association: refused.
+2. [other] /planning/operations/general/other applies.
+3. [unknown] /planning/operations/general/unknown applies.
+4. [not-member] /core/operations/general/not-member applies.
 
 Then:
 - [set] After no refusal: the member's preference on the slot is the
@@ -172,10 +176,9 @@ Inputs:
 
 Cases:
 1. [member] /core/operations/general/member applies.
-2. [other] The user is a volunteer and the member is not the user:
-   refused.
-3. [unknown] The slot is not of this association, or the member not a
-   member of the association: refused.
+2. [other] /planning/operations/general/other applies.
+3. [unknown] /planning/operations/general/unknown applies.
+4. [not-member] /core/operations/general/not-member applies.
 
 Then:
 - [deleted] After no refusal: the member has no preference on the slot
@@ -295,8 +298,7 @@ Inputs:
 
 Cases:
 1. [member] /core/operations/general/member applies.
-2. [other] The user is a volunteer, and the member is not the user:
-   refused.
+2. [other] /planning/operations/general/other applies.
 3. [not-member] /core/operations/general/not-member applies.
 4. [past] The date is before today: refused.
 5. [no-occurrence] No occurrence has this date, start and end: refused.
@@ -326,7 +328,7 @@ Inputs:
 
 Cases:
 1. [member] /core/operations/general/member applies.
-2. [unknown] The registration is not of this association: refused.
+2. [unknown] /planning/operations/general/unknown applies.
 3. [forbidden] The user is neither the registered user nor a manager:
    refused.
 4. [past] The registration is dated before today: refused.

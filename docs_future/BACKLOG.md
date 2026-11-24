@@ -28,7 +28,8 @@ What the software gets wrong today, against the specification or the user.
 ## Security
 
 - Access links never expire, so each is a permanent credential in an inbox; decide an expiration (with a `created_at` from their UUIDv7 id) or a stronger scheme.
-- CSRF: the actions have no token and rely on the session cookie's SameSite, left to Litestar's default and unchecked; set it explicitly and test it.
+- CSRF: the actions have no token and rely on the session cookie's SameSite, left to Litestar's default and unchecked; set it explicitly and test it. The sign-in actions also read a cross-site `text/plain` body as JSON, so any site can sign a browser in as the attacker (login CSRF).
+- Session cookie: set `Secure`.
 - Rate limit: one mechanism for Sign in's password attempts, the actions that send an email (Sign-in link, Forgot password, Send link) and those that build up to 520 weeks per request (More weeks, Sign up, Confirm and Cancel registration, public `POST /shared/{token}/weeks`); a lower maximum of weeks would also help.
 - Opening someone else's access link silently replaces the current session, so an attacker could get a victim working in the attacker's account; confirm first when signed in as another user.
 - /core/operations/reset-password/reset keeps the user's other sessions signed in, so a stolen session survives a password reset; revisit it.
@@ -57,4 +58,5 @@ What the software gets wrong today, against the specification or the user.
 - Remove `_one_line()` from `planning/pages.py`, now that `shown()` rebuilds patches (`code-only`).
 - Tests read action responses through `patched()` and the page readers, not raw `in shown()` / `unescape(page)` text (`tests-only`).
 - Defensive guards no specified path reaches (core/planning/home re-checks, 'Give a name or a slug.', 'Give both from and to, or neither.', preference refusals, registration back to proposed, take-over error without the flag): keep or remove as dead code.
+- Register: settle a `replacing` registration of another association (today ignored, not refused).
 - Settle whether an unknown user id is malformed or not a member, and fix the variants of the Register not-member test.
