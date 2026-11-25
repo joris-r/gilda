@@ -2199,7 +2199,7 @@ class TestChoosingAMembersPreference:
         assert preferences_stored(client, other["slug"]) == set()
 
     # /ui/errors/generic
-    # /planning/operations/set-preference/unknown
+    # /planning/operations/set-preference/not-member
     # /planning/model/preference/member
     def test_a_user_who_is_not_a_member_shows_the_generic_error(
         self, client: Any, new_client: Callable[[], Any]
@@ -2253,7 +2253,7 @@ class TestChoosingAMembersPreference:
         assert stored(planning) == {("Bruno", THU, "preferred")}
 
     # /ui/errors/generic
-    # /planning/operations/delete-preference/unknown
+    # /planning/operations/delete-preference/not-member
     def test_none_for_a_user_who_is_not_a_member_shows_the_generic_error(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
