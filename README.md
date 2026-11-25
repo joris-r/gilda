@@ -55,9 +55,9 @@ See [DEPLOY.md](DEPLOY.md).
   the tests (`localhost:15432`), user and password `gilda`, and Mailpit
   (SMTP on port 11025).
 
-## Dev43
+## Dev43 process
 
-The development process is Dev43. The specification of the software
+The development process is [Dev43](https://github.com/joris-r/dev43). The specification of the software
 lives in [docs/](docs/README.md).
 
 The Dev43 process keeps the specification accurate and alive, traces
