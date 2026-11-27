@@ -39,7 +39,9 @@ async function openSettings(
   for (const displayName of setup.members ?? []) await addMember(page.request, slug, displayName)
   await page.goto(`/association/${slug}/settings`)
   await datastarReady(page)
-  await expect(page.locator('header').getByText('Schedule settings')).toBeVisible()
+  await expect(
+    page.locator('header nav').getByRole('link', { name: 'Slots', exact: true }),
+  ).toHaveAttribute('aria-current', 'page')
   return slug
 }
 

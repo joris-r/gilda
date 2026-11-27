@@ -9,7 +9,9 @@ async function openMembers(page: Page, request: APIRequestContext) {
   const slug = await createAssociation(page.request)
   await page.goto(`/association/${slug}/members`)
   await datastarReady(page)
-  await expect(page.locator('header').getByText('Members')).toBeVisible()
+  await expect(
+    page.locator('header nav').getByRole('link', { name: 'Association', exact: true }),
+  ).toHaveAttribute('aria-current', 'page')
   return slug
 }
 
@@ -32,7 +34,7 @@ function line(page: Page, text: string) {
 }
 
 test.describe('Members', () => {
-  // /core/ui/header/association-link
+  // /core/ui/header/location
   test("the header's association name leads to its Schedule", async ({ page, request }) => {
     const slug = await openMembers(page, request)
 

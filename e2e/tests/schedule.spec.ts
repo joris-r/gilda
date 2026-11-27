@@ -58,19 +58,31 @@ function weekHeadings(page: Page) {
 }
 
 test.describe('Schedule', () => {
-  for (const [screen, rest] of [
-    ['My availability', 'availability'],
-    ['Members', 'members'],
-    ['Schedule settings', 'settings'],
+  for (const [tab, rest] of [
+    ['My availability', '/availability'],
+    ['Slots', '/settings'],
+    ['Association', '/members'],
   ]) {
-    // /planning/ui/schedule/links
-    test(`"${screen}" leads to that screen`, async ({ page, request }) => {
+    // /core/ui/header/tabs
+    test(`the "${tab}" tab leads to its screen, and "Schedule" back`, async ({ page, request }) => {
       const slug = await openSchedule(page, request)
+      const tabs = page.locator('header nav').filter({ visible: true })
 
-      await page.getByRole('link', { name: screen, exact: true }).click()
+      await tabs.getByRole('link', { name: tab, exact: true }).click()
 
-      await expect(page).toHaveURL(new RegExp(`/association/${slug}/${rest}$`))
-      await expect(page.locator('header').getByText(screen)).toBeVisible()
+      await expect(page).toHaveURL(new RegExp(`/association/${slug}${rest}$`))
+      await expect(tabs.getByRole('link', { name: tab, exact: true })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+
+      await tabs.getByRole('link', { name: 'Schedule', exact: true }).click()
+
+      await expect(page).toHaveURL(new RegExp(`/association/${slug}$`))
+      await expect(tabs.getByRole('link', { name: 'Schedule', exact: true })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
     })
   }
 

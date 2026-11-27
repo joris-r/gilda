@@ -33,7 +33,9 @@ async function openMembers(
   }
   await page.goto(`/association/${slug}/members`)
   await datastarReady(page)
-  await expect(page.locator('header').getByText('Members')).toBeVisible()
+  await expect(
+    page.locator('header nav').getByRole('link', { name: 'Association', exact: true }),
+  ).toHaveAttribute('aria-current', 'page')
   return chloe
 }
 

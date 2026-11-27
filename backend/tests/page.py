@@ -292,3 +292,44 @@ def dialog_opened_by(page: str, button: Element) -> Element:
     found = [d for d in parse(page).elements("dialog", hidden=True) if d.get("id") == target]
     assert len(found) == 1, f"{len(found)} dialogs {target}"
     return _detached(found[0])
+
+
+PATH_SEPARATOR = "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}"
+"""What separates the steps of the header's path."""
+
+
+def header_path(page: str) -> list[str]:
+    """The steps of the path the header shows, its `.where` element, in order."""
+    header = parse(page).first("header")
+    where = next((e for e in header.elements() if "where" in e.classes), None)
+    assert where is not None, f"no path in {header.html}"
+    return [collapsed(step) for step in where.text.split(PATH_SEPARATOR)]
+
+
+def header_path_links(page: str) -> dict[str, str | None]:
+    """The steps of the header's path that are links, each with where it leads."""
+    header = parse(page).first("header")
+    where = next((e for e in header.elements() if "where" in e.classes), None)
+    assert where is not None, f"no path in {header.html}"
+    return {link.text: link.get("href") for link in where.elements("a")}
+
+
+def header_tabs(page: str) -> list[tuple[str, str | None]]:
+    """The tabs the header shows, the links of its `nav` that does not hold the path, each
+    with where it leads; none without such a `nav`."""
+    return [(link.text, link.get("href")) for link in _tab_links(page)]
+
+
+def _tab_links(page: str) -> list[Element]:
+    header = parse(page).first("header")
+    navs = [
+        nav
+        for nav in header.elements("nav")
+        if not any("where" in e.classes for e in nav.elements()) and "where" not in nav.classes
+    ]
+    return [link for nav in navs for link in nav.elements("a")]
+
+
+def current_tabs(page: str) -> list[str]:
+    """The tabs of the header marked as the current page, `aria-current="page"`."""
+    return [link.text for link in _tab_links(page) if link.get("aria-current") == "page"]

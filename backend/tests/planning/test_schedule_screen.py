@@ -9,7 +9,7 @@ import pytest
 
 from tests.conftest import clock
 from tests.core.conftest import delete_association, unique_slug
-from tests.page import parse
+from tests.page import current_tabs, header_path, header_path_links, header_tabs, parse
 from tests.planning.conftest import (
     GENERIC,
     WEEKDAYS,
@@ -92,68 +92,65 @@ def thursdays_on_now(client: Any, new_client: Callable[[], Any]) -> Iterator[Pla
 
 class TestScheduleHeader:
     # /core/ui/header/location
-    def test_shows_the_association_name_alone(
+    # /core/ui/header/menu
+    def test_shows_the_path_from_my_associations_to_the_association(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
 
-        header = collapsed(part(schedule_page(planning.bruno_client, planning.slug), "header"))
+        page = schedule_page(planning.bruno_client, planning.slug)
 
-        assert NAME in header
-        assert "Bruno" in header
-        assert "›" not in header
+        assert header_path(page) == ["My associations", NAME]
+        assert header_path_links(page) == {
+            "My associations": "/",
+            NAME: f"/association/{planning.slug}",
+        }
+        assert "Bruno" in text_of(part(page, "header"))
 
     # /core/ui/header/title
-    def test_the_location_stands_for_the_title(
+    def test_the_path_and_tabs_stand_for_the_title(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
 
         main = text_of(part(schedule_page(client, planning.slug), "main"))
 
-        assert "My availability" in main
+        assert "More weeks" in main
         assert NAME not in main
+        assert "My availability" not in main
 
-    # /planning/ui/schedule/links
-    @pytest.mark.parametrize(
-        ("screen", "rest"),
-        [
-            ("My availability", "availability"),
-            ("Members", "members"),
-            ("Schedule settings", "settings"),
-        ],
-    )
-    def test_my_availability_members_and_schedule_settings_lead_to_those_screens(
-        self, client: Any, new_client: Callable[[], Any], screen: str, rest: str
-    ) -> None:
-        planning = Planning(client, new_client)
-
-        for as_client in (planning.alice_client, planning.bruno_client):
-            page = schedule_page(as_client, planning.slug)
-            assert re.search(
-                rf'<a[^>]*href="/association/{planning.slug}/{rest}"[^>]*>\s*{screen}\s*</a>', page
-            )
-
-    # /planning/ui/schedule/links
-    # /planning/ui/schedule-settings/french
-    # /planning/ui/my-availability/french
-    # /core/ui/header/language
-    def test_the_links_follow_the_language(
+    # /core/ui/header/tabs
+    def test_shows_the_tabs_with_schedule_current(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
+        here = f"/association/{planning.slug}"
+
+        for as_client in (planning.alice_client, planning.bruno_client):
+            page = schedule_page(as_client, planning.slug)
+            assert header_tabs(page) == [
+                ("Schedule", here),
+                ("My availability", f"{here}/availability"),
+                ("Slots", f"{here}/settings"),
+                ("Association", f"{here}/members"),
+            ]
+            assert current_tabs(page) == ["Schedule"]
+
+    # /core/ui/header/tabs
+    # /core/ui/header/language
+    def test_the_tabs_follow_the_language(self, client: Any, new_client: Callable[[], Any]) -> None:
+        planning = Planning(client, new_client)
         client.cookies.set("language", "fr")
 
-        page = html.unescape(schedule_page(client, planning.slug))
+        page = schedule_page(client, planning.slug)
 
-        for screen, rest in [
-            ("Mes disponibilités", "availability"),
-            ("Membres", "members"),
-            ("Réglages du planning", "settings"),
-        ]:
-            assert re.search(
-                rf'<a[^>]*href="/association/{planning.slug}/{rest}"[^>]*>\s*{screen}\s*</a>', page
-            )
+        assert [name for name, _ in header_tabs(page)] == [
+            "Planning",
+            "Mes disponibilités",
+            "Créneaux",
+            "Association",
+        ]
+        assert current_tabs(page) == ["Planning"]
 
     # /core/ui/access/signed-out
     def test_signed_out_shows_sign_in(self, client: Any, new_client: Callable[[], Any]) -> None:

@@ -9,7 +9,16 @@ import pytest
 
 from tests.conftest import clock
 from tests.core.conftest import delete_association, unique_slug
-from tests.page import buttons_named, dialog_named, dialog_opened_by, parse
+from tests.page import (
+    buttons_named,
+    current_tabs,
+    dialog_named,
+    dialog_opened_by,
+    header_path,
+    header_path_links,
+    header_tabs,
+    parse,
+)
 from tests.planning.conftest import (
     GENERIC,
     MONTHS,
@@ -228,31 +237,39 @@ class TestMyPreferences:
 class TestMyAvailabilityHeader:
     # /core/ui/header/location
     # /core/ui/header/menu
-    def test_shows_the_association_name_then_my_availability(
+    def test_shows_the_path_from_my_associations_to_the_association(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
 
-        header = text_of(part(availability_page(planning.bruno_client, planning.slug), "header"))
+        page = availability_page(planning.bruno_client, planning.slug)
 
-        assert NAME in header
-        assert header.index("My availability") > header.index(NAME)
-        assert "Bruno" in header
+        assert header_path(page) == ["My associations", NAME]
+        assert header_path_links(page) == {
+            "My associations": "/",
+            NAME: f"/association/{planning.slug}",
+        }
+        assert "Bruno" in text_of(part(page, "header"))
 
-    # /core/ui/header/association-link
-    def test_the_association_name_leads_to_its_schedule(
+    # /core/ui/header/tabs
+    def test_shows_the_tabs_with_my_availability_current(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
+        here = f"/association/{planning.slug}"
 
-        header = html.unescape(part(availability_page(client, planning.slug), "header"))
+        page = availability_page(client, planning.slug)
 
-        assert re.search(
-            rf'<a[^>]*href="/association/{planning.slug}"[^>]*>\s*{NAME}\s*</a>', header
-        )
+        assert header_tabs(page) == [
+            ("Schedule", here),
+            ("My availability", f"{here}/availability"),
+            ("Slots", f"{here}/settings"),
+            ("Association", f"{here}/members"),
+        ]
+        assert current_tabs(page) == ["My availability"]
 
     # /core/ui/header/title
-    def test_the_location_stands_for_the_title(
+    def test_the_path_and_tabs_stand_for_the_title(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
@@ -263,17 +280,17 @@ class TestMyAvailabilityHeader:
         assert "My availability" not in main
         assert NAME not in main
 
-    # /core/ui/header/location
-    # /planning/ui/my-availability/french
-    def test_in_french_the_screen_is_mes_disponibilites(
+    # /core/ui/header/tabs
+    # /core/ui/header/language
+    def test_in_french_the_tab_is_mes_disponibilites(
         self, client: Any, new_client: Callable[[], Any]
     ) -> None:
         planning = Planning(client, new_client)
         client.cookies.set("language", "fr")
 
-        header = text_of(part(availability_page(client, planning.slug), "header"))
+        page = availability_page(client, planning.slug)
 
-        assert "Mes disponibilités" in header
+        assert current_tabs(page) == ["Mes disponibilités"]
 
 
 class TestUnknownAssociation:

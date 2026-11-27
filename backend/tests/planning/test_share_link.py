@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from tests.conftest import clock
-from tests.page import buttons_named, dialog_named, dialog_opened_by
+from tests.page import buttons_named, dialog_named, dialog_opened_by, header_path, header_tabs
 from tests.planning.conftest import (
     GENERIC,
     Planning,
@@ -426,7 +426,7 @@ class TestSharedSchedule:
             page = html.unescape(shared(as_client, token))
             assert f"/association/{planning.slug}" not in page
             main = text_of(part(page, "main"))
-            for screen in ("My availability", "Members", "Schedule settings", "Sign up"):
+            for screen in ("My availability", "Slots", "Association", "Sign up"):
                 assert screen not in main
 
     # /planning/ui/shared-schedule/shown
@@ -459,6 +459,18 @@ class TestSharedSchedule:
 
 
 class TestSharedScheduleHeader:
+    # /core/ui/header/shared
+    def test_signed_in_or_not_it_shows_the_name_alone_without_tabs(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        planning = Planning(client, new_client)
+        token = shared_token(planning)
+
+        for as_client in (new_client(), client):
+            page = shared(as_client, token)
+            assert header_tabs(page) == []
+            assert header_path(page) == [NAME]
+
     # /core/ui/header/shared
     def test_shows_the_association_name_leading_nowhere_and_the_language_selector(
         self, client: Any, new_client: Callable[[], Any]

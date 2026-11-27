@@ -16,9 +16,18 @@ from tests.core.conftest import (
     unique_email,
     unique_slug,
 )
-from tests.page import part, text_of
+from tests.page import (
+    header_path,
+    header_path_links,
+    header_tabs,
+    parse,
+    part,
+    text_of,
+)
 
 NAME = "Jardin partagé des Lilas"
+SCHEDULE_LINK = "Schedule \N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}"
+SCHEDULE_LINK_FR = "Planning \N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}"
 GENERIC = "Something went wrong. Try again."
 MALFORMED_EN = (
     "Use only lowercase letters, digits and hyphens, starting and ending with a letter or a digit."
@@ -122,6 +131,37 @@ class TestMyAssociations:
 
         assert re.search(rf'<a[^>]*href="/association/{slug}"[^>]*>\s*{NAME}\s*</a>', page)
 
+    # /home/ui/my-associations/list
+    def test_each_association_has_a_schedule_link_to_its_schedule(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        alice = sign_up(client, "Alice")
+        mine = create_association(client, NAME, unique_slug())
+        bruno = new_client()
+        sign_up(bruno, "Bruno", unique_email("Bruno"))
+        theirs = create_association(bruno, "Repair Café Belleville", unique_slug())
+        add_member(bruno, theirs["slug"], "Alice", alice["email"])
+
+        page = my_associations(client)
+
+        for association, name in ((mine, NAME), (theirs, "Repair Café Belleville")):
+            item = next(i for i in parse(part(page, "main")).elements("li") if name in i.text)
+            links = {a.text: a.get("href") for a in item.elements("a")}
+            assert links[SCHEDULE_LINK] == f"/association/{association['slug']}"
+
+    # /home/ui/my-associations/list
+    # /core/ui/header/language
+    def test_the_schedule_link_follows_the_language(self, client: Any) -> None:
+        sign_up(client, "Alice")
+        association = create_association(client, NAME, unique_slug())
+        client.cookies.set("language", "fr")
+
+        page = my_associations(client)
+
+        item = next(i for i in parse(part(page, "main")).elements("li") if NAME in i.text)
+        links = {a.text: a.get("href") for a in item.elements("a")}
+        assert links[SCHEDULE_LINK_FR] == f"/association/{association['slug']}"
+
     # /home/ui/my-associations/none
     def test_with_no_association_shows_the_message(self, client: Any) -> None:
         sign_up(client, "Alice")
@@ -200,11 +240,20 @@ class TestNewAssociationScreen:
     ) -> None:
         sign_up(client, "Alice")
 
-        header = part(new_association(client), "header")
+        page = new_association(client)
 
-        assert re.search(r'<a[^>]*href="/"[^>]*>\s*My associations\s*</a>', header)
-        assert "New association" in text_of(header)
-        assert "Alice" in header
+        assert header_path(page) == ["My associations", "New association"]
+        assert header_path_links(page) == {"My associations": "/"}
+        assert "Alice" in part(page, "header")
+
+    # /core/ui/header/tabs
+    def test_shows_no_tabs(self, client: Any) -> None:
+        sign_up(client, "Alice")
+
+        page = new_association(client)
+
+        assert header_tabs(page) == []
+        assert header_path(page) == ["My associations", "New association"]
 
     # /core/ui/header/title
     # /core/ui/new-association/form

@@ -61,7 +61,10 @@ async function openScreen(page: Page, request: APIRequestContext, screen: string
     open: async () => {
       await page.goto(`/association/${slug}${screen}`)
       await datastarReady(page)
-      if (header) await expect(page.locator('header').getByText(header)).toBeVisible()
+      if (header)
+        await expect(
+          page.locator('header nav').getByRole('link', { name: header, exact: true }),
+        ).toHaveAttribute('aria-current', 'page')
     },
   }
 }
@@ -76,7 +79,7 @@ test.describe('Changed identifier: Members', () => {
     page,
     request,
   }) => {
-    const { slug, open } = await openScreen(page, request, '/members', 'Members')
+    const { slug, open } = await openScreen(page, request, '/members', 'Association')
     await open()
     await changeIdentifierElsewhere(page, slug)
 
@@ -95,7 +98,7 @@ test.describe('Changed identifier: Members', () => {
     page,
     request,
   }) => {
-    const { slug, open } = await openScreen(page, request, '/members', 'Members')
+    const { slug, open } = await openScreen(page, request, '/members', 'Association')
     await open()
     await changeIdentifierElsewhere(page, slug)
 
@@ -113,7 +116,7 @@ test.describe('Changed identifier: Members', () => {
     page,
     request,
   }) => {
-    const { slug, open } = await openScreen(page, request, '/members', 'Members')
+    const { slug, open } = await openScreen(page, request, '/members', 'Association')
     await open()
     await changeIdentifierElsewhere(page, slug)
     const next = uniqueSlug()
@@ -138,7 +141,7 @@ test.describe('Changed identifier: Members', () => {
     page,
     request,
   }) => {
-    const { slug, open } = await openScreen(page, request, '/members', 'Members')
+    const { slug, open } = await openScreen(page, request, '/members', 'Association')
     await open()
     const current = await changeIdentifierElsewhere(page, slug)
 
@@ -162,7 +165,7 @@ test.describe('Changed identifier: Members', () => {
     page,
     request,
   }) => {
-    const { slug, open } = await openScreen(page, request, '/members', 'Members')
+    const { slug, open } = await openScreen(page, request, '/members', 'Association')
     await open()
     await changeIdentifierElsewhere(page, slug)
 
@@ -182,7 +185,7 @@ test.describe('Changed identifier: Members', () => {
     request,
     browser,
   }) => {
-    const { slug, open } = await openScreen(page, request, '/members', 'Members')
+    const { slug, open } = await openScreen(page, request, '/members', 'Association')
     const bruno = uniqueEmail('Bruno')
     await addMember(page.request, slug, 'Bruno', bruno, 'manager')
     const brunoContext = await browser.newContext()
@@ -222,7 +225,7 @@ test.describe('Changed identifier: Schedule settings', () => {
     page,
     request,
   }) => {
-    const { slug, open } = await openScreen(page, request, '/settings', 'Schedule settings')
+    const { slug, open } = await openScreen(page, request, '/settings', 'Slots')
     await open()
     await changeIdentifierElsewhere(page, slug)
 
@@ -385,7 +388,7 @@ test.describe('Changed identifier: My associations', () => {
 test.describe('Changed identifier: Members, the edit dialog', () => {
   /** Alice opens Members, where Chloé volunteers, then another tab changes the identifier. */
   async function openMembers(page: Page, request: APIRequestContext, withLink = false) {
-    const { slug, open } = await openScreen(page, request, '/members', 'Members')
+    const { slug, open } = await openScreen(page, request, '/members', 'Association')
     await addMember(page.request, slug, 'Chloé', uniqueEmail('Chloe'))
     if (withLink) {
       const chloe = await userIdOf(page.request, slug, 'Chloé')
@@ -489,7 +492,7 @@ test.describe('Changed identifier: Schedule settings, its dialogs', () => {
     request: APIRequestContext,
     setup: { period?: boolean; closure?: boolean; link?: boolean } = {},
   ) {
-    const { slug, open } = await openScreen(page, request, '/settings', 'Schedule settings')
+    const { slug, open } = await openScreen(page, request, '/settings', 'Slots')
     if (setup.period) await setPeriod(page.request, slug, '2037-01-05', '2037-01-25')
     if (setup.closure) await addClosure(page.request, slug, '2037-11-14', '2037-11-14', 'Fête')
     if (setup.link) {
@@ -726,7 +729,7 @@ test.describe('Changed identifier: Schedule settings, a slot and a preference', 
   /** Alice opens Schedule settings with a Thursday slot and Bruno as volunteer, then another tab
    * changes the identifier. */
   async function openSettings(page: Page, request: APIRequestContext) {
-    const { slug, open } = await openScreen(page, request, '/settings', 'Schedule settings')
+    const { slug, open } = await openScreen(page, request, '/settings', 'Slots')
     await addSlot(page.request, slug, 'thursday', '10:00', '13:00')
     await addMember(page.request, slug, 'Bruno', uniqueEmail('Bruno'))
     await open()

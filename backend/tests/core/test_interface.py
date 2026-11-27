@@ -15,7 +15,7 @@ from tests.core.conftest import (
     unique_email,
     unique_slug,
 )
-from tests.page import part
+from tests.page import header_path, header_path_links, header_tabs, part
 
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 
@@ -40,8 +40,18 @@ class TestHeader:
 
         page = client.get("/").text
 
-        assert "My associations" in part(page, "header")
+        assert header_path(page) == ["My associations"]
+        assert header_path_links(page) == {"My associations": "/"}
         assert "My associations" not in part(page, "main")
+
+    # /core/ui/header/tabs
+    def test_my_associations_shows_no_tabs(self, client: Any) -> None:
+        sign_up(client, "Alice")
+
+        page = client.get("/").text
+
+        assert header_tabs(page) == []
+        assert header_path(page) == ["My associations"]
 
     # /core/ui/header/menu
     def test_the_menu_has_the_language_selector_revoke_delete_my_account_and_sign_out(

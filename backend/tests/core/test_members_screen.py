@@ -36,7 +36,17 @@ from tests.core.conftest import (
     unique_email,
     unique_slug,
 )
-from tests.page import dialog_named, dialogs_named, lines_of, part, text_of
+from tests.page import (
+    current_tabs,
+    dialog_named,
+    dialogs_named,
+    header_path,
+    header_path_links,
+    header_tabs,
+    lines_of,
+    part,
+    text_of,
+)
 
 NAME = "Jardin partagé des Lilas"
 GENERIC = "Something went wrong. Try again."
@@ -240,7 +250,7 @@ class TestMembers:
 
         page = members_page(client, association["slug"])
 
-        assert "Membres" in part(page, "header")
+        assert header_path(page)[0] == "Mes associations"
         assert "responsable" in line_of(page, "Alice").lower()
         assert "bénévole" in line_of(page, "Chloé").lower()
         assert "pas encore connecté·e" in line_of(page, "Chloé")
@@ -260,45 +270,86 @@ class TestMembers:
 class TestMembersHeader:
     # /core/ui/header/location
     # /core/ui/header/menu
-    def test_shows_the_association_name_then_members(self, client: Any) -> None:
+    def test_shows_the_path_from_my_associations_to_the_association(self, client: Any) -> None:
         association = managed(client)
 
-        header = text_of(part(members_page(client, association["slug"]), "header"))
+        page = members_page(client, association["slug"])
 
-        assert NAME in header
-        assert header.index("Members") > header.index(NAME)
-        assert "Alice" in header
+        assert header_path(page) == ["My associations", NAME]
+        assert "Alice" in text_of(part(page, "header"))
 
-    # /core/ui/header/association-link
-    def test_the_association_name_leads_to_its_schedule(self, client: Any) -> None:
+    # /core/ui/header/location
+    def test_the_path_leads_to_my_associations_and_the_association_schedule(
+        self, client: Any
+    ) -> None:
         association = managed(client)
 
-        header = html.unescape(part(members_page(client, association["slug"]), "header"))
+        page = members_page(client, association["slug"])
 
-        assert re.search(
-            rf'<a[^>]*href="/association/{association["slug"]}"[^>]*>\s*{NAME}\s*</a>', header
-        )
+        assert header_path_links(page) == {
+            "My associations": "/",
+            NAME: f"/association/{association['slug']}",
+        }
+
+    # /core/ui/header/tabs
+    def test_shows_the_tabs_of_the_association_with_association_current(self, client: Any) -> None:
+        association = managed(client)
+        here = f"/association/{association['slug']}"
+
+        page = members_page(client, association["slug"])
+
+        assert header_tabs(page) == [
+            ("Schedule", here),
+            ("My availability", f"{here}/availability"),
+            ("Slots", f"{here}/settings"),
+            ("Association", f"{here}/members"),
+        ]
+        assert current_tabs(page) == ["Association"]
+
+    # /core/ui/header/tabs
+    def test_a_volunteer_has_the_same_tabs(
+        self, client: Any, new_client: Callable[[], Any]
+    ) -> None:
+        association, bruno = with_volunteer(client, new_client)
+
+        page = members_page(bruno, association["slug"])
+
+        assert [name for name, _ in header_tabs(page)] == [
+            "Schedule",
+            "My availability",
+            "Slots",
+            "Association",
+        ]
+        assert current_tabs(page) == ["Association"]
 
     # /core/ui/header/title
-    def test_the_location_stands_for_the_title(self, client: Any) -> None:
+    def test_the_path_and_tabs_stand_for_the_title(self, client: Any) -> None:
         association = managed(client)
 
         main = part(members_page(client, association["slug"]), "main")
         shown_in_main = text_of(main)
 
         assert "Add a member" in shown_in_main
-        assert "Members" not in shown_in_main
+        assert "Association" not in shown_in_main
         assert NAME not in shown_in_main
 
     # /core/ui/header/location
+    # /core/ui/header/tabs
     # /core/ui/header/language
     def test_follows_the_language(self, client: Any) -> None:
         association = managed(client)
         client.cookies.set("language", "fr")
 
-        header = text_of(part(members_page(client, association["slug"]), "header"))
+        page = members_page(client, association["slug"])
 
-        assert "Membres" in header
+        assert header_path(page) == ["Mes associations", NAME]
+        assert [name for name, _ in header_tabs(page)] == [
+            "Planning",
+            "Mes disponibilités",
+            "Créneaux",
+            "Association",
+        ]
+        assert current_tabs(page) == ["Association"]
 
 
 class TestNotJoinedYet:
@@ -473,6 +524,17 @@ class TestUnknownAssociation:
         assert UNKNOWN in main
         assert re.search(r'<a[^>]*href="/"[^>]*>\s*My associations\s*</a>', main)
         assert "Page not found" not in response.text
+
+    # /core/ui/header/location
+    # /core/ui/header/tabs
+    def test_the_header_shows_my_associations_alone_without_tabs(self, client: Any) -> None:
+        sign_up(client, "Alice")
+
+        page = client.get(f"/association/{unique_slug()}/members").text
+
+        assert header_path(page) == ["My associations"]
+        assert header_path_links(page) == {"My associations": "/"}
+        assert header_tabs(page) == []
 
     # /core/ui/unknown-association/shown
     def test_an_association_of_others_says_so(
@@ -1414,7 +1476,7 @@ class TestRenamingTheAssociation:
         assert NEW_NAME in client.get("/").text
 
     # /core/ui/members/renamed
-    # /core/ui/header/association-link
+    # /core/ui/header/location
     def test_updates_the_header_at_once(self, client: Any) -> None:
         association = managed(client)
 

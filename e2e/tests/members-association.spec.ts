@@ -14,7 +14,9 @@ async function openMembers(page: Page, request: APIRequestContext) {
   const slug = await createAssociation(page.request, NAME)
   await page.goto(`/association/${slug}/members`)
   await datastarReady(page)
-  await expect(page.locator('header').getByText('Members')).toBeVisible()
+  await expect(
+    page.locator('header nav').getByRole('link', { name: 'Association', exact: true }),
+  ).toHaveAttribute('aria-current', 'page')
   return slug
 }
 
@@ -243,7 +245,9 @@ test.describe('Members: Change the association identifier', () => {
 
     await expect(page).toHaveURL(new RegExp(`/association/${slug}/members$`))
     await expect(page.getByText(`The association identifier is now ${slug}.`)).toBeVisible()
-    await expect(page.locator('header').getByText('Members')).toBeVisible()
+    await expect(
+      page.locator('header nav').getByRole('link', { name: 'Association', exact: true }),
+    ).toHaveAttribute('aria-current', 'page')
     await expect(page.getByRole('dialog')).toHaveCount(0)
   })
 
@@ -303,7 +307,9 @@ test.describe('Members: Change the association identifier', () => {
     await page.reload()
     await datastarReady(page)
     await expect(page).toHaveURL(new RegExp(`/association/${slug}/members$`))
-    await expect(page.locator('header').getByText('Members')).toBeVisible()
+    await expect(
+      page.locator('header nav').getByRole('link', { name: 'Association', exact: true }),
+    ).toHaveAttribute('aria-current', 'page')
   })
 
   // /ui/forms/failure
@@ -426,7 +432,9 @@ test.describe('Members: Delete the association', () => {
     await expect(confirmation).toBeHidden()
     await page.goto(`/association/${slug}/members`)
     await datastarReady(page)
-    await expect(page.locator('header').getByText('Members')).toBeVisible()
+    await expect(
+      page.locator('header nav').getByRole('link', { name: 'Association', exact: true }),
+    ).toHaveAttribute('aria-current', 'page')
   })
 
   // /ui/forms/failure

@@ -27,7 +27,9 @@ async function openAvailability(
   if (setup.note !== undefined) await saveNote(page.request, slug, setup.note)
   await page.goto(`/association/${slug}/availability`)
   await datastarReady(page)
-  await expect(page.locator('header').getByText('My availability')).toBeVisible()
+  await expect(
+    page.locator('header nav').getByRole('link', { name: 'My availability', exact: true }),
+  ).toHaveAttribute('aria-current', 'page')
   return slug
 }
 

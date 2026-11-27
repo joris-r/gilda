@@ -71,7 +71,7 @@ async function openSchedule(page: Page, association: string) {
 
 /** Opens Members from the Schedule, by its link. */
 async function openMembers(page: Page) {
-  await follow(page.getByRole('link', { name: 'Members', exact: true }))
+  await follow(page.getByRole('link', { name: 'Association', exact: true }))
   await expect(page).toHaveURL(/\/members$/)
 }
 
@@ -154,11 +154,11 @@ test.describe('Scenarios', () => {
     await test.step('1. Alice adds the slots and a closure', async () => {
       await signUp(page, 'Alice', alice)
       await createAssociation(page, association)
-      await follow(page.getByRole('link', { name: 'Members', exact: true }))
+      await follow(page.getByRole('link', { name: 'Association', exact: true }))
       await addMember(page, 'Chloé', chloe, 'Volunteer')
       await addMember(page, 'David', david, 'Volunteer')
       await follow(page.locator('header').getByRole('link', { name: association }))
-      await follow(page.getByRole('link', { name: 'Schedule settings', exact: true }))
+      await follow(page.getByRole('link', { name: 'Slots', exact: true }))
 
       const slotForm = page.getByRole('dialog', { name: 'Add a slot' })
       for (const weekday of ['Thursday', 'Saturday']) {
@@ -342,7 +342,7 @@ test.describe('Scenarios', () => {
     await test.step('1. Alice adds the slot Thursday 10–13 and signs up for it', async () => {
       await signUp(page, 'Alice', alice)
       await createAssociation(page, association)
-      await follow(page.getByRole('link', { name: 'Schedule settings', exact: true }))
+      await follow(page.getByRole('link', { name: 'Slots', exact: true }))
       await page.getByRole('button', { name: 'Add a slot' }).click()
       const slotForm = page.getByRole('dialog', { name: 'Add a slot' })
       await slotForm.getByRole('combobox', { name: /^Day/ }).selectOption({ label: 'Thursday' })
@@ -360,7 +360,7 @@ test.describe('Scenarios', () => {
 
     await test.step('2. Alice creates a share link and copies it', async () => {
       await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-      await follow(page.getByRole('link', { name: 'Schedule settings', exact: true }))
+      await follow(page.getByRole('link', { name: 'Slots', exact: true }))
       await page.getByRole('button', { name: 'Create a share link' }).click()
       await page.getByRole('button', { name: 'Copy', exact: true }).click()
       await expect(page.getByText('Link copied.')).toBeVisible()
@@ -379,7 +379,7 @@ test.describe('Scenarios', () => {
     await test.step('4. Alice revokes the share link', async () => {
       await signIn(page, alice)
       await openSchedule(page, association)
-      await follow(page.getByRole('link', { name: 'Schedule settings', exact: true }))
+      await follow(page.getByRole('link', { name: 'Slots', exact: true }))
       await page.getByRole('button', { name: 'Revoke the share link' }).click()
       await page.getByRole('button', { name: 'Revoke', exact: true }).click()
       await expect(page.getByRole('button', { name: 'Copy', exact: true })).toBeHidden()
