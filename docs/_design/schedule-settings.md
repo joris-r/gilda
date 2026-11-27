@@ -3,7 +3,9 @@
 As a manager:
 
 ```
-(logo)  Jardin partagé des Lilas › Schedule settings       Alice ▾
+(logo)  My associations › Jardin partagé des Lilas          Alice ▾
+        Schedule   My availability   Slots   Association
+                                     ═════
 
 PLANNING PERIOD
   Mon 2 Nov 2026 – Wed 25 Nov 2026                      ✎  🗑
@@ -50,7 +52,9 @@ Members' preferences
 As a volunteer:
 
 ```
-(logo)  Jardin partagé des Lilas › Schedule settings       Chloé ▾
+(logo)  My associations › Jardin partagé des Lilas          Chloé ▾
+        Schedule   My availability   Slots   Association
+                                     ═════
 
 PLANNING PERIOD
   Mon 2 Nov 2026 – Wed 25 Nov 2026

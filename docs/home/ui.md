@@ -7,8 +7,9 @@ At `/`, signed in; mockups in `_design/my-associations.md`. It shows
 
 Shows:
 - [list] Each association, by name as /ui/name-order: its name,
-  leading to its Schedule, and the user's role there, "MANAGER" or
-  "VOLUNTEER"; then its summary.
+  leading to its Schedule, the user's role there, "MANAGER" or
+  "VOLUNTEER", and "Schedule ›", in French "Planning ›", leading to its
+  Schedule; then its summary.
 - [none] With no association: "You are not a member of any association
   yet."
 - [new] Below the list, "+ New association", leading to

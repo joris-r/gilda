@@ -2,7 +2,11 @@
 
 - The interface follows the browser's light or dark preference.
 - The accent colour is orange.
-- Header: a long location is shortened on a narrow screen.
+- Header: it stays at the top of the window as the page scrolls.
+- Header: a long path is shortened on a narrow screen; there, the tabs
+  scroll sideways, the current tab in view.
+- My associations: an association's name looks like a link, and
+  "Schedule ›" like a button.
 - Forms: on a narrow screen, a dialog spans the screen's width at its
   bottom.
 - Forms: a "+" link to a form on its own page looks like a button.

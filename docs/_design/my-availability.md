@@ -1,7 +1,9 @@
 # My availability
 
 ```
-(logo)  Jardin partagé des Lilas › My availability        Alice ▾
+(logo)  My associations › Jardin partagé des Lilas          Alice ▾
+        Schedule   My availability   Slots   Association
+                   ═══════════════
 
 MY PREFERENCES
   Thursday   10:00–13:00   [Preferred ▾]

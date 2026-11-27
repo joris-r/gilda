@@ -1,7 +1,7 @@
 # New association
 
 ```
-(logo)  My associations › New association                  Alice ▾
+(logo)  My associations › New association                   Alice ▾
 
   Name                    [Repair Café Belleville  ]
   Association identifier  /association/[repair-cafe-belleville  ]

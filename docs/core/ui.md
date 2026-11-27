@@ -14,19 +14,22 @@ On every page; mockup in `_design/header.md`.
 
 Shows:
 - [logo] the logo, leading to `/` (not testable);
-- [location] signed in, to the right of the logo, where the user is:
-  - My associations: "My associations";
-  - Schedule: the association's name;
-  - Members, Schedule settings, My availability: the association's
-    name, then the screen's name;
-  - New association: "My associations", leading to `/`, then "New
-    association";
-  - Unknown association: "My associations", leading to `/`.
-- [association-link] The association's name leads to its Schedule.
+- [location] signed in, to the right of the logo, the path to where
+  the user is: "My associations", leading to `/`, then:
+  - My associations, Unknown association: nothing more;
+  - Schedule, My availability, Schedule settings, Members: the
+    association's name, leading to its Schedule;
+  - New association: "New association".
+- [tabs] On Schedule, My availability, Schedule settings and Members,
+  under the path: "Schedule", "My availability", "Slots" and
+  "Association", in French "Planning", "Mes disponibilités",
+  "Créneaux" and "Association", leading to those screens; the current
+  screen's tab is highlighted.
 - [shared] On Shared schedule, signed in or not: the association's
-  name, leading nowhere, and the language selector alone at its right.
-- [title] Signed in, the location stands for the screen's title;
-  screens have no back link.
+  name, leading nowhere, and the language selector alone at its right;
+  no tabs.
+- [title] Signed in, the path and the tabs stand for the screen's
+  title; screens have no back link.
 - [menu] Signed in, at the right, the user's display name, opening a
   menu with the language selector, "Revoke my sign-in link" when the
   user has an AccessLink, "Delete my account" and "Sign out".

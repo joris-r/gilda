@@ -3,7 +3,9 @@
 As a manager:
 
 ```
-(logo)  Jardin partagé des Lilas › Members                 Alice ▾
+(logo)  My associations › Jardin partagé des Lilas          Alice ▾
+        Schedule   My availability   Slots   Association
+                                             ═══════════
 
                                                   [+ Add a member]
   Alice                                        MANAGER   ✎
@@ -74,7 +76,9 @@ place, in the list's order.
 As a volunteer:
 
 ```
-(logo)  Jardin partagé des Lilas › Members                 Chloé ▾
+(logo)  My associations › Jardin partagé des Lilas          Chloé ▾
+        Schedule   My availability   Slots   Association
+                                             ═══════════
 
   Alice                                        MANAGER
   alice@example.org

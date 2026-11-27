@@ -3,8 +3,9 @@
 Wide screen:
 
 ```
-(logo)  Jardin partagé des Lilas                           Alice ▾
-                      My availability  Members  Schedule settings
+(logo)  My associations › Jardin partagé des Lilas          Alice ▾
+        Schedule   My availability   Slots   Association
+        ════════
 
 Week 43
        Thu 22 Oct        Sat 24 Oct
@@ -61,8 +62,9 @@ An obsolete registration, in place of its occurrence:
 No occurrence in the shown weeks:
 
 ```
-(logo)  Jardin partagé des Lilas                           Alice ▾
-                      My availability  Members  Schedule settings
+(logo)  My associations › Jardin partagé des Lilas          Alice ▾
+        Schedule   My availability   Slots   Association
+        ════════
 
 No openings in these weeks.
 

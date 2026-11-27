@@ -5,8 +5,6 @@
 At `/association/<slug>/settings`; mockup in
 `_design/schedule-settings.md`.
 
-- [french] In French, the screen is "Réglages du planning".
-
 Shows, top to bottom:
 - [period] PLANNING PERIOD: its dates, or "None".
 - [closures] CLOSURES: the closures ending today or later, each with
@@ -138,9 +136,9 @@ Shows, top to bottom:
 - [note] NOTE FOR THE MANAGERS: the note.
 - [none] With no slot, no absence shown or an empty note, the section
   shows "None".
-- [french] In French: "Mes disponibilités", "Mes préférences",
-  "Préféré", "Possible", "Indisponible", "Absences", "Ajouter une
-  absence", "Note pour les responsables".
+- [french] In French: "Mes préférences", "Préféré", "Possible",
+  "Indisponible", "Absences", "Ajouter une absence", "Note pour les
+  responsables".
 
 Actions:
 - [set] Choosing a value saves it at once, running
@@ -182,8 +180,6 @@ Actions:
 At `/association/<slug>`; mockups in `_design/schedule.md`.
 
 Shows:
-- [links] "My availability", "Members" and "Schedule settings",
-  leading to those screens.
 - [weeks] The weeks of /planning/operations/get-schedule/default, each
   titled "Week <number>", then "More weeks".
 - [empty] With no occurrence and no obsolete registration in the shown

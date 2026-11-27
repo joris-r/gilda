@@ -60,3 +60,5 @@ What the software gets wrong today, against the specification or the user.
 - Defensive guards no specified path reaches (core/planning/home re-checks, 'Give a name or a slug.', 'Give both from and to, or neither.', preference refusals, registration back to proposed, take-over error without the flag): keep or remove as dead code.
 - Register: settle a `replacing` registration of another association (today ignored, not refused).
 - Settle whether an unknown user id is malformed or not a member, and fix the variants of the Register not-member test.
+- Name the screens shown as "Slots" and "Association" so in the specification (sections "Schedule settings" and "Members", their mockups and test citations), and their URLs (`/settings`, `/members`) too.
+- Header: specify the path a signed-in user sees on the access pages (Sign-in link, Forgot password, Create an account, Confirm email, Reset password, Access link).
