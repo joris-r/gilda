@@ -3,6 +3,7 @@
   {% set here = "/association/" ~ association.slug %}
   <a class="name" href="{{ here }}">{{ association.name }}</a>
   <span class="role {{ association.role }}">{{ t("roles." ~ association.role) }}</span>
+  <a class="button open-schedule" href="{{ here }}">{{ t("myAssociations.openSchedule") }}</a>
   <div class="summary">
     {% if association.obsolete or association.upcoming %}
     <ul class="registrations">

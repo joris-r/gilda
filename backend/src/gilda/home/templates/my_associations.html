@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 {% block header_actions %}{% include "user_menu.html" %}{% endblock %}
-{% block location %}<h1 class="where">{{ t("myAssociations.title") }}</h1>{% endblock %}
+{% block location %}<h1 class="where"><a href="/">{{ t("myAssociations.title") }}</a></h1>{% endblock %}
 {% block main %}
 {% if associations %}
 <ul class="list cards">

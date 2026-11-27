@@ -85,10 +85,10 @@
     "obsolete": ": this slot no longer takes place.",
     "acknowledge": "OK",
     "noRegistrationInPeriod": "No registration yet for the planning period, {dates}.",
-    "chooseSlots": "Choose your slots"
+    "chooseSlots": "Choose your slots",
+    "openSchedule": "Schedule ›"
   },
   "association": {
-    "members": "Members",
     "confirm": "Confirm",
     "roleChanged": "{name} is now {role}.",
     "lastManager": "An association keeps at least one manager.",
@@ -198,7 +198,6 @@
     }
   },
   "settings": {
-    "title": "Schedule settings",
     "slots": "Slots",
     "noSlots": "None",
     "day": "Day",
@@ -252,7 +251,6 @@
     "revokeAction": "Revoke"
   },
   "availability": {
-    "title": "My availability",
     "preferences": "My preferences",
     "noSlots": "None",
     "absences": "Absences",
@@ -314,5 +312,12 @@
   "account": {
     "delete": "Delete my account",
     "confirmDelete": "Delete your account? You leave all your associations and your upcoming registrations are cancelled. This cannot be undone."
+  },
+  "tabs": {
+    "label": "Association screens",
+    "schedule": "Schedule",
+    "availability": "My availability",
+    "slots": "Slots",
+    "association": "Association"
   }
 }

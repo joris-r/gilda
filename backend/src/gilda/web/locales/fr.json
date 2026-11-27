@@ -85,10 +85,10 @@
     "obsolete": " : ce créneau n'a plus lieu.",
     "acknowledge": "OK",
     "noRegistrationInPeriod": "Aucune inscription pour la période de planning, {dates}.",
-    "chooseSlots": "Choisir mes créneaux"
+    "chooseSlots": "Choisir mes créneaux",
+    "openSchedule": "Planning ›"
   },
   "association": {
-    "members": "Membres",
     "confirm": "Confirmer",
     "roleChanged": "{name} est maintenant {role}.",
     "lastManager": "Une association garde au moins un responsable.",
@@ -198,7 +198,6 @@
     }
   },
   "settings": {
-    "title": "Réglages du planning",
     "slots": "Créneaux",
     "noSlots": "Aucun",
     "day": "Jour",
@@ -252,7 +251,6 @@
     "revokeAction": "Révoquer"
   },
   "availability": {
-    "title": "Mes disponibilités",
     "preferences": "Mes préférences",
     "noSlots": "Aucun",
     "absences": "Absences",
@@ -314,5 +312,12 @@
   "account": {
     "delete": "Supprimer mon compte",
     "confirmDelete": "Supprimer votre compte ? Vous quittez toutes vos associations et vos inscriptions à venir sont annulées. C'est irréversible."
+  },
+  "tabs": {
+    "label": "Écrans de l'association",
+    "schedule": "Planning",
+    "availability": "Mes disponibilités",
+    "slots": "Créneaux",
+    "association": "Association"
   }
 }

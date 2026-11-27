@@ -1,0 +1,8 @@
+{# The header's tabs on an association's screens; `current` names the screen shown. #}
+{% set here = "/association/" ~ association.slug %}
+{# On a narrow screen the tabs scroll sideways: bring the current one into view. #}
+<nav class="tabs" aria-label="{{ t('tabs.label') }}" data-init="el.scrollLeft = el.querySelector('[aria-current]').offsetLeft - el.offsetLeft - 16">
+  {% for name, url in [("schedule", here), ("availability", here ~ "/availability"), ("slots", here ~ "/settings"), ("association", here ~ "/members")] %}
+  <a href="{{ url }}"{% if name == current %} aria-current="page"{% endif %}>{{ t("tabs." ~ name) }}</a>
+  {% endfor %}
+</nav>

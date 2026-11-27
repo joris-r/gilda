@@ -1,13 +1,8 @@
 {% extends "layout.html" %}
 {% block header_actions %}{% include "user_menu.html" %}{% endblock %}
-{% block location %}<p id="location" class="where"><a href="/association/{{ association.slug }}">{{ association.name }}</a></p>{% endblock %}
+{% block location %}{% include "association_location.html" %}{% endblock %}
+{% block tabs %}{% with current = "schedule" %}{% include "association_tabs.html" %}{% endwith %}{% endblock %}
 {% block main %}
-{% set here = "/association/" ~ association.slug %}
-<p class="links">
-  <a href="{{ here }}/availability">{{ t("availability.title") }}</a>
-  <a href="{{ here }}/members">{{ t("association.members") }}</a>
-  <a href="{{ here }}/settings">{{ t("settings.title") }}</a>
-</p>
 {% include "schedule_weeks.html" %}
 <div id="occurrence-menu" class="occurrence-menu" popover>
   <button type="button" class="link menu-close" aria-label="{{ t('schedule.close') }}" popovertarget="occurrence-menu" popovertargetaction="hide">×</button>

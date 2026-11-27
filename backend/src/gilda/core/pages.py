@@ -387,7 +387,7 @@ async def rename_association(
         [
             ServerSentEventGenerator.execute_script("document.getElementById('rename').close()"),
             ServerSentEventGenerator.patch_elements(
-                fragment(request, "members_location.html", association=now)
+                fragment(request, "association_location.html", association=now)
             ),
             ServerSentEventGenerator.patch_elements(
                 fragment(request, "association_actions.html", association=now)

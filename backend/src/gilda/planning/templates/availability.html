@@ -1,7 +1,8 @@
 {% extends "layout.html" %}
 {% from "form_dialog.html" import form_dialog with context %}
 {% block header_actions %}{% include "user_menu.html" %}{% endblock %}
-{% block location %}{% include "availability_location.html" %}{% endblock %}
+{% block location %}{% include "association_location.html" %}{% endblock %}
+{% block tabs %}{% with current = "availability" %}{% include "association_tabs.html" %}{% endwith %}{% endblock %}
 {% block main %}
 {% set availability = "/association/" ~ association.slug ~ "/availability" %}
 {# value is the value of the selector just changed, sent with its request. #}

@@ -1,7 +1,8 @@
 {% extends "layout.html" %}
 {% from "form_dialog.html" import form_dialog with context %}
 {% block header_actions %}{% include "user_menu.html" %}{% endblock %}
-{% block location %}{% include "members_location.html" %}{% endblock %}
+{% block location %}{% include "association_location.html" %}{% endblock %}
+{% block tabs %}{% with current = "association" %}{% include "association_tabs.html" %}{% endwith %}{% endblock %}
 {% block main %}
 {% if association.role == "manager" %}
 {% call form_dialog("add-member", t("association.addMember")) %}

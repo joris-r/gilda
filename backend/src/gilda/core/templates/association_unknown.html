@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block header_actions %}{% include "user_menu.html" %}{% endblock %}
+{% block location %}<p class="where"><a href="/">{{ t("myAssociations.title") }}</a></p>{% endblock %}
 {% block main %}
 <p>{{ t("association.unknown") }}</p>
 <p><a href="/">{{ t("myAssociations.title") }}</a></p>

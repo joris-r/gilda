@@ -59,10 +59,44 @@ a {
 }
 
 .top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  margin-bottom: 28px;
+  margin: -24px -16px 28px;
+  padding: 16px 16px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.tabs {
+  flex-basis: 100%;
+  display: flex;
+  gap: 24px;
+  margin-bottom: -12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+
+.tabs a {
+  padding: 6px 0 8px;
+  color: var(--muted);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+}
+
+.tabs a:hover {
+  color: var(--fg);
+}
+
+.tabs a[aria-current="page"] {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
 }
 
 .where {
@@ -243,6 +277,21 @@ button:disabled {
 
 .name:hover {
   text-decoration: underline;
+}
+
+.list.cards .name {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.list.cards > li > .role {
+  margin-left: auto;
+}
+
+.list.cards .open-schedule {
+  margin-left: 12px;
+  padding: 4px 12px;
+  font-size: 14px;
 }
 
 /* My associations: what concerns the user in each association. */

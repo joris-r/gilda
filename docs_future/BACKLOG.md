@@ -3,7 +3,6 @@
 ## Real use feedback
 
 - it's unclear for volunteer if they need to create an account or ask for password on the first use. Make take would to merge both process.
-- breadcrum miss the homepage first step. Also make it sticky on the screen top
 - auto scroll on the current day on schedule opening
 - improve homepage by seeing more cleary what is coming soon or later 
 - pre-filling in slot creation is painful. Better: initally 9:00-10:00, when start change (+X:+Y) move end by the same amount, on new dialog : repeat previous value
